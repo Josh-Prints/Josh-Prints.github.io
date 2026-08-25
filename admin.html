@@ -416,6 +416,7 @@
     <button class="chip" data-filter="in_progress">In progress</button>
     <button class="chip" data-filter="completed">Completed</button>
     <button class="chip" data-filter="cancelled">Cancelled</button>
+    <button class="chip" data-filter="deleted">Deleted</button>
   </div>
   <main>
     <div id="orders-container"><div class="empty">Loading…</div></div>
@@ -530,9 +531,11 @@
   }
 
   function renderOrders(){
-    const filtered = activeFilter === 'all'
-      ? currentOrders
-      : currentOrders.filter(o => o.status === activeFilter);
+    const filtered = activeFilter === 'deleted'
+      ? currentOrders.filter(o => o.deleted)
+      : activeFilter === 'all'
+        ? currentOrders.filter(o => !o.deleted)
+        : currentOrders.filter(o => !o.deleted && o.status === activeFilter);
 
     if (filtered.length === 0){
       ordersContainer.innerHTML = '<div class="empty">No orders here.</div>';
@@ -567,6 +570,10 @@
           <button class="save-btn" data-id="${order.id}">Save</button>
           <button class="chat-toggle" data-id="${order.id}">💬 Messages</button>
           <button class="chat-toggle copy-link-btn" data-id="${order.id}">🔗 Copy link</button>
+          ${order.deleted
+            ? `<button class="chat-toggle restore-btn" data-id="${order.id}">♻️ Restore</button>`
+            : `<button class="chat-toggle delete-btn" data-id="${order.id}">🗑 Delete</button>`
+          }
         </div>
         <div class="chat-panel" id="chat-panel-${order.id}">
           <div class="chat-messages" id="chat-messages-${order.id}"><div class="chat-empty">Loading…</div></div>
@@ -610,6 +617,14 @@
           prompt('Copy this link:', url.href);
         }
       });
+    });
+
+    // Delete / restore buttons
+    ordersContainer.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => setDeleted(btn.dataset.id, true));
+    });
+    ordersContainer.querySelectorAll('.restore-btn').forEach(btn => {
+      btn.addEventListener('click', () => setDeleted(btn.dataset.id, false));
     });
 
     // Chat toggles
@@ -679,6 +694,26 @@
         renderOrders();
       });
     });
+  }
+
+  async function setDeleted(id, deleted){
+    if (deleted && !confirm('Delete this order? The customer will no longer be able to message you about it.')) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('orders')
+      .update({ deleted })
+      .eq('id', id);
+
+    if (error){
+      alert('Could not update: ' + error.message);
+      return;
+    }
+
+    const idx = currentOrders.findIndex(o => o.id === id);
+    if (idx > -1) currentOrders[idx].deleted = deleted;
+    renderOrders();
   }
 
   function sanitizeFileName(name){
