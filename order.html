@@ -175,6 +175,17 @@
     padding: 20px 0;
   }
 
+  .deleted-notice{
+    text-align: center;
+    color: var(--err);
+    background: rgba(226,84,74,0.1);
+    border: 1px solid rgba(226,84,74,0.3);
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    padding: 14px;
+  }
+
   .composer{
     display: flex;
     flex-direction: column;
@@ -260,7 +271,8 @@
     <div class="card">
       <h2>Messages</h2>
       <div id="messages"></div>
-      <div class="composer">
+      <div id="deleted-notice" class="deleted-notice" style="display:none;">This order has been deleted. Messaging is closed.</div>
+      <div class="composer" id="composer-wrap">
         <textarea id="msg-body" placeholder="Write a message…"></textarea>
         <div class="composer-row">
           <button type="button" class="attach-btn" id="attach-btn">
@@ -348,10 +360,25 @@
   }
 
   function renderOrder(order){
-    document.getElementById('status-pill').className = 'status-pill status-' + order.status;
-    document.getElementById('status-text').textContent = STATUS_LABEL[order.status] || order.status;
+    if (order.deleted){
+      document.getElementById('status-pill').className = 'status-pill status-cancelled';
+      document.getElementById('status-text').textContent = 'Deleted';
+      document.getElementById('quote-amount').textContent = '';
+      document.getElementById('deleted-notice').style.display = 'block';
+      document.getElementById('composer-wrap').style.display = 'none';
+    } else {
+      document.getElementById('deleted-notice').style.display = 'none';
+      document.getElementById('composer-wrap').style.display = 'flex';
+    }
+
+    document.getElementById('status-pill').className = order.deleted
+      ? 'status-pill status-cancelled'
+      : 'status-pill status-' + order.status;
+    document.getElementById('status-text').textContent = order.deleted
+      ? 'Deleted'
+      : (STATUS_LABEL[order.status] || order.status);
     document.getElementById('quote-amount').textContent =
-      order.quote_amount != null ? `$${Number(order.quote_amount).toFixed(2)}` : '';
+      (!order.deleted && order.quote_amount != null) ? `$${Number(order.quote_amount).toFixed(2)}` : '';
 
     document.getElementById('d-name').textContent = order.full_name;
     document.getElementById('d-type').textContent =
