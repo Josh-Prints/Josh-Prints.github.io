@@ -571,21 +571,22 @@
     setBusy(true, 10);
 
     try {
-      // 1. Insert the order row first
-      const { data: inserted, error: insertError } = await supabase
+      // Generate the id client-side so we don't need to read the row back
+      // (customers can't SELECT from orders, only INSERT)
+      const orderId = crypto.randomUUID();
+
+      const { error: insertError } = await supabase
         .from('orders')
         .insert({
+          id: orderId,
           full_name: fullName,
           email: email,
           order_type: orderTypeInput.value,
           notes: notes || null
-        })
-        .select()
-        .single();
+        });
 
       if (insertError) throw insertError;
 
-      const orderId = inserted.id;
       setBusy(true, 40);
 
       // 2. Upload file if provided, then attach it to the order
