@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your order — JoshPrints</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #1b1d1f;
+    --bg-raised: #232628;
+    --grid-line: rgba(242,239,234,0.045);
+    --ink: #f2efea;
+    --ink-dim: #a9adb2;
+    --accent: #ff6a1a;
+    --accent-dim: #ff6a1a33;
+    --ok: #3fa66b;
+    --ok-dim: #3fa66b1f;
+    --warn: #e2b13f;
+    --err: #e2544a;
+    --radius: 10px;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0 / 34px 34px,
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0 / 34px 34px,
+      var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: 100vh;
+  }
+  .wrap{ max-width: 620px; margin: 0 auto; padding: 48px 20px 80px; }
+
+  h1{
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 28px;
+    margin: 0 0 28px;
+  }
+  h1 span{ color: var(--accent); }
+
+  #loading, #not-found{
+    text-align: center;
+    color: var(--ink-dim);
+    font-family: 'JetBrains Mono', monospace;
+    padding: 80px 0;
+  }
+
+  #order-view{ display: none; }
+
+  .card{
+    background: var(--bg-raised);
+    border: 1px solid rgba(242,239,234,0.08);
+    border-radius: var(--radius);
+    padding: 24px 26px;
+    margin-bottom: 18px;
+  }
+
+  .status-row{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .status-pill{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .status-pill .dot{ width: 7px; height: 7px; border-radius: 50%; }
+  .status-new{ background: var(--accent-dim); color: var(--accent); }
+  .status-new .dot{ background: var(--accent); }
+  .status-quoted{ background: rgba(226,177,63,0.14); color: var(--warn); }
+  .status-quoted .dot{ background: var(--warn); }
+  .status-in_progress{ background: rgba(111,168,255,0.14); color: #8fb8ff; }
+  .status-in_progress .dot{ background: #6fa8ff; }
+  .status-completed{ background: var(--ok-dim); color: var(--ok); }
+  .status-completed .dot{ background: var(--ok); }
+  .status-cancelled{ background: rgba(160,164,168,0.14); color: #a0a4a8; }
+  .status-cancelled .dot{ background: #a0a4a8; }
+
+  .quote-amount{
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+  }
+
+  .detail-row{
+    display: flex;
+    justify-content: space-between;
+    padding: 9px 0;
+    border-top: 1px solid rgba(242,239,234,0.07);
+    font-size: 13.5px;
+  }
+  .detail-row:first-of-type{ border-top: none; }
+  .detail-row .label{
+    color: var(--ink-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .detail-row .value{ text-align: right; max-width: 60%; }
+
+  .file-link{
+    display: inline-block;
+    margin-top: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .file-link:hover{ text-decoration: underline; }
+
+  .card h2{
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    margin: 0 0 14px;
+  }
+
+  #messages{
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 420px;
+    overflow-y: auto;
+    margin-bottom: 16px;
+    padding-right: 2px;
+  }
+
+  .msg{
+    max-width: 82%;
+    padding: 10px 13px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    line-height: 1.45;
+  }
+  .msg.customer{
+    align-self: flex-end;
+    background: var(--accent-dim);
+    border: 1px solid rgba(255,106,26,0.3);
+    border-bottom-right-radius: 2px;
+  }
+  .msg.admin{
+    align-self: flex-start;
+    background: var(--bg);
+    border: 1px solid rgba(242,239,234,0.1);
+    border-bottom-left-radius: 2px;
+  }
+  .msg .who{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--ink-dim);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .msg .file-link{ margin-top: 8px; }
+  .msg-empty{
+    text-align: center;
+    color: var(--ink-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    padding: 20px 0;
+  }
+
+  .composer{
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .composer textarea{
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid rgba(242,239,234,0.14);
+    border-radius: 8px;
+    color: var(--ink);
+    padding: 11px 13px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 60px;
+    outline: none;
+  }
+  .composer textarea:focus{ border-color: var(--accent); }
+  .composer-row{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .attach-btn{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-dim);
+    background: none;
+    border: 1px dashed rgba(242,239,234,0.2);
+    border-radius: 6px;
+    padding: 8px 12px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .attach-btn input{
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+  }
+  .attach-name{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: var(--accent);
+  }
+  .send-btn{
+    background: var(--accent);
+    color: #1b1305;
+    border: none;
+    border-radius: 7px;
+    padding: 10px 20px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 13.5px;
+    cursor: pointer;
+  }
+  .send-btn:disabled{ opacity: .6; cursor: default; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Josh<span>Prints</span></h1>
+
+  <div id="loading">Loading your order…</div>
+  <div id="not-found" style="display:none;">Couldn't find that order. Double check the link you were sent.</div>
+
+  <div id="order-view">
+    <div class="card">
+      <div class="status-row">
+        <span class="status-pill" id="status-pill"><span class="dot"></span><span id="status-text"></span></span>
+        <span class="quote-amount" id="quote-amount"></span>
+      </div>
+      <div class="detail-row"><span class="label">Name</span><span class="value" id="d-name"></span></div>
+      <div class="detail-row"><span class="label">Order type</span><span class="value" id="d-type"></span></div>
+      <div class="detail-row" id="d-notes-row"><span class="label">Notes</span><span class="value" id="d-notes"></span></div>
+      <div class="detail-row" id="d-file-row" style="display:none;">
+        <span class="label">File</span>
+        <span class="value"><a href="#" class="file-link" id="d-file-link" target="_blank"></a></span>
+      </div>
+      <div class="detail-row"><span class="label">Submitted</span><span class="value" id="d-created"></span></div>
+    </div>
+
+    <div class="card">
+      <h2>Messages</h2>
+      <div id="messages"></div>
+      <div class="composer">
+        <textarea id="msg-body" placeholder="Write a message…"></textarea>
+        <div class="composer-row">
+          <button type="button" class="attach-btn" id="attach-btn">
+            <span id="attach-label">📎 Attach file</span>
+            <input type="file" id="attach-input">
+          </button>
+          <button type="button" class="send-btn" id="send-btn">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  const SUPABASE_URL = 'https://paycasfatsakidsriwqt.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
+  const BUCKET = 'order-files';
+  const POLL_MS = 6000;
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const params = new URLSearchParams(window.location.search);
+  const orderId = params.get('order');
+
+  const loadingEl = document.getElementById('loading');
+  const notFoundEl = document.getElementById('not-found');
+  const orderView = document.getElementById('order-view');
+  const messagesEl = document.getElementById('messages');
+
+  const STATUS_LABEL = {
+    new: 'New', quoted: 'Quoted', in_progress: 'In progress',
+    completed: 'Completed', cancelled: 'Cancelled'
+  };
+
+  let attachedFile = null;
+  let lastMessageCount = -1;
+
+  function escapeHtml(str){
+    return (str || '').replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+
+  function publicFileUrl(path){
+    return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+  }
+
+  if (!orderId){
+    loadingEl.style.display = 'none';
+    notFoundEl.style.display = 'block';
+  } else {
+    init();
+  }
+
+  async function init(){
+    const { data: order, error } = await supabase.rpc('get_order', { p_id: orderId });
+    const orderRow = Array.isArray(order) ? order[0] : order;
+
+    if (error || !orderRow){
+      loadingEl.style.display = 'none';
+      notFoundEl.style.display = 'block';
+      return;
+    }
+
+    renderOrder(orderRow);
+    loadingEl.style.display = 'none';
+    orderView.style.display = 'block';
+
+    loadMessages();
+    setInterval(loadMessages, POLL_MS);
+  }
+
+  function renderOrder(order){
+    document.getElementById('status-pill').className = 'status-pill status-' + order.status;
+    document.getElementById('status-text').textContent = STATUS_LABEL[order.status] || order.status;
+    document.getElementById('quote-amount').textContent =
+      order.quote_amount != null ? `$${Number(order.quote_amount).toFixed(2)}` : '';
+
+    document.getElementById('d-name').textContent = order.full_name;
+    document.getElementById('d-type').textContent =
+      order.order_type === 'custom_model' ? 'Custom Model' : 'Custom Print';
+    document.getElementById('d-created').textContent = new Date(order.created_at).toLocaleString();
+
+    if (order.notes){
+      document.getElementById('d-notes').textContent = order.notes;
+    } else {
+      document.getElementById('d-notes-row').style.display = 'none';
+    }
+
+    if (order.file_path){
+      const link = document.getElementById('d-file-link');
+      link.href = publicFileUrl(order.file_path);
+      link.textContent = order.file_name || 'Download file';
+      document.getElementById('d-file-row').style.display = 'flex';
+    }
+  }
+
+  async function loadMessages(){
+    const { data, error } = await supabase.rpc('get_order_messages', { p_order_id: orderId });
+    if (error) return;
+    if (data.length === lastMessageCount) return; // nothing new, skip re-render
+    lastMessageCount = data.length;
+    renderMessages(data);
+  }
+
+  function renderMessages(list){
+    if (list.length === 0){
+      messagesEl.innerHTML = '<div class="msg-empty">No messages yet — say hello!</div>';
+      return;
+    }
+    messagesEl.innerHTML = list.map(m => `
+      <div class="msg ${m.sender}">
+        <div class="who">${m.sender === 'admin' ? 'Josh' : 'You'}</div>
+        ${m.body ? `<div>${escapeHtml(m.body)}</div>` : ''}
+        ${m.file_path ? `<a class="file-link" target="_blank" href="${publicFileUrl(m.file_path)}">📎 ${escapeHtml(m.file_name || 'attachment')}</a>` : ''}
+      </div>
+    `).join('');
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  document.getElementById('attach-input').addEventListener('change', (e) => {
+    attachedFile = e.target.files[0] || null;
+    document.getElementById('attach-label').textContent = attachedFile
+      ? `📎 ${attachedFile.name}` : '📎 Attach file';
+  });
+
+  function sanitizeFileName(name){
+    return name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  }
+
+  document.getElementById('send-btn').addEventListener('click', async () => {
+    const bodyEl = document.getElementById('msg-body');
+    const body = bodyEl.value.trim();
+    if (!body && !attachedFile) return;
+
+    const sendBtn = document.getElementById('send-btn');
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Sending…';
+
+    try {
+      let filePath = null, fileName = null;
+
+      if (attachedFile){
+        filePath = `messages/${orderId}/${Date.now()}-${sanitizeFileName(attachedFile.name)}`;
+        const { error: upErr } = await supabase.storage.from(BUCKET).upload(filePath, attachedFile);
+        if (upErr) throw upErr;
+        fileName = attachedFile.name;
+      }
+
+      const { error } = await supabase.rpc('add_customer_message', {
+        p_order_id: orderId,
+        p_body: body || null,
+        p_file_path: filePath,
+        p_file_name: fileName
+      });
+      if (error) throw error;
+
+      bodyEl.value = '';
+      attachedFile = null;
+      document.getElementById('attach-input').value = '';
+      document.getElementById('attach-label').textContent = '📎 Attach file';
+      lastMessageCount = -1; // force re-render
+      loadMessages();
+
+    } catch (err){
+      alert('Could not send: ' + (err.message || 'please try again'));
+    } finally {
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Send';
+    }
+  });
+</script>
+</body>
+</html>

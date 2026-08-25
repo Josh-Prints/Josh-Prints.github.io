@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JoshPrints — Custom 3D Printing Orders</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #1b1d1f;
+    --bg-raised: #232628;
+    --grid-line: rgba(242,239,234,0.045);
+    --ink: #f2efea;
+    --ink-dim: #a9adb2;
+    --steel: #4a5560;
+    --accent: #ff6a1a;
+    --accent-dim: #ff6a1a33;
+    --ok: #3fa66b;
+    --err: #e2544a;
+    --radius: 10px;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html{ scroll-behavior: smooth; }
+
+  body{
+    margin:0;
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0 / 34px 34px,
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0 / 34px 34px,
+      var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  }
+
+  .wrap{
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 64px 24px 96px;
+  }
+
+  header{
+    margin-bottom: 48px;
+  }
+
+  .eyebrow{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-family:'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 18px;
+  }
+
+  .eyebrow .dot{
+    width:7px; height:7px; border-radius:50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 0 var(--accent-dim);
+    animation: pulse 2.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse{
+    0%,100%{ box-shadow: 0 0 0 0 var(--accent-dim); }
+    50%{ box-shadow: 0 0 0 6px transparent; }
+  }
+
+  h1{
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: clamp(34px, 6vw, 46px);
+    letter-spacing: -0.01em;
+    margin: 0 0 12px;
+  }
+
+  h1 span{ color: var(--accent); }
+
+  .lede{
+    color: var(--ink-dim);
+    font-size: 15.5px;
+    max-width: 46ch;
+    margin: 0;
+  }
+
+  form{
+    background: var(--bg-raised);
+    border: 1px solid rgba(242,239,234,0.08);
+    border-radius: var(--radius);
+    padding: 32px;
+  }
+
+  .field{ margin-bottom: 26px; }
+  .field:last-of-type{ margin-bottom: 0; }
+
+  label{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-bottom: 9px;
+  }
+
+  label .req{ color: var(--accent); }
+
+  input[type="text"],
+  textarea,
+  select{
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid rgba(242,239,234,0.12);
+    border-radius: 6px;
+    color: var(--ink);
+    padding: 13px 14px;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+
+  input[type="text"]:focus,
+  textarea:focus,
+  select:focus{
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+
+  textarea{ resize: vertical; min-height: 96px; font-family: inherit; }
+
+  select{
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%23a9adb2' stroke-width='1.6' fill='none' fill-rule='evenodd'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 38px;
+    cursor: pointer;
+  }
+
+  .order-types{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .order-type{
+    position: relative;
+  }
+
+  .order-type input{ position:absolute; opacity:0; inset:0; cursor:pointer; }
+
+  .order-type .card{
+    border: 1px solid rgba(242,239,234,0.12);
+    border-radius: 8px;
+    padding: 16px 14px;
+    background: var(--bg);
+    transition: border-color .15s ease, background .15s ease;
+  }
+
+  .order-type .card .name{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+
+  .order-type .card .desc{
+    font-size: 12.5px;
+    color: var(--ink-dim);
+  }
+
+  .order-type input:checked + .card{
+    border-color: var(--accent);
+    background: linear-gradient(180deg, var(--accent-dim), transparent 60%);
+  }
+
+  .order-type input:focus-visible + .card{
+    box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+
+  .dropzone{
+    border: 1.5px dashed rgba(242,239,234,0.2);
+    border-radius: 8px;
+    padding: 26px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease;
+    position: relative;
+  }
+
+  .dropzone.drag{
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+
+  .dropzone input[type="file"]{
+    position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;
+  }
+
+  .dropzone .glyph{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .dropzone .main{ font-size: 14px; margin-bottom: 4px; }
+  .dropzone .sub{ font-size: 12px; color: var(--ink-dim); }
+
+  .file-list{
+    margin-top: 10px;
+    font-family:'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .file-list .row{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    background: var(--bg);
+    border: 1px solid rgba(242,239,234,0.1);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+
+  .file-list .row button{
+    background:none; border:none; color: var(--err);
+    cursor:pointer; font-size: 13px; padding: 0 4px;
+    font-family: inherit;
+  }
+
+  .hint{
+    font-size: 12px;
+    color: var(--ink-dim);
+    margin-top: 8px;
+  }
+
+  button[type="submit"]{
+    width: 100%;
+    margin-top: 8px;
+    position: relative;
+    overflow: hidden;
+    background: var(--accent);
+    color: #1b1305;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.01em;
+    border: none;
+    border-radius: 8px;
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: transform .1s ease, filter .15s ease;
+  }
+
+  button[type="submit"]:hover{ filter: brightness(1.06); }
+  button[type="submit"]:active{ transform: translateY(1px); }
+  button[type="submit"]:disabled{ cursor: default; filter: grayscale(0.3) brightness(0.9); }
+
+  .progress-fill{
+    position: absolute;
+    inset: 0;
+    width: 0%;
+    background: rgba(0,0,0,0.16);
+    transition: width .25s ease;
+  }
+
+  button[type="submit"] .btn-label{ position: relative; z-index: 1; }
+
+  .status{
+    margin-top: 18px;
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 13.5px;
+    font-family: 'JetBrains Mono', monospace;
+    display: none;
+  }
+
+  .status.show{ display: block; }
+  .status.ok{ background: rgba(63,166,107,0.12); border: 1px solid rgba(63,166,107,0.4); color: #8fe0b3; }
+  .status.err{ background: rgba(226,84,74,0.1); border: 1px solid rgba(226,84,74,0.4); color: #f2a49e; }
+
+  footer{
+    margin-top: 40px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .success-panel{
+    display: none;
+    background: var(--bg-raised);
+    border: 1px solid rgba(63,166,107,0.35);
+    border-radius: var(--radius);
+    padding: 34px 32px;
+    text-align: center;
+  }
+  .success-panel.show{ display: block; }
+  .success-panel .check{
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: rgba(63,166,107,0.15);
+    color: var(--ok);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    margin: 0 auto 16px;
+  }
+  .success-panel h2{
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 21px;
+    margin: 0 0 8px;
+  }
+  .success-panel p{
+    color: var(--ink-dim);
+    font-size: 13.5px;
+    max-width: 42ch;
+    margin: 0 auto 20px;
+  }
+  .link-box{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--bg);
+    border: 1px solid rgba(242,239,234,0.14);
+    border-radius: 8px;
+    padding: 10px 10px 10px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    text-align: left;
+    overflow: hidden;
+  }
+  .link-box span{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--ink);
+  }
+  .link-box button{
+    flex-shrink: 0;
+    background: var(--accent);
+    color: #1b1305;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .view-order-btn{
+    display: inline-block;
+    margin-top: 18px;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    text-decoration: none;
+  }
+  .view-order-btn:hover{ text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow"><span class="dot"></span> Layer 1 of 1 — Order Intake</div>
+    <h1>Josh<span>Prints</span></h1>
+    <p class="lede">Send over your project and I'll turn it into a quote. Custom models built from scratch, or your own file printed to spec.</p>
+  </header>
+
+  <form id="order-form" novalidate>
+    <div class="field">
+      <label for="full_name">Full name <span class="req">*</span></label>
+      <input type="text" id="full_name" name="full_name" placeholder="e.g. Alex Rivera" required autocomplete="name">
+    </div>
+
+    <div class="field">
+      <label for="email">Email <span class="req">*</span></label>
+      <input type="text" id="email" name="email" placeholder="e.g. alex@email.com" required autocomplete="email" inputmode="email">
+    </div>
+
+    <div class="field">
+      <label>Order type <span class="req">*</span></label>
+      <div class="order-types">
+        <label class="order-type">
+          <input type="radio" name="order_type" value="custom_model" required>
+          <div class="card">
+            <div class="name">Custom Model</div>
+            <div class="desc">Design it from your idea</div>
+          </div>
+        </label>
+        <label class="order-type">
+          <input type="radio" name="order_type" value="custom_print">
+          <div class="card">
+            <div class="name">Custom Print</div>
+            <div class="desc">Print a file you already have</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="notes">Notes</label>
+      <textarea id="notes" name="notes" placeholder="Size, material, colour, deadline — anything I should know"></textarea>
+    </div>
+
+    <div class="field">
+      <label>3D file <span style="text-transform:none; letter-spacing:0;">(optional)</span></label>
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="file_input" accept=".stl,.obj,.3mf,.step,.stp,.iges,.igs,.zip">
+        <div class="glyph">⇪</div>
+        <div class="main">Drop a file or tap to browse</div>
+        <div class="sub">STL, OBJ, 3MF, STEP, IGES — up to 100MB</div>
+      </div>
+      <div class="file-list" id="file-list"></div>
+      <div class="hint">No file to hand? Leave this blank — it's only needed for Custom Print.</div>
+    </div>
+
+    <button type="submit" id="submit-btn">
+      <span class="progress-fill" id="progress-fill"></span>
+      <span class="btn-label" id="btn-label">Send order</span>
+    </button>
+
+    <div class="status" id="status"></div>
+  </form>
+
+  <div class="success-panel" id="success-panel">
+    <div class="check">✓</div>
+    <h2>Order received</h2>
+    <p>Save this link — it's the only way to check your order status, see your quote, and message me directly.</p>
+    <div class="link-box">
+      <span id="order-link-text"></span>
+      <button type="button" id="copy-link-btn">Copy</button>
+    </div>
+    <a href="#" id="view-order-btn" class="view-order-btn" target="_blank">Open your order page →</a>
+  </div>
+
+  <footer>JoshPrints · orders reviewed and quoted individually</footer>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  const SUPABASE_URL = 'https://paycasfatsakidsriwqt.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
+  const BUCKET = 'order-files';
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const form = document.getElementById('order-form');
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('file_input');
+  const fileListEl = document.getElementById('file-list');
+  const statusEl = document.getElementById('status');
+  const submitBtn = document.getElementById('submit-btn');
+  const progressFill = document.getElementById('progress-fill');
+  const btnLabel = document.getElementById('btn-label');
+
+  let selectedFile = null;
+
+  function renderFileList(){
+    fileListEl.innerHTML = '';
+    if (!selectedFile) return;
+    const row = document.createElement('div');
+    row.className = 'row';
+    const sizeKb = (selectedFile.size / 1024).toFixed(0);
+    row.innerHTML = `<span>${selectedFile.name} · ${sizeKb} KB</span>`;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'Remove';
+    btn.addEventListener('click', () => {
+      selectedFile = null;
+      fileInput.value = '';
+      renderFileList();
+    });
+    row.appendChild(btn);
+    fileListEl.appendChild(row);
+  }
+
+  fileInput.addEventListener('change', () => {
+    selectedFile = fileInput.files[0] || null;
+    renderFileList();
+  });
+
+  ['dragenter','dragover'].forEach(evt => {
+    dropzone.addEventListener(evt, e => {
+      e.preventDefault();
+      dropzone.classList.add('drag');
+    });
+  });
+  ['dragleave','drop'].forEach(evt => {
+    dropzone.addEventListener(evt, e => {
+      e.preventDefault();
+      dropzone.classList.remove('drag');
+    });
+  });
+  dropzone.addEventListener('drop', e => {
+    const dropped = e.dataTransfer.files[0];
+    if (dropped){
+      selectedFile = dropped;
+      renderFileList();
+    }
+  });
+
+  function showStatus(kind, msg){
+    statusEl.className = `status show ${kind}`;
+    statusEl.textContent = msg;
+  }
+
+  function setBusy(isBusy, pct){
+    submitBtn.disabled = isBusy;
+    if (isBusy){
+      progressFill.style.width = (pct ?? 0) + '%';
+      btnLabel.textContent = pct == null ? 'Sending…' : `Printing order… ${pct}%`;
+    } else {
+      progressFill.style.width = '0%';
+      btnLabel.textContent = 'Send order';
+    }
+  }
+
+  function sanitizeFileName(name){
+    return name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  }
+
+  document.getElementById('copy-link-btn').addEventListener('click', async () => {
+    const text = document.getElementById('order-link-text').textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      const btn = document.getElementById('copy-link-btn');
+      const original = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = original; }, 1500);
+    } catch (e) {
+      // clipboard API unavailable — user can still select/copy manually
+    }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    statusEl.classList.remove('show');
+
+    const fullName = document.getElementById('full_name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const orderTypeInput = form.querySelector('input[name="order_type"]:checked');
+    const notes = document.getElementById('notes').value.trim();
+
+    if (!fullName || !email || !orderTypeInput){
+      showStatus('err', 'Please add your name, email, and pick an order type.');
+      return;
+    }
+
+    setBusy(true, 10);
+
+    try {
+      // 1. Insert the order row first
+      const { data: inserted, error: insertError } = await supabase
+        .from('orders')
+        .insert({
+          full_name: fullName,
+          email: email,
+          order_type: orderTypeInput.value,
+          notes: notes || null
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      const orderId = inserted.id;
+      setBusy(true, 40);
+
+      // 2. Upload file if provided, then attach it to the order
+      if (selectedFile){
+        const path = `${orderId}/${sanitizeFileName(selectedFile.name)}`;
+
+        const { error: uploadError } = await supabase
+          .storage
+          .from(BUCKET)
+          .upload(path, selectedFile, { upsert: false });
+
+        if (uploadError) throw uploadError;
+
+        setBusy(true, 80);
+
+        const { error: updateError } = await supabase
+          .from('orders')
+          .update({ file_path: path, file_name: selectedFile.name })
+          .eq('id', orderId);
+
+        if (updateError) throw updateError;
+      }
+
+      setBusy(true, 100);
+
+      const orderUrl = new URL('order.html', window.location.href);
+      orderUrl.searchParams.set('order', orderId);
+
+      document.getElementById('order-link-text').textContent = orderUrl.href;
+      document.getElementById('view-order-btn').href = orderUrl.href;
+
+      form.style.display = 'none';
+      document.getElementById('success-panel').classList.add('show');
+
+    } catch (err) {
+      console.error(err);
+      showStatus('err', `Something went wrong: ${err.message || 'please try again'}.`);
+    } finally {
+      setTimeout(() => setBusy(false), 500);
+    }
+  });
+</script>
+
+</body>
+</html>
