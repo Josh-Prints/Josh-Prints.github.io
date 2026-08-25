@@ -575,6 +575,25 @@
       // (customers can't SELECT from orders, only INSERT)
       const orderId = crypto.randomUUID();
 
+      // Upload the file first (if any), so we can include its path in the
+      // single insert below — customers don't have permission to UPDATE
+      // an order afterward, only to create it.
+      let filePath = null;
+      let fileName = null;
+
+      if (selectedFile){
+        filePath = `${orderId}/${sanitizeFileName(selectedFile.name)}`;
+        fileName = selectedFile.name;
+
+        const { error: uploadError } = await supabase
+          .storage
+          .from(BUCKET)
+          .upload(filePath, selectedFile, { upsert: false });
+
+        if (uploadError) throw uploadError;
+        setBusy(true, 40);
+      }
+
       const { error: insertError } = await supabase
         .from('orders')
         .insert({
@@ -582,33 +601,14 @@
           full_name: fullName,
           email: email,
           order_type: orderTypeInput.value,
-          notes: notes || null
+          notes: notes || null,
+          file_path: filePath,
+          file_name: fileName
         });
 
       if (insertError) throw insertError;
 
-      setBusy(true, 40);
-
-      // 2. Upload file if provided, then attach it to the order
-      if (selectedFile){
-        const path = `${orderId}/${sanitizeFileName(selectedFile.name)}`;
-
-        const { error: uploadError } = await supabase
-          .storage
-          .from(BUCKET)
-          .upload(path, selectedFile, { upsert: false });
-
-        if (uploadError) throw uploadError;
-
-        setBusy(true, 80);
-
-        const { error: updateError } = await supabase
-          .from('orders')
-          .update({ file_path: path, file_name: selectedFile.name })
-          .eq('id', orderId);
-
-        if (updateError) throw updateError;
-      }
+      setBusy(true, 80);
 
       setBusy(true, 100);
 
