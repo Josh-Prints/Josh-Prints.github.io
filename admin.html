@@ -566,6 +566,7 @@
           <input type="text" class="quote-input" placeholder="Quote $" data-id="${order.id}" value="${order.quote_amount ?? ''}">
           <button class="save-btn" data-id="${order.id}">Save</button>
           <button class="chat-toggle" data-id="${order.id}">💬 Messages</button>
+          <button class="chat-toggle copy-link-btn" data-id="${order.id}">🔗 Copy link</button>
         </div>
         <div class="chat-panel" id="chat-panel-${order.id}">
           <div class="chat-messages" id="chat-messages-${order.id}"><div class="chat-empty">Loading…</div></div>
@@ -591,6 +592,23 @@
         const path = link.dataset.path;
         const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
         window.open(data.publicUrl, '_blank');
+      });
+    });
+
+    // Copy link buttons
+    ordersContainer.querySelectorAll('.copy-link-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        const url = new URL('order.html', window.location.href);
+        url.searchParams.set('order', id);
+        try {
+          await navigator.clipboard.writeText(url.href);
+          const original = btn.textContent;
+          btn.textContent = '✓ Copied';
+          setTimeout(() => { btn.textContent = original; }, 1500);
+        } catch (e) {
+          prompt('Copy this link:', url.href);
+        }
       });
     });
 
