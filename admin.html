@@ -441,6 +441,8 @@
 
   let currentOrders = [];
   let activeFilter = 'all';
+  let openChatOrderId = null;
+  let chatPollTimer = null;
 
   const STATUS_OPTIONS = ['new', 'quoted', 'in_progress', 'completed', 'cancelled'];
   const STATUS_LABEL = {
@@ -599,7 +601,13 @@
         const panel = document.getElementById(`chat-panel-${id}`);
         panel.classList.toggle('open');
         if (panel.classList.contains('open')){
+          openChatOrderId = id;
           loadChat(id);
+          if (chatPollTimer) clearInterval(chatPollTimer);
+          chatPollTimer = setInterval(() => loadChat(id), 3000);
+        } else if (openChatOrderId === id){
+          openChatOrderId = null;
+          if (chatPollTimer) clearInterval(chatPollTimer);
         }
       });
     });
