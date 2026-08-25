@@ -280,7 +280,7 @@
   const SUPABASE_URL = 'https://paycasfatsakidsriwqt.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
   const BUCKET = 'order-files';
-  const POLL_MS = 6000;
+  const POLL_MS = 3000;
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -299,6 +299,7 @@
 
   let attachedFile = null;
   let lastMessageCount = -1;
+  let lastStatusSnapshot = null;
 
   function escapeHtml(str){
     return (str || '').replace(/[&<>"']/g, c => ({
@@ -318,21 +319,32 @@
   }
 
   async function init(){
-    const { data: order, error } = await supabase.rpc('get_order', { p_id: orderId });
-    const orderRow = Array.isArray(order) ? order[0] : order;
-
-    if (error || !orderRow){
+    const ok = await loadOrder();
+    if (!ok){
       loadingEl.style.display = 'none';
       notFoundEl.style.display = 'block';
       return;
     }
 
-    renderOrder(orderRow);
     loadingEl.style.display = 'none';
     orderView.style.display = 'block';
 
     loadMessages();
     setInterval(loadMessages, POLL_MS);
+    setInterval(loadOrder, POLL_MS);
+  }
+
+  async function loadOrder(){
+    const { data: order, error } = await supabase.rpc('get_order', { p_id: orderId });
+    const orderRow = Array.isArray(order) ? order[0] : order;
+    if (error || !orderRow) return false;
+
+    const snapshot = `${orderRow.status}|${orderRow.quote_amount}`;
+    if (snapshot !== lastStatusSnapshot){
+      lastStatusSnapshot = snapshot;
+      renderOrder(orderRow);
+    }
+    return true;
   }
 
   function renderOrder(order){
