@@ -3,24 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Your order — JoshPrints</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Your order - JoshPrints</title>
 <style>
   :root{
-    --bg: #1b1d1f;
-    --bg-raised: #232628;
-    --grid-line: rgba(242,239,234,0.045);
-    --ink: #f2efea;
-    --ink-dim: #a9adb2;
-    --accent: #ff6a1a;
-    --accent-dim: #ff6a1a33;
-    --ok: #3fa66b;
-    --ok-dim: #3fa66b1f;
-    --warn: #e2b13f;
-    --err: #e2544a;
-    --radius: 10px;
+    --bg: #f6f8fa;
+    --bg-raised: #ffffff;
+    --grid-line: rgba(0,0,0,0);
+    --ink: #1f2328;
+    --ink-dim: #656d76;
+    --accent: #0969da;
+    --accent-dim: #0969da1f;
+    --ok: #1a7f37;
+    --ok-dim: #1a7f371f;
+    --warn: #9a6700;
+    --err: #cf222e;
+    --radius: 6px;
   }
   *{ box-sizing: border-box; }
   body{
@@ -30,13 +27,13 @@
       linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0 / 34px 34px,
       var(--bg);
     color: var(--ink);
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
     min-height: 100vh;
   }
   .wrap{ max-width: 620px; margin: 0 auto; padding: 48px 20px 80px; }
 
   h1{
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-weight: 700;
     font-size: 28px;
     margin: 0 0 28px;
@@ -46,7 +43,7 @@
   #loading, #not-found{
     text-align: center;
     color: var(--ink-dim);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     padding: 80px 0;
   }
 
@@ -54,7 +51,7 @@
 
   .card{
     background: var(--bg-raised);
-    border: 1px solid rgba(242,239,234,0.08);
+    border: 1px solid rgba(31,35,40,0.10);
     border-radius: var(--radius);
     padding: 24px 26px;
     margin-bottom: 18px;
@@ -70,7 +67,7 @@
   }
 
   .status-pill{
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 12px;
     padding: 6px 14px;
     border-radius: 20px;
@@ -81,17 +78,17 @@
   .status-pill .dot{ width: 7px; height: 7px; border-radius: 50%; }
   .status-new{ background: var(--accent-dim); color: var(--accent); }
   .status-new .dot{ background: var(--accent); }
-  .status-quoted{ background: rgba(226,177,63,0.14); color: var(--warn); }
+  .status-quoted{ background: rgba(154,103,0,0.14); color: var(--warn); }
   .status-quoted .dot{ background: var(--warn); }
-  .status-in_progress{ background: rgba(111,168,255,0.14); color: #8fb8ff; }
-  .status-in_progress .dot{ background: #6fa8ff; }
+  .status-in_progress{ background: rgba(9,105,218,0.14); color: #0969da; }
+  .status-in_progress .dot{ background: #0969da; }
   .status-completed{ background: var(--ok-dim); color: var(--ok); }
   .status-completed .dot{ background: var(--ok); }
-  .status-cancelled{ background: rgba(160,164,168,0.14); color: #a0a4a8; }
-  .status-cancelled .dot{ background: #a0a4a8; }
+  .status-cancelled{ background: rgba(101,109,118,0.14); color: #656d76; }
+  .status-cancelled .dot{ background: #656d76; }
 
   .quote-amount{
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-weight: 700;
     font-size: 20px;
   }
@@ -100,13 +97,13 @@
     display: flex;
     justify-content: space-between;
     padding: 9px 0;
-    border-top: 1px solid rgba(242,239,234,0.07);
+    border-top: 1px solid rgba(31,35,40,0.08);
     font-size: 13.5px;
   }
   .detail-row:first-of-type{ border-top: none; }
   .detail-row .label{
     color: var(--ink-dim);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 11.5px;
     text-transform: uppercase;
     letter-spacing: .05em;
@@ -116,7 +113,7 @@
   .file-link{
     display: inline-block;
     margin-top: 6px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 12.5px;
     color: var(--accent);
     text-decoration: none;
@@ -124,7 +121,7 @@
   .file-link:hover{ text-decoration: underline; }
 
   .card h2{
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: 15px;
     margin: 0 0 14px;
   }
@@ -142,24 +139,24 @@
   .msg{
     max-width: 82%;
     padding: 10px 13px;
-    border-radius: 10px;
+    border-radius: 6px;
     font-size: 13.5px;
     line-height: 1.45;
   }
   .msg.customer{
     align-self: flex-end;
     background: var(--accent-dim);
-    border: 1px solid rgba(255,106,26,0.3);
+    border: 1px solid rgba(9,105,218,0.3);
     border-bottom-right-radius: 2px;
   }
   .msg.admin{
     align-self: flex-start;
     background: var(--bg);
-    border: 1px solid rgba(242,239,234,0.1);
+    border: 1px solid rgba(31,35,40,0.12);
     border-bottom-left-radius: 2px;
   }
   .msg .who{
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 10.5px;
     color: var(--ink-dim);
     margin-bottom: 4px;
@@ -170,7 +167,7 @@
   .msg-empty{
     text-align: center;
     color: var(--ink-dim);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 12.5px;
     padding: 20px 0;
   }
@@ -178,10 +175,10 @@
   .deleted-notice{
     text-align: center;
     color: var(--err);
-    background: rgba(226,84,74,0.1);
-    border: 1px solid rgba(226,84,74,0.3);
+    background: rgba(207,34,46,0.1);
+    border: 1px solid rgba(207,34,46,0.3);
     border-radius: 8px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 12.5px;
     padding: 14px;
   }
@@ -194,11 +191,11 @@
   .composer textarea{
     width: 100%;
     background: var(--bg);
-    border: 1px solid rgba(242,239,234,0.14);
+    border: 1px solid rgba(31,35,40,0.18);
     border-radius: 8px;
     color: var(--ink);
     padding: 11px 13px;
-    font-family: 'Inter', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
     font-size: 14px;
     resize: vertical;
     min-height: 60px;
@@ -212,11 +209,11 @@
     gap: 10px;
   }
   .attach-btn{
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 12px;
     color: var(--ink-dim);
     background: none;
-    border: 1px dashed rgba(242,239,234,0.2);
+    border: 1px dashed rgba(31,35,40,0.25);
     border-radius: 6px;
     padding: 8px 12px;
     cursor: pointer;
@@ -227,17 +224,17 @@
     position: absolute; inset: 0; opacity: 0; cursor: pointer;
   }
   .attach-name{
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 11.5px;
     color: var(--accent);
   }
   .send-btn{
     background: var(--accent);
-    color: #1b1305;
+    color: #ffffff;
     border: none;
     border-radius: 7px;
     padding: 10px 20px;
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-weight: 700;
     font-size: 13.5px;
     cursor: pointer;
@@ -424,7 +421,7 @@
 
   function renderMessages(list){
     if (list.length === 0){
-      messagesEl.innerHTML = '<div class="msg-empty">No messages yet — say hello!</div>';
+      messagesEl.innerHTML = '<div class="msg-empty">No messages yet, say hello!</div>';
       return;
     }
     messagesEl.innerHTML = list.map(m => {
