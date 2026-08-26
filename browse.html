@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Browse presets — JoshPrints</title>
+<style>
+  :root{
+    --canvas: #ffffff;
+    --canvas-inset: #f6f8fa;
+    --border: #d1d9e0;
+    --border-muted: #d8dee4;
+    --fg: #1f2328;
+    --fg-muted: #59636e;
+    --accent: #0969da;
+    --btn-primary-hover: #0860ca;
+    --ok: #1a7f37;
+  }
+  *{ box-sizing: border-box; }
+  html{ -webkit-text-size-adjust: 100%; }
+  body{
+    margin: 0;
+    background: var(--canvas);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  @keyframes fadeInDown{ from{ opacity:0; transform: translateY(-10px); } to{ opacity:1; transform: translateY(0); } }
+  @keyframes fadeInUp{ from{ opacity:0; transform: translateY(14px); } to{ opacity:1; transform: translateY(0); } }
+  @keyframes popIn{ from{ opacity:0; transform: scale(0.94); } to{ opacity:1; transform: scale(1); } }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  }
+
+  .topbar{
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 24px; border-bottom: 1px solid var(--border-muted);
+    animation: fadeInDown 0.5s ease both;
+  }
+  .brand{ display:flex; align-items:center; gap:8px; font-weight:600; font-size:16px; color:var(--fg); text-decoration:none; }
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    padding: 5px 16px; font-size:14px; font-weight:500; line-height:20px;
+    border-radius:6px; border:1px solid var(--border); background:#f6f8fa; color:var(--fg);
+    text-decoration:none; cursor:pointer; transition: background 0.2s, transform 0.15s ease;
+  }
+  .btn:hover{ background:#f3f4f6; transform: translateY(-1px); }
+  .btn-primary{ background: var(--accent); border-color: rgba(31,35,40,0.15); color:#fff; }
+  .btn-primary:hover{ background: var(--btn-primary-hover); }
+
+  .page{ max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1{ font-size: 26px; font-weight:600; margin: 0 0 6px; animation: fadeInUp 0.5s ease both; }
+  .subtitle{ color: var(--fg-muted); font-size:14.5px; margin: 0 0 24px; animation: fadeInUp 0.5s ease 0.05s both; }
+
+  .search-wrap{ position:relative; margin-bottom: 28px; animation: fadeInUp 0.5s ease 0.1s both; }
+  .search-wrap input{
+    width:100%; padding: 10px 14px 10px 38px; font-size:14.5px;
+    border:1px solid var(--border); border-radius:8px; font-family:inherit;
+    background: var(--canvas-inset);
+  }
+  .search-wrap input:focus{ outline:none; border-color: var(--accent); background:#fff; box-shadow: 0 0 0 3px rgba(9,105,218,0.12); }
+  .search-wrap .icon{ position:absolute; left:12px; top:50%; transform:translateY(-50%); color: var(--fg-muted); font-size:14px; pointer-events:none; }
+
+  .grid{
+    display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 18px;
+  }
+  .tile{
+    border:1px solid var(--border); border-radius:10px; overflow:hidden;
+    background:#fff; cursor:pointer; text-align:left;
+    opacity:0; transform: translateY(14px);
+    animation: fadeInUp 0.45s cubic-bezier(0.22,1,0.36,1) forwards;
+    transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s;
+  }
+  .tile:hover{ box-shadow: 0 8px 22px rgba(31,35,40,0.1); transform: translateY(-3px); border-color: var(--border-muted); }
+  .tile-img{
+    width:100%; aspect-ratio: 4/3; object-fit: cover;
+    background: var(--canvas-inset);
+    display:flex; align-items:center; justify-content:center;
+    color: var(--fg-muted); font-size:12px; font-family: ui-monospace, monospace;
+  }
+  .tile-body{ padding: 12px 14px 14px; }
+  .tile-name{ font-weight:600; font-size:14.5px; margin-bottom:4px; }
+  .tile-desc{ color: var(--fg-muted); font-size:13px; line-height:1.4; margin-bottom:8px;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .tile-price{ font-family: ui-monospace, monospace; font-size:13px; color: var(--accent); font-weight:600; }
+
+  #empty, #loading{
+    text-align:center; color: var(--fg-muted); padding: 60px 0; font-size:14px;
+  }
+  .spinner{
+    width:20px; height:20px; border-radius:50%; margin: 0 auto 10px;
+    border:3px solid rgba(9,105,218,0.2); border-top-color: var(--accent);
+    animation: spin 0.8s linear infinite;
+  }
+
+  /* ---- order modal ---- */
+  .modal-overlay{
+    position: fixed; inset:0; background: rgba(31,35,40,0.4);
+    display:flex; align-items:center; justify-content:center; padding: 20px;
+    z-index: 100; opacity:0; visibility:hidden; transition: opacity 0.2s ease, visibility 0.2s;
+  }
+  .modal-overlay.open{ opacity:1; visibility:visible; }
+  .modal{
+    background:#fff; border-radius:12px; max-width: 420px; width:100%;
+    padding: 28px; transform: scale(0.94) translateY(8px); transition: transform 0.25s cubic-bezier(0.22,1,0.36,1);
+    max-height: 88vh; overflow-y: auto;
+  }
+  .modal-overlay.open .modal{ transform: scale(1) translateY(0); }
+  .modal h2{ font-size:19px; margin: 0 0 4px; }
+  .modal .modal-price{ font-family: ui-monospace, monospace; color: var(--accent); font-size:14px; margin-bottom: 14px; }
+  .modal .modal-desc{ color: var(--fg-muted); font-size:13.5px; margin-bottom: 20px; line-height:1.5; }
+  .field{ margin-bottom: 14px; }
+  .field label{ display:block; font-size:13px; font-weight:600; margin-bottom:5px; }
+  .field input, .field textarea{
+    width:100%; padding: 8px 11px; font-size:14px; border:1px solid var(--border);
+    border-radius:6px; font-family:inherit; background:var(--canvas-inset);
+  }
+  .field input:focus, .field textarea:focus{ outline:none; border-color:var(--accent); background:#fff; box-shadow:0 0 0 3px rgba(9,105,218,0.12); }
+  .field textarea{ min-height: 70px; resize: vertical; }
+  .modal-actions{ display:flex; gap:10px; margin-top: 18px; }
+  .modal-actions .btn{ flex:1; }
+  .modal-close{
+    position:absolute; top: 14px; right:14px; background:none; border:none;
+    font-size:18px; color: var(--fg-muted); cursor:pointer; width:28px; height:28px; border-radius:6px;
+  }
+  .modal-close:hover{ background: var(--canvas-inset); }
+  .modal{ position: relative; }
+  .modal-error{ color:#cf222e; font-size:13px; margin-top: 8px; display:none; }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <a class="brand" href="index.html">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <rect width="20" height="20" rx="4" fill="#0969da"/>
+        <path d="M10 4L15.5 7.2V13.6L10 16.8L4.5 13.6V7.2L10 4Z" stroke="white" stroke-width="1.3" stroke-linejoin="round"/>
+        <path d="M10 10L15.5 7.2M10 10V16.8M10 10L4.5 7.2" stroke="white" stroke-width="1.3" stroke-linejoin="round"/>
+      </svg>
+      JoshPrints
+    </a>
+    <a class="btn" href="index.html">← Back home</a>
+  </div>
+
+  <div class="page">
+    <h1>Browse presets</h1>
+    <p class="subtitle">Ready-to-print designs. Pick one and it goes straight into the queue.</p>
+
+    <div class="search-wrap">
+      <span class="icon">🔍</span>
+      <input type="text" id="search-input" placeholder="Search presets…">
+    </div>
+
+    <div id="loading"><div class="spinner"></div>Loading presets…</div>
+    <div id="empty" style="display:none;">No presets match your search.</div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <button class="modal-close" id="modal-close">✕</button>
+      <h2 id="modal-name"></h2>
+      <div class="modal-price" id="modal-price"></div>
+      <div class="modal-desc" id="modal-desc"></div>
+      <form id="order-form">
+        <div class="field">
+          <label for="m-name">Full name</label>
+          <input type="text" id="m-name" required>
+        </div>
+        <div class="field">
+          <label for="m-email">Email</label>
+          <input type="email" id="m-email" required>
+        </div>
+        <div class="field">
+          <label for="m-notes">Notes (optional)</label>
+          <textarea id="m-notes" placeholder="Color, size, anything else…"></textarea>
+        </div>
+        <div class="modal-error" id="modal-error"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn" id="modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="modal-submit">Place order</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  const SUPABASE_URL = 'https://paycasfatsakidsriwqt.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
+  const BUCKET = 'order-files';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const gridEl = document.getElementById('grid');
+  const loadingEl = document.getElementById('loading');
+  const emptyEl = document.getElementById('empty');
+  const searchInput = document.getElementById('search-input');
+
+  let presets = [];
+  let selectedPreset = null;
+
+  function escapeHtml(str){
+    return (str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function publicUrl(path){
+    return path ? supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl : null;
+  }
+
+  async function loadPresets(){
+    const { data, error } = await supabase
+      .from('presets')
+      .select('*')
+      .eq('active', true)
+      .order('created_at', { ascending: false });
+
+    loadingEl.style.display = 'none';
+    if (error || !data){
+      emptyEl.textContent = 'Could not load presets right now.';
+      emptyEl.style.display = 'block';
+      return;
+    }
+    presets = data;
+    render(presets);
+  }
+
+  function render(list){
+    gridEl.innerHTML = '';
+    emptyEl.style.display = list.length === 0 ? 'block' : 'none';
+    list.forEach((p, i) => {
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      tile.style.animationDelay = (i * 0.05) + 's';
+      const img = publicUrl(p.image_path);
+      tile.innerHTML = `
+        <div class="tile-img">${img ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;" alt="">` : 'No image'}</div>
+        <div class="tile-body">
+          <div class="tile-name">${escapeHtml(p.name)}</div>
+          ${p.description ? `<div class="tile-desc">${escapeHtml(p.description)}</div>` : ''}
+          ${p.price != null ? `<div class="tile-price">$${Number(p.price).toFixed(2)}</div>` : ''}
+        </div>
+      `;
+      tile.addEventListener('click', () => openModal(p));
+      gridEl.appendChild(tile);
+    });
+  }
+
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.trim().toLowerCase();
+    const filtered = !q ? presets : presets.filter(p =>
+      p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q)
+    );
+    render(filtered);
+  });
+
+  // ---- order modal ----
+  const overlay = document.getElementById('modal-overlay');
+  const form = document.getElementById('order-form');
+  const errorEl = document.getElementById('modal-error');
+
+  function openModal(preset){
+    selectedPreset = preset;
+    document.getElementById('modal-name').textContent = preset.name;
+    document.getElementById('modal-price').textContent = preset.price != null ? `$${Number(preset.price).toFixed(2)}` : '';
+    document.getElementById('modal-desc').textContent = preset.description || '';
+    form.reset();
+    errorEl.style.display = 'none';
+    overlay.classList.add('open');
+  }
+  function closeModal(){ overlay.classList.remove('open'); }
+
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  document.getElementById('modal-cancel').addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fullName = document.getElementById('m-name').value.trim();
+    const email = document.getElementById('m-email').value.trim();
+    const notes = document.getElementById('m-notes').value.trim();
+    if (!fullName || !email || !selectedPreset) return;
+
+    const submitBtn = document.getElementById('modal-submit');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Placing…';
+    errorEl.style.display = 'none';
+
+    try {
+      const orderId = crypto.randomUUID();
+      const { error } = await supabase.from('orders').insert({
+        id: orderId,
+        full_name: fullName,
+        email: email,
+        order_type: 'preset',
+        notes: notes || null,
+        preset_id: selectedPreset.id,
+        preset_name: selectedPreset.name,
+        preset_price: selectedPreset.price
+      });
+      if (error) throw error;
+
+      const orderUrl = new URL('order.html', window.location.href);
+      orderUrl.searchParams.set('order', orderId);
+      window.location.href = orderUrl.href;
+
+    } catch (err){
+      errorEl.textContent = 'Could not place order: ' + (err.message || 'please try again.');
+      errorEl.style.display = 'block';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Place order';
+    }
+  });
+
+  loadPresets();
+</script>
+
+</body>
+</html>

@@ -636,7 +636,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
     document.getElementById('d-name').textContent = order.full_name;
     document.getElementById('d-type').textContent =
-      order.order_type === 'custom_model' ? 'Custom Model' : 'Custom Print';
+      order.order_type === 'custom_model' ? 'Custom Model'
+      : order.order_type === 'preset' ? `Preset: ${order.preset_name || 'Unknown'}${order.preset_price != null ? ' ($' + Number(order.preset_price).toFixed(2) + ')' : ''}`
+      : 'Custom Print';
     document.getElementById('d-created').textContent = new Date(order.created_at).toLocaleString();
 
     if (order.notes){

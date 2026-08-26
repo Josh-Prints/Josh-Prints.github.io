@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manage presets — JoshPrints Admin</title>
+<style>
+  :root{
+    --bg: #f6f8fa;
+    --bg-raised: #ffffff;
+    --ink: #1f2328;
+    --ink-dim: #656d76;
+    --accent: #0969da;
+    --err: #cf222e;
+    --ok: #1a7f37;
+    --radius: 8px;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+  }
+  @keyframes fadeInDown{ from{ opacity:0; transform: translateY(-8px);} to{ opacity:1; transform: translateY(0);} }
+  @keyframes fadeInUp{ from{ opacity:0; transform: translateY(12px);} to{ opacity:1; transform: translateY(0);} }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+
+  #login-view{ min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .login-card{
+    background: var(--bg-raised); border:1px solid rgba(31,35,40,0.12);
+    border-radius: var(--radius); padding: 32px; width: 320px;
+  }
+  .login-card h1{ font-size:19px; margin:0 0 4px; }
+  .login-card h1 span{ color: var(--accent); }
+  .login-card .sub{ color: var(--ink-dim); font-size:13px; margin: 0 0 20px; }
+  .login-card label{ display:block; font-size:13px; font-weight:600; margin: 12px 0 5px; }
+  .login-card input{
+    width:100%; padding:8px 11px; border:1px solid rgba(31,35,40,0.18);
+    border-radius:6px; font-size:14px; font-family:inherit;
+  }
+  .login-card button{
+    width:100%; margin-top:18px; padding:9px; background: var(--accent); color:#fff;
+    border:none; border-radius:6px; font-weight:600; font-size:14px; cursor:pointer;
+  }
+  .login-err{ display:none; color: var(--err); font-size:12.5px; margin-top:10px; }
+  .login-err.show{ display:block; }
+
+  #dash-view{ display:none; }
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 20px 28px; border-bottom: 1px solid rgba(31,35,40,0.10);
+    animation: fadeInDown 0.4s ease both;
+  }
+  .topbar h1{ font-size:19px; margin:0; }
+  .topbar h1 span{ color: var(--accent); }
+  .topbar .right{ display:flex; gap:10px; }
+  .btn{
+    display:inline-flex; align-items:center; gap:6px; padding:7px 14px;
+    font-size:13.5px; font-weight:600; border-radius:6px; cursor:pointer;
+    border:1px solid rgba(31,35,40,0.15); background: var(--bg-raised); color: var(--ink);
+    text-decoration:none; transition: background 0.15s, transform 0.15s;
+  }
+  .btn:hover{ background: var(--bg); transform: translateY(-1px); }
+  .btn-primary{ background: var(--accent); border-color: rgba(31,35,40,0.15); color:#fff; }
+  .btn-primary:hover{ background:#0860ca; }
+
+  .page{ max-width: 900px; margin:0 auto; padding: 28px 24px 80px; }
+
+  .grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap:16px; margin-top:20px; }
+  .tile{
+    background: var(--bg-raised); border:1px solid rgba(31,35,40,0.12); border-radius:10px;
+    overflow:hidden; opacity:0; transform: translateY(12px);
+    animation: fadeInUp 0.4s cubic-bezier(0.22,1,0.36,1) forwards;
+  }
+  .tile-img{
+    width:100%; aspect-ratio:4/3; object-fit:cover; background: var(--bg);
+    display:flex; align-items:center; justify-content:center; color: var(--ink-dim); font-size:12px;
+  }
+  .tile-body{ padding:12px 14px; }
+  .tile-name{ font-weight:600; font-size:14px; margin-bottom:3px; }
+  .tile-price{ font-family: ui-monospace, monospace; font-size:12.5px; color: var(--accent); margin-bottom:8px; }
+  .tile-actions{ display:flex; gap:8px; }
+  .tile-actions button{
+    flex:1; padding:6px; font-size:12.5px; border-radius:6px; cursor:pointer;
+    border:1px solid rgba(31,35,40,0.15); background: var(--bg); color: var(--ink);
+  }
+  .tile-actions button.danger{ color: var(--err); }
+  .tile-actions button:hover{ background: #eef1f4; }
+  .tile.inactive{ opacity: 0.55; }
+  .tile-badge{
+    display:inline-block; font-size:10.5px; font-weight:700; text-transform:uppercase;
+    letter-spacing:0.04em; color: var(--ink-dim); margin-left:6px;
+  }
+
+  /* ---- modal (add/edit) ---- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(31,35,40,0.4);
+    display:flex; align-items:center; justify-content:center; padding:20px;
+    z-index:100; opacity:0; visibility:hidden; transition: opacity 0.2s, visibility 0.2s;
+  }
+  .modal-overlay.open{ opacity:1; visibility:visible; }
+  .modal{
+    background: var(--bg-raised); border-radius:12px; max-width:440px; width:100%;
+    padding:26px; max-height:88vh; overflow-y:auto; position:relative;
+    transform: scale(0.95) translateY(6px); transition: transform 0.22s cubic-bezier(0.22,1,0.36,1);
+  }
+  .modal-overlay.open .modal{ transform: scale(1) translateY(0); }
+  .modal h2{ font-size:18px; margin:0 0 18px; }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:13px; font-weight:600; margin-bottom:5px; }
+  .field input, .field textarea{
+    width:100%; padding:8px 11px; font-size:14px; border:1px solid rgba(31,35,40,0.18);
+    border-radius:6px; font-family:inherit; background: var(--bg);
+  }
+  .field textarea{ min-height:70px; resize:vertical; }
+  .field-row{ display:flex; align-items:center; gap:8px; }
+  .img-preview{
+    width:100%; aspect-ratio:4/3; border-radius:8px; background: var(--bg);
+    border:1px dashed rgba(31,35,40,0.2); display:flex; align-items:center; justify-content:center;
+    color: var(--ink-dim); font-size:12.5px; margin-bottom:10px; overflow:hidden;
+  }
+  .img-preview img{ width:100%; height:100%; object-fit:cover; }
+  .modal-actions{ display:flex; gap:10px; margin-top:18px; }
+  .modal-actions .btn{ flex:1; justify-content:center; }
+  .modal-close{
+    position:absolute; top:14px; right:14px; background:none; border:none;
+    font-size:18px; color: var(--ink-dim); cursor:pointer; width:28px; height:28px; border-radius:6px;
+  }
+  .modal-close:hover{ background: var(--bg); }
+  .modal-error{ color: var(--err); font-size:13px; margin-top:8px; display:none; }
+  .checkbox-row{ display:flex; align-items:center; gap:8px; font-size:13.5px; margin-bottom:14px; }
+</style>
+</head>
+<body>
+
+<div id="login-view">
+  <div class="login-card">
+    <h1>Josh<span>Prints</span></h1>
+    <p class="sub">Admin: sign in to manage presets</p>
+    <form id="login-form">
+      <label for="email">Email</label>
+      <input type="email" id="email" required autocomplete="username">
+      <label for="password">Password</label>
+      <input type="password" id="password" required autocomplete="current-password">
+      <button type="submit">Sign in</button>
+      <div class="login-err" id="login-err"></div>
+    </form>
+  </div>
+</div>
+
+<div id="dash-view">
+  <div class="topbar">
+    <h1>Josh<span>Prints</span>: Presets</h1>
+    <div class="right">
+      <a class="btn" href="admin.html">← Back to orders</a>
+      <button class="btn btn-primary" id="add-btn">+ Add preset</button>
+    </div>
+  </div>
+  <div class="page">
+    <div id="grid" class="grid"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" id="modal-close">✕</button>
+    <h2 id="modal-title">Add preset</h2>
+    <form id="preset-form">
+      <div class="field">
+        <label>Image</label>
+        <div class="img-preview" id="img-preview">No image</div>
+        <input type="file" id="p-image" accept="image/*">
+      </div>
+      <div class="field">
+        <label for="p-name">Name</label>
+        <input type="text" id="p-name" required>
+      </div>
+      <div class="field">
+        <label for="p-price">Price ($)</label>
+        <input type="number" id="p-price" step="0.01" min="0">
+      </div>
+      <div class="field">
+        <label for="p-desc">Description</label>
+        <textarea id="p-desc"></textarea>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="p-active" checked>
+        <label for="p-active" style="margin:0;">Visible to customers</label>
+      </div>
+      <div class="modal-error" id="modal-error"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="modal-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="modal-save">Save preset</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  const SUPABASE_URL = 'https://paycasfatsakidsriwqt.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
+  const BUCKET = 'order-files';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const loginView = document.getElementById('login-view');
+  const dashView = document.getElementById('dash-view');
+  const gridEl = document.getElementById('grid');
+
+  let presets = [];
+  let editingId = null;
+  let pendingImageFile = null;
+
+  function escapeHtml(str){
+    return (str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function publicUrl(path){
+    return path ? supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl : null;
+  }
+  function sanitizeFileName(name){
+    return name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  }
+
+  async function checkSession(){
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session){ showDashboard(); } else { showLogin(); }
+  }
+  function showLogin(){ loginView.style.display = 'flex'; dashView.style.display = 'none'; }
+  function showDashboard(){ loginView.style.display = 'none'; dashView.style.display = 'block'; loadPresets(); }
+
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const errEl = document.getElementById('login-err');
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error){
+      errEl.textContent = error.message;
+      errEl.classList.add('show');
+    } else {
+      errEl.classList.remove('show');
+      showDashboard();
+    }
+  });
+
+  async function loadPresets(){
+    const { data, error } = await supabase.from('presets').select('*').order('created_at', { ascending:false });
+    if (error) return;
+    presets = data || [];
+    render();
+  }
+
+  function render(){
+    gridEl.innerHTML = '';
+    presets.forEach((p, i) => {
+      const tile = document.createElement('div');
+      tile.className = 'tile' + (p.active ? '' : ' inactive');
+      tile.style.animationDelay = (i * 0.04) + 's';
+      const img = publicUrl(p.image_path);
+      tile.innerHTML = `
+        <div class="tile-img">${img ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;" alt="">` : 'No image'}</div>
+        <div class="tile-body">
+          <div class="tile-name">${escapeHtml(p.name)}${!p.active ? '<span class="tile-badge">Hidden</span>' : ''}</div>
+          <div class="tile-price">${p.price != null ? '$' + Number(p.price).toFixed(2) : 'No price set'}</div>
+          <div class="tile-actions">
+            <button type="button" data-edit="${p.id}">Edit</button>
+            <button type="button" class="danger" data-delete="${p.id}">Delete</button>
+          </div>
+        </div>
+      `;
+      gridEl.appendChild(tile);
+    });
+
+    gridEl.querySelectorAll('[data-edit]').forEach(btn => {
+      btn.addEventListener('click', () => openModal(presets.find(p => p.id === btn.dataset.edit)));
+    });
+    gridEl.querySelectorAll('[data-delete]').forEach(btn => {
+      btn.addEventListener('click', () => deletePreset(btn.dataset.delete));
+    });
+  }
+
+  async function deletePreset(id){
+    if (!confirm('Delete this preset? This cannot be undone.')) return;
+    const { error } = await supabase.from('presets').delete().eq('id', id);
+    if (!error) loadPresets();
+  }
+
+  // ---- add/edit modal ----
+  const overlay = document.getElementById('modal-overlay');
+  const form = document.getElementById('preset-form');
+  const errorEl = document.getElementById('modal-error');
+  const imgPreview = document.getElementById('img-preview');
+
+  document.getElementById('add-btn').addEventListener('click', () => openModal(null));
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  document.getElementById('modal-cancel').addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+  function openModal(preset){
+    editingId = preset ? preset.id : null;
+    pendingImageFile = null;
+    document.getElementById('modal-title').textContent = preset ? 'Edit preset' : 'Add preset';
+    document.getElementById('p-name').value = preset?.name || '';
+    document.getElementById('p-price').value = preset?.price ?? '';
+    document.getElementById('p-desc').value = preset?.description || '';
+    document.getElementById('p-active').checked = preset ? preset.active : true;
+    document.getElementById('p-image').value = '';
+    const existingImg = preset ? publicUrl(preset.image_path) : null;
+    imgPreview.innerHTML = existingImg ? `<img src="${existingImg}" alt="">` : 'No image';
+    errorEl.style.display = 'none';
+    overlay.classList.add('open');
+  }
+  function closeModal(){ overlay.classList.remove('open'); }
+
+  document.getElementById('p-image').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    pendingImageFile = file || null;
+    if (file){
+      imgPreview.innerHTML = `<img src="${URL.createObjectURL(file)}" alt="">`;
+    }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('p-name').value.trim();
+    const priceRaw = document.getElementById('p-price').value;
+    const price = priceRaw === '' ? null : Number(priceRaw);
+    const description = document.getElementById('p-desc').value.trim();
+    const active = document.getElementById('p-active').checked;
+    if (!name) return;
+
+    const saveBtn = document.getElementById('modal-save');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+    errorEl.style.display = 'none';
+
+    try {
+      let imagePath = null;
+      if (pendingImageFile){
+        const path = `presets/${Date.now()}-${sanitizeFileName(pendingImageFile.name)}`;
+        const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, pendingImageFile);
+        if (upErr) throw upErr;
+        imagePath = path;
+      }
+
+      const payload = { name, price, description: description || null, active };
+      if (imagePath) payload.image_path = imagePath;
+
+      let error;
+      if (editingId){
+        ({ error } = await supabase.from('presets').update(payload).eq('id', editingId));
+      } else {
+        ({ error } = await supabase.from('presets').insert(payload));
+      }
+      if (error) throw error;
+
+      closeModal();
+      loadPresets();
+
+    } catch (err){
+      errorEl.textContent = 'Could not save: ' + (err.message || 'please try again.');
+      errorEl.style.display = 'block';
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save preset';
+    }
+  });
+
+  checkSession();
+</script>
+
+</body>
+</html>
