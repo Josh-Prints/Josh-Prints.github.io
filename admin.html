@@ -309,6 +309,64 @@
     color: var(--accent);
     text-decoration: none;
   }
+  .file-attachment{ display:inline-flex; align-items:center; gap:8px; flex-wrap: wrap; }
+  .view3d-btn{
+    display:inline-flex; align-items:center; gap:4px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    text-decoration: none;
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 2px 9px;
+    white-space: nowrap;
+  }
+  .view3d-btn:hover{ background: var(--accent-dim); }
+  .pdf-preview{
+    display: block;
+    width: 108px;
+    height: 136px;
+    margin-top: 6px;
+    border: 1px solid rgba(31,35,40,0.15);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    background: #ffffff;
+  }
+  .pdf-preview embed{ width: 100%; height: 100%; pointer-events: none; }
+  .pdf-preview .pdf-preview-label{
+    position: absolute; left:0; right:0; bottom:0;
+    background: rgba(31,35,40,0.78);
+    color: #fff;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 10px;
+    padding: 3px 6px;
+    white-space: nowrap; overflow:hidden; text-overflow: ellipsis;
+  }
+  .pdf-modal{
+    display:none;
+    position: fixed; inset: 0;
+    background: rgba(15,17,20,0.78);
+    z-index: 1000;
+    align-items: center; justify-content: center;
+    padding: 28px;
+  }
+  .pdf-modal.open{ display:flex; }
+  .pdf-modal-inner{
+    background: #fff;
+    width: 100%; height: 100%; max-width: 880px;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    display:flex;
+  }
+  .pdf-modal-frame{ flex:1; border:none; width:100%; height:100%; }
+  .pdf-modal-close{
+    position:absolute; top:10px; right:10px; z-index:2;
+    background: rgba(31,35,40,0.75); color:#fff; border:none; border-radius:50%;
+    width:30px; height:30px; cursor:pointer; font-size:15px; line-height:1;
+  }
   .chat-empty{
     color: var(--ink-dim);
     font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
@@ -517,6 +575,13 @@
   </main>
 </div>
 
+<div class="pdf-modal" id="pdf-modal">
+  <div class="pdf-modal-inner">
+    <button type="button" class="pdf-modal-close" id="pdf-modal-close">✕</button>
+    <iframe class="pdf-modal-frame" id="pdf-modal-frame" src=""></iframe>
+  </div>
+</div>
+
 <!-- RATES MODAL -->
 <div id="rates-overlay" class="modal-overlay">
   <div class="modal-card">
@@ -580,6 +645,49 @@
       '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
     }[c]));
   }
+
+  function publicFileUrl(path){
+    return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+  }
+
+  const MODEL_EXTS = ['stl', 'obj', '3mf', 'step', 'stp', 'iges', 'igs'];
+  function fileExt(name){
+    return (name || '').split('.').pop().toLowerCase();
+  }
+
+  // Renders one attachment: a plain link, a link + "View in 3D" button for
+  // model files, or a small clickable PDF thumbnail for PDFs.
+  function renderAttachment(url, name){
+    const ext = fileExt(name);
+    const safeName = escapeHtml(name || 'attachment');
+    if (ext === 'pdf'){
+      return `<div class="pdf-preview" data-url="${url}" title="Click to view ${safeName}">
+        <embed src="${url}#toolbar=0&navpanes=0&view=FitH" type="application/pdf">
+        <div class="pdf-preview-label">📄 ${safeName}</div>
+      </div>`;
+    }
+    const viewBtn = MODEL_EXTS.includes(ext)
+      ? `<a class="view3d-btn" href="viewer.html?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name || '')}" target="_blank">👁 View in 3D</a>`
+      : '';
+    return `<span class="file-attachment"><a class="file-link" target="_blank" href="${url}">⇩ ${safeName}</a>${viewBtn}</span>`;
+  }
+
+  const pdfModal = document.getElementById('pdf-modal');
+  const pdfModalFrame = document.getElementById('pdf-modal-frame');
+  function openPdfModal(url){
+    pdfModalFrame.src = url;
+    pdfModal.classList.add('open');
+  }
+  function closePdfModal(){
+    pdfModal.classList.remove('open');
+    pdfModalFrame.src = '';
+  }
+  document.getElementById('pdf-modal-close').addEventListener('click', closePdfModal);
+  pdfModal.addEventListener('click', (e) => { if (e.target === pdfModal) closePdfModal(); });
+  document.addEventListener('click', (e) => {
+    const preview = e.target.closest('.pdf-preview');
+    if (preview) openPdfModal(preview.dataset.url);
+  });
 
   async function checkSession(){
     const { data: { session } } = await supabase.auth.getSession();
@@ -689,7 +797,7 @@
           const files = (order.files && order.files.length > 0)
             ? order.files
             : (order.file_path ? [{ path: order.file_path, name: order.file_name }] : []);
-          return files.map(f => `<div class="order-file"><a href="#" class="file-link" data-path="${escapeHtml(f.path)}">⇩ ${escapeHtml(f.name || 'download file')}</a></div>`).join('');
+          return files.map(f => `<div class="order-file">${renderAttachment(publicFileUrl(f.path), f.name)}</div>`).join('');
         })()}
         <div class="order-bottom">
           <select class="status-select" data-id="${order.id}">
@@ -719,16 +827,6 @@
         </div>
       `;
       ordersContainer.appendChild(card);
-    });
-
-    // File download links -> public URL (bucket is public; path is the only secret)
-    ordersContainer.querySelectorAll('.file-link').forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const path = link.dataset.path;
-        const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-        window.open(data.publicUrl, '_blank');
-      });
     });
 
     // Copy link buttons
@@ -876,18 +974,10 @@
       <div class="chat-msg ${m.sender}">
         <div class="who">${m.sender === 'admin' ? 'You' : 'Customer'}</div>
         ${m.body ? `<div>${escapeHtml(m.body)}</div>` : ''}
-        ${fileLinks.map(f => `<a class="file-link" href="#" data-path="${escapeHtml(f.path)}" target="_blank">📎 ${escapeHtml(f.name || 'attachment')}</a>`).join('')}
+        ${fileLinks.map(f => renderAttachment(publicFileUrl(f.path), f.name)).join('')}
       </div>
     `;
     }).join('');
-
-    container.querySelectorAll('.file-link').forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const { data } = supabase.storage.from(BUCKET).getPublicUrl(link.dataset.path);
-        window.open(data.publicUrl, '_blank');
-      });
-    });
 
     container.scrollTop = container.scrollHeight;
   }

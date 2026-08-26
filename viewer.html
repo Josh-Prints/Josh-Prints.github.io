@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Model preview — JoshPrints</title>
+<style>
+  :root{
+    --bg: #f6f8fa;
+    --ink: #1f2328;
+    --ink-dim: #656d76;
+    --accent: #0969da;
+    --border: rgba(31,35,40,0.12);
+  }
+  *{ box-sizing: border-box; }
+  html, body{ margin:0; height:100%; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif; overflow:hidden; }
+
+  #topbar{
+    height: 48px;
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 0 16px;
+    background:#ffffff;
+    border-bottom: 1px solid var(--border);
+  }
+  #fname{
+    font-size: 13.5px;
+    font-weight: 600;
+    white-space: nowrap; overflow:hidden; text-overflow: ellipsis;
+  }
+  #download-link{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    text-decoration: none;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 5px 12px;
+    white-space: nowrap;
+    margin-left: 12px;
+  }
+  #download-link:hover{ background: rgba(9,105,218,0.08); }
+
+  #viewport{ position: absolute; top: 48px; left:0; right:0; bottom:0; }
+  #viewport canvas{ display:block; }
+
+  #loading, #error{
+    position: absolute; top: 48px; left:0; right:0; bottom:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap: 10px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 13px;
+    color: var(--ink-dim);
+    text-align: center;
+    padding: 24px;
+  }
+  #error{ display:none; }
+  #error a{ color: var(--accent); }
+
+  .spinner{
+    width: 22px; height:22px; border-radius:50%;
+    border: 3px solid rgba(9,105,218,0.2);
+    border-top-color: var(--accent);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  #hint{
+    position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px; color: var(--ink-dim);
+    background: rgba(255,255,255,0.85);
+    padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border);
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+  <div id="topbar">
+    <div id="fname">Model preview</div>
+    <a id="download-link" href="#">⇩ Download original</a>
+  </div>
+
+  <div id="viewport"></div>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <div>Loading model…</div>
+  </div>
+
+  <div id="error">
+    <div>Preview isn't available for this file type.</div>
+    <div><a id="error-download" href="#">Download the file</a> to view it in your slicer or CAD software.</div>
+  </div>
+
+  <div id="hint" style="display:none;">Drag to rotate · Scroll to zoom</div>
+
+<script type="module">
+  import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+  import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+  import { STLLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/STLLoader.js';
+  import { OBJLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/OBJLoader.js';
+  import { ThreeMFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/3MFLoader.js';
+
+  const params = new URLSearchParams(window.location.search);
+  const url = params.get('url');
+  const name = params.get('name') || 'model';
+  const ext = (name.split('.').pop() || '').toLowerCase();
+
+  document.title = `${name} — JoshPrints`;
+  document.getElementById('fname').textContent = name;
+  if (url){
+    document.getElementById('download-link').href = url;
+    document.getElementById('error-download').href = url;
+  }
+
+  const SUPPORTED = ['stl', 'obj', '3mf'];
+
+  const loadingEl = document.getElementById('loading');
+  const errorEl = document.getElementById('error');
+  const hintEl = document.getElementById('hint');
+
+  function showError(){
+    loadingEl.style.display = 'none';
+    errorEl.style.display = 'flex';
+  }
+
+  if (!url || !SUPPORTED.includes(ext)){
+    showError();
+  } else {
+    initViewer();
+  }
+
+  function initViewer(){
+    const viewport = document.getElementById('viewport');
+    const width = () => viewport.clientWidth;
+    const height = () => viewport.clientHeight;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf6f8fa);
+
+    const camera = new THREE.PerspectiveCamera(45, width() / height(), 0.1, 10000);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(width(), height());
+    viewport.appendChild(renderer.domElement);
+
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x555566, 1.1));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+    dirLight.position.set(1, 1.5, 1);
+    scene.add(dirLight);
+    const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
+    dirLight2.position.set(-1, -0.5, -1);
+    scene.add(dirLight2);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+
+    const material = new THREE.MeshStandardMaterial({ color: 0x0969da, metalness: 0.15, roughness: 0.55 });
+
+    function frameObject(obj){
+      const box = new THREE.Box3().setFromObject(obj);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      obj.position.sub(center);
+
+      const maxDim = Math.max(size.x, size.y, size.z) || 1;
+      const dist = maxDim * 1.8;
+      camera.position.set(dist, dist * 0.8, dist);
+      camera.near = maxDim / 100;
+      camera.far = maxDim * 100;
+      camera.updateProjectionMatrix();
+      controls.target.set(0, 0, 0);
+      controls.update();
+
+      scene.add(obj);
+      loadingEl.style.display = 'none';
+      hintEl.style.display = 'block';
+    }
+
+    if (ext === 'stl'){
+      new STLLoader().load(url, geometry => {
+        geometry.computeVertexNormals();
+        frameObject(new THREE.Mesh(geometry, material));
+      }, undefined, showError);
+    } else if (ext === 'obj'){
+      new OBJLoader().load(url, obj => {
+        obj.traverse(child => { if (child.isMesh) child.material = material; });
+        frameObject(obj);
+      }, undefined, showError);
+    } else if (ext === '3mf'){
+      new ThreeMFLoader().load(url, obj => {
+        obj.traverse(child => { if (child.isMesh && !child.material) child.material = material; });
+        frameObject(obj);
+      }, undefined, showError);
+    }
+
+    function animate(){
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = width() / height();
+      camera.updateProjectionMatrix();
+      renderer.setSize(width(), height());
+    });
+  }
+</script>
+
+</body>
+</html>
