@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Print Quote Calculator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:         #f6f8fa;
+    --surface:    #ffffff;
+    --surface2:   #eef1f4;
+    --border:     #d1d9e0;
+    --border2:    #d8dee4;
+    --accent:     #0969da;
+    --accent-d:   #0550ae;
+    --accent-gl:  rgba(9,105,218,0.10);
+    --accent-gll: rgba(9,105,218,0.05);
+    --green:      #1a7f37;
+    --green-gl:   rgba(26,127,55,0.08);
+    --text:       #1f2328;
+    --muted:      #59636e;
+    --muted2:     #8c959f;
+    --seg-model:  #0969da;
+    --seg-print:  #8250df;
+    --seg-fil:    #1a7f37;
+    --seg-sur:    #9a6700;
+  }
+
+  html { font-size: 16px; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+    line-height: 1.5;
+  }
+
+  .header { max-width: 820px; margin: 0 auto 2.5rem; }
+  .header-eyebrow {
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 0.7rem; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 0.55rem;
+  }
+  .header h1 {
+    font-size: clamp(1.7rem, 5vw, 2.6rem);
+    font-weight: 700; letter-spacing: -0.03em; line-height: 1.1;
+  }
+  .header h1 span { color: var(--accent); }
+  .header-sub { margin-top: 0.5rem; font-size: 0.88rem; color: var(--muted); }
+
+  /* COST BAR */
+  .cost-bar-wrap { max-width: 820px; margin: 0 auto 2rem; }
+  .cost-bar-label-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.55rem; }
+  .cost-bar-title { font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .cost-bar-total-preview { font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 0.9rem; color: var(--green); }
+  .cost-bar { height: 10px; border-radius: 99px; background: var(--surface2); overflow: hidden; display: flex; border: 1px solid var(--border); }
+  .cost-bar-seg { height: 100%; transition: width 0.3s cubic-bezier(0.4,0,0.2,1); min-width: 0; }
+  .seg-model { background: var(--seg-model); }
+  .seg-fil   { background: var(--seg-fil); }
+  .seg-sur   { background: var(--seg-sur); }
+  .cost-bar-legend { display: flex; gap: 1.2rem; flex-wrap: wrap; margin-top: 0.6rem; }
+  .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.73rem; color: var(--muted); font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; }
+  .legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  /* LAYOUT */
+  .layout { max-width: 820px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 620px) { .layout { grid-template-columns: 1fr; } }
+  .card-wide { grid-column: 1 / -1; }
+
+  /* CARD */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; }
+  .card-header { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1.3rem; }
+  .card-icon { width: 28px; height: 28px; border-radius: 8px; background: var(--accent-gl); border: 1px solid rgba(9,105,218,0.25); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+  .card-title { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+
+  /* INPUTS */
+  .input-group { margin-bottom: 1.1rem; }
+  .input-group:last-child { margin-bottom: 0; }
+  .input-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.45rem; }
+  .input-label-text { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
+  .input-label-unit { font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 0.7rem; color: var(--muted2); }
+  .input-row { display: flex; align-items: center; gap: 0.6rem; }
+
+  input[type="range"] { flex: 1; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 99px; background: var(--border2); outline: none; cursor: pointer; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg); box-shadow: 0 0 0 3px rgba(9,105,218,0.2); cursor: pointer; transition: box-shadow 0.15s; }
+  input[type="range"]::-webkit-slider-thumb:hover { box-shadow: 0 0 0 5px rgba(9,105,218,0.3); }
+  input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg); cursor: pointer; }
+
+  .num-input { width: 72px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; color: var(--text); font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 0.82rem; padding: 0.35rem 0.5rem; text-align: right; outline: none; transition: border-color 0.15s; -moz-appearance: textfield; }
+  .num-input::-webkit-outer-spin-button, .num-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .num-input:focus { border-color: var(--accent); }
+
+  /* RATES */
+  .rates-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 460px) { .rates-grid { grid-template-columns: 1fr; } }
+  .rate-block { display: flex; flex-direction: column; gap: 0.35rem; }
+  .rate-label { font-size: 0.77rem; color: var(--muted); font-weight: 500; }
+  .rate-input-wrap { display: flex; align-items: center; background: var(--surface2); border: 1px solid var(--border2); border-radius: 9px; overflow: hidden; transition: border-color 0.15s; }
+  .rate-input-wrap:focus-within { border-color: var(--accent); }
+  .rate-prefix { padding: 0.45rem 0.6rem; font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 0.78rem; color: var(--muted); background: var(--border); border-right: 1px solid var(--border2); flex-shrink: 0; user-select: none; }
+  .rate-input { flex: 1; background: transparent; border: none; color: var(--text); font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 0.85rem; padding: 0.45rem 0.6rem; outline: none; -moz-appearance: textfield; }
+  .rate-input::-webkit-outer-spin-button, .rate-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .rate-suffix { padding: 0.45rem 0.55rem; font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 0.7rem; color: var(--muted2); flex-shrink: 0; }
+
+  /* SURCHARGE NOTE */
+  .surcharge-note { margin-top: 0.9rem; padding: 0.7rem 0.9rem; background: var(--accent-gll); border: 1px solid rgba(9,105,218,0.15); border-radius: 9px; font-size: 0.77rem; color: var(--muted); display: flex; align-items: center; gap: 0.5rem; }
+  .surcharge-note .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; transition: background 0.2s; }
+  .surcharge-note.inactive .dot { background: var(--muted2); }
+  .surcharge-note span { color: var(--text); font-weight: 600; }
+
+  /* CLIENT / INVOICE DETAILS */
+  .client-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 460px) { .client-grid { grid-template-columns: 1fr; } }
+  .notes-span { grid-column: 1 / -1; }
+
+  .text-field-group { display: flex; flex-direction: column; gap: 0.35rem; }
+  .text-field-label { font-size: 0.77rem; color: var(--muted); font-weight: 500; }
+  .text-field { background: var(--surface2); border: 1px solid var(--border2); border-radius: 9px; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif; font-size: 0.85rem; padding: 0.5rem 0.75rem; outline: none; transition: border-color 0.15s; width: 100%; }
+  .text-field:focus { border-color: var(--accent); }
+  .text-field::placeholder { color: var(--muted2); }
+  textarea.text-field { resize: vertical; min-height: 72px; }
+  input[type="date"].text-field { color-scheme: dark; }
+
+  /* BREAKDOWN */
+  .breakdown-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; grid-column: 1 / -1; }
+  .breakdown-title { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 1.1rem; display: flex; align-items: center; gap: 0.6rem; }
+  .breakdown-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .breakdown-rows { display: flex; flex-direction: column; gap: 0.5rem; }
+  .breakdown-row { display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.85rem; border-radius: 9px; background: var(--surface2); border: 1px solid var(--border); transition: opacity 0.2s; }
+  .breakdown-row.dimmed { opacity: 0.35; }
+  .bd-left { display: flex; align-items: center; gap: 0.7rem; }
+  .bd-swatch { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+  .bd-label { font-size: 0.82rem; color: var(--muted); }
+  .bd-formula { font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 0.68rem; color: var(--muted2); margin-left: 0.25rem; }
+  .bd-value { font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 0.9rem; font-weight: 500; color: var(--text); }
+  .divider-row { height: 1px; background: var(--border2); margin: 0.3rem 0; }
+  .total-row { display: flex; justify-content: space-between; align-items: center; padding: 0.9rem 0.85rem 0.75rem; border-radius: 11px; background: var(--green-gl); border: 1px solid rgba(74,222,128,0.2); margin-top: 0.4rem; }
+  .total-label { font-weight: 700; font-size: 0.85rem; letter-spacing: 0.04em; }
+  .total-value { font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 1.5rem; font-weight: 700; color: var(--green); letter-spacing: -0.02em; }
+
+  /* DOWNLOAD BUTTON */
+  .download-wrap { max-width: 820px; margin: 1.2rem auto 0; display: flex; justify-content: flex-end; align-items: center; gap: 1rem; }
+
+  /* ROUND DOWN CHECKBOX */
+  .round-check-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.8rem; color: var(--muted); font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; user-select: none; }
+  .round-check-label input[type="checkbox"] { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border: 1.5px solid var(--border2); border-radius: 4px; background: var(--surface2); cursor: pointer; flex-shrink: 0; transition: background 0.15s, border-color 0.15s; position: relative; }
+  .round-check-label input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+  .round-check-label input[type="checkbox"]:checked::after { content: ''; position: absolute; left: 4px; top: 1px; width: 5px; height: 9px; border: 2px solid #fff; border-top: none; border-left: none; transform: rotate(45deg); }
+  .round-check-label input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn-download { display: flex; align-items: center; gap: 0.6rem; background: var(--accent); color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif; font-size: 0.88rem; font-weight: 600; padding: 0.65rem 1.35rem; border: none; border-radius: 10px; cursor: pointer; transition: background 0.15s, transform 0.1s, box-shadow 0.15s; letter-spacing: 0.02em; box-shadow: 0 2px 12px rgba(9,105,218,0.25); }
+  .btn-download:hover { background: var(--accent-d); box-shadow: 0 4px 20px rgba(9,105,218,0.4); transform: translateY(-1px); }
+  .btn-download:active { transform: translateY(0); }
+
+  .footer { max-width: 820px; margin: 1.5rem auto 0; text-align: center; font-size: 0.72rem; color: var(--muted2); font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; }
+
+  /* EXTRA COSTS */
+  .extra-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem; }
+  .extra-reason {
+    flex: 1; background: var(--surface2); border: 1.5px solid var(--border2); border-radius: 8px;
+    color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif; font-size: 0.85rem;
+    padding: 0.45rem 0.7rem; outline: none; transition: border-color 0.15s;
+  }
+  .extra-reason:focus { border-color: var(--accent); }
+  .extra-amount-wrap { display: flex; align-items: center; background: var(--surface2); border: 1.5px solid var(--border2); border-radius: 8px; overflow: hidden; transition: border-color 0.15s; }
+  .extra-amount-wrap:focus-within { border-color: var(--accent); }
+  .extra-prefix { padding: 0 0.45rem; color: var(--muted); font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 0.8rem; }
+  .extra-amount { width: 72px; background: transparent; border: none; color: var(--text); font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 0.85rem; padding: 0.45rem 0.5rem 0.45rem 0; outline: none; }
+  .extra-remove { background: none; border: none; color: var(--muted2); cursor: pointer; font-size: 1rem; padding: 0.2rem 0.4rem; border-radius: 6px; transition: color 0.15s; line-height: 1; }
+  .extra-remove:hover { color: #e53935; }
+  .add-extra-btn {
+    margin-top: 0.4rem; background: none; border: 1.5px dashed var(--border2); border-radius: 8px;
+    color: var(--muted); font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 0.75rem;
+    padding: 0.4rem 1rem; cursor: pointer; width: 100%; transition: border-color 0.15s, color 0.15s;
+    letter-spacing: 0.05em;
+  }
+  .add-extra-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* NOTES HELPERS */
+  .notes-sub-label { font-size: 0.72rem; color: var(--muted2); font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.45rem; margin-top: 0.5rem; }
+  .colour-btn-row { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-bottom: 0.75rem; }
+  .colour-btn {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--c);
+    border: 2px solid transparent; cursor: pointer; transition: transform 0.12s, border-color 0.12s;
+    flex-shrink: 0; position: relative;
+  }
+  .colour-btn:hover { transform: scale(1.15); }
+  .colour-btn.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-gl); transform: scale(1.1); }
+  .supports-check-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.8rem; color: var(--muted); font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; user-select: none; margin-bottom: 0.1rem; }
+  .supports-check-label input[type="checkbox"] { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border: 1.5px solid var(--border2); border-radius: 4px; background: var(--surface2); cursor: pointer; flex-shrink: 0; transition: background 0.15s, border-color 0.15s; position: relative; }
+  .supports-check-label input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+  .supports-check-label input[type="checkbox"]:checked::after { content: ''; position: absolute; left: 4px; top: 1px; width: 5px; height: 9px; border: 2px solid #fff; border-top: none; border-left: none; transform: rotate(45deg); }
+
+  /* FILAMENT PRESETS */
+  .preset-row { display: flex; gap: 0.45rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+  .preset-btn {
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 0.72rem; font-weight: 500;
+    padding: 0.3rem 0.75rem; border-radius: 7px; cursor: pointer; transition: all 0.15s;
+    border: 1.5px solid var(--border2); background: var(--surface2); color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+  .preset-btn:hover { border-color: var(--accent); color: var(--text); }
+  .preset-btn.active { background: var(--accent-gl); border-color: var(--accent); color: var(--accent); }
+  .preset-label { font-size: 0.72rem; color: var(--muted2); font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; margin-bottom: 0.45rem; letter-spacing: 0.08em; text-transform: uppercase; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="admin.html" style="display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,'SF Mono','Roboto Mono',monospace;font-size:0.72rem;color:var(--muted);text-decoration:none;margin-bottom:0.9rem;letter-spacing:0.04em;">&larr; Back to admin</a>
+  <div class="header-eyebrow">JoshPrints · Quote Builder</div>
+  <h1>3D Print <span>Quote</span> Calculator</h1>
+  <p class="header-sub">Modeling labor · Filament · Surcharge — updates live.</p>
+</div>
+
+<div class="cost-bar-wrap">
+  <div class="cost-bar-label-row">
+    <span class="cost-bar-title">Cost Breakdown</span>
+    <span class="cost-bar-total-preview" id="barTotal">$0.00</span>
+  </div>
+  <div class="cost-bar">
+    <div class="cost-bar-seg seg-model" id="segModel" style="width:0%"></div>
+    <div class="cost-bar-seg seg-print" id="segPrint" style="width:0%"></div>
+    <div class="cost-bar-seg seg-fil"   id="segFil"   style="width:0%"></div>
+    <div class="cost-bar-seg seg-sur"   id="segSur"   style="width:0%"></div>
+  </div>
+  <div class="cost-bar-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--seg-model)"></div>Modeling</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--seg-print)"></div>Printing</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--seg-fil)"></div>Filament</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--seg-sur)"></div>Surcharge</div>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- JOB INPUTS -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🖨</div>
+      <div class="card-title">Job Details</div>
+    </div>
+    <div class="input-group">
+      <div class="input-label"><span class="input-label-text">Modeling time</span><span class="input-label-unit">hours</span></div>
+      <div class="input-row">
+        <input type="range" id="modelHrsRange" min="0" max="40" step="0.25" value="2">
+        <input type="number" id="modelHrsNum" class="num-input" min="0" max="999" step="1" value="2" placeholder="h.mm">
+      </div>
+    </div>
+    <div class="input-group">
+      <div class="input-label"><span class="input-label-text">Print time</span><span class="input-label-unit">hours</span></div>
+      <div class="input-row">
+        <input type="range" id="printHrsRange" min="0" max="48" step="0.25" value="4">
+        <input type="number" id="printHrsNum" class="num-input" min="0" max="999" step="1" value="4" placeholder="h.mm">
+      </div>
+    </div>
+    <div class="input-group">
+      <div class="input-label"><span class="input-label-text">Filament used</span><span class="input-label-unit">grams</span></div>
+      <div class="input-row">
+        <input type="range" id="filGramsRange" min="0" max="1000" step="1" value="120">
+        <input type="number" id="filGramsNum" class="num-input" min="0" max="9999" step="1" value="120">
+      </div>
+    </div>
+  </div>
+
+  <!-- RATES -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">⚙</div>
+      <div class="card-title">Rates</div>
+    </div>
+    <div class="rates-grid">
+      <div class="rate-block">
+        <div class="rate-label">Labor rate</div>
+        <div class="rate-input-wrap">
+          <div class="rate-prefix">$</div>
+          <input type="number" id="laborRate" class="rate-input" min="0" max="999" step="0.5" value="6">
+          <div class="rate-suffix">/hr</div>
+        </div>
+      </div>
+      <div class="rate-block">
+        <div class="rate-label">Base handling fee</div>
+        <div class="rate-input-wrap">
+          <div class="rate-prefix">$</div>
+          <input type="number" id="baseFee" class="rate-input" min="0" max="999" step="0.25" value="1.75">
+        </div>
+      </div>
+      <div class="rate-block">
+        <div class="rate-label">Print rate <span style="color:var(--muted2)">(curve)</span></div>
+        <div class="rate-input-wrap">
+          <div class="rate-prefix">$</div>
+          <input type="number" id="printRate" class="rate-input" min="0" max="999" step="0.01" value="0.25">
+          <div class="rate-suffix">/hr^1.4</div>
+        </div>
+      </div>
+      <div class="rate-block" style="grid-column: 1 / -1;">
+        <div class="rate-label">Filament cost</div>
+        <div class="preset-label" style="margin-top:0.4rem;">Presets</div>
+        <div class="preset-row">
+          <button class="preset-btn" id="presetPLA"    onclick="setFilPreset('PLA',50)">PLA — $50/kg</button>
+          <button class="preset-btn" id="presetABS"    onclick="setFilPreset('ABS',60)">ABS — $60/kg</button>
+          <button class="preset-btn" id="presetTPU"    onclick="setFilPreset('TPU',65)">TPU — $65/kg</button>
+          <button class="preset-btn" id="presetCustom" onclick="setFilPreset('Custom',null)">Custom</button>
+        </div>
+        <div class="rate-input-wrap">
+          <div class="rate-prefix">$</div>
+          <input type="number" id="filCostKg" class="rate-input" min="0" max="999" step="0.5" value="50">
+          <div class="rate-suffix">/kg</div>
+        </div>
+      </div>
+      <div class="rate-block">
+        <div class="rate-label">Surcharge amount</div>
+        <div class="rate-input-wrap">
+          <div class="rate-prefix">$</div>
+          <input type="number" id="surchargeAmt" class="rate-input" min="0" max="999" step="0.5" value="2">
+        </div>
+      </div>
+      <div class="rate-block">
+        <div class="rate-label">Surcharge if print &gt;</div>
+        <div class="rate-input-wrap">
+          <input type="number" id="surchargeThreshold" class="rate-input" min="0" max="99" step="0.5" value="3" style="padding-left:0.85rem">
+          <div class="rate-suffix">hrs</div>
+        </div>
+      </div>
+    </div>
+    <div class="surcharge-note" id="surchargeNote">
+      <div class="dot"></div>
+      <span id="surchargeNoteText"></span>
+    </div>
+  </div>
+
+  <!-- INVOICE DETAILS -->
+  <div class="card card-wide">
+    <div class="card-header">
+      <div class="card-icon">📄</div>
+      <div class="card-title">Quote Details</div>
+    </div>
+    <div class="client-grid">
+      <div class="text-field-group">
+        <label class="text-field-label" for="yourName">Your name / business</label>
+        <input type="text" id="yourName" class="text-field" value="Josh Prints">
+      </div>
+      <div class="text-field-group">
+        <label class="text-field-label" for="clientName">Client name</label>
+        <input type="text" id="clientName" class="text-field" placeholder="e.g. Jane Smith">
+      </div>
+      <div class="text-field-group">
+        <label class="text-field-label" for="jobName">Job / project name</label>
+        <input type="text" id="jobName" class="text-field" placeholder="e.g. Custom dragon figurine">
+      </div>
+      <div class="text-field-group">
+        <label class="text-field-label" for="invoiceDate">Date</label>
+        <input type="date" id="invoiceDate" class="text-field">
+      </div>
+      <div class="text-field-group notes-span">
+        <label class="text-field-label">Notes</label>
+
+        <!-- Colour picker -->
+        <div class="notes-sub-label">Colour</div>
+        <div class="colour-btn-row" id="colourBtnRow">
+          <button class="colour-btn active" data-colour="Black"  style="--c:#1a1a1a"></button>
+          <button class="colour-btn"        data-colour="White"  style="--c:#f0f0f0"></button>
+          <button class="colour-btn"        data-colour="Grey"   style="--c:#888888"></button>
+          <button class="colour-btn"        data-colour="Red"    style="--c:#e53935"></button>
+          <button class="colour-btn"        data-colour="Blue"   style="--c:#1e88e5"></button>
+          <button class="colour-btn"        data-colour="Green"  style="--c:#43a047"></button>
+          <button class="colour-btn"        data-colour="Yellow" style="--c:#fdd835"></button>
+          <button class="colour-btn"        data-colour="Orange" style="--c:#fb8c00"></button>
+          <button class="colour-btn"        data-colour="Pink"   style="--c:#e91e8c"></button>
+          <button class="colour-btn"        data-colour="Purple" style="--c:#8e24aa"></button>
+        </div>
+
+        <!-- Supports checkbox -->
+        <label class="supports-check-label">
+          <input type="checkbox" id="supportsCheck">
+          Supports required
+        </label>
+
+        <!-- Auto-filled textarea -->
+        <textarea id="notes" class="text-field" style="margin-top:0.6rem"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXTRA COSTS -->
+  <div class="card card-wide" id="extraCostCard" style="display:none">
+    <div class="card-header">
+      <div class="card-icon">➕</div>
+      <div class="card-title">Extra Costs</div>
+    </div>
+    <div id="extraCostList"></div>
+    <button class="add-extra-btn" onclick="addExtraRow()">+ Add item</button>
+  </div>
+
+  <!-- BREAKDOWN -->
+  <div class="breakdown-card">
+    <div class="breakdown-title">Cost Breakdown</div>
+    <div class="breakdown-rows">
+      <div class="breakdown-row" id="rowModel">
+        <div class="bd-left">
+          <div class="bd-swatch" style="background:var(--seg-model)"></div>
+          <span class="bd-label">Modeling labor</span>
+          <span class="bd-formula" id="formulaModel"></span>
+        </div>
+        <span class="bd-value" id="valModel">$0.00</span>
+      </div>
+      <div class="breakdown-row" id="rowPrint">
+        <div class="bd-left">
+          <div class="bd-swatch" style="background:var(--seg-print)"></div>
+          <span class="bd-label">Print machine cost</span>
+          <span class="bd-formula" id="formulaPrint"></span>
+        </div>
+        <span class="bd-value" id="valPrint">$0.00</span>
+      </div>
+      <div class="breakdown-row" id="rowFil">
+        <div class="bd-left">
+          <div class="bd-swatch" style="background:var(--seg-fil)"></div>
+          <span class="bd-label">Filament</span>
+          <span class="bd-formula" id="formulaFil"></span>
+        </div>
+        <span class="bd-value" id="valFil">$0.00</span>
+      </div>
+      <div class="breakdown-row" id="rowSur">
+        <div class="bd-left">
+          <div class="bd-swatch" style="background:var(--seg-sur)"></div>
+          <span class="bd-label">Long-print surcharge</span>
+          <span class="bd-formula" id="formulaSur"></span>
+        </div>
+        <span class="bd-value" id="valSur">$0.00</span>
+      </div>
+      <div id="extraRows"></div>
+      <div class="divider-row"></div>
+      <div class="total-row">
+        <span class="total-label">TOTAL</span>
+        <span class="total-value" id="totalVal">$0.00</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="download-wrap">
+  <label class="round-check-label">
+    <input type="checkbox" id="roundDown">
+    Round down to dollar
+  </label>
+  <label class="round-check-label">
+    <input type="checkbox" id="extraCostToggle" onchange="toggleExtraCosts()">
+    Extra costs
+  </label>
+  <button class="btn-download" onclick="downloadQuote()">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M8 1v9M8 10l-3-3M8 10l3-3M2 12v1.5A1.5 1.5 0 003.5 15h9a1.5 1.5 0 001.5-1.5V12" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Download Quote PDF
+  </button>
+</div>
+
+<div class="footer">All values update live · No data leaves your device</div>
+
+<script>
+  const state = { modelHrs:2, printHrs:4, filGrams:120, rate:6, printRate:0.25, baseFee:1.75, filPerKg:50, surAmt:2, surThresh:3 };
+  let activePreset = 'PLA';
+  const el  = id => document.getElementById(id);
+  const fmt     = v => '$' + v.toFixed(2);
+  const fmtTotal = v => el('roundDown').checked ? '$' + Math.floor(v).toFixed(0) : fmt(v);
+
+  /* default date */
+  el('invoiceDate').value = new Date().toISOString().split('T')[0];
+
+  /* colour picker */
+  let selectedColour = 'Black';
+  document.querySelectorAll('.colour-btn').forEach(btn => {
+    btn.title = btn.dataset.colour;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.colour-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedColour = btn.dataset.colour;
+      updateNotes();
+    });
+  });
+
+  /* supports checkbox */
+  el('supportsCheck').addEventListener('change', updateNotes);
+
+  /* auto-fill notes */
+  let notesUserEdited = false;
+  function updateNotes() {
+    if (notesUserEdited) return;
+    const filament = activePreset === 'Custom' ? 'Custom filament' : activePreset;
+    const supports = el('supportsCheck').checked ? 'supports' : 'no supports';
+    el('notes').value = `${filament}, ${selectedColour}, 0.4mm nozzle, 0.2mm layer height, ${supports}`;
+  }
+  el('notes').addEventListener('input', () => { notesUserEdited = true; });
+
+  /* filament presets */
+  const PRESETS = { PLA: 50, ABS: 60, TPU: 65 };
+  function setFilPreset(name, price) {
+    activePreset = name;
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    el('preset' + name).classList.add('active');
+    if (price !== null) {
+      el('filCostKg').value = price;
+      state.filPerKg = price;
+      recalc();
+    }
+    updateNotes();
+  }
+  /* activate PLA by default */
+  setFilPreset('PLA', 50);
+
+  /* if user edits filament cost manually, switch to Custom */
+  el('filCostKg').addEventListener('input', () => {
+    state.filPerKg = +el('filCostKg').value || 0;
+    if (activePreset !== 'Custom') {
+      activePreset = 'Custom';
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      el('presetCustom').classList.add('active');
+      updateNotes();
+    }
+    recalc();
+  });
+
+  /* round-down checkbox triggers live recalc */
+  el('roundDown').addEventListener('change', recalc);
+
+  /* HH.MM helpers — e.g. 1.30 = 1h 30min = 1.5 decimal hours */
+  function parseHM(val) {
+    const s = String(val);
+    const [hPart, mPart] = s.split('.');
+    const h = parseInt(hPart, 10) || 0;
+    const m = mPart !== undefined ? Math.min(parseInt(mPart.padEnd(2,'0').slice(0,2), 10), 59) : 0;
+    return h + m / 60;
+  }
+  function fmtHM(dec) {
+    const h = Math.floor(dec);
+    const m = Math.round((dec - h) * 60);
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}m`;
+  }
+  function toHMInput(dec) {
+    const h = Math.floor(dec);
+    const m = Math.round((dec - h) * 60);
+    return m === 0 ? `${h}` : `${h}.${String(m).padStart(2,'0')}`;
+  }
+
+  /* range ↔ number sync — ranges stay decimal, number inputs use HH.MM display */
+  function syncPair(rangeId, numId, key, isTime) {
+    el(rangeId).addEventListener('input', () => {
+      const dec = +el(rangeId).value;
+      if (isTime) el(numId).value = toHMInput(dec);
+      else el(numId).value = dec;
+      state[key] = dec;
+      recalc();
+    });
+    el(numId).addEventListener('input', () => {
+      const dec = isTime ? parseHM(el(numId).value) : (+el(numId).value || 0);
+      state[key] = dec;
+      el(rangeId).value = Math.min(dec, +el(rangeId).max);
+      recalc();
+    });
+  }
+  syncPair('modelHrsRange','modelHrsNum','modelHrs', true);
+  syncPair('printHrsRange','printHrsNum','printHrs', true);
+  syncPair('filGramsRange','filGramsNum','filGrams', false);
+
+  [['laborRate','rate'],['printRate','printRate'],['baseFee','baseFee'],['surchargeAmt','surAmt'],['surchargeThreshold','surThresh']].forEach(([id,key]) => {
+    el(id).addEventListener('input', () => { state[key] = +el(id).value || 0; recalc(); });
+  });
+
+  /* extra costs */
+  let extraItems = [];
+  let extraIdCounter = 0;
+
+  function toggleExtraCosts() {
+    const on = el('extraCostToggle').checked;
+    el('extraCostCard').style.display = on ? '' : 'none';
+    if (on && extraItems.length === 0) addExtraRow();
+    recalc();
+  }
+
+  function addExtraRow() {
+    const id = ++extraIdCounter;
+    extraItems.push({ id, reason: '', amount: 0 });
+    renderExtraRows();
+  }
+
+  function removeExtraRow(id) {
+    extraItems = extraItems.filter(i => i.id !== id);
+    renderExtraRows();
+    recalc();
+  }
+
+  function renderExtraRows() {
+    const list = el('extraCostList');
+    list.innerHTML = '';
+    extraItems.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'extra-row';
+      row.innerHTML = `
+        <input class="extra-reason" type="text" placeholder="Reason (e.g. rush fee)" value="${item.reason}"
+          oninput="updateExtra(${item.id},'reason',this.value)">
+        <div class="extra-amount-wrap">
+          <span class="extra-prefix">$</span>
+          <input class="extra-amount" type="number" min="0" step="0.5" placeholder="0.00" value="${item.amount || ''}"
+            oninput="updateExtra(${item.id},'amount',this.value)">
+        </div>
+        <button class="extra-remove" onclick="removeExtraRow(${item.id})" title="Remove">✕</button>`;
+      list.appendChild(row);
+    });
+  }
+
+  function updateExtra(id, field, val) {
+    const item = extraItems.find(i => i.id === id);
+    if (!item) return;
+    item[field] = field === 'amount' ? (+val || 0) : val;
+    recalc();
+  }
+
+  function extraTotal() {
+    if (!el('extraCostToggle').checked) return 0;
+    return extraItems.reduce((sum, i) => sum + i.amount, 0);
+  }
+
+  function recalc() {
+    const { modelHrs, printHrs, filGrams, rate, printRate, baseFee, filPerKg, surAmt, surThresh } = state;
+    const modelCost = modelHrs * rate;
+    const printCost = printHrs > 0 ? baseFee + printRate * Math.pow(printHrs, 1.4) : 0;
+    const filCost   = filGrams * (filPerKg / 1000);
+    const surActive = printHrs > surThresh;
+    const surCost   = surActive ? surAmt : 0;
+    const xtraCost  = extraTotal();
+    const total     = modelCost + printCost + filCost + surCost + xtraCost;
+
+    el('valModel').textContent  = fmt(modelCost);
+    el('valPrint').textContent  = fmt(printCost);
+    el('valFil').textContent    = fmt(filCost);
+    el('valSur').textContent    = fmt(surCost);
+    el('totalVal').textContent  = fmtTotal(total);
+    el('barTotal').textContent  = fmtTotal(total);
+
+    el('formulaModel').textContent = `${fmtHM(modelHrs)} × $${rate}/hr`;
+    el('formulaPrint').textContent = `$${baseFee} + ${fmtHM(printHrs)}^1.4 × $${printRate}`;
+    el('formulaFil').textContent   = `${filGrams}g @ $${filPerKg}/kg`;
+    el('formulaSur').textContent   = surActive ? `>${fmtHM(surThresh)}` : `≤${fmtHM(surThresh)}`;
+
+    el('rowModel').classList.toggle('dimmed', modelCost === 0);
+    el('rowPrint').classList.toggle('dimmed', printCost === 0);
+    el('rowFil').classList.toggle('dimmed',   filCost   === 0);
+    el('rowSur').classList.toggle('dimmed',   !surActive);
+
+    /* extra cost rows in breakdown */
+    const extraRowsEl = el('extraRows');
+    extraRowsEl.innerHTML = '';
+    const activeExtras = el('extraCostToggle').checked ? extraItems.filter(i => i.amount > 0 || i.reason) : [];
+    activeExtras.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'breakdown-row' + (item.amount === 0 ? ' dimmed' : '');
+      div.innerHTML = `<div class="bd-left"><div class="bd-swatch" style="background:#64B5F6"></div><span class="bd-label">${item.reason || 'Extra cost'}</span></div><span class="bd-value">${fmt(item.amount)}</span>`;
+      extraRowsEl.appendChild(div);
+    });
+
+    const note = el('surchargeNote'), noteText = el('surchargeNoteText');
+    if (surActive) {
+      note.classList.remove('inactive');
+      noteText.innerHTML = `<span>+${fmt(surAmt)} surcharge</span> — print time (${fmtHM(printHrs)}) exceeds ${fmtHM(surThresh)}`;
+    } else {
+      note.classList.add('inactive');
+      noteText.innerHTML = `Surcharge inactive — print time (${fmtHM(printHrs)}) is within ${fmtHM(surThresh)} limit`;
+    }
+
+    if (total > 0) {
+      const pct = v => ((v/total)*100).toFixed(2)+'%';
+      el('segModel').style.width = pct(modelCost);
+      el('segPrint').style.width = pct(printCost);
+      el('segFil').style.width   = pct(filCost);
+      el('segSur').style.width   = pct(surCost);
+    } else {
+      ['segModel','segPrint','segFil','segSur'].forEach(id => el(id).style.width='0%');
+    }
+  }
+
+  /* ── PDF QUOTE ── */
+  function downloadQuote() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+
+    const { modelHrs, printHrs, filGrams, rate, printRate, baseFee, filPerKg, surAmt, surThresh } = state;
+    const modelCost = modelHrs * rate;
+    const printCost = printHrs > 0 ? baseFee + printRate * Math.pow(printHrs, 1.4) : 0;
+    const filCost   = filGrams * (filPerKg / 1000);
+    const surActive = printHrs > surThresh;
+    const surCost   = surActive ? surAmt : 0;
+    const rawTotal  = modelCost + printCost + filCost + surCost + extraTotal();
+    const roundDown = el('roundDown').checked;
+    const total     = roundDown ? Math.floor(rawTotal) : rawTotal;
+    const fmtPdf    = v => '$' + v.toFixed(2);
+
+    const yourName   = el('yourName').value.trim()   || 'Your Name';
+    const clientName = el('clientName').value.trim() || 'Client';
+    const jobName    = el('jobName').value.trim()    || '3D Print Job';
+    const notes      = el('notes').value.trim();
+    const rawDate    = el('invoiceDate').value;
+    const dateLabel  = rawDate
+      ? new Date(rawDate + 'T00:00:00').toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' })
+      : new Date().toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' });
+
+    const W = 210, mar = 20, col = W - mar * 2;
+
+    /* accent bar at top */
+    doc.setFillColor(9, 105, 218);
+    doc.rect(0, 0, W, 7, 'F');
+
+    /* QUOTE heading */
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(22);
+    doc.setTextColor(25, 25, 25);
+    doc.text('QUOTE', mar, 23);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(9);
+    doc.setTextColor(130, 130, 130);
+    doc.text(dateLabel, W - mar, 23, { align:'right' });
+
+    /* FROM / TO */
+    let y = 33;
+    const hw = col / 2 - 5;
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(170,170,170);
+    doc.text('FROM', mar, y);
+    doc.text('TO',   mar + hw + 10, y);
+    y += 5;
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(25,25,25);
+    doc.text(yourName,   mar, y);
+    doc.text(clientName, mar + hw + 10, y);
+
+    /* Job label pill */
+    y += 13;
+    doc.setFillColor(245,245,245);
+    doc.roundedRect(mar, y, col, 11, 2, 2, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(140,140,140);
+    doc.text('JOB / PROJECT', mar + 4, y + 4);
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(25,25,25);
+    doc.text(jobName, mar + 4, y + 8.5);
+
+    /* Print specs */
+    y += 17;
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(170,170,170);
+    doc.text('PRINT SPECIFICATIONS', mar, y);
+    y += 5;
+    [
+      ['Modeling time', fmtHM(modelHrs)],
+      ['Print time',    fmtHM(printHrs)],
+      ['Filament used', `${filGrams} g`],
+    ].forEach(([label, val]) => {
+      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(110,110,110);
+      doc.text(label, mar, y);
+      doc.setFont('helvetica','bold'); doc.setTextColor(25,25,25);
+      doc.text(val, mar + 58, y);
+      y += 5.5;
+    });
+
+    /* Cost table */
+    y += 5;
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(170,170,170);
+    doc.text('COST BREAKDOWN', mar, y);
+    y += 3;
+
+    const xtraCost  = extraTotal();
+    const rows = [
+      ['Modeling labor',      `${fmtHM(modelHrs)} × $${rate}/hr`,      fmtPdf(modelCost)],
+      ['Print machine cost',  `$${baseFee} + ${fmtHM(printHrs)}^1.4 × $${printRate}`, fmtPdf(printCost)],
+      ['Filament',            `${filGrams}g @ $${filPerKg}/kg`,  fmtPdf(filCost)],
+    ];
+    if (surActive) rows.push(['Long-print surcharge', `Print time > ${fmtHM(surThresh)}`, fmtPdf(surCost)]);
+    if (el('extraCostToggle').checked) {
+      extraItems.filter(i => i.amount > 0 || i.reason).forEach(item => {
+        rows.push([item.reason || 'Extra cost', '—', fmtPdf(item.amount)]);
+      });
+    }
+
+    doc.autoTable({
+      startY: y,
+      margin: { left: mar, right: mar },
+      head: [['Item', 'Calculation', 'Amount']],
+      body: rows,
+      styles: { font:'helvetica', fontSize:9, cellPadding:{ top:4, bottom:4, left:4, right:4 }, textColor:[40,40,40] },
+      headStyles: { fillColor:[9,105,218], textColor:[255,255,255], fontStyle:'bold', fontSize:8 },
+      columnStyles: {
+        0: { cellWidth: 55 },
+        1: { cellWidth: col - 55 - 35, textColor:[130,130,130] },
+        2: { cellWidth: 35, halign:'right', fontStyle:'bold' },
+      },
+      alternateRowStyles: { fillColor:[250,250,250] },
+      tableLineColor: [225,225,225],
+      tableLineWidth: 0.2,
+    });
+
+    /* Total banner */
+    const tY = doc.lastAutoTable.finalY + 4;
+    doc.setFillColor(9, 105, 218);
+    doc.roundedRect(mar, tY, col, 14, 2, 2, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(255,255,255);
+    doc.text('QUOTED PRICE', mar + 4, tY + 9);
+    doc.setFontSize(14);
+    doc.text(fmtPdf(total), W - mar - 4, tY + 9, { align:'right' });
+
+    /* Rounded-down note */
+    let afterBannerY = tY + 22;
+    if (roundDown) {
+      doc.setFont('helvetica','italic'); doc.setFontSize(7.5); doc.setTextColor(160,160,160);
+      doc.text(`* Price rounded down from ${fmtPdf(rawTotal)} as a courtesy.`, mar, tY + 20);
+      afterBannerY = tY + 28;
+    }
+
+    /* Notes */
+    if (notes) {
+      let ny = afterBannerY;
+      doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(170,170,170);
+      doc.text('NOTES', mar, ny); ny += 5;
+      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(80,80,80);
+      doc.text(doc.splitTextToSize(notes, col), mar, ny);
+    }
+
+    /* Footer rule */
+    doc.setDrawColor(220,220,220); doc.setLineWidth(0.3);
+    doc.line(mar, 280, W - mar, 280);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(190,190,190);
+    doc.text(`Quote prepared by ${yourName}`, mar, 285);
+    doc.text(dateLabel, W - mar, 285, { align:'right' });
+
+    /* accent bottom bar */
+    doc.setFillColor(9, 105, 218);
+    doc.rect(0, 290, W, 7, 'F');
+
+    /* save */
+    const safe = (clientName + '_' + jobName).replace(/[^a-z0-9_\-]/gi,'_').toLowerCase();
+    doc.save(`quote_${safe}.pdf`);
+  }
+
+  recalc();
+</script>
+</body>
+</html>
