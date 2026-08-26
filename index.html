@@ -17,7 +17,7 @@
     --btn-primary-hover: #0860ca;
   }
   *{ box-sizing: border-box; }
-  html{ -webkit-text-size-adjust: 100%; }
+  html{ -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
   body{
     margin: 0;
     background: var(--canvas);
@@ -27,6 +27,14 @@
     line-height: 1.5;
   }
 
+  @keyframes fadeInDown{ from{ opacity:0; transform: translateY(-10px); } to{ opacity:1; transform: translateY(0); } }
+  @keyframes fadeInUp{ from{ opacity:0; transform: translateY(16px); } to{ opacity:1; transform: translateY(0); } }
+  @keyframes popIn{ from{ opacity:0; transform: scale(0.9); } to{ opacity:1; transform: scale(1); } }
+  @keyframes pulseDot{ 0%,100%{ transform: scale(1); opacity:1; } 50%{ transform: scale(1.4); opacity:0.5; } }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+  }
+
   /* ---- top bar ---- */
   .topbar{
     display: flex;
@@ -34,6 +42,7 @@
     justify-content: space-between;
     padding: 16px 24px;
     border-bottom: 1px solid var(--border-muted);
+    animation: fadeInDown 0.5s ease both;
   }
   .brand{
     display: flex;
@@ -44,7 +53,8 @@
     color: var(--fg);
     text-decoration: none;
   }
-  .brand svg{ flex-shrink: 0; }
+  .brand svg{ flex-shrink: 0; transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+  .brand:hover svg{ transform: rotate(-12deg) scale(1.08); }
   .topbar-links{
     display: flex;
     gap: 8px;
@@ -58,18 +68,26 @@
     color: var(--fg); font-size: 16px; cursor:pointer; line-height:1;
   }
   .hamburger-btn:hover{ background:#f3f4f6; border-color: var(--border-muted); }
+  .hamburger-btn{ transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), background 0.2s, border-color 0.2s; }
+  .hamburger-btn:hover{ transform: rotate(90deg); }
+  .hamburger-btn[aria-expanded="true"]{ transform: rotate(90deg); }
   .menu-dropdown{
-    display:none; position:absolute; top:calc(100% + 8px); right:0;
+    display:block; position:absolute; top:calc(100% + 8px); right:0;
     background: var(--canvas); border: 1px solid var(--border-muted);
     border-radius: 10px; box-shadow: 0 10px 30px rgba(31,35,40,0.14);
     padding: 6px; min-width: 190px; z-index: 80;
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transform: translateY(-6px) scale(0.97);
+    transform-origin: top right;
+    transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.34,1.56,0.64,1), visibility 0.18s;
   }
-  .menu-dropdown.open{ display:block; }
+  .menu-dropdown.open{ opacity:1; visibility:visible; pointer-events:auto; transform: translateY(0) scale(1); }
   .menu-dropdown a{
     display:block; padding: 9px 12px; border-radius: 6px;
     font-size: 14px; color: var(--fg); text-decoration:none;
+    transition: background 0.15s, padding-left 0.15s;
   }
-  .menu-dropdown a:hover{ background: var(--canvas-inset); }
+  .menu-dropdown a:hover{ background: var(--canvas-inset); padding-left: 16px; }
   .btn{
     display: inline-flex;
     align-items: center;
@@ -85,14 +103,16 @@
     color: var(--fg);
     text-decoration: none;
     cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, transform 0.15s ease, box-shadow 0.2s;
   }
-  .btn:hover{ background: #f3f4f6; border-color: var(--border-muted); }
+  .btn:hover{ background: #f3f4f6; border-color: var(--border-muted); transform: translateY(-1px); box-shadow: 0 3px 10px rgba(31,35,40,0.08); }
+  .btn:active{ transform: translateY(0) scale(0.97); }
   .btn-primary{
     background: var(--accent);
     border-color: rgba(31,35,40,0.15);
     color: #ffffff;
   }
-  .btn-primary:hover{ background: var(--btn-primary-hover); }
+  .btn-primary:hover{ background: var(--btn-primary-hover); box-shadow: 0 4px 14px rgba(9,105,218,0.35); }
 
   /* ---- hero ---- */
   .hero{
@@ -111,6 +131,7 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-bottom: 16px;
+    animation: fadeInUp 0.6s ease both;
   }
   .hero-eyebrow::before{
     content: "";
@@ -118,6 +139,7 @@
     height: 6px;
     border-radius: 50%;
     background: var(--accent);
+    animation: pulseDot 1.8s ease-in-out infinite;
   }
   h1{
     font-size: 40px;
@@ -126,17 +148,20 @@
     letter-spacing: -0.02em;
     margin: 0 0 16px;
     color: var(--fg);
+    animation: fadeInUp 0.6s ease 0.08s both;
   }
   .hero p{
     font-size: 18px;
     color: var(--fg-muted);
     max-width: 520px;
     margin: 0 auto 32px;
+    animation: fadeInUp 0.6s ease 0.16s both;
   }
   .hero-actions{
     display: flex;
     justify-content: center;
     gap: 12px;
+    animation: fadeInUp 0.6s ease 0.24s both;
   }
   .btn-lg{
     padding: 9px 24px;
@@ -157,7 +182,13 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 24px;
   }
-  .strip-item{ text-align: left; }
+  .strip-item{
+    text-align: left;
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.22,1,0.36,1);
+  }
+  .strip-item.in-view{ opacity: 1; transform: translateY(0); }
   .strip-item .label{
     font-family: ui-monospace, "SF Mono", "Roboto Mono", monospace;
     font-size: 12px;
@@ -169,6 +200,8 @@
     color: var(--fg-muted);
     line-height: 1.5;
   }
+  .strip-item .desc a{ transition: opacity 0.15s; }
+  .strip-item .desc a:hover{ opacity: 0.7; }
 
   @media (max-width: 640px){
     .strip-inner{ grid-template-columns: 1fr; }
@@ -249,6 +282,20 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') menu.classList.remove('open');
     });
+  })();
+
+  (function(){
+    const items = document.querySelectorAll('.strip-item');
+    items.forEach((el, i) => { el.style.transitionDelay = (i * 0.08) + 's'; });
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting){
+          entry.target.classList.add('in-view');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+    items.forEach(el => io.observe(el));
   })();
 </script>
 

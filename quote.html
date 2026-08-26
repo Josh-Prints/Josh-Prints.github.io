@@ -207,6 +207,54 @@
   .preset-btn:hover { border-color: var(--accent); color: var(--text); }
   .preset-btn.active { background: var(--accent-gl); border-color: var(--accent); color: var(--accent); }
   .preset-label { font-size: 0.72rem; color: var(--muted2); font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; margin-bottom: 0.45rem; letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* ================= animation kit ================= */
+@keyframes fadeInDown{ from{ opacity:0; transform: translateY(-10px); } to{ opacity:1; transform: translateY(0); } }
+@keyframes fadeInUp{ from{ opacity:0; transform: translateY(16px); } to{ opacity:1; transform: translateY(0); } }
+@keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
+@keyframes popIn{ from{ opacity:0; transform: scale(0.92); } to{ opacity:1; transform: scale(1); } }
+@keyframes pulseDot{ 0%,100%{ transform: scale(1); opacity:1; } 50%{ transform: scale(1.4); opacity:0.55; } }
+@keyframes bump{ 0%{ transform: scale(1); } 35%{ transform: scale(1.06); } 100%{ transform: scale(1); } }
+@keyframes shimmer{ 0%{ background-position: -200px 0; } 100%{ background-position: 200px 0; } }
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+}
+html{ scroll-behavior: smooth; }
+.topbar{ animation: fadeInDown 0.45s ease both; }
+.hamburger-btn{ transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), background 0.2s, border-color 0.2s; }
+.hamburger-btn:hover{ transform: rotate(90deg); }
+.menu-dropdown{
+  display:block !important;
+  opacity:0; visibility:hidden; pointer-events:none;
+  transform: translateY(-6px) scale(0.97); transform-origin: top right;
+  transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.34,1.56,0.64,1), visibility 0.18s;
+}
+.menu-dropdown.open{ opacity:1; visibility:visible; pointer-events:auto; transform: translateY(0) scale(1); }
+.menu-dropdown a{ transition: background 0.15s, padding-left 0.15s; }
+.menu-dropdown a:hover{ padding-left: 16px; }
+a, button, .btn, .btn-plain, .btn-download, .chip, .icon-btn, .chat-toggle, .colour-btn, .preset-btn, .attach-btn, .send-btn, .view3d-btn, .view-order-btn{
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s ease, box-shadow 0.2s, opacity 0.2s;
+}
+.btn:hover, .btn-plain:hover, .btn-download:hover, .send-btn:hover, .view3d-btn:hover, .view-order-btn:hover, .attach-btn:hover{
+  transform: translateY(-1px);
+}
+.btn:active, .btn-plain:active, .btn-download:active, .send-btn:active, .attach-btn:active, .icon-btn:active, .chip:active{
+  transform: translateY(0) scale(0.96);
+}
+.card{ animation: fadeInUp 0.5s ease both; transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s; }
+.card:hover{ box-shadow: 0 4px 16px rgba(31,35,40,0.08); }
+.dot{ transition: transform 0.2s; }
+.dot.pulse, .status-pill.active .dot{ animation: pulseDot 1.6s ease-in-out infinite; }
+input[type="text"], input[type="number"], input[type="email"], input[type="tel"], textarea, select{
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,0.12); }
+.modal-overlay{ animation: fadeIn 0.2s ease both; }
+.modal-card{ animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1) both; }
+.msg, .chat-msg{ animation: fadeInUp 0.3s ease both; }
+.in-view{ opacity: 1 !important; transform: none !important; }
+[data-reveal]{ opacity: 0; transform: translateY(14px); transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.22,1,0.36,1); }
+/* ================= end animation kit ================= */
 </style>
 </head>
 <body>
