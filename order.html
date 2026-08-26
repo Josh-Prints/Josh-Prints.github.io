@@ -247,6 +247,20 @@
   <h1>Josh<span>Prints</span></h1>
 
   <div id="loading">Loading your order…</div>
+  <div id="lookup" style="display:none;">
+    <div class="card">
+      <h2 style="margin:0 0 6px;">Track your order</h2>
+      <p style="color: var(--ink-dim); font-size: 14px; margin: 0 0 18px;">
+        Paste the tracking link or order ID you were given when you placed your order.
+      </p>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="lookup-input" placeholder="Order ID or full tracking link"
+          style="flex:1; padding:8px 12px; border:1px solid rgba(31,35,40,0.15); border-radius:6px; font-size:14px; font-family:inherit;">
+        <button type="button" id="lookup-btn" class="send-btn">View order</button>
+      </div>
+      <div id="lookup-error" style="display:none; color: var(--err); font-size: 13px; margin-top: 10px;"></div>
+    </div>
+  </div>
   <div id="not-found" style="display:none;">Couldn't find that order. Double check the link you were sent.</div>
 
   <div id="order-view">
@@ -297,6 +311,7 @@
   const orderId = params.get('order');
 
   const loadingEl = document.getElementById('loading');
+  const lookupEl = document.getElementById('lookup');
   const notFoundEl = document.getElementById('not-found');
   const orderView = document.getElementById('order-view');
   const messagesEl = document.getElementById('messages');
@@ -320,9 +335,40 @@
     return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
   }
 
+  function extractOrderId(raw){
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    // Accept either a bare order ID, or a full link containing ?order=<id>
+    try {
+      const url = new URL(trimmed);
+      const fromUrl = url.searchParams.get('order');
+      if (fromUrl) return fromUrl;
+    } catch {
+      // not a URL — fall through and treat it as a raw ID
+    }
+    return trimmed;
+  }
+
+  document.getElementById('lookup-btn').addEventListener('click', () => {
+    const input = document.getElementById('lookup-input');
+    const id = extractOrderId(input.value);
+    const errorEl = document.getElementById('lookup-error');
+    if (!id){
+      errorEl.textContent = 'Enter an order ID or paste your tracking link.';
+      errorEl.style.display = 'block';
+      return;
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set('order', id);
+    window.location.href = url.href;
+  });
+  document.getElementById('lookup-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('lookup-btn').click();
+  });
+
   if (!orderId){
     loadingEl.style.display = 'none';
-    notFoundEl.style.display = 'block';
+    lookupEl.style.display = 'block';
   } else {
     init();
   }
