@@ -302,10 +302,10 @@
         <div class="rate-label">Filament cost</div>
         <div class="preset-label" style="margin-top:0.4rem;">Presets</div>
         <div class="preset-row">
-          <button class="preset-btn" id="presetPLA"    onclick="setFilPreset('PLA',50)">PLA — $50/kg</button>
-          <button class="preset-btn" id="presetABS"    onclick="setFilPreset('ABS',60)">ABS — $60/kg</button>
-          <button class="preset-btn" id="presetTPU"    onclick="setFilPreset('TPU',65)">TPU — $65/kg</button>
-          <button class="preset-btn" id="presetCustom" onclick="setFilPreset('Custom',null)">Custom</button>
+          <button class="preset-btn" id="presetPLA"    onclick="setFilPreset('PLA')">PLA — $50/kg</button>
+          <button class="preset-btn" id="presetABS"    onclick="setFilPreset('ABS')">ABS — $60/kg</button>
+          <button class="preset-btn" id="presetTPU"    onclick="setFilPreset('TPU')">TPU — $65/kg</button>
+          <button class="preset-btn" id="presetCustom" onclick="setFilPreset('Custom')">Custom</button>
         </div>
         <div class="rate-input-wrap">
           <div class="rate-prefix">$</div>
@@ -500,11 +500,12 @@
 
   /* filament presets */
   const PRESETS = { PLA: 50, ABS: 60, TPU: 65 };
-  function setFilPreset(name, price) {
+  function setFilPreset(name) {
     activePreset = name;
     document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
     el('preset' + name).classList.add('active');
-    if (price !== null) {
+    if (name !== 'Custom') {
+      const price = PRESETS[name];
       el('filCostKg').value = price;
       state.filPerKg = price;
       recalc();
@@ -512,7 +513,7 @@
     updateNotes();
   }
   /* activate PLA by default */
-  setFilPreset('PLA', 50);
+  setFilPreset('PLA');
 
   /* if user edits filament cost manually, switch to Custom */
   el('filCostKg').addEventListener('input', () => {
@@ -840,6 +841,48 @@
     const safe = (clientName + '_' + jobName).replace(/[^a-z0-9_\-]/gi,'_').toLowerCase();
     doc.save(`quote_${safe}.pdf`);
   }
+
+  /* ── LIVE RATES FROM SUPABASE ── */
+  const SUPABASE_URL = 'https://paycasfatsakidsriwqt.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
+
+  function applyLiveRates(r) {
+    state.rate       = r.labor_rate;
+    state.printRate  = r.print_rate;
+    state.baseFee    = r.base_fee;
+    state.surAmt     = r.surcharge_amt;
+    state.surThresh  = r.surcharge_threshold;
+    PRESETS.PLA = r.fil_pla;
+    PRESETS.ABS = r.fil_abs;
+    PRESETS.TPU = r.fil_tpu;
+
+    el('laborRate').value = r.labor_rate;
+    el('baseFee').value = r.base_fee;
+    el('printRate').value = r.print_rate;
+    el('surchargeAmt').value = r.surcharge_amt;
+    el('surchargeThreshold').value = r.surcharge_threshold;
+    el('presetPLA').textContent = `PLA — $${r.fil_pla}/kg`;
+    el('presetABS').textContent = `ABS — $${r.fil_abs}/kg`;
+    el('presetTPU').textContent = `TPU — $${r.fil_tpu}/kg`;
+
+    if (activePreset !== 'Custom') {
+      state.filPerKg = PRESETS[activePreset];
+      el('filCostKg').value = PRESETS[activePreset];
+    }
+    recalc();
+  }
+
+  (async () => {
+    try {
+      const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+      const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+      const { data, error } = await supabase.from('settings').select('*').eq('id', 1).single();
+      if (error || !data) return; // keep built-in defaults
+      applyLiveRates(data);
+    } catch (e) {
+      /* offline or blocked — keep built-in defaults */
+    }
+  })();
 
   recalc();
 </script>

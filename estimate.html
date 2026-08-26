@@ -270,9 +270,9 @@
     <div class="card">
       <div class="card-title">Filament type</div>
       <div class="preset-row">
-        <button class="preset-btn active" id="presetPLA" onclick="setPreset('PLA',50)">PLA</button>
-        <button class="preset-btn" id="presetABS" onclick="setPreset('ABS',60)">ABS</button>
-        <button class="preset-btn" id="presetTPU" onclick="setPreset('TPU',65)">TPU (flexible)</button>
+        <button class="preset-btn active" id="presetPLA" onclick="setPreset('PLA')">PLA — $50/kg</button>
+        <button class="preset-btn" id="presetABS" onclick="setPreset('ABS')">ABS — $60/kg</button>
+        <button class="preset-btn" id="presetTPU" onclick="setPreset('TPU')">TPU (flexible) — $65/kg</button>
       </div>
     </div>
 
@@ -307,21 +307,24 @@
   </div>
 
 <script>
-  // Same pricing logic as the internal quote builder, kept in sync manually.
-  const RATE = 6;          // $/hr modeling labor
-  const PRINT_RATE = 0.25; // $ per hr^1.4
-  const BASE_FEE = 1.75;   // base handling fee once printing starts
-  const SUR_AMT = 2;       // surcharge amount
-  const SUR_THRESH = 3;    // hrs before surcharge kicks in
+  // Default pricing — overridden live from Supabase settings if available.
+  let RATE = 6;          // $/hr modeling labor
+  let PRINT_RATE = 0.25; // $ per hr^1.4
+  let BASE_FEE = 1.75;   // base handling fee once printing starts
+  let SUR_AMT = 2;       // surcharge amount
+  let SUR_THRESH = 3;    // hrs before surcharge kicks in
+  let PRESETS = { PLA: 50, ABS: 60, TPU: 65 };
 
-  const state = { modelHrs: 0, printHrs: 4, filGrams: 120, filPerKg: 50 };
+  const state = { modelHrs: 0, printHrs: 4, filGrams: 120, filPerKg: PRESETS.PLA };
   const el = id => document.getElementById(id);
   const fmt = v => '$' + v.toFixed(2);
+  let activePreset = 'PLA';
 
-  function setPreset(name, price){
+  function setPreset(name){
+    activePreset = name;
     document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
     el('preset' + name).classList.add('active');
-    state.filPerKg = price;
+    state.filPerKg = PRESETS[name];
     recalc();
   }
 
@@ -363,6 +366,35 @@
     el('rowFil').classList.toggle('dimmed', filCost === 0);
     el('rowSur').classList.toggle('dimmed', !surActive);
   }
+
+  /* ── LIVE RATES FROM SUPABASE ── */
+  const SUPABASE_URL = 'https://paycasfatsakidsriwqt.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
+
+  (async () => {
+    try {
+      const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+      const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+      const { data, error } = await supabase.from('settings').select('*').eq('id', 1).single();
+      if (error || !data) return; // keep built-in defaults
+
+      RATE = data.labor_rate;
+      PRINT_RATE = data.print_rate;
+      BASE_FEE = data.base_fee;
+      SUR_AMT = data.surcharge_amt;
+      SUR_THRESH = data.surcharge_threshold;
+      PRESETS = { PLA: data.fil_pla, ABS: data.fil_abs, TPU: data.fil_tpu };
+
+      el('presetPLA').textContent = `PLA — $${data.fil_pla}/kg`;
+      el('presetABS').textContent = `ABS — $${data.fil_abs}/kg`;
+      el('presetTPU').textContent = `TPU (flexible) — $${data.fil_tpu}/kg`;
+
+      if (activePreset !== 'Custom') state.filPerKg = PRESETS[activePreset];
+      recalc();
+    } catch (e) {
+      /* offline or blocked — keep built-in defaults */
+    }
+  })();
 
   recalc();
 </script>

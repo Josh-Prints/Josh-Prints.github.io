@@ -377,6 +377,101 @@
     font-size: 13px;
     padding: 60px 0;
   }
+
+  /* ---- Rates modal ---- */
+  .modal-overlay{
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(31,35,40,0.45);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 50;
+  }
+  .modal-overlay.open{ display: flex; }
+  .modal-card{
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: var(--bg-raised);
+    border-radius: var(--radius);
+    border: 1px solid rgba(31,35,40,0.10);
+    padding: 24px;
+  }
+  .modal-head{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .modal-head h2{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 18px;
+    margin: 0;
+  }
+  .modal-sub{
+    color: var(--ink-dim);
+    font-size: 12.5px;
+    margin: 0 0 20px;
+    line-height: 1.5;
+  }
+  .modal-divider{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin: 20px 0 12px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(31,35,40,0.10);
+  }
+  .rates-form-grid{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .rates-form-grid label{
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .rates-form-grid label .unit{
+    text-transform: none;
+    font-weight: 400;
+    color: var(--ink-dim);
+    opacity: 0.7;
+    letter-spacing: 0;
+  }
+  .rates-form-grid input{
+    background: var(--bg);
+    border: 1px solid rgba(31,35,40,0.18);
+    border-radius: 6px;
+    color: var(--ink);
+    padding: 9px 10px;
+    font-size: 14px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    outline: none;
+  }
+  .rates-form-grid input:focus{ border-color: var(--accent); }
+  .modal-foot{
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 22px;
+  }
+  #rates-msg{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-dim);
+  }
 </style>
 </head>
 <body>
@@ -403,6 +498,7 @@
     <h1>Josh<span>Prints</span>: Orders</h1>
     <div class="right">
       <a class="icon-btn" href="quote.html" id="quote-builder-btn" style="text-decoration:none;display:inline-block;">Quote Builder</a>
+      <button class="icon-btn" id="rates-btn">⚙ Rates</button>
       <button class="icon-btn" id="refresh-btn">Refresh</button>
       <button class="icon-btn" id="logout-btn">Sign out</button>
     </div>
@@ -419,6 +515,36 @@
   <main>
     <div id="orders-container"><div class="empty">Loading…</div></div>
   </main>
+</div>
+
+<!-- RATES MODAL -->
+<div id="rates-overlay" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2>Pricing rates</h2>
+      <button class="icon-btn" id="rates-close">Close</button>
+    </div>
+    <p class="modal-sub">These feed the Quote Builder's defaults and the public cost estimator. Changes apply everywhere instantly.</p>
+    <div class="modal-body">
+      <div class="rates-form-grid">
+        <label>Labor rate<span class="unit">$/hr</span><input type="number" id="r-labor" step="0.5" min="0"></label>
+        <label>Base handling fee<span class="unit">$</span><input type="number" id="r-base" step="0.25" min="0"></label>
+        <label>Print rate (curve)<span class="unit">$/hr^1.4</span><input type="number" id="r-printrate" step="0.01" min="0"></label>
+        <label>Surcharge amount<span class="unit">$</span><input type="number" id="r-suramt" step="0.5" min="0"></label>
+        <label>Surcharge threshold<span class="unit">hrs</span><input type="number" id="r-surthresh" step="0.5" min="0"></label>
+      </div>
+      <div class="modal-divider">Filament cost / kg</div>
+      <div class="rates-form-grid">
+        <label>PLA<span class="unit">$/kg</span><input type="number" id="r-pla" step="0.5" min="0"></label>
+        <label>ABS<span class="unit">$/kg</span><input type="number" id="r-abs" step="0.5" min="0"></label>
+        <label>TPU<span class="unit">$/kg</span><input type="number" id="r-tpu" step="0.5" min="0"></label>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <span id="rates-msg"></span>
+      <button class="save-btn" id="rates-save">Save rates</button>
+    </div>
+  </div>
 </div>
 
 <script type="module">
@@ -802,6 +928,72 @@
       alert('Could not send: ' + (err.message || 'please try again'));
     }
   }
+
+  /* ---- Rates modal ---- */
+  const ratesOverlay = document.getElementById('rates-overlay');
+  const ratesMsg = document.getElementById('rates-msg');
+  const ratesSaveBtn = document.getElementById('rates-save');
+  const RATE_FIELDS = {
+    labor_rate: 'r-labor', base_fee: 'r-base', print_rate: 'r-printrate',
+    surcharge_amt: 'r-suramt', surcharge_threshold: 'r-surthresh',
+    fil_pla: 'r-pla', fil_abs: 'r-abs', fil_tpu: 'r-tpu'
+  };
+
+  document.getElementById('rates-btn').addEventListener('click', openRatesModal);
+  document.getElementById('rates-close').addEventListener('click', closeRatesModal);
+  ratesOverlay.addEventListener('click', (e) => { if (e.target === ratesOverlay) closeRatesModal(); });
+
+  function closeRatesModal(){
+    ratesOverlay.classList.remove('open');
+  }
+
+  async function openRatesModal(){
+    ratesOverlay.classList.add('open');
+    ratesMsg.textContent = 'Loading…';
+    const { data, error } = await supabase.from('settings').select('*').eq('id', 1).single();
+    if (error || !data){
+      ratesMsg.textContent = "Couldn't load rates: " + (error ? error.message : 'no data');
+      return;
+    }
+    Object.entries(RATE_FIELDS).forEach(([col, id]) => {
+      document.getElementById(id).value = data[col];
+    });
+    ratesMsg.textContent = '';
+  }
+
+  ratesSaveBtn.addEventListener('click', async () => {
+    ratesSaveBtn.disabled = true;
+    ratesSaveBtn.textContent = 'Saving…';
+    ratesMsg.textContent = '';
+
+    const payload = { updated_at: new Date().toISOString() };
+    let valid = true;
+    Object.entries(RATE_FIELDS).forEach(([col, id]) => {
+      const raw = document.getElementById(id).value;
+      const num = Number(raw);
+      if (raw === '' || isNaN(num) || num < 0) valid = false;
+      payload[col] = num;
+    });
+
+    if (!valid){
+      ratesSaveBtn.disabled = false;
+      ratesSaveBtn.textContent = 'Save rates';
+      ratesMsg.textContent = 'Please enter valid, non-negative numbers.';
+      return;
+    }
+
+    const { error } = await supabase.from('settings').update(payload).eq('id', 1);
+
+    ratesSaveBtn.disabled = false;
+    ratesSaveBtn.textContent = 'Save rates';
+
+    if (error){
+      ratesMsg.textContent = 'Error: ' + error.message;
+      return;
+    }
+    ratesMsg.textContent = 'Saved ✓ — live everywhere now.';
+    setTimeout(() => { if (ratesMsg.textContent.startsWith('Saved')) ratesMsg.textContent = ''; }, 3000);
+  });
 
   checkSession();
 </script>
