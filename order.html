@@ -277,7 +277,7 @@
         <div class="composer-row">
           <button type="button" class="attach-btn" id="attach-btn">
             <span id="attach-label">📎 Attach file</span>
-            <input type="file" id="attach-input">
+            <input type="file" id="attach-input" multiple>
           </button>
           <button type="button" class="send-btn" id="send-btn">Send</button>
         </div>
@@ -309,7 +309,7 @@
     completed: 'Completed', cancelled: 'Cancelled'
   };
 
-  let attachedFile = null;
+  let attachedFiles = [];
   let lastMessageCount = -1;
   let lastStatusSnapshot = null;
 
@@ -397,6 +397,21 @@
       link.textContent = order.file_name || 'Download file';
       document.getElementById('d-file-row').style.display = 'flex';
     }
+    if (order.files && order.files.length > 1){
+      // first file already shown above via file_path/file_name; list the rest
+      const row = document.getElementById('d-file-row');
+      row.style.display = 'flex';
+      const valueCell = row.querySelector('.value');
+      order.files.slice(1).forEach(f => {
+        const a = document.createElement('a');
+        a.href = publicFileUrl(f.path);
+        a.target = '_blank';
+        a.className = 'file-link';
+        a.style.display = 'block';
+        a.textContent = f.name;
+        valueCell.appendChild(a);
+      });
+    }
   }
 
   async function loadMessages(){
@@ -412,20 +427,26 @@
       messagesEl.innerHTML = '<div class="msg-empty">No messages yet — say hello!</div>';
       return;
     }
-    messagesEl.innerHTML = list.map(m => `
+    messagesEl.innerHTML = list.map(m => {
+      const fileLinks = [];
+      if (m.file_path) fileLinks.push({ path: m.file_path, name: m.file_name });
+      (m.files || []).forEach(f => fileLinks.push(f));
+      return `
       <div class="msg ${m.sender}">
         <div class="who">${m.sender === 'admin' ? 'Josh' : 'You'}</div>
         ${m.body ? `<div>${escapeHtml(m.body)}</div>` : ''}
-        ${m.file_path ? `<a class="file-link" target="_blank" href="${publicFileUrl(m.file_path)}">📎 ${escapeHtml(m.file_name || 'attachment')}</a>` : ''}
+        ${fileLinks.map(f => `<a class="file-link" target="_blank" href="${publicFileUrl(f.path)}">📎 ${escapeHtml(f.name || 'attachment')}</a>`).join('')}
       </div>
-    `).join('');
+    `;
+    }).join('');
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
   document.getElementById('attach-input').addEventListener('change', (e) => {
-    attachedFile = e.target.files[0] || null;
-    document.getElementById('attach-label').textContent = attachedFile
-      ? `📎 ${attachedFile.name}` : '📎 Attach file';
+    attachedFiles.push(...Array.from(e.target.files));
+    e.target.value = '';
+    document.getElementById('attach-label').textContent = attachedFiles.length
+      ? `📎 ${attachedFiles.length} file${attachedFiles.length > 1 ? 's' : ''}` : '📎 Attach file';
   });
 
   function sanitizeFileName(name){
@@ -435,32 +456,32 @@
   document.getElementById('send-btn').addEventListener('click', async () => {
     const bodyEl = document.getElementById('msg-body');
     const body = bodyEl.value.trim();
-    if (!body && !attachedFile) return;
+    if (!body && attachedFiles.length === 0) return;
 
     const sendBtn = document.getElementById('send-btn');
     sendBtn.disabled = true;
     sendBtn.textContent = 'Sending…';
 
     try {
-      let filePath = null, fileName = null;
-
-      if (attachedFile){
-        filePath = `messages/${orderId}/${Date.now()}-${sanitizeFileName(attachedFile.name)}`;
-        const { error: upErr } = await supabase.storage.from(BUCKET).upload(filePath, attachedFile);
+      const uploaded = [];
+      for (const file of attachedFiles){
+        const path = `messages/${orderId}/${Date.now()}-${sanitizeFileName(file.name)}`;
+        const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file);
         if (upErr) throw upErr;
-        fileName = attachedFile.name;
+        uploaded.push({ path, name: file.name });
       }
 
       const { error } = await supabase.rpc('add_customer_message', {
         p_order_id: orderId,
         p_body: body || null,
-        p_file_path: filePath,
-        p_file_name: fileName
+        p_file_path: uploaded[0]?.path || null,
+        p_file_name: uploaded[0]?.name || null,
+        p_files: uploaded
       });
       if (error) throw error;
 
       bodyEl.value = '';
-      attachedFile = null;
+      attachedFiles = [];
       document.getElementById('attach-input').value = '';
       document.getElementById('attach-label').textContent = '📎 Attach file';
       lastMessageCount = -1; // force re-render
