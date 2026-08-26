@@ -3,26 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JoshPrints — Admin</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>JoshPrints - Admin</title>
 <style>
   :root{
-    --bg: #1b1d1f;
-    --bg-raised: #232628;
-    --bg-raised-2: #2a2d30;
-    --grid-line: rgba(242,239,234,0.045);
-    --ink: #f2efea;
-    --ink-dim: #a9adb2;
-    --accent: #ff6a1a;
-    --accent-dim: #ff6a1a33;
-    --ok: #3fa66b;
-    --ok-dim: #3fa66b22;
-    --err: #e2544a;
-    --warn: #e2b13f;
-    --warn-dim: #e2b13f22;
-    --radius: 10px;
+    --bg: #f6f8fa;
+    --bg-raised: #ffffff;
+    --bg-raised-2: #f6f8fa;
+    --grid-line: rgba(0,0,0,0);
+    --ink: #1f2328;
+    --ink-dim: #656d76;
+    --accent: #0969da;
+    --accent-dim: #0969da1f;
+    --ok: #1a7f37;
+    --ok-dim: #1a7f3722;
+    --err: #cf222e;
+    --warn: #9a6700;
+    --warn-dim: #9a670022;
+    --radius: 6px;
   }
   *{ box-sizing: border-box; }
   body{
@@ -32,7 +29,7 @@
       linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0 / 34px 34px,
       var(--bg);
     color: var(--ink);
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
     min-height: 100vh;
   }
 
@@ -48,12 +45,12 @@
     width: 100%;
     max-width: 360px;
     background: var(--bg-raised);
-    border: 1px solid rgba(242,239,234,0.08);
+    border: 1px solid rgba(31,35,40,0.10);
     border-radius: var(--radius);
     padding: 32px;
   }
   .login-card h1{
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: 24px;
     margin: 0 0 4px;
   }
@@ -61,7 +58,7 @@
   .login-card p.sub{ color: var(--ink-dim); font-size: 13px; margin: 0 0 24px; }
   .login-card label{
     display:block;
-    font-family:'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 11px;
     letter-spacing: .06em;
     text-transform: uppercase;
@@ -71,7 +68,7 @@
   .login-card input{
     width:100%;
     background: var(--bg);
-    border: 1px solid rgba(242,239,234,0.12);
+    border: 1px solid rgba(31,35,40,0.15);
     border-radius: 6px;
     color: var(--ink);
     padding: 11px 12px;
@@ -83,20 +80,20 @@
   .login-card button{
     width: 100%;
     background: var(--accent);
-    color: #1b1305;
+    color: #ffffff;
     border: none;
     border-radius: 8px;
     padding: 12px;
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-weight: 700;
     font-size: 14px;
     cursor: pointer;
   }
   .login-card button:disabled{ opacity: .6; cursor: default; }
   .login-err{
-    color: #f2a49e;
+    color: #cf222e;
     font-size: 12.5px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     margin-top: 14px;
     display: none;
   }
@@ -109,12 +106,12 @@
     align-items:center;
     justify-content: space-between;
     padding: 20px 28px;
-    border-bottom: 1px solid rgba(242,239,234,0.08);
+    border-bottom: 1px solid rgba(31,35,40,0.10);
     flex-wrap: wrap;
     gap: 12px;
   }
   .topbar h1{
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: 19px;
     margin: 0;
   }
@@ -122,15 +119,15 @@
   .topbar .right{ display:flex; align-items:center; gap:12px; }
   .icon-btn{
     background: var(--bg-raised);
-    border: 1px solid rgba(242,239,234,0.12);
+    border: 1px solid rgba(31,35,40,0.15);
     color: var(--ink-dim);
     border-radius: 6px;
     padding: 8px 14px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 12px;
     cursor: pointer;
   }
-  .icon-btn:hover{ color: var(--ink); border-color: rgba(242,239,234,0.25); }
+  .icon-btn:hover{ color: var(--ink); border-color: rgba(31,35,40,0.3); }
 
   .toolbar{
     display:flex;
@@ -139,11 +136,11 @@
     flex-wrap: wrap;
   }
   .chip{
-    font-family:'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 12px;
     padding: 7px 13px;
     border-radius: 20px;
-    border: 1px solid rgba(242,239,234,0.14);
+    border: 1px solid rgba(31,35,40,0.18);
     color: var(--ink-dim);
     cursor: pointer;
     background: transparent;
@@ -158,7 +155,7 @@
 
   .order-card{
     background: var(--bg-raised);
-    border: 1px solid rgba(242,239,234,0.08);
+    border: 1px solid rgba(31,35,40,0.10);
     border-radius: var(--radius);
     padding: 18px 20px;
     margin-bottom: 14px;
@@ -171,19 +168,19 @@
     flex-wrap: wrap;
   }
   .order-name{
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-weight: 600;
     font-size: 16px;
   }
   .order-meta{
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 11.5px;
     color: var(--ink-dim);
     margin-top: 4px;
   }
   .order-type-badge{
     display:inline-block;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 11px;
     padding: 3px 9px;
     border-radius: 20px;
@@ -204,7 +201,7 @@
     margin-top: 10px;
   }
   .order-file a{
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 12.5px;
     color: var(--accent);
     text-decoration: none;
@@ -219,47 +216,47 @@
   }
   select.status-select{
     background: var(--bg);
-    border: 1px solid rgba(242,239,234,0.14);
+    border: 1px solid rgba(31,35,40,0.18);
     color: var(--ink);
     border-radius: 6px;
     padding: 7px 10px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 12px;
   }
   .quote-input{
     background: var(--bg);
-    border: 1px solid rgba(242,239,234,0.14);
+    border: 1px solid rgba(31,35,40,0.18);
     color: var(--ink);
     border-radius: 6px;
     padding: 7px 10px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 12px;
     width: 110px;
   }
   .save-btn{
     background: var(--ok-dim);
     border: 1px solid var(--ok);
-    color: #a7e6c1;
+    color: #1a7f37;
     border-radius: 6px;
     padding: 7px 12px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 12px;
     cursor: pointer;
   }
   .save-btn:hover{ filter: brightness(1.1); }
   .row-status{
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 11px;
     color: var(--ink-dim);
   }
 
   .chat-toggle{
     background: none;
-    border: 1px solid rgba(242,239,234,0.14);
+    border: 1px solid rgba(31,35,40,0.18);
     color: var(--ink-dim);
     border-radius: 6px;
     padding: 7px 12px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 12px;
     cursor: pointer;
   }
@@ -268,7 +265,7 @@
   .chat-panel{
     display: none;
     margin-top: 14px;
-    border-top: 1px solid rgba(242,239,234,0.08);
+    border-top: 1px solid rgba(31,35,40,0.10);
     padding-top: 14px;
   }
   .chat-panel.open{ display: block; }
@@ -290,15 +287,15 @@
   .chat-msg.admin{
     align-self: flex-end;
     background: var(--accent-dim);
-    border: 1px solid rgba(255,106,26,0.3);
+    border: 1px solid rgba(9,105,218,0.3);
   }
   .chat-msg.customer{
     align-self: flex-start;
     background: var(--bg);
-    border: 1px solid rgba(242,239,234,0.1);
+    border: 1px solid rgba(31,35,40,0.12);
   }
   .chat-msg .who{
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 10px;
     color: var(--ink-dim);
     text-transform: uppercase;
@@ -307,14 +304,14 @@
   .chat-msg .file-link{
     display: inline-block;
     margin-top: 6px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 11.5px;
     color: var(--accent);
     text-decoration: none;
   }
   .chat-empty{
     color: var(--ink-dim);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 12px;
     text-align: center;
     padding: 14px 0;
@@ -323,11 +320,11 @@
   .chat-composer textarea{
     width: 100%;
     background: var(--bg);
-    border: 1px solid rgba(242,239,234,0.14);
+    border: 1px solid rgba(31,35,40,0.18);
     border-radius: 6px;
     color: var(--ink);
     padding: 9px 11px;
-    font-family: 'Inter', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
     font-size: 13.5px;
     resize: vertical;
     min-height: 46px;
@@ -339,10 +336,10 @@
     gap: 10px;
   }
   .chat-attach{
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 11.5px;
     color: var(--ink-dim);
-    border: 1px dashed rgba(242,239,234,0.2);
+    border: 1px dashed rgba(31,35,40,0.25);
     border-radius: 6px;
     padding: 6px 10px;
     position: relative;
@@ -351,11 +348,11 @@
   .chat-attach input{ position: absolute; inset: 0; opacity: 0; cursor: pointer; }
   .chat-send{
     background: var(--accent);
-    color: #1b1305;
+    color: #ffffff;
     border: none;
     border-radius: 6px;
     padding: 8px 16px;
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-weight: 700;
     font-size: 12.5px;
     cursor: pointer;
@@ -369,14 +366,14 @@
   }
   .status-new .status-dot{ background: var(--accent); }
   .status-quoted .status-dot{ background: var(--warn); }
-  .status-in_progress .status-dot{ background: #6fa8ff; }
+  .status-in_progress .status-dot{ background: #0969da; }
   .status-completed .status-dot{ background: var(--ok); }
-  .status-cancelled .status-dot{ background: #6b7178; }
+  .status-cancelled .status-dot{ background: #656d76; }
 
   .empty{
     text-align: center;
     color: var(--ink-dim);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 13px;
     padding: 60px 0;
   }
@@ -388,7 +385,7 @@
 <div id="login-view">
   <div class="login-card">
     <h1>Josh<span>Prints</span></h1>
-    <p class="sub">Admin — sign in to view orders</p>
+    <p class="sub">Admin: sign in to view orders</p>
     <form id="login-form">
       <label for="email">Email</label>
       <input type="email" id="email" required autocomplete="username">
@@ -403,7 +400,7 @@
 <!-- DASHBOARD -->
 <div id="dash-view">
   <div class="topbar">
-    <h1>Josh<span>Prints</span> — Orders</h1>
+    <h1>Josh<span>Prints</span>: Orders</h1>
     <div class="right">
       <button class="icon-btn" id="refresh-btn">Refresh</button>
       <button class="icon-btn" id="logout-btn">Sign out</button>
