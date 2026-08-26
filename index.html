@@ -426,7 +426,7 @@
     <div class="field">
       <label>3D file <span style="text-transform:none; letter-spacing:0;">(optional)</span></label>
       <div class="dropzone" id="dropzone">
-        <input type="file" id="file_input" accept=".stl,.obj,.3mf,.step,.stp,.iges,.igs,.zip">
+        <input type="file" id="file_input" accept=".stl,.obj,.3mf,.step,.stp,.iges,.igs,.zip" multiple>
         <div class="glyph">⇪</div>
         <div class="main">Drop a file or tap to browse</div>
         <div class="sub">STL, OBJ, 3MF, STEP, IGES — up to 100MB</div>
@@ -475,29 +475,30 @@
   const progressFill = document.getElementById('progress-fill');
   const btnLabel = document.getElementById('btn-label');
 
-  let selectedFile = null;
+  let selectedFiles = [];
 
   function renderFileList(){
     fileListEl.innerHTML = '';
-    if (!selectedFile) return;
-    const row = document.createElement('div');
-    row.className = 'row';
-    const sizeKb = (selectedFile.size / 1024).toFixed(0);
-    row.innerHTML = `<span>${selectedFile.name} · ${sizeKb} KB</span>`;
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = 'Remove';
-    btn.addEventListener('click', () => {
-      selectedFile = null;
-      fileInput.value = '';
-      renderFileList();
+    selectedFiles.forEach((file, idx) => {
+      const row = document.createElement('div');
+      row.className = 'row';
+      const sizeKb = (file.size / 1024).toFixed(0);
+      row.innerHTML = `<span>${file.name} · ${sizeKb} KB</span>`;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = 'Remove';
+      btn.addEventListener('click', () => {
+        selectedFiles.splice(idx, 1);
+        renderFileList();
+      });
+      row.appendChild(btn);
+      fileListEl.appendChild(row);
     });
-    row.appendChild(btn);
-    fileListEl.appendChild(row);
   }
 
   fileInput.addEventListener('change', () => {
-    selectedFile = fileInput.files[0] || null;
+    selectedFiles.push(...Array.from(fileInput.files));
+    fileInput.value = ''; // allow re-adding/selecting more after this batch
     renderFileList();
   });
 
@@ -514,11 +515,8 @@
     });
   });
   dropzone.addEventListener('drop', e => {
-    const dropped = e.dataTransfer.files[0];
-    if (dropped){
-      selectedFile = dropped;
-      renderFileList();
-    }
+    selectedFiles.push(...Array.from(e.dataTransfer.files));
+    renderFileList();
   });
 
   function showStatus(kind, msg){
@@ -580,17 +578,21 @@
       // an order afterward, only to create it.
       let filePath = null;
       let fileName = null;
+      const uploadedFiles = [];
 
-      if (selectedFile){
-        filePath = `${orderId}/${sanitizeFileName(selectedFile.name)}`;
-        fileName = selectedFile.name;
-
+      for (const file of selectedFiles){
+        const path = `${orderId}/${sanitizeFileName(file.name)}`;
         const { error: uploadError } = await supabase
           .storage
           .from(BUCKET)
-          .upload(filePath, selectedFile, { upsert: false });
+          .upload(path, file, { upsert: false });
 
         if (uploadError) throw uploadError;
+        uploadedFiles.push({ path, name: file.name });
+      }
+      if (uploadedFiles.length > 0){
+        filePath = uploadedFiles[0].path; // kept for older readers of file_path/file_name
+        fileName = uploadedFiles[0].name;
         setBusy(true, 40);
       }
 
@@ -603,7 +605,8 @@
           order_type: orderTypeInput.value,
           notes: notes || null,
           file_path: filePath,
-          file_name: fileName
+          file_name: fileName,
+          files: uploadedFiles
         });
 
       if (insertError) throw insertError;
@@ -618,11 +621,13 @@
       document.getElementById('order-link-text').textContent = orderUrl.href;
       document.getElementById('view-order-btn').href = orderUrl.href;
 
-      // Email sending is paused (Resend domain verification pending —
-      // revisit once joshprints.com can be transferred to a registrar
-      // with full DNS control, or a second sending domain is set up).
-      // The email address is still collected and saved on the order
-      // above so it's visible in the admin panel either way.
+      // Best-effort: email them a copy of the link too. If this fails
+      // (no email set up yet, Resend hiccup, etc), the order itself is
+      // already saved and the link is already shown above, so we don't
+      // want this to block or scare the customer.
+      supabase.functions.invoke('send-order-link', {
+        body: { email, full_name: fullName, order_url: orderUrl.href }
+      }).catch(() => { /* silent — link is already shown on screen */ });
 
       form.style.display = 'none';
       document.getElementById('success-panel').classList.add('show');
