@@ -48,7 +48,28 @@
   .topbar-links{
     display: flex;
     gap: 8px;
+    align-items: center;
   }
+  .menu-wrap{ position: relative; }
+  .hamburger-btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    width: 34px; height: 34px; border-radius: 6px;
+    border: 1px solid var(--border); background: #f6f8fa;
+    color: var(--fg); font-size: 16px; cursor:pointer; line-height:1;
+  }
+  .hamburger-btn:hover{ background:#f3f4f6; border-color: var(--border-muted); }
+  .menu-dropdown{
+    display:none; position:absolute; top:calc(100% + 8px); right:0;
+    background: var(--canvas); border: 1px solid var(--border-muted);
+    border-radius: 10px; box-shadow: 0 10px 30px rgba(31,35,40,0.14);
+    padding: 6px; min-width: 190px; z-index: 80;
+  }
+  .menu-dropdown.open{ display:block; }
+  .menu-dropdown a{
+    display:block; padding: 9px 12px; border-radius: 6px;
+    font-size: 14px; color: var(--fg); text-decoration:none;
+  }
+  .menu-dropdown a:hover{ background: var(--canvas-inset); }
   .btn{
     display: inline-flex;
     align-items: center;
@@ -169,9 +190,14 @@
       JoshPrints
     </a>
     <div class="topbar-links">
-      <a class="btn" href="estimate.html">Estimate cost</a>
-      <a class="btn" href="order.html">Track an order</a>
       <a class="btn btn-primary" href="order-form.html">Order</a>
+      <div class="menu-wrap">
+        <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false">☰</button>
+        <div class="menu-dropdown" id="menu-dropdown">
+          <a href="estimate.html">Estimate cost</a>
+          <a href="order.html">Track an order</a>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -206,6 +232,25 @@
       </div>
     </div>
   </div>
+
+<script>
+  (function(){
+    const btn = document.getElementById('menu-btn');
+    const menu = document.getElementById('menu-dropdown');
+    if (!btn || !menu) return;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = menu.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.addEventListener('click', (e) => {
+      if (!menu.contains(e.target) && e.target !== btn) menu.classList.remove('open');
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') menu.classList.remove('open');
+    });
+  })();
+</script>
 
 </body>
 </html>

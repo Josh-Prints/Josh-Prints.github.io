@@ -32,6 +32,47 @@
   }
   .wrap{ max-width: 620px; margin: 0 auto; padding: 48px 20px 80px; }
 
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 14px 20px;
+    background: var(--bg-raised);
+    border-bottom: 1px solid rgba(31,35,40,0.10);
+  }
+  .topbar .brand{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 700; font-size: 17px; color: var(--ink); text-decoration: none;
+  }
+  .topbar .brand span{ color: var(--accent); }
+  .topbar-links{ display:flex; align-items:center; gap:8px; }
+  .topbar-links .btn-plain{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 13.5px; font-weight: 600; color: #ffffff;
+    background: var(--accent); text-decoration:none;
+    padding: 7px 14px; border-radius: 7px;
+  }
+  .menu-wrap{ position: relative; }
+  .hamburger-btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    width: 34px; height: 34px; border-radius: 7px;
+    border: 1px solid rgba(31,35,40,0.15);
+    background: var(--bg); color: var(--ink);
+    font-size: 16px; cursor:pointer; line-height:1;
+  }
+  .hamburger-btn:hover{ background: rgba(31,35,40,0.05); }
+  .menu-dropdown{
+    display:none; position:absolute; top:calc(100% + 8px); right:0;
+    background: var(--bg-raised); border: 1px solid rgba(31,35,40,0.12);
+    border-radius: 10px; box-shadow: 0 10px 30px rgba(31,35,40,0.16);
+    padding: 6px; min-width: 190px; z-index: 80;
+  }
+  .menu-dropdown.open{ display:block; }
+  .menu-dropdown a{
+    display:block; padding: 9px 12px; border-radius: 6px;
+    font-size: 14px; color: var(--ink); text-decoration:none;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  .menu-dropdown a:hover{ background: var(--bg); }
+
   h1{
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-weight: 700;
@@ -305,6 +346,20 @@
 </style>
 </head>
 <body>
+<div class="topbar">
+  <a class="brand" href="index.html">Josh<span>Prints</span></a>
+  <div class="topbar-links">
+    <a class="btn-plain" href="order-form.html">Order</a>
+    <div class="menu-wrap">
+      <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="menu-dropdown" id="menu-dropdown">
+        <a href="index.html">Home</a>
+        <a href="estimate.html">Estimate cost</a>
+        <a href="order-form.html">Start an order</a>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="wrap">
   <h1>Josh<span>Prints</span></h1>
 
@@ -632,6 +687,25 @@
       sendBtn.textContent = 'Send';
     }
   });
+</script>
+
+<script>
+  (function(){
+    const btn = document.getElementById('menu-btn');
+    const menu = document.getElementById('menu-dropdown');
+    if (!btn || !menu) return;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = menu.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.addEventListener('click', (e) => {
+      if (!menu.contains(e.target) && e.target !== btn) menu.classList.remove('open');
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') menu.classList.remove('open');
+    });
+  })();
 </script>
 </body>
 </html>
