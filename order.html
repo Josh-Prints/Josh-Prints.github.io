@@ -566,9 +566,9 @@
       return;
     }
     messagesEl.innerHTML = list.map(m => {
-      const fileLinks = [];
-      if (m.file_path) fileLinks.push({ path: m.file_path, name: m.file_name });
-      (m.files || []).forEach(f => fileLinks.push(f));
+      const fileLinks = (m.files && m.files.length > 0)
+        ? m.files
+        : (m.file_path ? [{ path: m.file_path, name: m.file_name }] : []);
       return `
       <div class="msg ${m.sender}">
         <div class="who">${m.sender === 'admin' ? 'Josh' : 'You'}</div>
