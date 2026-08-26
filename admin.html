@@ -175,12 +175,6 @@
     font-weight: 600;
     font-size: 16px;
   }
-  .order-email{
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    color: var(--accent);
-    margin-top: 2px;
-  }
   .order-meta{
     font-family: 'JetBrains Mono', monospace;
     font-size: 11.5px;
@@ -560,7 +554,6 @@
         <div class="order-top">
           <div>
             <div class="order-name">${escapeHtml(order.full_name)}</div>
-            <div class="order-email">${escapeHtml(order.email || '')}</div>
             <div class="order-meta">
               <span class="order-type-badge">${typeLabel}</span>${created}
             </div>
@@ -568,7 +561,12 @@
           <div class="row-status status-${order.status}"><span class="status-dot"></span>${STATUS_LABEL[order.status] || order.status}</div>
         </div>
         ${order.notes ? `<div class="order-notes">${escapeHtml(order.notes)}</div>` : ''}
-        ${order.file_path ? `<div class="order-file"><a href="#" class="file-link" data-path="${escapeHtml(order.file_path)}">⇩ ${escapeHtml(order.file_name || 'download file')}</a></div>` : ''}
+        ${(() => {
+          const files = (order.files && order.files.length > 0)
+            ? order.files
+            : (order.file_path ? [{ path: order.file_path, name: order.file_name }] : []);
+          return files.map(f => `<div class="order-file"><a href="#" class="file-link" data-path="${escapeHtml(f.path)}">⇩ ${escapeHtml(f.name || 'download file')}</a></div>`).join('');
+        })()}
         <div class="order-bottom">
           <select class="status-select" data-id="${order.id}">
             ${STATUS_OPTIONS.map(s => `<option value="${s}" ${s === order.status ? 'selected' : ''}>${STATUS_LABEL[s]}</option>`).join('')}
@@ -589,7 +587,7 @@
             <div class="chat-composer-row">
               <label class="chat-attach">
                 <span id="chat-attach-label-${order.id}">📎 Attach file</span>
-                <input type="file" id="chat-attach-${order.id}">
+                <input type="file" id="chat-attach-${order.id}" multiple>
               </label>
               <button class="chat-send" data-id="${order.id}">Send</button>
             </div>
@@ -657,8 +655,10 @@
       const id = input.id.replace('chat-attach-', '');
       input.addEventListener('change', () => {
         const label = document.getElementById(`chat-attach-label-${id}`);
-        const f = input.files[0];
-        label.textContent = f ? `📎 ${f.name}` : '📎 Attach file';
+        const n = input.files.length;
+        label.textContent = n === 0 ? '📎 Attach file'
+          : n === 1 ? `📎 ${input.files[0].name}`
+          : `📎 ${n} files`;
       });
     });
 
@@ -744,13 +744,18 @@
       return;
     }
 
-    container.innerHTML = data.map(m => `
+    container.innerHTML = data.map(m => {
+      const fileLinks = [];
+      if (m.file_path) fileLinks.push({ path: m.file_path, name: m.file_name });
+      (m.files || []).forEach(f => fileLinks.push(f));
+      return `
       <div class="chat-msg ${m.sender}">
         <div class="who">${m.sender === 'admin' ? 'You' : 'Customer'}</div>
         ${m.body ? `<div>${escapeHtml(m.body)}</div>` : ''}
-        ${m.file_path ? `<a class="file-link" href="#" data-path="${escapeHtml(m.file_path)}" target="_blank">📎 ${escapeHtml(m.file_name || 'attachment')}</a>` : ''}
+        ${fileLinks.map(f => `<a class="file-link" href="#" data-path="${escapeHtml(f.path)}" target="_blank">📎 ${escapeHtml(f.name || 'attachment')}</a>`).join('')}
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     container.querySelectorAll('.file-link').forEach(link => {
       link.addEventListener('click', (e) => {
@@ -767,25 +772,26 @@
     const bodyEl = document.getElementById(`chat-body-${orderId}`);
     const fileInput = document.getElementById(`chat-attach-${orderId}`);
     const body = bodyEl.value.trim();
-    const file = fileInput.files[0] || null;
+    const files = Array.from(fileInput.files);
 
-    if (!body && !file) return;
+    if (!body && files.length === 0) return;
 
     try {
-      let filePath = null, fileName = null;
-      if (file){
-        filePath = `messages/${orderId}/${Date.now()}-${sanitizeFileName(file.name)}`;
-        const { error: upErr } = await supabase.storage.from(BUCKET).upload(filePath, file);
+      const uploaded = [];
+      for (const file of files){
+        const path = `messages/${orderId}/${Date.now()}-${sanitizeFileName(file.name)}`;
+        const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file);
         if (upErr) throw upErr;
-        fileName = file.name;
+        uploaded.push({ path, name: file.name });
       }
 
       const { error } = await supabase.from('messages').insert({
         order_id: orderId,
         sender: 'admin',
         body: body || null,
-        file_path: filePath,
-        file_name: fileName
+        file_path: uploaded[0]?.path || null,
+        file_name: uploaded[0]?.name || null,
+        files: uploaded
       });
       if (error) throw error;
 
