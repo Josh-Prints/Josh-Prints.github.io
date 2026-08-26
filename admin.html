@@ -578,6 +578,146 @@
     color: var(--ink-dim);
   }
 
+  /* ---- Debug modal tabs ---- */
+  .debug-tabs{
+    display:flex;
+    gap: 6px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid rgba(31,35,40,0.10);
+  }
+  .debug-tab{
+    background:none;
+    border:none;
+    border-bottom: 2px solid transparent;
+    color: var(--ink-dim);
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.03em;
+    padding: 8px 4px 10px;
+    cursor: pointer;
+    margin-right: 14px;
+  }
+  .debug-tab.active{
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .debug-section{ display:none; }
+  .debug-section.active{ display:block; }
+
+  /* ---- Filaments section ---- */
+  .fil-list{
+    display:flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .fil-row{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    border: 1px solid rgba(31,35,40,0.10);
+    border-radius: 8px;
+    padding: 9px 10px;
+  }
+  .fil-swatch{
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--bg);
+    border: 1px solid rgba(31,35,40,0.12);
+  }
+  .fil-info{ flex: 1; min-width: 0; }
+  .fil-name{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 600;
+    font-size: 13.5px;
+    white-space: nowrap; overflow:hidden; text-overflow: ellipsis;
+  }
+  .fil-meta{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-dim);
+    margin-top: 2px;
+  }
+  .fil-actions{ display:flex; align-items:center; gap: 8px; flex-shrink:0; }
+  .fil-toggle{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(31,35,40,0.18);
+    background: transparent;
+    color: var(--ink-dim);
+    cursor: pointer;
+  }
+  .fil-toggle.is-active{
+    background: var(--ok-dim);
+    border-color: var(--ok);
+    color: #1a7f37;
+  }
+  .fil-del{
+    background: none;
+    border: 1px solid rgba(31,35,40,0.18);
+    color: var(--err);
+    border-radius: 6px;
+    padding: 5px 9px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .fil-empty{
+    color: var(--ink-dim);
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    padding: 10px 0;
+  }
+  .fil-add-form{
+    border-top: 1px solid rgba(31,35,40,0.10);
+    padding-top: 16px;
+  }
+  .fil-add-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .fil-add-grid label{
+    display:flex; flex-direction:column; gap:6px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .fil-add-grid input, .fil-add-grid select{
+    background: var(--bg);
+    border: 1px solid rgba(31,35,40,0.18);
+    border-radius: 6px;
+    color: var(--ink);
+    padding: 9px 10px;
+    font-size: 13.5px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    outline: none;
+  }
+  .fil-add-grid input:focus, .fil-add-grid select:focus{ border-color: var(--accent); }
+  .fil-add-full{ grid-column: 1 / -1; }
+  .fil-img-preview{
+    width: 52px; height: 52px;
+    border-radius: 8px;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--bg);
+    border: 1px dashed rgba(31,35,40,0.25);
+    flex-shrink: 0;
+  }
+  .fil-img-row{ display:flex; align-items:center; gap: 12px; }
+  .fil-img-row input[type="file"]{ font-size: 12px; }
+  #fil-msg{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-dim);
+    margin-top: 10px;
+  }
+
 /* ================= animation kit ================= */
 @keyframes fadeInDown{ from{ opacity:0; transform: translateY(-10px); } to{ opacity:1; transform: translateY(0); } }
 @keyframes fadeInUp{ from{ opacity:0; transform: translateY(16px); } to{ opacity:1; transform: translateY(0); } }
@@ -657,7 +797,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     <nav>
       <a href="presets-admin.html"><span class="icon">🧩</span> Manage presets</a>
       <a href="quote.html" id="quote-builder-btn"><span class="icon">🧮</span> Quote builder</a>
-      <button type="button" id="rates-btn"><span class="icon">⚙</span> Rates</button>
+      <button type="button" id="rates-btn"><span class="icon">⚙</span> Debug</button>
     </nav>
   </div>
 
@@ -682,33 +822,80 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   </div>
 </div>
 
-<!-- RATES MODAL -->
+<!-- DEBUG MODAL -->
 <div id="rates-overlay" class="modal-overlay">
   <div class="modal-card">
     <div class="modal-head">
-      <h2>Pricing rates</h2>
+      <h2>Debug</h2>
       <button class="icon-btn" id="rates-close">Close</button>
     </div>
-    <p class="modal-sub">These feed the Quote Builder's defaults and the public cost estimator. Changes apply everywhere instantly.</p>
-    <div class="modal-body">
-      <div class="rates-form-grid">
-        <label>Labor rate<span class="unit">$/hr</span><input type="number" id="r-labor" step="0.5" min="0"></label>
-        <label>Base handling fee<span class="unit">$</span><input type="number" id="r-base" step="0.25" min="0"></label>
-        <label>Print rate (curve)<span class="unit">$/hr^1.4</span><input type="number" id="r-printrate" step="0.01" min="0"></label>
-        <label>Surcharge amount<span class="unit">$</span><input type="number" id="r-suramt" step="0.5" min="0"></label>
-        <label>Surcharge threshold<span class="unit">hrs</span><input type="number" id="r-surthresh" step="0.5" min="0"></label>
+    <p class="modal-sub">Pricing rates and filament inventory. Changes apply everywhere instantly.</p>
+
+    <div class="debug-tabs">
+      <button type="button" class="debug-tab active" data-tab="rates">Rates</button>
+      <button type="button" class="debug-tab" data-tab="filaments">Filaments</button>
+    </div>
+
+    <!-- Rates section -->
+    <div class="debug-section active" id="debug-section-rates">
+      <div class="modal-body">
+        <div class="rates-form-grid">
+          <label>Labor rate<span class="unit">$/hr</span><input type="number" id="r-labor" step="0.5" min="0"></label>
+          <label>Base handling fee<span class="unit">$</span><input type="number" id="r-base" step="0.25" min="0"></label>
+          <label>Print rate (curve)<span class="unit">$/hr^1.4</span><input type="number" id="r-printrate" step="0.01" min="0"></label>
+          <label>Surcharge amount<span class="unit">$</span><input type="number" id="r-suramt" step="0.5" min="0"></label>
+          <label>Surcharge threshold<span class="unit">hrs</span><input type="number" id="r-surthresh" step="0.5" min="0"></label>
+        </div>
+        <div class="modal-divider">Filament cost / kg (legacy defaults)</div>
+        <div class="rates-form-grid">
+          <label>PLA<span class="unit">$/kg</span><input type="number" id="r-pla" step="0.5" min="0"></label>
+          <label>ABS<span class="unit">$/kg</span><input type="number" id="r-abs" step="0.5" min="0"></label>
+          <label>TPU<span class="unit">$/kg</span><input type="number" id="r-tpu" step="0.5" min="0"></label>
+        </div>
       </div>
-      <div class="modal-divider">Filament cost / kg</div>
-      <div class="rates-form-grid">
-        <label>PLA<span class="unit">$/kg</span><input type="number" id="r-pla" step="0.5" min="0"></label>
-        <label>ABS<span class="unit">$/kg</span><input type="number" id="r-abs" step="0.5" min="0"></label>
-        <label>TPU<span class="unit">$/kg</span><input type="number" id="r-tpu" step="0.5" min="0"></label>
+      <div class="modal-foot">
+        <span id="rates-msg"></span>
+        <button class="save-btn" id="rates-save">Save rates</button>
       </div>
     </div>
-    <div class="modal-foot">
-      <span id="rates-msg"></span>
-      <button class="save-btn" id="rates-save">Save rates</button>
+
+    <!-- Filaments section -->
+    <div class="debug-section" id="debug-section-filaments">
+      <div class="modal-body">
+        <div class="fil-list" id="fil-list">
+          <div class="fil-empty">Loading…</div>
+        </div>
+
+        <div class="fil-add-form">
+          <div class="modal-divider" style="margin-top:0; padding-top:0; border-top:none;">Add a filament</div>
+          <div class="fil-add-grid">
+            <label class="fil-add-full">Colour<input type="text" id="fil-color" placeholder="e.g. Galaxy Black"></label>
+            <label>Type
+              <select id="fil-type">
+                <option value="PLA">PLA</option>
+                <option value="PLA+">PLA+</option>
+                <option value="ABS">ABS</option>
+                <option value="PETG">PETG</option>
+                <option value="TPU">TPU</option>
+                <option value="Resin">Resin</option>
+                <option value="Nylon">Nylon</option>
+                <option value="Other">Other</option>
+              </select>
+            </label>
+            <label>Price<span class="unit">$ / 100g</span><input type="number" id="fil-price" step="0.05" min="0" placeholder="e.g. 3.50"></label>
+            <label class="fil-add-full">Picture <span style="text-transform:none; letter-spacing:0;">(optional)</span>
+              <div class="fil-img-row">
+                <div class="fil-img-preview" id="fil-img-preview"></div>
+                <input type="file" id="fil-image" accept="image/*">
+              </div>
+            </label>
+          </div>
+          <button class="save-btn" id="fil-add-btn" type="button">Add filament</button>
+          <div id="fil-msg"></div>
+        </div>
+      </div>
     </div>
+
   </div>
 </div>
 
@@ -925,6 +1112,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
           </div>
           <div class="row-status status-${order.status}"><span class="status-dot"></span>${STATUS_LABEL[order.status] || order.status}</div>
         </div>
+        ${order.filament_color ? `<div class="order-meta" style="margin-top:6px;">🧵 ${escapeHtml(order.filament_color)}${order.filament_type ? ' · ' + escapeHtml(order.filament_type) : ''}${order.filament_price_per_100g != null ? ` · $${Number(order.filament_price_per_100g).toFixed(2)}/100g` : ''}</div>` : ''}
         ${order.notes ? `<div class="order-notes">${escapeHtml(order.notes)}</div>` : ''}
         ${(() => {
           const files = (order.files && order.files.length > 0)
@@ -1173,6 +1361,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   async function openRatesModal(){
     ratesOverlay.classList.add('open');
     ratesMsg.textContent = 'Loading…';
+    loadFilaments();
     const { data, error } = await supabase.from('settings').select('*').eq('id', 1).single();
     if (error || !data){
       ratesMsg.textContent = "Couldn't load rates: " + (error ? error.message : 'no data');
@@ -1216,6 +1405,145 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     }
     ratesMsg.textContent = 'Saved ✓ — live everywhere now.';
     setTimeout(() => { if (ratesMsg.textContent.startsWith('Saved')) ratesMsg.textContent = ''; }, 3000);
+  });
+
+  /* ---- Debug modal tabs ---- */
+  document.querySelectorAll('.debug-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.debug-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.debug-section').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(`debug-section-${tab.dataset.tab}`).classList.add('active');
+      if (tab.dataset.tab === 'filaments') loadFilaments();
+    });
+  });
+
+  /* ---- Filaments ---- */
+  const FIL_BUCKET = BUCKET; // reuse the order-files bucket, under filaments/
+  const filListEl = document.getElementById('fil-list');
+  const filMsgEl = document.getElementById('fil-msg');
+  const filImageInput = document.getElementById('fil-image');
+  const filImgPreview = document.getElementById('fil-img-preview');
+  const filAddBtn = document.getElementById('fil-add-btn');
+  let currentFilaments = [];
+
+  filImageInput.addEventListener('change', () => {
+    const file = filImageInput.files[0];
+    if (!file){ filImgPreview.style.backgroundImage = ''; return; }
+    filImgPreview.style.backgroundImage = `url(${URL.createObjectURL(file)})`;
+  });
+
+  function filPublicUrl(path){
+    return path ? supabase.storage.from(FIL_BUCKET).getPublicUrl(path).data.publicUrl : null;
+  }
+
+  async function loadFilaments(){
+    filListEl.innerHTML = '<div class="fil-empty">Loading…</div>';
+    const { data, error } = await supabase
+      .from('filaments')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error){
+      filListEl.innerHTML = `<div class="fil-empty">Couldn't load filaments: ${escapeHtml(error.message)}</div>`;
+      return;
+    }
+    currentFilaments = data || [];
+    renderFilaments();
+  }
+
+  function renderFilaments(){
+    if (currentFilaments.length === 0){
+      filListEl.innerHTML = '<div class="fil-empty">No filaments added yet — add one below.</div>';
+      return;
+    }
+    filListEl.innerHTML = '';
+    currentFilaments.forEach(f => {
+      const row = document.createElement('div');
+      row.className = 'fil-row';
+      const img = filPublicUrl(f.image_path);
+      row.innerHTML = `
+        <div class="fil-swatch" style="${img ? `background-image:url(${img})` : ''}"></div>
+        <div class="fil-info">
+          <div class="fil-name">${escapeHtml(f.color_name)}</div>
+          <div class="fil-meta">${escapeHtml(f.type)} · $${Number(f.price_per_100g).toFixed(2)}/100g</div>
+        </div>
+        <div class="fil-actions">
+          <button class="fil-toggle ${f.active ? 'is-active' : ''}" data-id="${f.id}">${f.active ? 'Active' : 'Hidden'}</button>
+          <button class="fil-del" data-id="${f.id}">🗑</button>
+        </div>
+      `;
+      filListEl.appendChild(row);
+    });
+
+    filListEl.querySelectorAll('.fil-toggle').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const f = currentFilaments.find(x => x.id === btn.dataset.id);
+        if (!f) return;
+        const { error } = await supabase.from('filaments').update({ active: !f.active }).eq('id', f.id);
+        if (error){ alert('Could not update: ' + error.message); return; }
+        f.active = !f.active;
+        renderFilaments();
+      });
+    });
+    filListEl.querySelectorAll('.fil-del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this filament? It will no longer be selectable when ordering.')) return;
+        const { error } = await supabase.from('filaments').delete().eq('id', btn.dataset.id);
+        if (error){ alert('Could not delete: ' + error.message); return; }
+        currentFilaments = currentFilaments.filter(x => x.id !== btn.dataset.id);
+        renderFilaments();
+      });
+    });
+  }
+
+  filAddBtn.addEventListener('click', async () => {
+    const colorName = document.getElementById('fil-color').value.trim();
+    const type = document.getElementById('fil-type').value;
+    const priceRaw = document.getElementById('fil-price').value;
+    const price = Number(priceRaw);
+    const file = filImageInput.files[0];
+
+    if (!colorName || priceRaw === '' || isNaN(price) || price < 0){
+      filMsgEl.textContent = 'Please add a colour name and a valid price.';
+      return;
+    }
+
+    filAddBtn.disabled = true;
+    filAddBtn.textContent = 'Adding…';
+    filMsgEl.textContent = '';
+
+    try {
+      let imagePath = null;
+      if (file){
+        imagePath = `filaments/${Date.now()}-${sanitizeFileName(file.name)}`;
+        const { error: upErr } = await supabase.storage.from(FIL_BUCKET).upload(imagePath, file);
+        if (upErr) throw upErr;
+      }
+
+      const { error } = await supabase.from('filaments').insert({
+        color_name: colorName,
+        type,
+        price_per_100g: price,
+        image_path: imagePath,
+        active: true
+      });
+      if (error) throw error;
+
+      document.getElementById('fil-color').value = '';
+      document.getElementById('fil-price').value = '';
+      filImageInput.value = '';
+      filImgPreview.style.backgroundImage = '';
+      filMsgEl.textContent = 'Added ✓';
+      setTimeout(() => { if (filMsgEl.textContent === 'Added ✓') filMsgEl.textContent = ''; }, 2500);
+      loadFilaments();
+
+    } catch (err){
+      filMsgEl.textContent = 'Error: ' + (err.message || 'please try again');
+    } finally {
+      filAddBtn.disabled = false;
+      filAddBtn.textContent = 'Add filament';
+    }
   });
 
   checkSession();

@@ -224,6 +224,30 @@
     box-shadow: 0 0 0 3px var(--accent-dim);
   }
 
+  .fil-picker{
+    display:grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 10px;
+  }
+  .fil-opt{ position: relative; }
+  .fil-opt input{ position:absolute; opacity:0; inset:0; cursor:pointer; }
+  .fil-opt .card{
+    border: 1px solid rgba(31,35,40,0.15); border-radius: 8px; padding: 9px;
+    text-align: center; background: var(--bg);
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .fil-opt .swatch{
+    width: 100%; aspect-ratio: 1/1; border-radius: 6px; margin-bottom: 6px;
+    background-size: cover; background-position: center; background-color: var(--bg-raised);
+    border: 1px solid rgba(31,35,40,0.12);
+  }
+  .fil-opt .name{ font-size: 12px; font-weight: 600; line-height:1.3; }
+  .fil-opt .meta{ font-size: 10.5px; color: var(--ink-dim); margin-top: 2px; }
+  .fil-opt input:checked + .card{
+    border-color: var(--accent);
+    background: linear-gradient(180deg, var(--accent-dim), transparent 60%);
+  }
+  .fil-empty-note{ font-size: 13px; color: var(--ink-dim); }
+
   .dropzone{
     border: 1.5px dashed rgba(31,35,40,0.25);
     border-radius: 8px;
@@ -546,6 +570,13 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     </div>
 
     <div class="field">
+      <label>Filament <span style="text-transform:none; letter-spacing:0;">(optional)</span></label>
+      <div class="fil-picker" id="fil-picker">
+        <div class="fil-empty-note">Loading filaments…</div>
+      </div>
+    </div>
+
+    <div class="field">
       <label for="notes">Notes</label>
       <textarea id="notes" name="notes" placeholder="Size, material, colour, deadline, anything I should know"></textarea>
     </div>
@@ -606,6 +637,52 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   const btnLabel = document.getElementById('btn-label');
 
   let selectedFiles = [];
+  let filaments = [];
+  let selectedFilament = null;
+
+  function escapeHtml(str){
+    return (str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function filPublicUrl(path){
+    return path ? supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl : null;
+  }
+
+  async function loadFilaments(){
+    const { data, error } = await supabase
+      .from('filaments')
+      .select('*')
+      .eq('active', true)
+      .order('created_at', { ascending: false });
+    filaments = (!error && data) ? data : [];
+    renderFilamentPicker();
+  }
+
+  function renderFilamentPicker(){
+    const el = document.getElementById('fil-picker');
+    if (filaments.length === 0){
+      el.innerHTML = '<div class="fil-empty-note">No filament options set up yet — I\'ll confirm colour with you directly.</div>';
+      return;
+    }
+    el.innerHTML = filaments.map(f => {
+      const img = filPublicUrl(f.image_path);
+      return `
+        <label class="fil-opt">
+          <input type="radio" name="fil-choice" value="${f.id}">
+          <div class="card">
+            <div class="swatch" style="${img ? `background-image:url(${img})` : ''}"></div>
+            <div class="name">${escapeHtml(f.color_name)}</div>
+            <div class="meta">${escapeHtml(f.type)} · $${Number(f.price_per_100g).toFixed(2)}/100g</div>
+          </div>
+        </label>
+      `;
+    }).join('');
+    el.querySelectorAll('input[name="fil-choice"]').forEach(input => {
+      input.addEventListener('change', () => {
+        selectedFilament = filaments.find(f => f.id === input.value) || null;
+      });
+    });
+  }
+  loadFilaments();
 
   function renderFileList(){
     fileListEl.innerHTML = '';
@@ -736,7 +813,11 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
           notes: notes || null,
           file_path: filePath,
           file_name: fileName,
-          files: uploadedFiles
+          files: uploadedFiles,
+          filament_id: selectedFilament ? selectedFilament.id : null,
+          filament_color: selectedFilament ? selectedFilament.color_name : null,
+          filament_type: selectedFilament ? selectedFilament.type : null,
+          filament_price_per_100g: selectedFilament ? selectedFilament.price_per_100g : null
         });
 
       if (insertError) throw insertError;

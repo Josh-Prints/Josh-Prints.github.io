@@ -130,6 +130,27 @@
   .modal-close:hover{ background: var(--canvas-inset); }
   .modal{ position: relative; }
   .modal-error{ color:#cf222e; font-size:13px; margin-top: 8px; display:none; }
+
+  /* ---- filament picker ---- */
+  .fil-picker{
+    display:grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: 8px; margin-top: 4px;
+  }
+  .fil-opt{ position: relative; }
+  .fil-opt input{ position:absolute; opacity:0; inset:0; cursor:pointer; }
+  .fil-opt .card{
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px;
+    text-align: center; transition: border-color .15s ease, background .15s ease;
+  }
+  .fil-opt .swatch{
+    width: 100%; aspect-ratio: 1/1; border-radius: 6px; margin-bottom: 6px;
+    background-size: cover; background-position: center; background-color: var(--canvas-inset);
+    border: 1px solid var(--border);
+  }
+  .fil-opt .name{ font-size: 11.5px; font-weight: 600; line-height:1.3; }
+  .fil-opt .meta{ font-size: 10.5px; color: var(--fg-muted); margin-top: 2px; }
+  .fil-opt input:checked + .card{ border-color: var(--accent); background: rgba(9,105,218,0.08); }
+  .fil-empty-note{ font-size: 12.5px; color: var(--fg-muted); }
 </style>
 </head>
 <body>
@@ -176,6 +197,12 @@
           <input type="email" id="m-email" required>
         </div>
         <div class="field">
+          <label>Filament <span style="font-weight:400;color:var(--fg-muted);">(optional)</span></label>
+          <div class="fil-picker" id="fil-picker">
+            <div class="fil-empty-note">Loading filaments…</div>
+          </div>
+        </div>
+        <div class="field">
           <label for="m-notes">Notes (optional)</label>
           <textarea id="m-notes" placeholder="Color, size, anything else…"></textarea>
         </div>
@@ -203,12 +230,50 @@
 
   let presets = [];
   let selectedPreset = null;
+  let filaments = [];
+  let selectedFilament = null;
 
   function escapeHtml(str){
     return (str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
   function publicUrl(path){
     return path ? supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl : null;
+  }
+
+  async function loadFilaments(){
+    const { data, error } = await supabase
+      .from('filaments')
+      .select('*')
+      .eq('active', true)
+      .order('created_at', { ascending: false });
+    filaments = (!error && data) ? data : [];
+    renderFilamentPicker();
+  }
+
+  function renderFilamentPicker(){
+    const el = document.getElementById('fil-picker');
+    if (filaments.length === 0){
+      el.innerHTML = '<div class="fil-empty-note">No filament options set up yet — I\'ll confirm colour with you directly.</div>';
+      return;
+    }
+    el.innerHTML = filaments.map(f => {
+      const img = publicUrl(f.image_path);
+      return `
+        <label class="fil-opt">
+          <input type="radio" name="m-filament" value="${f.id}">
+          <div class="card">
+            <div class="swatch" style="${img ? `background-image:url(${img})` : ''}"></div>
+            <div class="name">${escapeHtml(f.color_name)}</div>
+            <div class="meta">${escapeHtml(f.type)} · $${Number(f.price_per_100g).toFixed(2)}/100g</div>
+          </div>
+        </label>
+      `;
+    }).join('');
+    el.querySelectorAll('input[name="m-filament"]').forEach(input => {
+      input.addEventListener('change', () => {
+        selectedFilament = filaments.find(f => f.id === input.value) || null;
+      });
+    });
   }
 
   async function loadPresets(){
@@ -264,6 +329,7 @@
 
   function openModal(preset){
     selectedPreset = preset;
+    selectedFilament = null;
     document.getElementById('modal-name').textContent = preset.name;
     document.getElementById('modal-price').textContent = preset.price != null ? `$${Number(preset.price).toFixed(2)}` : '';
     document.getElementById('modal-desc').textContent = preset.description || '';
@@ -300,7 +366,11 @@
         notes: notes || null,
         preset_id: selectedPreset.id,
         preset_name: selectedPreset.name,
-        preset_price: selectedPreset.price
+        preset_price: selectedPreset.price,
+        filament_id: selectedFilament ? selectedFilament.id : null,
+        filament_color: selectedFilament ? selectedFilament.color_name : null,
+        filament_type: selectedFilament ? selectedFilament.type : null,
+        filament_price_per_100g: selectedFilament ? selectedFilament.price_per_100g : null
       });
       if (error) throw error;
 
@@ -317,6 +387,7 @@
   });
 
   loadPresets();
+  loadFilaments();
 </script>
 
 </body>
