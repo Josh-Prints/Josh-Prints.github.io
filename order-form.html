@@ -366,6 +366,29 @@
     text-decoration: none;
   }
   .view-order-btn:hover{ text-decoration: underline; }
+
+  .save-warning{
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: rgba(154,103,0,0.1);
+    border: 1px solid rgba(154,103,0,0.35);
+    border-radius: 8px;
+    padding: 12px 14px;
+    text-align: left;
+    margin: 0 0 20px;
+  }
+  .save-warning .icon{
+    flex-shrink: 0;
+    font-size: 15px;
+    line-height: 1.3;
+  }
+  .save-warning .text{
+    font-size: 13px;
+    line-height: 1.45;
+    color: #7a5200;
+  }
+  .save-warning .text strong{ color: #5c3d00; }
 </style>
 </head>
 <body>
@@ -436,7 +459,10 @@
   <div class="success-panel" id="success-panel">
     <div class="check">✓</div>
     <h2>Order received</h2>
-    <p>Save this link, it's the only way to check your order status, see your quote, and message me directly.</p>
+    <div class="save-warning">
+      <span class="icon">⚠️</span>
+      <span class="text"><strong>Save this link now.</strong> It's the only way to check your order status, see your quote, and message me. If you lose it, there's no way to look it up, so bookmark it, screenshot it, or copy it somewhere safe before you leave this page.</span>
+    </div>
     <div class="link-box">
       <span id="order-link-text"></span>
       <button type="button" id="copy-link-btn">Copy</button>
