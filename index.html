@@ -618,13 +618,11 @@
       document.getElementById('order-link-text').textContent = orderUrl.href;
       document.getElementById('view-order-btn').href = orderUrl.href;
 
-      // Best-effort: email them a copy of the link too. If this fails
-      // (no email set up yet, Resend hiccup, etc), the order itself is
-      // already saved and the link is already shown above, so we don't
-      // want this to block or scare the customer.
-      supabase.functions.invoke('send-order-link', {
-        body: { email, full_name: fullName, order_url: orderUrl.href }
-      }).catch(() => { /* silent — link is already shown on screen */ });
+      // Email sending is paused (Resend domain verification pending —
+      // revisit once joshprints.com can be transferred to a registrar
+      // with full DNS control, or a second sending domain is set up).
+      // The email address is still collected and saved on the order
+      // above so it's visible in the admin panel either way.
 
       form.style.display = 'none';
       document.getElementById('success-panel').classList.add('show');
