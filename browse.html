@@ -87,6 +87,15 @@
   .tile-desc{ color: var(--fg-muted); font-size:13px; line-height:1.4; margin-bottom:8px;
     display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   .tile-price{ font-family: ui-monospace, monospace; font-size:13px; color: var(--accent); font-weight:600; }
+  .tile-model-row{ display:flex; gap:8px; margin-top:8px; }
+  .tile-model-row a{
+    flex:1; text-align:center; font-size:11.5px; font-weight:600;
+    padding: 6px 8px; border-radius:6px; text-decoration:none;
+    border:1px solid var(--border); color: var(--fg);
+    transition: background 0.15s;
+  }
+  .tile-model-row a:hover{ background: var(--canvas-inset); }
+  .tile-model-row a.view3d{ color: var(--accent); border-color: rgba(9,105,218,0.35); }
 
   #empty, #loading{
     text-align:center; color: var(--fg-muted); padding: 60px 0; font-size:14px;
@@ -187,6 +196,7 @@
       <h2 id="modal-name"></h2>
       <div class="modal-price" id="modal-price"></div>
       <div class="modal-desc" id="modal-desc"></div>
+      <div class="tile-model-row" id="modal-model-row" style="display:none; margin-bottom:16px;"></div>
       <form id="order-form">
         <div class="field">
           <label for="m-name">Full name</label>
@@ -307,9 +317,17 @@
           <div class="tile-name">${escapeHtml(p.name)}</div>
           ${p.description ? `<div class="tile-desc">${escapeHtml(p.description)}</div>` : ''}
           ${p.price != null ? `<div class="tile-price">$${Number(p.price).toFixed(2)}</div>` : ''}
+          ${p.model_path ? `
+          <div class="tile-model-row">
+            <a class="view3d" href="viewer.html?url=${encodeURIComponent(publicUrl(p.model_path))}&name=${encodeURIComponent(p.model_name || '')}" target="_blank" data-stop="1">👁 View in 3D</a>
+            <a href="${publicUrl(p.model_path)}" download="${escapeHtml(p.model_name || 'model')}" data-stop="1">⇩ Download</a>
+          </div>` : ''}
         </div>
       `;
-      tile.addEventListener('click', () => openModal(p));
+      tile.addEventListener('click', (e) => {
+        if (e.target.closest('[data-stop]')) return;
+        openModal(p);
+      });
       gridEl.appendChild(tile);
     });
   }
@@ -333,6 +351,18 @@
     document.getElementById('modal-name').textContent = preset.name;
     document.getElementById('modal-price').textContent = preset.price != null ? `$${Number(preset.price).toFixed(2)}` : '';
     document.getElementById('modal-desc').textContent = preset.description || '';
+    const modelRow = document.getElementById('modal-model-row');
+    if (preset.model_path){
+      const modelUrl = publicUrl(preset.model_path);
+      modelRow.style.display = 'flex';
+      modelRow.innerHTML = `
+        <a class="view3d" href="viewer.html?url=${encodeURIComponent(modelUrl)}&name=${encodeURIComponent(preset.model_name || '')}" target="_blank">👁 View in 3D</a>
+        <a href="${modelUrl}" download="${escapeHtml(preset.model_name || 'model')}">⇩ Download</a>
+      `;
+    } else {
+      modelRow.style.display = 'none';
+      modelRow.innerHTML = '';
+    }
     form.reset();
     errorEl.style.display = 'none';
     overlay.classList.add('open');
