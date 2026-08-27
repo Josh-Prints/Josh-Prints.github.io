@@ -206,6 +206,24 @@
     border-radius: var(--radius);
     padding: 18px 20px;
     margin-bottom: 14px;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .order-card.is-new{
+    background: rgba(9,105,218,0.06);
+    border-color: rgba(9,105,218,0.35);
+    box-shadow: 0 0 0 1px rgba(9,105,218,0.12);
+  }
+
+  .sort-select{
+    margin-left: auto;
+    padding: 5px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    border-radius: 6px;
+    border: 1px solid var(--border, #d1d9e0);
+    background: var(--bg-raised, #fff);
+    color: inherit;
+    cursor: pointer;
   }
   .order-top{
     display:flex;
@@ -860,6 +878,11 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     <button class="chip" data-filter="cancelled">Cancelled</button>
     <button class="chip" data-filter="deleted">Deleted</button>
     <button class="chip" id="only-mine-chip">🙋 Claimed by me</button>
+    <select class="sort-select" id="sort-select">
+      <option value="newest">Newest first</option>
+      <option value="oldest">Oldest first</option>
+      <option value="status">By status</option>
+    </select>
   </div>
   <main>
     <div id="orders-container"><div class="empty">Loading…</div></div>
@@ -1024,6 +1047,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   let myUserId = null;
   let myDisplayName = null;
   let onlyMine = false;
+  let sortMode = 'newest';
+  const STATUS_ORDER = ['new', 'aknowleged', 'quoted', 'printing', 'completed', 'sold', 'cancelled'];
 
   function escapeHtml(str){
     return (str || '').replace(/[&<>"']/g, c => ({
@@ -1198,6 +1223,16 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
     if (onlyMine) filtered = filtered.filter(o => o.claimed_by_id === myUserId);
 
+    filtered = filtered.slice().sort((a, b) => {
+      if (sortMode === 'oldest'){
+        return new Date(a.created_at) - new Date(b.created_at);
+      } else if (sortMode === 'status'){
+        const diff = STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
+        return diff !== 0 ? diff : new Date(b.created_at) - new Date(a.created_at);
+      }
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+
     if (filtered.length === 0){
       ordersContainer.innerHTML = '<div class="empty">No orders here.</div>';
       return;
@@ -1206,7 +1241,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     ordersContainer.innerHTML = '';
     filtered.forEach(order => {
       const card = document.createElement('div');
-      card.className = 'order-card';
+      card.className = 'order-card' + (order.status === 'new' ? ' is-new' : '');
 
       const typeLabel = order.order_type === 'custom_model' ? 'Custom Model'
         : order.order_type === 'preset' ? `Preset: ${escapeHtml(order.preset_name || 'Unknown')}`
@@ -1422,6 +1457,11 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     if (idx > -1) currentOrders[idx].status = 'cancelled';
     renderOrders();
   }
+
+  document.getElementById('sort-select').addEventListener('change', (e) => {
+    sortMode = e.target.value;
+    renderOrders();
+  });
 
   document.getElementById('only-mine-chip').addEventListener('click', () => {
     onlyMine = !onlyMine;
