@@ -101,6 +101,7 @@
 
   /* ---- Dashboard ---- */
   #dash-view{ display:none; }
+  #topbar-spacer{ display:block; }
   .topbar{
     display:flex;
     align-items:center;
@@ -109,17 +110,16 @@
     border-bottom: 1px solid rgba(31,35,40,0.10);
     flex-wrap: wrap;
     gap: 12px;
-    max-height: 160px;
-    overflow: hidden;
-    transition: max-height 0.3s ease, padding 0.3s ease, border-color 0.3s ease, opacity 0.25s ease;
-    opacity: 1;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    background: var(--bg-raised);
+    transform: translateY(0);
+    transition: transform 0.28s ease;
+    will-change: transform;
   }
   .topbar.hide{
-    max-height: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-    border-bottom-color: transparent;
-    opacity: 0;
+    transform: translateY(-100%);
   }
   .header-wrap{
     position: sticky;
@@ -869,7 +869,6 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
 <!-- DASHBOARD -->
 <div id="dash-view">
-  <div class="header-wrap" id="header-wrap">
   <div class="topbar" id="topbar">
     <h1>Josh<span>Prints</span>: Orders</h1>
     <div class="right">
@@ -878,6 +877,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false">☰</button>
     </div>
   </div>
+  <div id="topbar-spacer"></div>
 
   <div class="sidebar-overlay" id="sidebar-overlay"></div>
   <div class="sidebar" id="sidebar" aria-hidden="true">
@@ -894,6 +894,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     </nav>
   </div>
 
+  <div class="header-wrap" id="header-wrap">
   <div class="toolbar" id="filter-bar">
     <button class="chip active" data-filter="all">All</button>
     <button class="chip" data-filter="new">New</button>
@@ -917,6 +918,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     <div id="orders-container"><div class="empty">Loading…</div></div>
   </main>
 </div>
+
 
 <div class="pdf-modal" id="pdf-modal">
   <div class="pdf-modal-inner">
@@ -1161,13 +1163,22 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
   (function(){
     const topbar = document.getElementById('topbar');
-    if (!topbar) return;
+    const spacer = document.getElementById('topbar-spacer');
+    if (!topbar || !spacer) return;
+
+    function syncSpacerHeight(){
+      spacer.style.height = topbar.offsetHeight + 'px';
+    }
+    syncSpacerHeight();
+    window.addEventListener('resize', syncSpacerHeight);
+    new ResizeObserver(syncSpacerHeight).observe(topbar);
+
     let lastY = window.scrollY;
     let ticking = false;
 
     function onScroll(){
-      const y = window.scrollY;
-      if (y > lastY && y > 80){
+      const y = Math.max(window.scrollY, 0);
+      if (y > lastY && y > topbar.offsetHeight){
         topbar.classList.add('hide');
       } else if (y < lastY){
         topbar.classList.remove('hide');
