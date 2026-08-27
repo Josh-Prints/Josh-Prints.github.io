@@ -1167,8 +1167,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
   filterBar.addEventListener('click', (e) => {
     const btn = e.target.closest('.chip');
-    if (!btn) return;
-    filterBar.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    if (!btn || btn.id === 'only-mine-chip') return;
+    filterBar.querySelectorAll('.chip').forEach(c => { if (c.id !== 'only-mine-chip') c.classList.remove('active'); });
     btn.classList.add('active');
     activeFilter = btn.dataset.filter;
     renderOrders();
