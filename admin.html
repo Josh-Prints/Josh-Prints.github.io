@@ -109,6 +109,23 @@
     border-bottom: 1px solid rgba(31,35,40,0.10);
     flex-wrap: wrap;
     gap: 12px;
+    max-height: 160px;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease, border-color 0.3s ease, opacity 0.25s ease;
+    opacity: 1;
+  }
+  .topbar.hide{
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-bottom-color: transparent;
+    opacity: 0;
+  }
+  .header-wrap{
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: var(--bg-raised);
   }
   .topbar h1{
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -181,6 +198,15 @@
     gap: 10px;
     padding: 18px 28px 0;
     flex-wrap: wrap;
+    background: var(--bg-raised);
+    position: relative;
+    z-index: 1;
+  }
+  .toolbar-fade{
+    height: 22px;
+    margin-top: 14px;
+    background: linear-gradient(to bottom, var(--bg-raised) 0%, rgba(255,255,255,0) 100%);
+    pointer-events: none;
   }
   .chip{
     font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
@@ -843,7 +869,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
 <!-- DASHBOARD -->
 <div id="dash-view">
-  <div class="topbar">
+  <div class="header-wrap" id="header-wrap">
+  <div class="topbar" id="topbar">
     <h1>Josh<span>Prints</span>: Orders</h1>
     <div class="right">
       <button class="icon-btn" id="refresh-btn">Refresh</button>
@@ -883,6 +910,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <option value="oldest">Oldest first</option>
       <option value="status">By status</option>
     </select>
+  </div>
+  <div class="toolbar-fade"></div>
   </div>
   <main>
     <div id="orders-container"><div class="empty">Loading…</div></div>
@@ -1128,6 +1157,31 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeSidebar();
     });
+  })();
+
+  (function(){
+    const topbar = document.getElementById('topbar');
+    if (!topbar) return;
+    let lastY = window.scrollY;
+    let ticking = false;
+
+    function onScroll(){
+      const y = window.scrollY;
+      if (y > lastY && y > 80){
+        topbar.classList.add('hide');
+      } else if (y < lastY){
+        topbar.classList.remove('hide');
+      }
+      lastY = y;
+      ticking = false;
+    }
+
+    window.addEventListener('scroll', () => {
+      if (!ticking){
+        requestAnimationFrame(onScroll);
+        ticking = true;
+      }
+    }, { passive: true });
   })();
 
   async function checkSession(){

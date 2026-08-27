@@ -230,6 +230,50 @@
   .strip-item .desc a{ transition: opacity 0.15s; }
   .strip-item .desc a:hover{ opacity: 0.7; }
 
+  /* ---- featured presets ---- */
+  .featured{
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 48px 24px 8px;
+  }
+  .featured-head{
+    display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+    margin-bottom: 18px;
+  }
+  .featured-head h2{
+    font-size: 20px; margin: 0; font-weight: 600; letter-spacing: -0.01em;
+  }
+  .featured-head a{
+    font-size: 13px; color: var(--accent); text-decoration:none; white-space:nowrap;
+  }
+  .featured-head a:hover{ text-decoration: underline; }
+  .featured-grid{
+    display:grid; grid-template-columns: repeat(3, 1fr); gap:16px;
+  }
+  .featured-tile{
+    display:block; text-decoration:none; color:inherit;
+    border:1px solid var(--border-muted); border-radius:10px; overflow:hidden;
+    background: var(--canvas);
+    opacity:0; transform: translateY(12px);
+    animation: fadeInUp 0.5s cubic-bezier(0.22,1,0.36,1) forwards;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  }
+  .featured-tile:hover{
+    border-color: var(--accent); transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(31,35,40,0.08);
+  }
+  .featured-img{
+    width:100%; aspect-ratio:4/3; object-fit:cover; background: var(--canvas-inset);
+    display:flex; align-items:center; justify-content:center; color: var(--fg-muted); font-size:12px;
+  }
+  .featured-body{ padding: 10px 12px; }
+  .featured-name{ font-size: 13.5px; font-weight:600; margin-bottom:2px; }
+  .featured-price{ font-family: ui-monospace, "SF Mono", "Roboto Mono", monospace; font-size:12px; color: var(--accent); }
+
+  @media (max-width: 640px){
+    .featured-grid{ grid-template-columns: repeat(2, 1fr); }
+  }
+
   @media (max-width: 640px){
     .strip-inner{ grid-template-columns: 1fr; }
     h1{ font-size: 30px; }
@@ -279,6 +323,14 @@
       <a class="btn btn-lg" href="estimate.html">Estimate cost</a>
       <a class="btn btn-lg" href="order.html">Track an order</a>
     </div>
+  </div>
+
+  <div class="featured" id="featured-section" style="display:none;">
+    <div class="featured-head">
+      <h2>Featured presets</h2>
+      <a href="browse.html">Browse all →</a>
+    </div>
+    <div class="featured-grid" id="featured-grid"></div>
   </div>
 
   <div class="strip">
@@ -351,6 +403,52 @@
     }, { threshold: 0.15 });
     items.forEach(el => io.observe(el));
   })();
+</script>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  const SUPABASE_URL = 'https://paycasfatsakidsriwqt.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
+  const BUCKET = 'order-files';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  function escapeHtml(str){
+    return (str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function publicUrl(path){
+    return path ? supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl : null;
+  }
+
+  async function loadFeatured(){
+    const { data, error } = await supabase
+      .from('presets')
+      .select('*')
+      .eq('active', true)
+      .eq('pinned', true)
+      .order('created_at', { ascending: false })
+      .limit(6);
+
+    if (error || !data || data.length === 0) return;
+
+    const section = document.getElementById('featured-section');
+    const grid = document.getElementById('featured-grid');
+    grid.innerHTML = data.map((p, i) => {
+      const img = publicUrl(p.image_path);
+      return `
+        <a class="featured-tile" href="browse.html" style="animation-delay:${i * 0.06}s">
+          <div class="featured-img">${img ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;" alt="">` : 'No image'}</div>
+          <div class="featured-body">
+            <div class="featured-name">${escapeHtml(p.name)}</div>
+            ${p.price != null ? `<div class="featured-price">$${Number(p.price).toFixed(2)}</div>` : ''}
+          </div>
+        </a>
+      `;
+    }).join('');
+    section.style.display = 'block';
+  }
+
+  loadFeatured();
 </script>
 
 </body>

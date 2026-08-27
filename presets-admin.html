@@ -88,11 +88,13 @@
   }
   .tile-actions button.danger{ color: var(--err); }
   .tile-actions button:hover{ background: #eef1f4; }
+  .tile-actions button.pin-btn.pinned{ color: #9a6700; border-color: rgba(154,103,0,0.4); background: rgba(154,103,0,0.08); }
   .tile.inactive{ opacity: 0.55; }
   .tile-badge{
     display:inline-block; font-size:10.5px; font-weight:700; text-transform:uppercase;
     letter-spacing:0.04em; color: var(--ink-dim); margin-left:6px;
   }
+  .tile-badge.pin{ color: #9a6700; }
 
   /* ---- modal (add/edit) ---- */
   .modal-overlay{
@@ -300,10 +302,11 @@
       tile.innerHTML = `
         <div class="tile-img">${img ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;" alt="">` : 'No image'}</div>
         <div class="tile-body">
-          <div class="tile-name">${escapeHtml(p.name)}${!p.active ? '<span class="tile-badge">Hidden</span>' : ''}</div>
+          <div class="tile-name">${escapeHtml(p.name)}${!p.active ? '<span class="tile-badge">Hidden</span>' : ''}${p.pinned ? '<span class="tile-badge pin">📌 Pinned</span>' : ''}</div>
           <div class="tile-price">${p.price != null ? '$' + Number(p.price).toFixed(2) : 'No price set'}</div>
           ${p.model_path ? `<div class="tile-model-badge">🧊 ${escapeHtml(p.model_name || '3D file')}</div>` : ''}
           <div class="tile-actions">
+            <button type="button" class="pin-btn${p.pinned ? ' pinned' : ''}" data-pin="${p.id}">${p.pinned ? '📌 Pinned' : '📌 Pin'}</button>
             <button type="button" data-edit="${p.id}">Edit</button>
             <button type="button" class="danger" data-delete="${p.id}">Delete</button>
           </div>
@@ -312,12 +315,22 @@
       gridEl.appendChild(tile);
     });
 
+    gridEl.querySelectorAll('[data-pin]').forEach(btn => {
+      btn.addEventListener('click', () => togglePinned(btn.dataset.pin));
+    });
     gridEl.querySelectorAll('[data-edit]').forEach(btn => {
       btn.addEventListener('click', () => openModal(presets.find(p => p.id === btn.dataset.edit)));
     });
     gridEl.querySelectorAll('[data-delete]').forEach(btn => {
       btn.addEventListener('click', () => deletePreset(btn.dataset.delete));
     });
+  }
+
+  async function togglePinned(id){
+    const preset = presets.find(p => p.id === id);
+    if (!preset) return;
+    const { error } = await supabase.from('presets').update({ pinned: !preset.pinned }).eq('id', id);
+    if (!error) loadPresets();
   }
 
   async function deletePreset(id){
