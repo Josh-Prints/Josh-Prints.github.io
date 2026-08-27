@@ -119,12 +119,16 @@
   .status-pill .dot{ width: 7px; height: 7px; border-radius: 50%; }
   .status-new{ background: var(--accent-dim); color: var(--accent); }
   .status-new .dot{ background: var(--accent); }
+  .status-aknowleged{ background: rgba(154,103,0,0.10); color: #7a5300; }
+  .status-aknowleged .dot{ background: #7a5300; }
   .status-quoted{ background: rgba(154,103,0,0.14); color: var(--warn); }
   .status-quoted .dot{ background: var(--warn); }
-  .status-in_progress{ background: rgba(9,105,218,0.14); color: #0969da; }
-  .status-in_progress .dot{ background: #0969da; }
+  .status-printing{ background: rgba(9,105,218,0.14); color: #0969da; }
+  .status-printing .dot{ background: #0969da; }
   .status-completed{ background: var(--ok-dim); color: var(--ok); }
   .status-completed .dot{ background: var(--ok); }
+  .status-sold{ background: rgba(26,127,55,0.18); color: #14602b; }
+  .status-sold .dot{ background: #14602b; }
   .status-cancelled{ background: rgba(101,109,118,0.14); color: #656d76; }
   .status-cancelled .dot{ background: #656d76; }
 
@@ -489,8 +493,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   const messagesEl = document.getElementById('messages');
 
   const STATUS_LABEL = {
-    new: 'New', quoted: 'Quoted', in_progress: 'In progress',
-    completed: 'Completed', cancelled: 'Cancelled'
+    new: 'New', aknowleged: 'Acknowledged', quoted: 'Quoted', printing: 'Printing',
+    completed: 'Completed', sold: 'Sold', cancelled: 'Cancelled'
   };
 
   let attachedFiles = [];
