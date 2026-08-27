@@ -1198,6 +1198,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       sidebar.setAttribute('aria-hidden', 'true');
       menuBtn.setAttribute('aria-expanded', 'false');
     }
+    window.closeSidebar = closeSidebar;
 
     menuBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -1208,7 +1209,21 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeSidebar();
     });
+
+    // Any nav item (link or button) inside the sidebar closes it once
+    // activated, so the sidebar never sits open behind a modal.
+    sidebar.querySelectorAll('nav a, nav button').forEach(item => {
+      item.addEventListener('click', closeSidebar);
+    });
   })();
+
+  // Only one admin modal (Debug/Rates, Set your name, Manage admins) should
+  // be open at a time — opening one closes any others that were open.
+  function closeAllAdminModals(){
+    document.getElementById('rates-overlay')?.classList.remove('open');
+    document.getElementById('name-overlay')?.classList.remove('open');
+    document.getElementById('admins-overlay')?.classList.remove('open');
+  }
 
   (function(){
     const topbar = document.getElementById('topbar');
@@ -1694,6 +1709,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   }
 
   async function openRatesModal(){
+    closeAllAdminModals();
     ratesOverlay.classList.add('open');
     ratesMsg.textContent = 'Loading…';
     loadFilaments();
@@ -1976,6 +1992,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   const nameMsg = document.getElementById('name-msg');
 
   document.getElementById('my-name-btn').addEventListener('click', () => {
+    closeAllAdminModals();
     nameInput.value = myDisplayName || '';
     nameMsg.textContent = '';
     nameOverlay.classList.add('open');
@@ -2011,6 +2028,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   const adminAddBtn = document.getElementById('admin-add-btn');
 
   document.getElementById('admins-btn').addEventListener('click', () => {
+    closeAllAdminModals();
     adminsOverlay.classList.add('open');
     loadAdmins();
   });
