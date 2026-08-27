@@ -188,6 +188,11 @@
     const material = new THREE.MeshStandardMaterial({ color: 0x0969da, metalness: 0.15, roughness: 0.55 });
 
     function frameObject(obj){
+      // STL/OBJ/3MF files coming from CAD & slicer software are conventionally
+      // Z-up, but three.js's world is Y-up — without this the model renders
+      // lying on its side. Rotate -90° around X to bring Z-up into Y-up.
+      obj.rotation.x = -Math.PI / 2;
+
       const box = new THREE.Box3().setFromObject(obj);
       const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());

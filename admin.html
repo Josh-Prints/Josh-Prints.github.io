@@ -710,6 +710,41 @@
     font-size: 12px;
     cursor: pointer;
   }
+  .fil-edit{
+    background: none;
+    border: 1px solid rgba(31,35,40,0.18);
+    color: var(--ink);
+    border-radius: 6px;
+    padding: 5px 9px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .fil-reorder{ display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
+  .fil-reorder button{
+    background: none;
+    border: 1px solid rgba(31,35,40,0.18);
+    color: var(--ink-dim);
+    border-radius: 5px;
+    width: 22px;
+    height: 18px;
+    line-height: 1;
+    font-size: 11px;
+    cursor: pointer;
+    padding: 0;
+  }
+  .fil-reorder button:hover{ color: var(--ink); border-color: rgba(31,35,40,0.35); }
+  .fil-reorder button:disabled{ opacity: 0.3; cursor: default; }
+  .fil-row.editing{ outline: 2px solid var(--accent); outline-offset: -1px; border-radius: 8px; }
+  .fil-add-actions{ display:flex; align-items:center; gap: 10px; }
+  .fil-cancel-edit{
+    background: none;
+    border: 1px solid rgba(31,35,40,0.18);
+    color: var(--ink-dim);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+  }
   .fil-empty{
     color: var(--ink-dim);
     font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
@@ -1000,7 +1035,10 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
               </div>
             </label>
           </div>
-          <button class="save-btn" id="fil-add-btn" type="button">Add filament</button>
+          <div class="fil-add-actions">
+            <button class="save-btn" id="fil-add-btn" type="button">Add filament</button>
+            <button class="fil-cancel-edit" id="fil-cancel-btn" type="button" style="display:none;">Cancel</button>
+          </div>
           <div id="fil-msg"></div>
         </div>
       </div>
@@ -1078,6 +1116,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   let activeFilter = 'all';
   let openChatOrderId = null;
   let chatPollTimer = null;
+  const chatRenderCache = {}; // orderId -> last rendered signature, to avoid needless re-renders
 
   const STATUS_OPTIONS = ['new', 'aknowleged', 'quoted', 'printing', 'completed', 'sold'];
   const STATUS_LABEL = {
@@ -1416,8 +1455,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       btn.addEventListener('click', () => cancelOrder(btn.dataset.id));
     });
 
-    // Chat toggles
-    ordersContainer.querySelectorAll('.chat-toggle').forEach(btn => {
+    // Chat toggles (exclude the copy-link/delete/restore buttons, which
+    // share the .chat-toggle class for styling only, not this behavior)
+    ordersContainer.querySelectorAll('.chat-toggle:not(.copy-link-btn):not(.delete-btn):not(.restore-btn)').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.dataset.id;
         const panel = document.getElementById(`chat-panel-${id}`);
@@ -1560,9 +1600,24 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       return;
     }
     if (!data || data.length === 0){
-      container.innerHTML = '<div class="chat-empty">No messages yet.</div>';
+      if (chatRenderCache[orderId] !== 'empty'){
+        container.innerHTML = '<div class="chat-empty">No messages yet.</div>';
+        chatRenderCache[orderId] = 'empty';
+      }
       return;
     }
+
+    // Skip re-rendering if nothing actually changed since the last poll —
+    // this is what was causing the messages panel to flicker/re-animate
+    // every few seconds even when there was nothing new to show.
+    const signature = JSON.stringify(data.map(m => [m.id, m.body, m.sender, m.files, m.file_path]));
+    if (chatRenderCache[orderId] === signature){
+      return;
+    }
+    chatRenderCache[orderId] = signature;
+
+    // Preserve scroll position unless the admin is already at (or near) the bottom.
+    const wasNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 40;
 
     container.innerHTML = data.map(m => {
       const fileLinks = (m.files && m.files.length > 0)
@@ -1577,7 +1632,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     `;
     }).join('');
 
-    container.scrollTop = container.scrollHeight;
+    if (wasNearBottom){
+      container.scrollTop = container.scrollHeight;
+    }
   }
 
   async function sendChatMessage(orderId){
@@ -1702,7 +1759,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   const filImageInput = document.getElementById('fil-image');
   const filImgPreview = document.getElementById('fil-img-preview');
   const filAddBtn = document.getElementById('fil-add-btn');
+  const filCancelBtn = document.getElementById('fil-cancel-btn');
   let currentFilaments = [];
+  let editingFilamentId = null;
 
   filImageInput.addEventListener('change', () => {
     const file = filImageInput.files[0];
@@ -1719,7 +1778,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     const { data, error } = await supabase
       .from('filaments')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('sort_order', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true });
 
     if (error){
       filListEl.innerHTML = `<div class="fil-empty">Couldn't load filaments: ${escapeHtml(error.message)}</div>`;
@@ -1735,11 +1795,15 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       return;
     }
     filListEl.innerHTML = '';
-    currentFilaments.forEach(f => {
+    currentFilaments.forEach((f, i) => {
       const row = document.createElement('div');
-      row.className = 'fil-row';
+      row.className = 'fil-row' + (f.id === editingFilamentId ? ' editing' : '');
       const img = filPublicUrl(f.image_path);
       row.innerHTML = `
+        <div class="fil-reorder">
+          <button type="button" class="fil-up" data-id="${f.id}" ${i === 0 ? 'disabled' : ''} title="Move up">▲</button>
+          <button type="button" class="fil-down" data-id="${f.id}" ${i === currentFilaments.length - 1 ? 'disabled' : ''} title="Move down">▼</button>
+        </div>
         <div class="fil-swatch" style="${img ? `background-image:url(${img})` : ''}"></div>
         <div class="fil-info">
           <div class="fil-name">${escapeHtml(f.color_name)}</div>
@@ -1747,6 +1811,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         </div>
         <div class="fil-actions">
           <button class="fil-toggle ${f.active ? 'is-active' : ''}" data-id="${f.id}">${f.active ? 'Active' : 'Hidden'}</button>
+          <button class="fil-edit" data-id="${f.id}">Edit</button>
           <button class="fil-del" data-id="${f.id}">🗑</button>
         </div>
       `;
@@ -1769,10 +1834,76 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         const { error } = await supabase.from('filaments').delete().eq('id', btn.dataset.id);
         if (error){ alert('Could not delete: ' + error.message); return; }
         currentFilaments = currentFilaments.filter(x => x.id !== btn.dataset.id);
+        if (editingFilamentId === btn.dataset.id) exitFilamentEdit();
         renderFilaments();
       });
     });
+    filListEl.querySelectorAll('.fil-edit').forEach(btn => {
+      btn.addEventListener('click', () => enterFilamentEdit(btn.dataset.id));
+    });
+    filListEl.querySelectorAll('.fil-up').forEach(btn => {
+      btn.addEventListener('click', () => moveFilament(btn.dataset.id, -1));
+    });
+    filListEl.querySelectorAll('.fil-down').forEach(btn => {
+      btn.addEventListener('click', () => moveFilament(btn.dataset.id, 1));
+    });
   }
+
+  async function moveFilament(id, direction){
+    const i = currentFilaments.findIndex(f => f.id === id);
+    const j = i + direction;
+    if (i === -1 || j < 0 || j >= currentFilaments.length) return;
+
+    // Assign fresh sequential sort_order values to everything so ties/nulls
+    // from before this feature existed get resolved too.
+    const reordered = currentFilaments.slice();
+    [reordered[i], reordered[j]] = [reordered[j], reordered[i]];
+
+    // Optimistically update locally first for a snappy UI.
+    currentFilaments = reordered;
+    renderFilaments();
+
+    const updates = reordered.map((f, idx) =>
+      supabase.from('filaments').update({ sort_order: idx }).eq('id', f.id)
+    );
+    const results = await Promise.all(updates);
+    const failed = results.find(r => r.error);
+    if (failed){
+      alert('Could not save the new order: ' + failed.error.message);
+      loadFilaments();
+      return;
+    }
+    reordered.forEach((f, idx) => { f.sort_order = idx; });
+  }
+
+  function enterFilamentEdit(id){
+    const f = currentFilaments.find(x => x.id === id);
+    if (!f) return;
+    editingFilamentId = id;
+    document.getElementById('fil-color').value = f.color_name || '';
+    document.getElementById('fil-type').value = f.type || 'PLA';
+    document.getElementById('fil-price').value = f.price_per_100g != null ? f.price_per_100g : '';
+    filImageInput.value = '';
+    const img = filPublicUrl(f.image_path);
+    filImgPreview.style.backgroundImage = img ? `url(${img})` : '';
+    filAddBtn.textContent = 'Save changes';
+    filCancelBtn.style.display = 'inline-block';
+    filMsgEl.textContent = '';
+    renderFilaments();
+    document.querySelector('.fil-add-form')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function exitFilamentEdit(){
+    editingFilamentId = null;
+    document.getElementById('fil-color').value = '';
+    document.getElementById('fil-price').value = '';
+    filImageInput.value = '';
+    filImgPreview.style.backgroundImage = '';
+    filAddBtn.textContent = 'Add filament';
+    filCancelBtn.style.display = 'none';
+  }
+
+  filCancelBtn.addEventListener('click', () => { exitFilamentEdit(); renderFilaments(); });
 
   filAddBtn.addEventListener('click', async () => {
     const colorName = document.getElementById('fil-color').value.trim();
@@ -1786,40 +1917,55 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       return;
     }
 
+    const isEditing = !!editingFilamentId;
     filAddBtn.disabled = true;
-    filAddBtn.textContent = 'Adding…';
+    filAddBtn.textContent = isEditing ? 'Saving…' : 'Adding…';
     filMsgEl.textContent = '';
 
     try {
-      let imagePath = null;
+      let imagePath = isEditing
+        ? (currentFilaments.find(f => f.id === editingFilamentId)?.image_path || null)
+        : null;
       if (file){
         imagePath = `filaments/${Date.now()}-${sanitizeFileName(file.name)}`;
         const { error: upErr } = await supabase.storage.from(FIL_BUCKET).upload(imagePath, file);
         if (upErr) throw upErr;
       }
 
-      const { error } = await supabase.from('filaments').insert({
-        color_name: colorName,
-        type,
-        price_per_100g: price,
-        image_path: imagePath,
-        active: true
-      });
-      if (error) throw error;
+      if (isEditing){
+        const { error } = await supabase.from('filaments').update({
+          color_name: colorName,
+          type,
+          price_per_100g: price,
+          image_path: imagePath
+        }).eq('id', editingFilamentId);
+        if (error) throw error;
+        filMsgEl.textContent = 'Saved ✓';
+      } else {
+        const nextSortOrder = currentFilaments.length
+          ? Math.max(...currentFilaments.map(f => f.sort_order ?? 0)) + 1
+          : 0;
+        const { error } = await supabase.from('filaments').insert({
+          color_name: colorName,
+          type,
+          price_per_100g: price,
+          image_path: imagePath,
+          active: true,
+          sort_order: nextSortOrder
+        });
+        if (error) throw error;
+        filMsgEl.textContent = 'Added ✓';
+      }
 
-      document.getElementById('fil-color').value = '';
-      document.getElementById('fil-price').value = '';
-      filImageInput.value = '';
-      filImgPreview.style.backgroundImage = '';
-      filMsgEl.textContent = 'Added ✓';
-      setTimeout(() => { if (filMsgEl.textContent === 'Added ✓') filMsgEl.textContent = ''; }, 2500);
+      exitFilamentEdit();
+      setTimeout(() => { if (filMsgEl.textContent === 'Added ✓' || filMsgEl.textContent === 'Saved ✓') filMsgEl.textContent = ''; }, 2500);
       loadFilaments();
 
     } catch (err){
       filMsgEl.textContent = 'Error: ' + (err.message || 'please try again');
+      filAddBtn.textContent = isEditing ? 'Save changes' : 'Add filament';
     } finally {
       filAddBtn.disabled = false;
-      filAddBtn.textContent = 'Add filament';
     }
   });
 

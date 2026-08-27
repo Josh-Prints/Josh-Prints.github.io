@@ -652,7 +652,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       .from('filaments')
       .select('*')
       .eq('active', true)
-      .order('created_at', { ascending: false });
+      .order('sort_order', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true });
     filaments = (!error && data) ? data : [];
     renderFilamentPicker();
   }
