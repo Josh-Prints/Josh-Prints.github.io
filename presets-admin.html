@@ -131,6 +131,28 @@
   .modal-close:hover{ background: var(--bg); }
   .modal-error{ color: var(--err); font-size:13px; margin-top:8px; display:none; }
   .checkbox-row{ display:flex; align-items:center; gap:8px; font-size:13.5px; margin-bottom:14px; }
+
+  .file-drop{
+    border:1px dashed rgba(31,35,40,0.25); border-radius:8px; padding:14px;
+    text-align:center; cursor:pointer; font-size:12.5px; color: var(--ink-dim);
+    position:relative; background: var(--bg);
+  }
+  .file-drop input{ position:absolute; inset:0; opacity:0; cursor:pointer; }
+  .file-drop.has-file{ border-style:solid; border-color: rgba(9,105,218,0.35); color: var(--ink); }
+  .file-current{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    font-size:12.5px; margin-bottom:8px; padding:8px 10px; background: var(--bg);
+    border-radius:6px; border:1px solid rgba(31,35,40,0.12);
+  }
+  .file-current .name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .file-current button{
+    flex-shrink:0; background:none; border:none; color: var(--err); cursor:pointer; font-size:12px;
+  }
+  .tile-model-badge{
+    display:inline-flex; align-items:center; gap:3px;
+    font-size:10.5px; font-weight:700; color: var(--accent);
+    background: rgba(9,105,218,0.1); border-radius:20px; padding:2px 8px; margin-top:6px;
+  }
 </style>
 </head>
 <body>
@@ -174,6 +196,14 @@
         <input type="file" id="p-image" accept="image/*">
       </div>
       <div class="field">
+        <label>3D file <span style="font-weight:400;">(so customers can view it in 3D and download it)</span></label>
+        <div id="model-current" style="display:none;"></div>
+        <div class="file-drop" id="model-drop">
+          <span id="model-drop-label">Drop an STL, OBJ, 3MF, or STEP file, or tap to browse</span>
+          <input type="file" id="p-model" accept=".stl,.obj,.3mf,.step,.stp,.iges,.igs">
+        </div>
+      </div>
+      <div class="field">
         <label for="p-name">Name</label>
         <input type="text" id="p-name" required>
       </div>
@@ -213,6 +243,13 @@
   let presets = [];
   let editingId = null;
   let pendingImageFile = null;
+  let pendingModelFile = null;
+  let currentModelPath = null;
+  let currentModelName = null;
+  let removeExistingModel = false;
+
+  const MODEL_EXTS = ['stl', 'obj', '3mf', 'step', 'stp', 'iges', 'igs'];
+  function fileExt(name){ return (name || '').split('.').pop().toLowerCase(); }
 
   function escapeHtml(str){
     return (str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -265,6 +302,7 @@
         <div class="tile-body">
           <div class="tile-name">${escapeHtml(p.name)}${!p.active ? '<span class="tile-badge">Hidden</span>' : ''}</div>
           <div class="tile-price">${p.price != null ? '$' + Number(p.price).toFixed(2) : 'No price set'}</div>
+          ${p.model_path ? `<div class="tile-model-badge">🧊 ${escapeHtml(p.model_name || '3D file')}</div>` : ''}
           <div class="tile-actions">
             <button type="button" data-edit="${p.id}">Edit</button>
             <button type="button" class="danger" data-delete="${p.id}">Delete</button>
@@ -303,18 +341,58 @@
   function openModal(preset){
     editingId = preset ? preset.id : null;
     pendingImageFile = null;
+    pendingModelFile = null;
+    removeExistingModel = false;
+    currentModelPath = preset?.model_path || null;
+    currentModelName = preset?.model_name || null;
     document.getElementById('modal-title').textContent = preset ? 'Edit preset' : 'Add preset';
     document.getElementById('p-name').value = preset?.name || '';
     document.getElementById('p-price').value = preset?.price ?? '';
     document.getElementById('p-desc').value = preset?.description || '';
     document.getElementById('p-active').checked = preset ? preset.active : true;
     document.getElementById('p-image').value = '';
+    document.getElementById('p-model').value = '';
+    document.getElementById('model-drop-label').textContent = 'Drop an STL, OBJ, 3MF, or STEP file, or tap to browse';
+    document.getElementById('model-drop').classList.remove('has-file');
     const existingImg = preset ? publicUrl(preset.image_path) : null;
     imgPreview.innerHTML = existingImg ? `<img src="${existingImg}" alt="">` : 'No image';
+    renderModelCurrent();
     errorEl.style.display = 'none';
     overlay.classList.add('open');
   }
   function closeModal(){ overlay.classList.remove('open'); }
+
+  function renderModelCurrent(){
+    const el = document.getElementById('model-current');
+    if (currentModelPath && !removeExistingModel){
+      el.style.display = 'flex';
+      el.className = 'file-current';
+      el.innerHTML = `<span class="name">🧊 ${escapeHtml(currentModelName || 'model file')}</span><button type="button" id="model-remove-btn">Remove</button>`;
+      document.getElementById('model-remove-btn').addEventListener('click', () => {
+        removeExistingModel = true;
+        renderModelCurrent();
+      });
+    } else {
+      el.style.display = 'none';
+      el.innerHTML = '';
+    }
+  }
+
+  document.getElementById('p-model').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!MODEL_EXTS.includes(fileExt(file.name))){
+      errorEl.textContent = 'That file type isn\'t supported for the 3D viewer. Use STL, OBJ, 3MF, or STEP.';
+      errorEl.style.display = 'block';
+      e.target.value = '';
+      return;
+    }
+    errorEl.style.display = 'none';
+    pendingModelFile = file;
+    removeExistingModel = false;
+    document.getElementById('model-drop-label').textContent = `Selected: ${file.name}`;
+    document.getElementById('model-drop').classList.add('has-file');
+  });
 
   document.getElementById('p-image').addEventListener('change', (e) => {
     const file = e.target.files[0];
@@ -347,8 +425,22 @@
         imagePath = path;
       }
 
+      let modelPath, modelName;
+      if (pendingModelFile){
+        const path = `presets/models/${Date.now()}-${sanitizeFileName(pendingModelFile.name)}`;
+        const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, pendingModelFile);
+        if (upErr) throw upErr;
+        modelPath = path;
+        modelName = pendingModelFile.name;
+      } else if (removeExistingModel){
+        modelPath = null;
+        modelName = null;
+      }
+
       const payload = { name, price, description: description || null, active };
       if (imagePath) payload.image_path = imagePath;
+      if (modelPath !== undefined) payload.model_path = modelPath;
+      if (modelName !== undefined) payload.model_name = modelName;
 
       let error;
       if (editingId){
