@@ -123,7 +123,7 @@
   }
   .header-wrap{
     position: sticky;
-    top: 0;
+    top: var(--topbar-h, 0px);
     z-index: 40;
     background: var(--bg-raised);
   }
@@ -1231,7 +1231,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     if (!topbar || !spacer) return;
 
     function syncSpacerHeight(){
-      spacer.style.height = topbar.offsetHeight + 'px';
+      const h = topbar.offsetHeight;
+      spacer.style.height = h + 'px';
+      document.documentElement.style.setProperty('--topbar-h', h + 'px');
     }
     syncSpacerHeight();
     window.addEventListener('resize', syncSpacerHeight);
@@ -1244,8 +1246,10 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       const y = Math.max(window.scrollY, 0);
       if (y > lastY && y > topbar.offsetHeight){
         topbar.classList.add('hide');
+        document.documentElement.style.setProperty('--topbar-h', '0px');
       } else if (y < lastY){
         topbar.classList.remove('hide');
+        document.documentElement.style.setProperty('--topbar-h', topbar.offsetHeight + 'px');
       }
       lastY = y;
       ticking = false;
