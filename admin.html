@@ -1610,6 +1610,11 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     return name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
   }
 
+  function adminLabel(m){
+    if (m.sender_id && m.sender_id === myUserId) return 'You';
+    return m.sender_name || 'Admin';
+  }
+
   async function loadChat(orderId){
     const container = document.getElementById(`chat-messages-${orderId}`);
     const { data, error } = await supabase
@@ -1633,7 +1638,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     // Skip re-rendering if nothing actually changed since the last poll —
     // this is what was causing the messages panel to flicker/re-animate
     // every few seconds even when there was nothing new to show.
-    const signature = JSON.stringify(data.map(m => [m.id, m.body, m.sender, m.files, m.file_path]));
+    const signature = JSON.stringify(data.map(m => [m.id, m.body, m.sender, m.sender_id, m.sender_name, m.files, m.file_path]));
     if (chatRenderCache[orderId] === signature){
       return;
     }
@@ -1648,7 +1653,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         : (m.file_path ? [{ path: m.file_path, name: m.file_name }] : []);
       return `
       <div class="chat-msg ${m.sender}">
-        <div class="who">${m.sender === 'admin' ? 'You' : 'Customer'}</div>
+        <div class="who">${m.sender === 'admin' ? adminLabel(m) : 'Customer'}</div>
         ${m.body ? `<div>${escapeHtml(m.body)}</div>` : ''}
         ${fileLinks.map(f => renderAttachment(publicFileUrl(f.path), f.name)).join('')}
       </div>
@@ -1680,6 +1685,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       const { error } = await supabase.from('messages').insert({
         order_id: orderId,
         sender: 'admin',
+        sender_id: myUserId,
+        sender_name: myDisplayName || 'Admin',
         body: body || null,
         file_path: uploaded[0]?.path || null,
         file_name: uploaded[0]?.name || null,
