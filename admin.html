@@ -1365,13 +1365,40 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
   async function checkSession(){
     const { data: { session } } = await supabase.auth.getSession();
-    if (session){
-      myUserId = session.user.id;
-      await loadMyName(session.user.email);
-      showDashboard();
-    } else {
+    if (!session){
       showLogin();
+      return;
     }
+    const ok = await establishIdentity(session);
+    if (ok) showDashboard();
+  }
+
+  // Sets myUserId/myDisplayName for whichever account actually has a live
+  // session right now, and verifies that account is an approved admin.
+  // Used both for auto-detected sessions on page load (checkSession) and
+  // for a fresh manual sign-in — previously only checkSession did this,
+  // so a manual login left the app still acting as whichever admin was
+  // last signed in on that browser.
+  async function establishIdentity(session){
+    const { data: profile } = await supabase
+      .from('admin_profiles')
+      .select('id')
+      .eq('id', session.user.id)
+      .maybeSingle();
+
+    if (!profile){
+      await supabase.auth.signOut();
+      myUserId = null;
+      myDisplayName = null;
+      loginErr.textContent = 'This account is not an approved admin.';
+      loginErr.classList.add('show');
+      showLogin();
+      return false;
+    }
+
+    myUserId = session.user.id;
+    await loadMyName(session.user.email);
+    return true;
   }
 
   async function loadMyName(email){
@@ -1556,21 +1583,28 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: { session }, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (signInError){
+      loginBtn.disabled = false;
+      loginBtn.textContent = 'Sign in';
+      loginErr.textContent = signInError.message;
+      loginErr.classList.add('show');
+      return;
+    }
+
+    const ok = await establishIdentity(session);
 
     loginBtn.disabled = false;
     loginBtn.textContent = 'Sign in';
 
-    if (error){
-      loginErr.textContent = error.message;
-      loginErr.classList.add('show');
-      return;
-    }
-    showDashboard();
+    if (ok) showDashboard();
   });
 
   document.getElementById('logout-btn').addEventListener('click', async () => {
     await supabase.auth.signOut();
+    myUserId = null;
+    myDisplayName = null;
     if (unreadPollTimer){ clearInterval(unreadPollTimer); unreadPollTimer = null; }
     showLogin();
   });
