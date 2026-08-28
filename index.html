@@ -3,301 +3,921 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JoshPrints</title>
+<title>JoshPrints - Admin</title>
 <style>
   :root{
-    --canvas: #ffffff;
-    --canvas-inset: #f6f8fa;
-    --border: #d1d9e0;
-    --border-muted: #d8dee4;
-    --fg: #1f2328;
-    --fg-muted: #59636e;
+    --bg: #f6f8fa;
+    --bg-raised: #ffffff;
+    --bg-raised-2: #f6f8fa;
+    --grid-line: rgba(0,0,0,0);
+    --ink: #1f2328;
+    --ink-dim: #656d76;
     --accent: #0969da;
-    --accent-emphasis: #0550ae;
-    --btn-primary-hover: #0860ca;
+    --accent-dim: #0969da1f;
+    --ok: #1a7f37;
+    --ok-dim: #1a7f3722;
+    --err: #cf222e;
+    --warn: #9a6700;
+    --warn-dim: #9a670022;
+    --radius: 6px;
   }
   *{ box-sizing: border-box; }
-  html{ -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
   body{
-    margin: 0;
-    background: var(--canvas);
-    color: var(--fg);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
-    font-size: 16px;
-    line-height: 1.5;
+    margin:0;
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0 / 34px 34px,
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0 / 34px 34px,
+      var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    min-height: 100vh;
   }
 
-  @keyframes fadeInDown{ from{ opacity:0; transform: translateY(-10px); } to{ opacity:1; transform: translateY(0); } }
-  @keyframes fadeInUp{ from{ opacity:0; transform: translateY(16px); } to{ opacity:1; transform: translateY(0); } }
-  @keyframes popIn{ from{ opacity:0; transform: scale(0.9); } to{ opacity:1; transform: scale(1); } }
-  @keyframes pulseDot{ 0%,100%{ transform: scale(1); opacity:1; } 50%{ transform: scale(1.4); opacity:0.5; } }
-  @media (prefers-reduced-motion: reduce){
-    *{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+  /* ---- Login screen ---- */
+  #login-view{
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
   }
+  .login-card{
+    width: 100%;
+    max-width: 360px;
+    background: var(--bg-raised);
+    border: 1px solid rgba(31,35,40,0.10);
+    border-radius: var(--radius);
+    padding: 32px;
+  }
+  .login-card h1{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 24px;
+    margin: 0 0 4px;
+  }
+  .login-card h1 span{ color: var(--accent); }
+  .login-card p.sub{ color: var(--ink-dim); font-size: 13px; margin: 0 0 24px; }
+  .login-card label{
+    display:block;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-bottom: 6px;
+  }
+  .login-card input{
+    width:100%;
+    background: var(--bg);
+    border: 1px solid rgba(31,35,40,0.15);
+    border-radius: 6px;
+    color: var(--ink);
+    padding: 11px 12px;
+    font-size: 14px;
+    margin-bottom: 16px;
+    outline: none;
+  }
+  .login-card input:focus{ border-color: var(--accent); }
+  .login-card button{
+    width: 100%;
+    background: var(--accent);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .login-card button:disabled{ opacity: .6; cursor: default; }
+  .login-err{
+    color: #cf222e;
+    font-size: 12.5px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    margin-top: 14px;
+    display: none;
+  }
+  .login-err.show{ display: block; }
 
-  /* ---- top bar ---- */
+  /* ---- Dashboard ---- */
+  #dash-view{ display:none; }
+  #topbar-spacer{ display:block; }
   .topbar{
-    display: flex;
-    align-items: center;
+    display:flex;
+    align-items:center;
     justify-content: space-between;
-    padding: 16px 24px;
-    border-bottom: 1px solid var(--border-muted);
-    animation: fadeInDown 0.5s ease both;
+    padding: 20px 28px;
+    border-bottom: 1px solid rgba(31,35,40,0.10);
+    flex-wrap: wrap;
+    gap: 12px;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    background: var(--bg-raised);
+    transform: translateY(0);
+    transition: transform 0.28s ease;
+    will-change: transform;
   }
-  .brand{
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 600;
-    font-size: 16px;
-    color: var(--fg);
-    text-decoration: none;
+  .topbar.hide{
+    transform: translateY(-100%);
   }
-  .brand svg{ flex-shrink: 0; transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1); }
-  .brand:hover svg{ transform: rotate(-12deg) scale(1.08); }
-  .topbar-links{
-    display: flex;
-    gap: 8px;
-    align-items: center;
+  .header-wrap{
+    position: sticky;
+    top: var(--topbar-h, 0px);
+    z-index: 40;
+    background: var(--bg-raised);
   }
+  .topbar h1{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 19px;
+    margin: 0;
+  }
+  .topbar h1 span{ color: var(--accent); }
+  .topbar .right{ display:flex; align-items:center; gap:12px; }
+  .icon-btn{
+    background: var(--bg-raised);
+    border: 1px solid rgba(31,35,40,0.15);
+    color: var(--ink-dim);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .icon-btn:hover{ color: var(--ink); border-color: rgba(31,35,40,0.3); }
+
   .menu-wrap{ position: relative; }
   .hamburger-btn{
     display:inline-flex; align-items:center; justify-content:center;
     width: 34px; height: 34px; border-radius: 6px;
-    border: 1px solid var(--border); background: #f6f8fa;
-    color: var(--fg); font-size: 16px; cursor:pointer; line-height:1;
+    border: 1px solid rgba(31,35,40,0.15);
+    background: var(--bg-raised); color: var(--ink);
+    font-size: 16px; cursor:pointer; line-height:1;
   }
-  .hamburger-btn:hover{ background:#f3f4f6; border-color: var(--border-muted); }
-  .hamburger-btn{ transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), background 0.2s, border-color 0.2s; }
-  .hamburger-btn:hover{ transform: rotate(90deg); }
-  .hamburger-btn[aria-expanded="true"]{ transform: rotate(90deg); }
+  .hamburger-btn:hover{ background: var(--bg); }
 
   .sidebar-overlay{
-    position: fixed; inset: 0;
-    background: rgba(31,35,40,0.35);
-    z-index: 90;
-    opacity: 0; visibility: hidden;
+    position: fixed; inset: 0; background: rgba(31,35,40,0.35);
+    z-index: 90; opacity: 0; visibility: hidden;
     transition: opacity 0.25s ease, visibility 0.25s;
   }
   .sidebar-overlay.open{ opacity:1; visibility:visible; }
-
   .sidebar{
     position: fixed; top:0; right:0; bottom:0;
     width: 280px; max-width: 82vw;
-    background: var(--canvas);
-    border-left: 1px solid var(--border-muted);
-    box-shadow: -12px 0 30px rgba(31,35,40,0.14);
+    background: var(--bg-raised);
+    border-left: 1px solid rgba(31,35,40,0.12);
+    box-shadow: -12px 0 30px rgba(31,35,40,0.16);
     z-index: 95;
     transform: translateX(100%);
     transition: transform 0.3s cubic-bezier(0.22,1,0.36,1);
-    display: flex; flex-direction: column;
-    padding: 20px;
+    display:flex; flex-direction:column; padding: 20px;
   }
   .sidebar.open{ transform: translateX(0); }
-  .sidebar-head{
-    display:flex; align-items:center; justify-content:space-between;
-    margin-bottom: 18px;
-  }
-  .sidebar-head span{ font-weight: 600; font-size: 15px; }
+  .sidebar-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 18px; }
+  .sidebar-head span{ font-weight:600; font-size:15px; }
   .sidebar-close{
-    background:none; border:none; font-size: 18px; cursor:pointer;
-    color: var(--fg-muted); width:30px; height:30px; border-radius:6px;
-    transition: background 0.15s;
+    background:none; border:none; font-size:18px; cursor:pointer;
+    color: var(--ink-dim); width:30px; height:30px; border-radius:6px;
   }
-  .sidebar-close:hover{ background: var(--canvas-inset); }
-  .sidebar nav{ display:flex; flex-direction:column; gap: 4px; }
-  .sidebar nav a{
-    display:flex; align-items:center; gap: 10px;
-    padding: 11px 12px; border-radius: 8px;
-    font-size: 14.5px; font-weight: 500;
-    color: var(--fg); text-decoration:none;
+  .sidebar-close:hover{ background: var(--bg); }
+  .sidebar nav{ display:flex; flex-direction:column; gap:4px; }
+  .sidebar nav a, .sidebar nav button{
+    display:flex; align-items:center; gap:10px; text-align:left;
+    padding: 11px 12px; border-radius:8px; width:100%; box-sizing:border-box;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size:14.5px; font-weight:500; color: var(--ink); text-decoration:none;
+    border:none; background:none; cursor:pointer;
     transition: background 0.15s, padding-left 0.15s;
   }
-  .sidebar nav a:hover{ background: var(--canvas-inset); padding-left: 16px; }
-  .sidebar nav a .icon{ font-size: 15px; width: 18px; text-align:center; }
-  .btn{
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 5px 16px;
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 20px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: #f6f8fa;
-    color: var(--fg);
-    text-decoration: none;
+  .sidebar nav a:hover, .sidebar nav button:hover{ background: var(--bg); padding-left:16px; }
+  .sidebar nav .icon{ font-size:15px; width:18px; text-align:center; }
+
+  .toolbar{
+    display:flex;
+    gap: 10px;
+    padding: 18px 28px 0;
+    flex-wrap: wrap;
+    background: var(--bg-raised);
+    position: relative;
+    z-index: 1;
+  }
+  .toolbar-fade{
+    height: 22px;
+    margin-top: 14px;
+    background: linear-gradient(to bottom, var(--bg-raised) 0%, rgba(255,255,255,0) 100%);
+    pointer-events: none;
+  }
+  .chip{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    padding: 7px 13px;
+    border-radius: 20px;
+    border: 1px solid rgba(31,35,40,0.18);
+    color: var(--ink-dim);
     cursor: pointer;
-    transition: background 0.2s, border-color 0.2s, transform 0.15s ease, box-shadow 0.2s;
+    background: transparent;
   }
-  .btn:hover{ background: #f3f4f6; border-color: var(--border-muted); transform: translateY(-1px); box-shadow: 0 3px 10px rgba(31,35,40,0.08); }
-  .btn:active{ transform: translateY(0) scale(0.97); }
-  .btn-primary{
-    background: var(--accent);
-    border-color: rgba(31,35,40,0.15);
-    color: #ffffff;
-  }
-  .btn-primary:hover{ background: var(--btn-primary-hover); box-shadow: 0 4px 14px rgba(9,105,218,0.35); }
-
-  /* ---- hero ---- */
-  .hero{
-    max-width: 780px;
-    margin: 0 auto;
-    padding: 88px 24px 64px;
-    text-align: center;
-  }
-  .hero-eyebrow{
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--fg-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 16px;
-    animation: fadeInUp 0.6s ease both;
-  }
-  .hero-eyebrow::before{
-    content: "";
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-    animation: pulseDot 1.8s ease-in-out infinite;
-  }
-  h1{
-    font-size: 40px;
-    font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: -0.02em;
-    margin: 0 0 16px;
-    color: var(--fg);
-    animation: fadeInUp 0.6s ease 0.08s both;
-  }
-  .hero p{
-    font-size: 18px;
-    color: var(--fg-muted);
-    max-width: 520px;
-    margin: 0 auto 32px;
-    animation: fadeInUp 0.6s ease 0.16s both;
-  }
-  .hero-actions{
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-    animation: fadeInUp 0.6s ease 0.24s both;
-  }
-  .btn-lg{
-    padding: 9px 24px;
-    font-size: 15px;
-    border-radius: 8px;
-  }
-
-  /* ---- info strip: what we print ---- */
-  .strip{
-    border-top: 1px solid var(--border-muted);
-    background: var(--canvas-inset);
-  }
-  .strip-inner{
-    max-width: 780px;
-    margin: 0 auto;
-    padding: 40px 24px;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
-  }
-  .strip-item{
-    text-align: left;
-    opacity: 0;
-    transform: translateY(14px);
-    transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.22,1,0.36,1);
-  }
-  .strip-item.in-view{ opacity: 1; transform: translateY(0); }
-  .strip-item .label{
-    font-family: ui-monospace, "SF Mono", "Roboto Mono", monospace;
-    font-size: 12px;
+  .chip.active{
+    background: var(--accent-dim);
+    border-color: var(--accent);
     color: var(--accent);
-    margin-bottom: 6px;
   }
-  .strip-item .desc{
-    font-size: 14px;
-    color: var(--fg-muted);
+
+  main{ padding: 20px 28px 60px; max-width: 1100px; margin: 0 auto; }
+
+  .order-card{
+    background: var(--bg-raised);
+    border: 1px solid rgba(31,35,40,0.10);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 14px;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .order-card.is-new{
+    background: rgba(9,105,218,0.06);
+    border-color: rgba(9,105,218,0.35);
+    box-shadow: 0 0 0 1px rgba(9,105,218,0.12);
+  }
+
+  .sort-select{
+    margin-left: auto;
+    padding: 5px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    border-radius: 6px;
+    border: 1px solid var(--border, #d1d9e0);
+    background: var(--bg-raised, #fff);
+    color: inherit;
+    cursor: pointer;
+  }
+  .order-top{
+    display:flex;
+    justify-content: space-between;
+    align-items:flex-start;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .order-name{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+  }
+  .order-meta{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11.5px;
+    color: var(--ink-dim);
+    margin-top: 4px;
+  }
+  .order-type-badge{
+    display:inline-block;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    margin-right: 8px;
+  }
+  .order-notes{
+    margin-top: 10px;
+    font-size: 13.5px;
+    color: var(--ink);
+    background: var(--bg);
+    border-radius: 6px;
+    padding: 10px 12px;
+    white-space: pre-wrap;
+  }
+  .order-file{
+    margin-top: 10px;
+  }
+  .order-file a{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12.5px;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .order-file a:hover{ text-decoration: underline; }
+  .order-bottom{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  select.status-select{
+    background: var(--bg);
+    border: 1px solid rgba(31,35,40,0.18);
+    color: var(--ink);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+  }
+  .quote-input{
+    background: var(--bg);
+    border: 1px solid rgba(31,35,40,0.18);
+    color: var(--ink);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    width: 110px;
+  }
+  .save-btn{
+    background: var(--ok-dim);
+    border: 1px solid var(--ok);
+    color: #1a7f37;
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .save-btn:hover{ filter: brightness(1.1); }
+  .row-status{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-dim);
+  }
+
+  .chat-toggle{
+    background: none;
+    border: 1px solid rgba(31,35,40,0.18);
+    color: var(--ink-dim);
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .chat-toggle:hover{ color: var(--ink); }
+
+  .chat-panel{
+    display: none;
+    margin-top: 14px;
+    border-top: 1px solid rgba(31,35,40,0.10);
+    padding-top: 14px;
+  }
+  .chat-panel.open{ display: block; }
+  .chat-messages{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 280px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+  }
+  .chat-msg{
+    max-width: 80%;
+    padding: 9px 12px;
+    border-radius: 9px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .chat-msg.admin{
+    align-self: flex-end;
+    background: var(--accent-dim);
+    border: 1px solid rgba(9,105,218,0.3);
+  }
+  .chat-msg.customer{
+    align-self: flex-start;
+    background: var(--bg);
+    border: 1px solid rgba(31,35,40,0.12);
+  }
+  .chat-msg .who{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+  .chat-msg .file-link{
+    display: inline-block;
+    margin-top: 6px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11.5px;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .file-attachment{ display:inline-flex; align-items:center; gap:8px; flex-wrap: wrap; }
+  .view3d-btn{
+    display:inline-flex; align-items:center; gap:4px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    text-decoration: none;
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 2px 9px;
+    white-space: nowrap;
+  }
+  .view3d-btn:hover{ background: var(--accent-dim); }
+  .pdf-preview{
+    display: block;
+    width: 108px;
+    height: 136px;
+    margin-top: 6px;
+    border: 1px solid rgba(31,35,40,0.15);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    background: #ffffff;
+  }
+  .pdf-preview embed{ width: 100%; height: 100%; pointer-events: none; }
+  .pdf-preview .pdf-preview-label{
+    position: absolute; left:0; right:0; bottom:0;
+    background: rgba(31,35,40,0.78);
+    color: #fff;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 10px;
+    padding: 3px 6px;
+    white-space: nowrap; overflow:hidden; text-overflow: ellipsis;
+  }
+  .pdf-modal{
+    display:none;
+    position: fixed; inset: 0;
+    background: rgba(15,17,20,0.78);
+    z-index: 1000;
+    align-items: center; justify-content: center;
+    padding: 28px;
+  }
+  .pdf-modal.open{ display:flex; }
+  .pdf-modal-inner{
+    background: #fff;
+    width: 100%; height: 100%; max-width: 880px;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    display:flex;
+  }
+  .pdf-modal-frame{ flex:1; border:none; width:100%; height:100%; }
+  .pdf-modal-close{
+    position:absolute; top:10px; right:10px; z-index:2;
+    background: rgba(31,35,40,0.75); color:#fff; border:none; border-radius:50%;
+    width:30px; height:30px; cursor:pointer; font-size:15px; line-height:1;
+  }
+  .chat-empty{
+    color: var(--ink-dim);
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    text-align: center;
+    padding: 14px 0;
+  }
+  .chat-composer{ display: flex; flex-direction: column; gap: 8px; }
+  .chat-composer textarea{
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid rgba(31,35,40,0.18);
+    border-radius: 6px;
+    color: var(--ink);
+    padding: 9px 11px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    font-size: 13.5px;
+    resize: vertical;
+    min-height: 46px;
+  }
+  .chat-composer-row{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .chat-attach{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11.5px;
+    color: var(--ink-dim);
+    border: 1px dashed rgba(31,35,40,0.25);
+    border-radius: 6px;
+    padding: 6px 10px;
+    position: relative;
+    cursor: pointer;
+  }
+  .chat-attach input{ position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .chat-send{
+    background: var(--accent);
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 700;
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+
+  .status-dot{
+    display:inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+  .status-new .status-dot{ background: var(--accent); }
+  .status-quoted .status-dot{ background: var(--warn); }
+  .status-in_progress .status-dot{ background: #0969da; }
+  .status-completed .status-dot{ background: var(--ok); }
+  .status-cancelled .status-dot{ background: #656d76; }
+
+  .empty{
+    text-align: center;
+    color: var(--ink-dim);
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 13px;
+    padding: 60px 0;
+  }
+
+  /* ---- Rates modal ---- */
+  .modal-overlay{
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(31,35,40,0.45);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 50;
+  }
+  .modal-overlay.open{ display: flex; }
+  .modal-card{
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: var(--bg-raised);
+    border-radius: var(--radius);
+    border: 1px solid rgba(31,35,40,0.10);
+    padding: 24px;
+  }
+  .modal-head{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .modal-head h2{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 18px;
+    margin: 0;
+  }
+  .modal-sub{
+    color: var(--ink-dim);
+    font-size: 12.5px;
+    margin: 0 0 20px;
     line-height: 1.5;
   }
-  .strip-item .desc a{ transition: opacity 0.15s; }
-  .strip-item .desc a:hover{ opacity: 0.7; }
-
-  /* ---- featured presets ---- */
-  .featured{
-    max-width: 780px;
-    margin: 0 auto;
-    padding: 48px 24px 8px;
+  .modal-divider{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin: 20px 0 12px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(31,35,40,0.10);
   }
-  .featured-head{
-    display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+  .rates-form-grid{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .rates-form-grid label{
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .rates-form-grid label .unit{
+    text-transform: none;
+    font-weight: 400;
+    color: var(--ink-dim);
+    opacity: 0.7;
+    letter-spacing: 0;
+  }
+  .rates-form-grid input{
+    background: var(--bg);
+    border: 1px solid rgba(31,35,40,0.18);
+    border-radius: 6px;
+    color: var(--ink);
+    padding: 9px 10px;
+    font-size: 14px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    outline: none;
+  }
+  .rates-form-grid input:focus{ border-color: var(--accent); }
+  .modal-foot{
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 22px;
+  }
+  #rates-msg{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-dim);
+  }
+
+  /* ---- Debug modal tabs ---- */
+  .debug-tabs{
+    display:flex;
+    gap: 6px;
     margin-bottom: 18px;
+    border-bottom: 1px solid rgba(31,35,40,0.10);
   }
-  .featured-head h2{
-    font-size: 20px; margin: 0; font-weight: 600; letter-spacing: -0.01em;
+  .debug-tab{
+    background:none;
+    border:none;
+    border-bottom: 2px solid transparent;
+    color: var(--ink-dim);
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.03em;
+    padding: 8px 4px 10px;
+    cursor: pointer;
+    margin-right: 14px;
   }
-  .featured-head a{
-    font-size: 13px; color: var(--accent); text-decoration:none; white-space:nowrap;
+  .debug-tab.active{
+    color: var(--accent);
+    border-bottom-color: var(--accent);
   }
-  .featured-head a:hover{ text-decoration: underline; }
-  .featured-grid{
-    display:grid; grid-template-columns: repeat(3, 1fr); gap:16px;
-  }
-  .featured-tile{
-    display:block; text-decoration:none; color:inherit;
-    border:1px solid var(--border-muted); border-radius:10px; overflow:hidden;
-    background: var(--canvas);
-    opacity:0; transform: translateY(12px);
-    animation: fadeInUp 0.5s cubic-bezier(0.22,1,0.36,1) forwards;
-    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
-  }
-  .featured-tile:hover{
-    border-color: var(--accent); transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(31,35,40,0.08);
-  }
-  .featured-img{
-    width:100%; aspect-ratio:4/3; object-fit:cover; background: var(--canvas-inset);
-    display:flex; align-items:center; justify-content:center; color: var(--fg-muted); font-size:12px;
-  }
-  .featured-body{ padding: 10px 12px; }
-  .featured-name{ font-size: 13.5px; font-weight:600; margin-bottom:2px; }
-  .featured-price{ font-family: ui-monospace, "SF Mono", "Roboto Mono", monospace; font-size:12px; color: var(--accent); }
+  .debug-section{ display:none; }
+  .debug-section.active{ display:block; }
 
-  @media (max-width: 640px){
-    .featured-grid{ grid-template-columns: repeat(2, 1fr); }
+  /* ---- Filaments section ---- */
+  .fil-list{
+    display:flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .fil-row{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    border: 1px solid rgba(31,35,40,0.10);
+    border-radius: 8px;
+    padding: 9px 10px;
+  }
+  .fil-swatch{
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--bg);
+    border: 1px solid rgba(31,35,40,0.12);
+  }
+  .fil-info{ flex: 1; min-width: 0; }
+  .fil-name{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 600;
+    font-size: 13.5px;
+    white-space: nowrap; overflow:hidden; text-overflow: ellipsis;
+  }
+  .fil-meta{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-dim);
+    margin-top: 2px;
+  }
+  .fil-actions{ display:flex; align-items:center; gap: 8px; flex-shrink:0; }
+  .fil-toggle{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(31,35,40,0.18);
+    background: transparent;
+    color: var(--ink-dim);
+    cursor: pointer;
+  }
+  .fil-toggle.is-active{
+    background: var(--ok-dim);
+    border-color: var(--ok);
+    color: #1a7f37;
+  }
+  .fil-del{
+    background: none;
+    border: 1px solid rgba(31,35,40,0.18);
+    color: var(--err);
+    border-radius: 6px;
+    padding: 5px 9px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .fil-edit{
+    background: none;
+    border: 1px solid rgba(31,35,40,0.18);
+    color: var(--ink);
+    border-radius: 6px;
+    padding: 5px 9px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .fil-reorder{ display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
+  .fil-reorder button{
+    background: none;
+    border: 1px solid rgba(31,35,40,0.18);
+    color: var(--ink-dim);
+    border-radius: 5px;
+    width: 22px;
+    height: 18px;
+    line-height: 1;
+    font-size: 11px;
+    cursor: pointer;
+    padding: 0;
+  }
+  .fil-reorder button:hover{ color: var(--ink); border-color: rgba(31,35,40,0.35); }
+  .fil-reorder button:disabled{ opacity: 0.3; cursor: default; }
+  .fil-row.editing{ outline: 2px solid var(--accent); outline-offset: -1px; border-radius: 8px; }
+  .fil-add-actions{ display:flex; align-items:center; gap: 10px; }
+  .fil-cancel-edit{
+    background: none;
+    border: 1px solid rgba(31,35,40,0.18);
+    color: var(--ink-dim);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .fil-empty{
+    color: var(--ink-dim);
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    padding: 10px 0;
+  }
+  .fil-add-form{
+    border-top: 1px solid rgba(31,35,40,0.10);
+    padding-top: 16px;
+  }
+  .fil-add-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .fil-add-grid label{
+    display:flex; flex-direction:column; gap:6px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .fil-add-grid input, .fil-add-grid select{
+    background: var(--bg);
+    border: 1px solid rgba(31,35,40,0.18);
+    border-radius: 6px;
+    color: var(--ink);
+    padding: 9px 10px;
+    font-size: 13.5px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    outline: none;
+  }
+  .fil-add-grid input:focus, .fil-add-grid select:focus{ border-color: var(--accent); }
+  .fil-add-full{ grid-column: 1 / -1; }
+  .fil-img-preview{
+    width: 52px; height: 52px;
+    border-radius: 8px;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--bg);
+    border: 1px dashed rgba(31,35,40,0.25);
+    flex-shrink: 0;
+  }
+  .fil-img-row{ display:flex; align-items:center; gap: 12px; }
+  .fil-img-row input[type="file"]{ font-size: 12px; }
+  #fil-msg{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-dim);
+    margin-top: 10px;
   }
 
-  @media (max-width: 640px){
-    .strip-inner{ grid-template-columns: 1fr; }
-    h1{ font-size: 30px; }
-    .hero{ padding: 56px 20px 48px; }
-    .hero-actions{ flex-direction: column; }
+  #only-mine-chip.active{
+    background: var(--ok-dim);
+    border-color: var(--ok);
+    color: var(--ok);
   }
+  .claim-row{
+    display:flex; align-items:center; gap:8px; margin-top:8px;
+  }
+  .claim-badge{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--bg);
+    border: 1px solid rgba(31,35,40,0.15);
+    color: var(--ink-dim);
+  }
+  .claim-badge.mine{
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .claim-btn, .unclaim-btn, .cancel-order-btn{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11.5px;
+    padding: 5px 11px;
+    border-radius: 20px;
+    border: 1px solid rgba(31,35,40,0.18);
+    background: transparent;
+    color: var(--ink-dim);
+    cursor: pointer;
+  }
+  .claim-btn:hover{ color: var(--accent); border-color: var(--accent); }
+  .unclaim-btn:hover, .cancel-order-btn:hover{ color: var(--err); border-color: var(--err); }
+  .admin-row{
+    display:flex; align-items:center; gap:12px;
+    border: 1px solid rgba(31,35,40,0.10); border-radius:8px; padding:9px 10px;
+  }
+  .admin-row .info{ flex:1; min-width:0; }
+  .admin-row .name{ font-weight:600; font-size:13.5px; }
+  .admin-row .email{ font-family: ui-monospace, monospace; font-size:11px; color: var(--ink-dim); margin-top:2px; }
+  .admin-row .you-badge{
+    font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+    color: var(--accent); background: var(--accent-dim); border-radius:20px; padding:2px 8px;
+  }
+  .admin-row .remove-admin-btn{
+    border:1px solid var(--border, #d1d9e0); background:none; color: var(--ink-dim);
+    font-size:12px; padding:5px 10px; border-radius:6px; cursor:pointer; white-space:nowrap;
+  }
+  .admin-row .remove-admin-btn:hover{ color: var(--err); border-color: var(--err); background: rgba(207,34,46,0.06); }
+
+/* ================= animation kit ================= */
+@keyframes fadeInDown{ from{ opacity:0; transform: translateY(-10px); } to{ opacity:1; transform: translateY(0); } }
+@keyframes fadeInUp{ from{ opacity:0; transform: translateY(16px); } to{ opacity:1; transform: translateY(0); } }
+@keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
+@keyframes popIn{ from{ opacity:0; transform: scale(0.92); } to{ opacity:1; transform: scale(1); } }
+@keyframes pulseDot{ 0%,100%{ transform: scale(1); opacity:1; } 50%{ transform: scale(1.4); opacity:0.55; } }
+@keyframes bump{ 0%{ transform: scale(1); } 35%{ transform: scale(1.06); } 100%{ transform: scale(1); } }
+@keyframes shimmer{ 0%{ background-position: -200px 0; } 100%{ background-position: 200px 0; } }
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+}
+html{ scroll-behavior: smooth; }
+.topbar{ animation: fadeInDown 0.45s ease both; }
+.hamburger-btn{ transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), background 0.2s, border-color 0.2s; }
+.hamburger-btn:hover{ transform: rotate(90deg); }
+.hamburger-btn[aria-expanded="true"]{ transform: rotate(90deg); }
+a, button, .btn, .btn-plain, .btn-download, .chip, .icon-btn, .chat-toggle, .colour-btn, .preset-btn, .attach-btn, .send-btn, .view3d-btn, .view-order-btn{
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s ease, box-shadow 0.2s, opacity 0.2s;
+}
+.btn:hover, .btn-plain:hover, .btn-download:hover, .send-btn:hover, .view3d-btn:hover, .view-order-btn:hover, .attach-btn:hover{
+  transform: translateY(-1px);
+}
+.btn:active, .btn-plain:active, .btn-download:active, .send-btn:active, .attach-btn:active, .icon-btn:active, .chip:active{
+  transform: translateY(0) scale(0.96);
+}
+.card{ animation: fadeInUp 0.5s ease both; transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s; }
+.card:hover{ box-shadow: 0 4px 16px rgba(31,35,40,0.08); }
+.dot{ transition: transform 0.2s; }
+.dot.pulse, .status-pill.active .dot{ animation: pulseDot 1.6s ease-in-out infinite; }
+input[type="text"], input[type="number"], input[type="email"], input[type="tel"], textarea, select{
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,0.12); }
+.modal-overlay{ animation: fadeIn 0.2s ease both; }
+.modal-card{ animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1) both; }
+.msg, .chat-msg{ animation: fadeInUp 0.3s ease both; }
+.in-view{ opacity: 1 !important; transform: none !important; }
+[data-reveal]{ opacity: 0; transform: translateY(14px); transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.22,1,0.36,1); }
+/* ================= end animation kit ================= */
 </style>
 </head>
 <body>
 
-  <div class="topbar">
-    <a class="brand" href="index.html">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <rect width="20" height="20" rx="4" fill="#0969da"/>
-        <path d="M10 4L15.5 7.2V13.6L10 16.8L4.5 13.6V7.2L10 4Z" stroke="white" stroke-width="1.3" stroke-linejoin="round"/>
-        <path d="M10 10L15.5 7.2M10 10V16.8M10 10L4.5 7.2" stroke="white" stroke-width="1.3" stroke-linejoin="round"/>
-      </svg>
-      JoshPrints
-    </a>
-    <div class="topbar-links">
-      <a class="btn btn-primary" href="order-form.html">Order</a>
+<!-- LOGIN -->
+<div id="login-view">
+  <div class="login-card">
+    <h1>Josh<span>Prints</span></h1>
+    <p class="sub">Admin: sign in to view orders</p>
+    <form id="login-form">
+      <label for="email">Email</label>
+      <input type="email" id="email" required autocomplete="username">
+      <label for="password">Password</label>
+      <input type="password" id="password" required autocomplete="current-password">
+      <button type="submit" id="login-btn">Sign in</button>
+      <div class="login-err" id="login-err"></div>
+    </form>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dash-view">
+  <div class="topbar" id="topbar">
+    <h1>Josh<span>Prints</span>: Orders</h1>
+    <div class="right">
+      <button class="icon-btn" id="refresh-btn">Refresh</button>
+      <button class="icon-btn" id="logout-btn">Sign out</button>
       <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false">☰</button>
     </div>
   </div>
+  <div id="topbar-spacer"></div>
 
   <div class="sidebar-overlay" id="sidebar-overlay"></div>
   <div class="sidebar" id="sidebar" aria-hidden="true">
@@ -306,80 +926,281 @@
       <button class="sidebar-close" id="sidebar-close" aria-label="Close menu">✕</button>
     </div>
     <nav>
-      <a href="browse.html"><span class="icon">🔍</span> Browse presets</a>
-      <a href="estimate.html"><span class="icon">💲</span> Estimate cost</a>
-      <a href="order-form.html"><span class="icon">✎</span> Start a custom order</a>
-      <a href="order.html"><span class="icon">📦</span> Track an order</a>
+      <a href="presets-admin.html"><span class="icon">🧩</span> Manage presets</a>
+      <a href="quote.html" id="quote-builder-btn"><span class="icon">🧮</span> Quote builder</a>
+      <button type="button" id="rates-btn"><span class="icon">⚙</span> Debug</button>
+      <button type="button" id="my-name-btn"><span class="icon">🙋</span> Set your name</button>
+      <button type="button" id="admins-btn"><span class="icon">👥</span> Manage admins</button>
     </nav>
   </div>
 
-  <div class="hero">
-    <div class="hero-eyebrow">Now taking orders</div>
-    <h1>Custom 3D printing,<br>made to order.</h1>
-    <p>Send a model or describe what you need. Get a quote back, track progress, and message me directly, start to finish.</p>
-    <div class="hero-actions">
-      <a class="btn btn-primary btn-lg" href="order-form.html">Start an order</a>
-      <a class="btn btn-lg" href="browse.html">Browse presets</a>
-      <a class="btn btn-lg" href="estimate.html">Estimate cost</a>
-      <a class="btn btn-lg" href="order.html">Track an order</a>
+  <div class="header-wrap" id="header-wrap">
+  <div class="toolbar" id="filter-bar">
+    <button class="chip active" data-filter="all">All</button>
+    <button class="chip" data-filter="new">New</button>
+    <button class="chip" data-filter="aknowleged">Acknowledged</button>
+    <button class="chip" data-filter="quoted">Quoted</button>
+    <button class="chip" data-filter="printing">Printing</button>
+    <button class="chip" data-filter="completed">Completed</button>
+    <button class="chip" data-filter="sold">Sold</button>
+    <button class="chip" data-filter="cancelled">Cancelled</button>
+    <button class="chip" data-filter="deleted">Deleted</button>
+    <button class="chip" id="only-mine-chip">🙋 Claimed by me</button>
+    <select class="sort-select" id="sort-select">
+      <option value="newest">Newest first</option>
+      <option value="oldest">Oldest first</option>
+      <option value="status">By status</option>
+    </select>
+  </div>
+  <div class="toolbar-fade"></div>
+  </div>
+  <main>
+    <div id="orders-container"><div class="empty">Loading…</div></div>
+  </main>
+</div>
+
+
+<div class="pdf-modal" id="pdf-modal">
+  <div class="pdf-modal-inner">
+    <button type="button" class="pdf-modal-close" id="pdf-modal-close">✕</button>
+    <iframe class="pdf-modal-frame" id="pdf-modal-frame" src=""></iframe>
+  </div>
+</div>
+
+<!-- DEBUG MODAL -->
+<div id="rates-overlay" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2>Debug</h2>
+      <button class="icon-btn" id="rates-close">Close</button>
+    </div>
+    <p class="modal-sub">Pricing rates and filament inventory. Changes apply everywhere instantly.</p>
+
+    <div class="debug-tabs">
+      <button type="button" class="debug-tab active" data-tab="rates">Rates</button>
+      <button type="button" class="debug-tab" data-tab="filaments">Filaments</button>
+    </div>
+
+    <!-- Rates section -->
+    <div class="debug-section active" id="debug-section-rates">
+      <div class="modal-body">
+        <div class="rates-form-grid">
+          <label>Labor rate<span class="unit">$/hr</span><input type="number" id="r-labor" step="0.5" min="0"></label>
+          <label>Base handling fee<span class="unit">$</span><input type="number" id="r-base" step="0.25" min="0"></label>
+          <label>Print rate (curve)<span class="unit">$/hr^1.4</span><input type="number" id="r-printrate" step="0.01" min="0"></label>
+          <label>Surcharge amount<span class="unit">$</span><input type="number" id="r-suramt" step="0.5" min="0"></label>
+          <label>Surcharge threshold<span class="unit">hrs</span><input type="number" id="r-surthresh" step="0.5" min="0"></label>
+        </div>
+        <div class="modal-divider">Filament cost / kg (legacy defaults)</div>
+        <div class="rates-form-grid">
+          <label>PLA<span class="unit">$/kg</span><input type="number" id="r-pla" step="0.5" min="0"></label>
+          <label>ABS<span class="unit">$/kg</span><input type="number" id="r-abs" step="0.5" min="0"></label>
+          <label>TPU<span class="unit">$/kg</span><input type="number" id="r-tpu" step="0.5" min="0"></label>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <span id="rates-msg"></span>
+        <button class="save-btn" id="rates-save">Save rates</button>
+      </div>
+    </div>
+
+    <!-- Filaments section -->
+    <div class="debug-section" id="debug-section-filaments">
+      <div class="modal-body">
+        <div class="fil-list" id="fil-list">
+          <div class="fil-empty">Loading…</div>
+        </div>
+
+        <div class="fil-add-form">
+          <div class="modal-divider" style="margin-top:0; padding-top:0; border-top:none;">Add a filament</div>
+          <div class="fil-add-grid">
+            <label class="fil-add-full">Colour<input type="text" id="fil-color" placeholder="e.g. Galaxy Black"></label>
+            <label>Type
+              <select id="fil-type">
+                <option value="PLA">PLA</option>
+                <option value="PLA+">PLA+</option>
+                <option value="Silk PLA">Silk PLA</option>
+                <option value="ABS">ABS</option>
+                <option value="PETG">PETG</option>
+                <option value="TPU">TPU</option>
+                <option value="Resin">Resin</option>
+                <option value="Nylon">Nylon</option>
+                <option value="Other">Other</option>
+              </select>
+            </label>
+            <label>Price<span class="unit">$ / 100g</span><input type="number" id="fil-price" step="0.05" min="0" placeholder="e.g. 3.50"></label>
+            <label class="fil-add-full">Picture <span style="text-transform:none; letter-spacing:0;">(optional)</span>
+              <div class="fil-img-row">
+                <div class="fil-img-preview" id="fil-img-preview"></div>
+                <input type="file" id="fil-image" accept="image/*">
+              </div>
+            </label>
+          </div>
+          <div class="fil-add-actions">
+            <button class="save-btn" id="fil-add-btn" type="button">Add filament</button>
+            <button class="fil-cancel-edit" id="fil-cancel-btn" type="button" style="display:none;">Cancel</button>
+          </div>
+          <div id="fil-msg"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- NAME MODAL -->
+<div id="name-overlay" class="modal-overlay">
+  <div class="modal-card" style="max-width:360px;">
+    <div class="modal-head">
+      <h2>Your name</h2>
+      <button class="icon-btn" id="name-close">Close</button>
+    </div>
+    <p class="modal-sub">Shown on jobs you claim, e.g. "Claimed by Josh".</p>
+    <div class="modal-body">
+      <label style="display:block; font-family: ui-monospace, monospace; font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:6px;">Display name</label>
+      <input type="text" id="name-input" placeholder="e.g. Josh" style="width:100%; background:var(--bg); border:1px solid rgba(31,35,40,0.18); border-radius:6px; color:var(--ink); padding:10px 12px; font-size:14px;">
+    </div>
+    <div class="modal-foot">
+      <span id="name-msg"></span>
+      <button class="save-btn" id="name-save">Save name</button>
     </div>
   </div>
+</div>
 
-  <div class="featured" id="featured-section" style="display:none;">
-    <div class="featured-head">
-      <h2>Featured presets</h2>
-      <a href="browse.html">Browse all →</a>
+<!-- ADMINS MODAL -->
+<div id="admins-overlay" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2>Admins</h2>
+      <button class="icon-btn" id="admins-close">Close</button>
     </div>
-    <div class="featured-grid" id="featured-grid"></div>
-  </div>
-
-  <div class="strip">
-    <div class="strip-inner">
-      <div class="strip-item">
-        <div class="label">custom_model</div>
-        <div class="desc">Have an idea but no file? Describe it and I'll design and print it.</div>
+    <p class="modal-sub">Anyone added here can sign in to this admin dashboard.</p>
+    <div class="modal-body">
+      <div class="fil-list" id="admins-list">
+        <div class="fil-empty">Loading…</div>
       </div>
-      <div class="strip-item">
-        <div class="label">browse</div>
-        <div class="desc">Want something quick? <a href="browse.html" style="color:var(--accent);">Browse ready-to-order presets</a>.</div>
-      </div>
-      <div class="strip-item">
-        <div class="label">custom_print</div>
-        <div class="desc">Already have an STL, OBJ, 3MF, or STEP file? Upload it and get a quote.</div>
-      </div>
-      <div class="strip-item">
-        <div class="label">status</div>
-        <div class="desc">Every order gets a private tracking link, no account needed.</div>
-      </div>
-      <div class="strip-item">
-        <div class="label">estimate</div>
-        <div class="desc">Not sure what it'll cost? <a href="estimate.html" style="color:var(--accent);">Try the free estimator</a> before you order.</div>
+      <div class="fil-add-form">
+        <div class="modal-divider" style="margin-top:0; padding-top:0; border-top:none;">Add an admin</div>
+        <div class="fil-add-grid">
+          <label class="fil-add-full">Email<input type="email" id="admin-email" placeholder="them@example.com"></label>
+          <label class="fil-add-full">Temporary password<input type="text" id="admin-password" placeholder="They should change this after signing in"></label>
+        </div>
+        <button class="save-btn" id="admin-add-btn" type="button">Add admin</button>
+        <div id="admin-msg"></div>
+        <div style="font-size:11.5px; color: var(--ink-dim); margin-top:8px; line-height:1.5;">
+          New admins may need to confirm their email before signing in. To skip that,
+          turn off "Confirm email" under Supabase → Authentication → Providers → Email.
+        </div>
       </div>
     </div>
   </div>
+</div>
 
-<script>
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  const SUPABASE_URL = 'https://paycasfatsakidsriwqt.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
+  const BUCKET = 'order-files';
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const loginView = document.getElementById('login-view');
+  const dashView = document.getElementById('dash-view');
+  const loginForm = document.getElementById('login-form');
+  const loginErr = document.getElementById('login-err');
+  const loginBtn = document.getElementById('login-btn');
+  const ordersContainer = document.getElementById('orders-container');
+  const filterBar = document.getElementById('filter-bar');
+
+  let currentOrders = [];
+  let activeFilter = 'all';
+  let openChatOrderId = null;
+  let chatPollTimer = null;
+  const chatRenderCache = {}; // orderId -> last rendered signature, to avoid needless re-renders
+
+  const STATUS_OPTIONS = ['new', 'aknowleged', 'quoted', 'printing', 'completed', 'sold'];
+  const STATUS_LABEL = {
+    new: 'New', aknowleged: 'Acknowledged', quoted: 'Quoted', printing: 'Printing',
+    completed: 'Completed', sold: 'Sold', cancelled: 'Cancelled'
+  };
+  let myUserId = null;
+  let myDisplayName = null;
+  let onlyMine = false;
+  let sortMode = 'newest';
+  const STATUS_ORDER = ['new', 'aknowleged', 'quoted', 'printing', 'completed', 'sold', 'cancelled'];
+
+  function escapeHtml(str){
+    return (str || '').replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+
+  function publicFileUrl(path){
+    return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+  }
+
+  const MODEL_EXTS = ['stl', 'obj', '3mf', 'step', 'stp', 'iges', 'igs'];
+  function fileExt(name){
+    return (name || '').split('.').pop().toLowerCase();
+  }
+
+  // Renders one attachment: a plain link, a link + "View in 3D" button for
+  // model files, or a small clickable PDF thumbnail for PDFs.
+  function renderAttachment(url, name){
+    const ext = fileExt(name);
+    const safeName = escapeHtml(name || 'attachment');
+    if (ext === 'pdf'){
+      return `<div class="pdf-preview" data-url="${url}" title="Click to view ${safeName}">
+        <embed src="${url}#toolbar=0&navpanes=0&view=FitH" type="application/pdf">
+        <div class="pdf-preview-label">📄 ${safeName}</div>
+      </div>`;
+    }
+    const viewBtn = MODEL_EXTS.includes(ext)
+      ? `<a class="view3d-btn" href="viewer.html?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name || '')}" target="_blank">👁 View in 3D</a>`
+      : '';
+    return `<span class="file-attachment"><a class="file-link" target="_blank" href="${url}">⇩ ${safeName}</a>${viewBtn}</span>`;
+  }
+
+  const pdfModal = document.getElementById('pdf-modal');
+  const pdfModalFrame = document.getElementById('pdf-modal-frame');
+  function openPdfModal(url){
+    pdfModalFrame.src = url;
+    pdfModal.classList.add('open');
+  }
+  function closePdfModal(){
+    pdfModal.classList.remove('open');
+    pdfModalFrame.src = '';
+  }
+  document.getElementById('pdf-modal-close').addEventListener('click', closePdfModal);
+  pdfModal.addEventListener('click', (e) => { if (e.target === pdfModal) closePdfModal(); });
+  document.addEventListener('click', (e) => {
+    const preview = e.target.closest('.pdf-preview');
+    if (preview) openPdfModal(preview.dataset.url);
+  });
+
   (function(){
-    const btn = document.getElementById('menu-btn');
+    const menuBtn = document.getElementById('menu-btn');
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
     const closeBtn = document.getElementById('sidebar-close');
-    if (!btn || !sidebar) return;
+    if (!menuBtn || !sidebar) return;
 
     function openSidebar(){
       sidebar.classList.add('open');
       overlay.classList.add('open');
       sidebar.setAttribute('aria-hidden', 'false');
-      btn.setAttribute('aria-expanded', 'true');
+      menuBtn.setAttribute('aria-expanded', 'true');
     }
     function closeSidebar(){
       sidebar.classList.remove('open');
       overlay.classList.remove('open');
       sidebar.setAttribute('aria-hidden', 'true');
-      btn.setAttribute('aria-expanded', 'false');
+      menuBtn.setAttribute('aria-expanded', 'false');
     }
+    window.closeSidebar = closeSidebar;
 
-    btn.addEventListener('click', (e) => {
+    menuBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
     });
@@ -388,67 +1209,915 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeSidebar();
     });
+
+    // Any nav item (link or button) inside the sidebar closes it once
+    // activated, so the sidebar never sits open behind a modal.
+    sidebar.querySelectorAll('nav a, nav button').forEach(item => {
+      item.addEventListener('click', closeSidebar);
+    });
   })();
+
+  // Only one admin modal (Debug/Rates, Set your name, Manage admins) should
+  // be open at a time — opening one closes any others that were open.
+  function closeAllAdminModals(){
+    document.getElementById('rates-overlay')?.classList.remove('open');
+    document.getElementById('name-overlay')?.classList.remove('open');
+    document.getElementById('admins-overlay')?.classList.remove('open');
+  }
 
   (function(){
-    const items = document.querySelectorAll('.strip-item');
-    items.forEach((el, i) => { el.style.transitionDelay = (i * 0.08) + 's'; });
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting){
-          entry.target.classList.add('in-view');
-          io.unobserve(entry.target);
+    const topbar = document.getElementById('topbar');
+    const spacer = document.getElementById('topbar-spacer');
+    if (!topbar || !spacer) return;
+
+    function syncSpacerHeight(){
+      const h = topbar.offsetHeight;
+      spacer.style.height = h + 'px';
+      document.documentElement.style.setProperty('--topbar-h', h + 'px');
+    }
+    syncSpacerHeight();
+    window.addEventListener('resize', syncSpacerHeight);
+    new ResizeObserver(syncSpacerHeight).observe(topbar);
+
+    let lastY = window.scrollY;
+    let ticking = false;
+
+    function onScroll(){
+      const y = Math.max(window.scrollY, 0);
+      if (y > lastY && y > topbar.offsetHeight){
+        topbar.classList.add('hide');
+        document.documentElement.style.setProperty('--topbar-h', '0px');
+      } else if (y < lastY){
+        topbar.classList.remove('hide');
+        document.documentElement.style.setProperty('--topbar-h', topbar.offsetHeight + 'px');
+      }
+      lastY = y;
+      ticking = false;
+    }
+
+    window.addEventListener('scroll', () => {
+      if (!ticking){
+        requestAnimationFrame(onScroll);
+        ticking = true;
+      }
+    }, { passive: true });
+  })();
+
+  async function checkSession(){
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session){
+      myUserId = session.user.id;
+      await loadMyName(session.user.email);
+      showDashboard();
+    } else {
+      showLogin();
+    }
+  }
+
+  async function loadMyName(email){
+    const { data } = await supabase.from('admin_profiles').select('*').eq('id', myUserId).maybeSingle();
+    myDisplayName = data?.display_name || (email ? email.split('@')[0] : 'Admin');
+    // make sure a profile row exists so other admins can see this name
+    if (!data){
+      await supabase.from('admin_profiles').upsert({ id: myUserId, email, display_name: myDisplayName });
+    }
+  }
+
+  function showLogin(){
+    loginView.style.display = 'flex';
+    dashView.style.display = 'none';
+  }
+
+  function showDashboard(){
+    loginView.style.display = 'none';
+    dashView.style.display = 'block';
+    loadOrders();
+  }
+
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    loginErr.classList.remove('show');
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'Signing in…';
+
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'Sign in';
+
+    if (error){
+      loginErr.textContent = error.message;
+      loginErr.classList.add('show');
+      return;
+    }
+    showDashboard();
+  });
+
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    showLogin();
+  });
+
+  document.getElementById('refresh-btn').addEventListener('click', loadOrders);
+
+  filterBar.addEventListener('click', (e) => {
+    const btn = e.target.closest('.chip');
+    if (!btn || btn.id === 'only-mine-chip') return;
+    filterBar.querySelectorAll('.chip').forEach(c => { if (c.id !== 'only-mine-chip') c.classList.remove('active'); });
+    btn.classList.add('active');
+    activeFilter = btn.dataset.filter;
+    renderOrders();
+  });
+
+  async function loadOrders(){
+    ordersContainer.innerHTML = '<div class="empty">Loading…</div>';
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error){
+      ordersContainer.innerHTML = `<div class="empty">Couldn't load orders: ${escapeHtml(error.message)}</div>`;
+      return;
+    }
+    currentOrders = data || [];
+    renderOrders();
+  }
+
+  function renderOrders(){
+    let filtered = activeFilter === 'deleted'
+      ? currentOrders.filter(o => o.deleted)
+      : activeFilter === 'all'
+        ? currentOrders.filter(o => !o.deleted)
+        : currentOrders.filter(o => !o.deleted && o.status === activeFilter);
+
+    if (onlyMine) filtered = filtered.filter(o => o.claimed_by_id === myUserId);
+
+    filtered = filtered.slice().sort((a, b) => {
+      if (sortMode === 'oldest'){
+        return new Date(a.created_at) - new Date(b.created_at);
+      } else if (sortMode === 'status'){
+        const diff = STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
+        return diff !== 0 ? diff : new Date(b.created_at) - new Date(a.created_at);
+      }
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+
+    if (filtered.length === 0){
+      ordersContainer.innerHTML = '<div class="empty">No orders here.</div>';
+      return;
+    }
+
+    ordersContainer.innerHTML = '';
+    filtered.forEach(order => {
+      const card = document.createElement('div');
+      card.className = 'order-card' + (order.status === 'new' ? ' is-new' : '');
+
+      const typeLabel = order.order_type === 'custom_model' ? 'Custom Model'
+        : order.order_type === 'preset' ? `Preset: ${escapeHtml(order.preset_name || 'Unknown')}`
+        : 'Custom Print';
+      const created = new Date(order.created_at).toLocaleString();
+
+      card.innerHTML = `
+        <div class="order-top">
+          <div>
+            <div class="order-name">${escapeHtml(order.full_name)}</div>
+            <div class="order-meta">
+              <span class="order-type-badge">${typeLabel}</span>${created}
+            </div>
+          </div>
+          <div class="row-status status-${order.status}"><span class="status-dot"></span>${STATUS_LABEL[order.status] || order.status}</div>
+        </div>
+        <div class="claim-row">
+          ${order.claimed_by_id
+            ? `<span class="claim-badge ${order.claimed_by_id === myUserId ? 'mine' : ''}">👤 Claimed by ${escapeHtml(order.claimed_by || 'someone')}</span>
+               ${order.claimed_by_id === myUserId ? `<button class="unclaim-btn" data-id="${order.id}">Release</button>` : `<button class="claim-btn" data-id="${order.id}">Take over</button>`}`
+            : `<span class="claim-badge">Unclaimed</span><button class="claim-btn" data-id="${order.id}">Claim job</button>`
+          }
+        </div>
+        ${order.filament_color ? `<div class="order-meta" style="margin-top:6px;">🧵 ${escapeHtml(order.filament_color)}${order.filament_type ? ' · ' + escapeHtml(order.filament_type) : ''}${order.filament_price_per_100g != null ? ` · $${Number(order.filament_price_per_100g).toFixed(2)}/100g` : ''}</div>` : ''}
+        ${order.notes ? `<div class="order-notes">${escapeHtml(order.notes)}</div>` : ''}
+        ${(() => {
+          const files = (order.files && order.files.length > 0)
+            ? order.files
+            : (order.file_path ? [{ path: order.file_path, name: order.file_name }] : []);
+          return files.map(f => `<div class="order-file">${renderAttachment(publicFileUrl(f.path), f.name)}</div>`).join('');
+        })()}
+        <div class="order-bottom">
+          <select class="status-select" data-id="${order.id}">
+            ${STATUS_OPTIONS.map(s => `<option value="${s}" ${s === order.status ? 'selected' : ''}>${STATUS_LABEL[s]}</option>`).join('')}
+          </select>
+          <input type="text" class="quote-input" placeholder="Quote $" data-id="${order.id}" value="${order.quote_amount ?? ''}">
+          <button class="save-btn" data-id="${order.id}">Save</button>
+          ${order.status !== 'cancelled' ? `<button class="cancel-order-btn" data-id="${order.id}">✕ Cancel order</button>` : ''}
+          <button class="chat-toggle" data-id="${order.id}">💬 Messages</button>
+          <button class="chat-toggle copy-link-btn" data-id="${order.id}">🔗 Copy link</button>
+          ${order.deleted
+            ? `<button class="chat-toggle restore-btn" data-id="${order.id}">♻️ Restore</button>`
+            : `<button class="chat-toggle delete-btn" data-id="${order.id}">🗑 Delete</button>`
+          }
+        </div>
+        <div class="chat-panel" id="chat-panel-${order.id}">
+          <div class="chat-messages" id="chat-messages-${order.id}"><div class="chat-empty">Loading…</div></div>
+          <div class="chat-composer">
+            <textarea placeholder="Reply to ${escapeHtml(order.full_name)}…" id="chat-body-${order.id}"></textarea>
+            <div class="chat-composer-row">
+              <label class="chat-attach">
+                <span id="chat-attach-label-${order.id}">📎 Attach file</span>
+                <input type="file" id="chat-attach-${order.id}" multiple>
+              </label>
+              <button class="chat-send" data-id="${order.id}">Send</button>
+            </div>
+          </div>
+        </div>
+      `;
+      ordersContainer.appendChild(card);
+    });
+
+    // Copy link buttons
+    ordersContainer.querySelectorAll('.copy-link-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        const url = new URL('order.html', window.location.href);
+        url.searchParams.set('order', id);
+        try {
+          await navigator.clipboard.writeText(url.href);
+          const original = btn.textContent;
+          btn.textContent = '✓ Copied';
+          setTimeout(() => { btn.textContent = original; }, 1500);
+        } catch (e) {
+          prompt('Copy this link:', url.href);
         }
       });
-    }, { threshold: 0.15 });
-    items.forEach(el => io.observe(el));
-  })();
-</script>
+    });
 
-<script type="module">
-  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+    // Delete / restore buttons
+    ordersContainer.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => setDeleted(btn.dataset.id, true));
+    });
+    ordersContainer.querySelectorAll('.restore-btn').forEach(btn => {
+      btn.addEventListener('click', () => setDeleted(btn.dataset.id, false));
+    });
 
-  const SUPABASE_URL = 'https://paycasfatsakidsriwqt.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
-  const BUCKET = 'order-files';
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    // Claim / release
+    ordersContainer.querySelectorAll('.claim-btn').forEach(btn => {
+      btn.addEventListener('click', () => claimOrder(btn.dataset.id));
+    });
+    ordersContainer.querySelectorAll('.unclaim-btn').forEach(btn => {
+      btn.addEventListener('click', () => claimOrder(btn.dataset.id, true));
+    });
 
-  function escapeHtml(str){
-    return (str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    // Cancel order
+    ordersContainer.querySelectorAll('.cancel-order-btn').forEach(btn => {
+      btn.addEventListener('click', () => cancelOrder(btn.dataset.id));
+    });
+
+    // Chat toggles (exclude the copy-link/delete/restore buttons, which
+    // share the .chat-toggle class for styling only, not this behavior)
+    ordersContainer.querySelectorAll('.chat-toggle:not(.copy-link-btn):not(.delete-btn):not(.restore-btn)').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const panel = document.getElementById(`chat-panel-${id}`);
+        panel.classList.toggle('open');
+        if (panel.classList.contains('open')){
+          openChatOrderId = id;
+          loadChat(id);
+          if (chatPollTimer) clearInterval(chatPollTimer);
+          chatPollTimer = setInterval(() => loadChat(id), 3000);
+        } else if (openChatOrderId === id){
+          openChatOrderId = null;
+          if (chatPollTimer) clearInterval(chatPollTimer);
+        }
+      });
+    });
+
+    // Chat attach labels
+    ordersContainer.querySelectorAll('[id^="chat-attach-"]').forEach(input => {
+      const id = input.id.replace('chat-attach-', '');
+      input.addEventListener('change', () => {
+        const label = document.getElementById(`chat-attach-label-${id}`);
+        const n = input.files.length;
+        label.textContent = n === 0 ? '📎 Attach file'
+          : n === 1 ? `📎 ${input.files[0].name}`
+          : `📎 ${n} files`;
+      });
+    });
+
+    // Chat send buttons
+    ordersContainer.querySelectorAll('.chat-send').forEach(btn => {
+      btn.addEventListener('click', () => sendChatMessage(btn.dataset.id));
+    });
+
+    // Save buttons
+    ordersContainer.querySelectorAll('.save-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        const select = ordersContainer.querySelector(`.status-select[data-id="${id}"]`);
+        const quoteInput = ordersContainer.querySelector(`.quote-input[data-id="${id}"]`);
+
+        const newStatus = select.value;
+        const quoteRaw = quoteInput.value.trim();
+        const quoteAmount = quoteRaw === '' ? null : Number(quoteRaw);
+
+        btn.disabled = true;
+        btn.textContent = 'Saving…';
+
+        const { error } = await supabase
+          .from('orders')
+          .update({ status: newStatus, quote_amount: quoteAmount })
+          .eq('id', id);
+
+        btn.disabled = false;
+        btn.textContent = 'Save';
+
+        if (error){
+          alert('Could not save: ' + error.message);
+          return;
+        }
+        const idx = currentOrders.findIndex(o => o.id === id);
+        if (idx > -1){
+          currentOrders[idx].status = newStatus;
+          currentOrders[idx].quote_amount = quoteAmount;
+        }
+        renderOrders();
+      });
+    });
   }
-  function publicUrl(path){
-    return path ? supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl : null;
+
+  async function setDeleted(id, deleted){
+    if (deleted && !confirm('Delete this order? The customer will no longer be able to message you about it.')) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('orders')
+      .update({ deleted })
+      .eq('id', id);
+
+    if (error){
+      alert('Could not update: ' + error.message);
+      return;
+    }
+
+    const idx = currentOrders.findIndex(o => o.id === id);
+    if (idx > -1) currentOrders[idx].deleted = deleted;
+    renderOrders();
   }
 
-  async function loadFeatured(){
+  async function claimOrder(id, release){
+    const payload = release
+      ? { claimed_by: null, claimed_by_id: null }
+      : { claimed_by: myDisplayName, claimed_by_id: myUserId };
+
+    const { error } = await supabase.from('orders').update(payload).eq('id', id);
+    if (error){ alert('Could not update: ' + error.message); return; }
+
+    const idx = currentOrders.findIndex(o => o.id === id);
+    if (idx > -1){
+      currentOrders[idx].claimed_by = payload.claimed_by;
+      currentOrders[idx].claimed_by_id = payload.claimed_by_id;
+    }
+    renderOrders();
+  }
+
+  async function cancelOrder(id){
+    if (!confirm('Cancel this order?')) return;
+    const { error } = await supabase.from('orders').update({ status: 'cancelled' }).eq('id', id);
+    if (error){ alert('Could not update: ' + error.message); return; }
+    const idx = currentOrders.findIndex(o => o.id === id);
+    if (idx > -1) currentOrders[idx].status = 'cancelled';
+    renderOrders();
+  }
+
+  document.getElementById('sort-select').addEventListener('change', (e) => {
+    sortMode = e.target.value;
+    renderOrders();
+  });
+
+  document.getElementById('only-mine-chip').addEventListener('click', () => {
+    onlyMine = !onlyMine;
+    document.getElementById('only-mine-chip').classList.toggle('active', onlyMine);
+    renderOrders();
+  });
+
+  function sanitizeFileName(name){
+    return name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  }
+
+  async function loadChat(orderId){
+    const container = document.getElementById(`chat-messages-${orderId}`);
     const { data, error } = await supabase
-      .from('presets')
+      .from('messages')
       .select('*')
-      .eq('active', true)
-      .eq('pinned', true)
-      .order('created_at', { ascending: false })
-      .limit(6);
+      .eq('order_id', orderId)
+      .order('created_at', { ascending: true });
 
-    if (error || !data || data.length === 0) return;
+    if (error){
+      container.innerHTML = `<div class="chat-empty">Couldn't load messages.</div>`;
+      return;
+    }
+    if (!data || data.length === 0){
+      if (chatRenderCache[orderId] !== 'empty'){
+        container.innerHTML = '<div class="chat-empty">No messages yet.</div>';
+        chatRenderCache[orderId] = 'empty';
+      }
+      return;
+    }
 
-    const section = document.getElementById('featured-section');
-    const grid = document.getElementById('featured-grid');
-    grid.innerHTML = data.map((p, i) => {
-      const img = publicUrl(p.image_path);
+    // Skip re-rendering if nothing actually changed since the last poll —
+    // this is what was causing the messages panel to flicker/re-animate
+    // every few seconds even when there was nothing new to show.
+    const signature = JSON.stringify(data.map(m => [m.id, m.body, m.sender, m.files, m.file_path]));
+    if (chatRenderCache[orderId] === signature){
+      return;
+    }
+    chatRenderCache[orderId] = signature;
+
+    // Preserve scroll position unless the admin is already at (or near) the bottom.
+    const wasNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 40;
+
+    container.innerHTML = data.map(m => {
+      const fileLinks = (m.files && m.files.length > 0)
+        ? m.files
+        : (m.file_path ? [{ path: m.file_path, name: m.file_name }] : []);
       return `
-        <a class="featured-tile" href="browse.html" style="animation-delay:${i * 0.06}s">
-          <div class="featured-img">${img ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;" alt="">` : 'No image'}</div>
-          <div class="featured-body">
-            <div class="featured-name">${escapeHtml(p.name)}</div>
-            ${p.price != null ? `<div class="featured-price">$${Number(p.price).toFixed(2)}</div>` : ''}
-          </div>
-        </a>
-      `;
+      <div class="chat-msg ${m.sender}">
+        <div class="who">${m.sender === 'admin' ? 'You' : 'Customer'}</div>
+        ${m.body ? `<div>${escapeHtml(m.body)}</div>` : ''}
+        ${fileLinks.map(f => renderAttachment(publicFileUrl(f.path), f.name)).join('')}
+      </div>
+    `;
     }).join('');
-    section.style.display = 'block';
+
+    if (wasNearBottom){
+      container.scrollTop = container.scrollHeight;
+    }
   }
 
-  loadFeatured();
+  async function sendChatMessage(orderId){
+    const bodyEl = document.getElementById(`chat-body-${orderId}`);
+    const fileInput = document.getElementById(`chat-attach-${orderId}`);
+    const body = bodyEl.value.trim();
+    const files = Array.from(fileInput.files);
+
+    if (!body && files.length === 0) return;
+
+    try {
+      const uploaded = [];
+      for (const file of files){
+        const path = `messages/${orderId}/${Date.now()}-${sanitizeFileName(file.name)}`;
+        const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file);
+        if (upErr) throw upErr;
+        uploaded.push({ path, name: file.name });
+      }
+
+      const { error } = await supabase.from('messages').insert({
+        order_id: orderId,
+        sender: 'admin',
+        body: body || null,
+        file_path: uploaded[0]?.path || null,
+        file_name: uploaded[0]?.name || null,
+        files: uploaded
+      });
+      if (error) throw error;
+
+      bodyEl.value = '';
+      fileInput.value = '';
+      document.getElementById(`chat-attach-label-${orderId}`).textContent = '📎 Attach file';
+      loadChat(orderId);
+
+    } catch (err){
+      alert('Could not send: ' + (err.message || 'please try again'));
+    }
+  }
+
+  /* ---- Rates modal ---- */
+  const ratesOverlay = document.getElementById('rates-overlay');
+  const ratesMsg = document.getElementById('rates-msg');
+  const ratesSaveBtn = document.getElementById('rates-save');
+  const RATE_FIELDS = {
+    labor_rate: 'r-labor', base_fee: 'r-base', print_rate: 'r-printrate',
+    surcharge_amt: 'r-suramt', surcharge_threshold: 'r-surthresh',
+    fil_pla: 'r-pla', fil_abs: 'r-abs', fil_tpu: 'r-tpu'
+  };
+
+  document.getElementById('rates-btn').addEventListener('click', openRatesModal);
+  document.getElementById('rates-close').addEventListener('click', closeRatesModal);
+  ratesOverlay.addEventListener('click', (e) => { if (e.target === ratesOverlay) closeRatesModal(); });
+
+  function closeRatesModal(){
+    ratesOverlay.classList.remove('open');
+  }
+
+  async function openRatesModal(){
+    closeAllAdminModals();
+    ratesOverlay.classList.add('open');
+    ratesMsg.textContent = 'Loading…';
+    loadFilaments();
+    const { data, error } = await supabase.from('settings').select('*').eq('id', 1).single();
+    if (error || !data){
+      ratesMsg.textContent = "Couldn't load rates: " + (error ? error.message : 'no data');
+      return;
+    }
+    Object.entries(RATE_FIELDS).forEach(([col, id]) => {
+      document.getElementById(id).value = data[col];
+    });
+    ratesMsg.textContent = '';
+  }
+
+  ratesSaveBtn.addEventListener('click', async () => {
+    ratesSaveBtn.disabled = true;
+    ratesSaveBtn.textContent = 'Saving…';
+    ratesMsg.textContent = '';
+
+    const payload = { updated_at: new Date().toISOString() };
+    let valid = true;
+    Object.entries(RATE_FIELDS).forEach(([col, id]) => {
+      const raw = document.getElementById(id).value;
+      const num = Number(raw);
+      if (raw === '' || isNaN(num) || num < 0) valid = false;
+      payload[col] = num;
+    });
+
+    if (!valid){
+      ratesSaveBtn.disabled = false;
+      ratesSaveBtn.textContent = 'Save rates';
+      ratesMsg.textContent = 'Please enter valid, non-negative numbers.';
+      return;
+    }
+
+    const { error } = await supabase.from('settings').update(payload).eq('id', 1);
+
+    ratesSaveBtn.disabled = false;
+    ratesSaveBtn.textContent = 'Save rates';
+
+    if (error){
+      ratesMsg.textContent = 'Error: ' + error.message;
+      return;
+    }
+    ratesMsg.textContent = 'Saved ✓ — live everywhere now.';
+    setTimeout(() => { if (ratesMsg.textContent.startsWith('Saved')) ratesMsg.textContent = ''; }, 3000);
+  });
+
+  /* ---- Debug modal tabs ---- */
+  document.querySelectorAll('.debug-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.debug-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.debug-section').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(`debug-section-${tab.dataset.tab}`).classList.add('active');
+      if (tab.dataset.tab === 'filaments') loadFilaments();
+    });
+  });
+
+  /* ---- Filaments ---- */
+  const FIL_BUCKET = BUCKET; // reuse the order-files bucket, under filaments/
+  const filListEl = document.getElementById('fil-list');
+  const filMsgEl = document.getElementById('fil-msg');
+  const filImageInput = document.getElementById('fil-image');
+  const filImgPreview = document.getElementById('fil-img-preview');
+  const filAddBtn = document.getElementById('fil-add-btn');
+  const filCancelBtn = document.getElementById('fil-cancel-btn');
+  let currentFilaments = [];
+  let editingFilamentId = null;
+
+  filImageInput.addEventListener('change', () => {
+    const file = filImageInput.files[0];
+    if (!file){ filImgPreview.style.backgroundImage = ''; return; }
+    filImgPreview.style.backgroundImage = `url(${URL.createObjectURL(file)})`;
+  });
+
+  function filPublicUrl(path){
+    return path ? supabase.storage.from(FIL_BUCKET).getPublicUrl(path).data.publicUrl : null;
+  }
+
+  async function loadFilaments(){
+    filListEl.innerHTML = '<div class="fil-empty">Loading…</div>';
+    const { data, error } = await supabase
+      .from('filaments')
+      .select('*')
+      .order('sort_order', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true });
+
+    if (error){
+      filListEl.innerHTML = `<div class="fil-empty">Couldn't load filaments: ${escapeHtml(error.message)}</div>`;
+      return;
+    }
+    currentFilaments = data || [];
+    renderFilaments();
+  }
+
+  function renderFilaments(){
+    if (currentFilaments.length === 0){
+      filListEl.innerHTML = '<div class="fil-empty">No filaments added yet — add one below.</div>';
+      return;
+    }
+    filListEl.innerHTML = '';
+    currentFilaments.forEach((f, i) => {
+      const row = document.createElement('div');
+      row.className = 'fil-row' + (f.id === editingFilamentId ? ' editing' : '');
+      const img = filPublicUrl(f.image_path);
+      row.innerHTML = `
+        <div class="fil-reorder">
+          <button type="button" class="fil-up" data-id="${f.id}" ${i === 0 ? 'disabled' : ''} title="Move up">▲</button>
+          <button type="button" class="fil-down" data-id="${f.id}" ${i === currentFilaments.length - 1 ? 'disabled' : ''} title="Move down">▼</button>
+        </div>
+        <div class="fil-swatch" style="${img ? `background-image:url(${img})` : ''}"></div>
+        <div class="fil-info">
+          <div class="fil-name">${escapeHtml(f.color_name)}</div>
+          <div class="fil-meta">${escapeHtml(f.type)} · $${Number(f.price_per_100g).toFixed(2)}/100g</div>
+        </div>
+        <div class="fil-actions">
+          <button class="fil-toggle ${f.active ? 'is-active' : ''}" data-id="${f.id}">${f.active ? 'Active' : 'Hidden'}</button>
+          <button class="fil-edit" data-id="${f.id}">Edit</button>
+          <button class="fil-del" data-id="${f.id}">🗑</button>
+        </div>
+      `;
+      filListEl.appendChild(row);
+    });
+
+    filListEl.querySelectorAll('.fil-toggle').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const f = currentFilaments.find(x => x.id === btn.dataset.id);
+        if (!f) return;
+        const { error } = await supabase.from('filaments').update({ active: !f.active }).eq('id', f.id);
+        if (error){ alert('Could not update: ' + error.message); return; }
+        f.active = !f.active;
+        renderFilaments();
+      });
+    });
+    filListEl.querySelectorAll('.fil-del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this filament? It will no longer be selectable when ordering.')) return;
+        const { error } = await supabase.from('filaments').delete().eq('id', btn.dataset.id);
+        if (error){ alert('Could not delete: ' + error.message); return; }
+        currentFilaments = currentFilaments.filter(x => x.id !== btn.dataset.id);
+        if (editingFilamentId === btn.dataset.id) exitFilamentEdit();
+        renderFilaments();
+      });
+    });
+    filListEl.querySelectorAll('.fil-edit').forEach(btn => {
+      btn.addEventListener('click', () => enterFilamentEdit(btn.dataset.id));
+    });
+    filListEl.querySelectorAll('.fil-up').forEach(btn => {
+      btn.addEventListener('click', () => moveFilament(btn.dataset.id, -1));
+    });
+    filListEl.querySelectorAll('.fil-down').forEach(btn => {
+      btn.addEventListener('click', () => moveFilament(btn.dataset.id, 1));
+    });
+  }
+
+  async function moveFilament(id, direction){
+    const i = currentFilaments.findIndex(f => f.id === id);
+    const j = i + direction;
+    if (i === -1 || j < 0 || j >= currentFilaments.length) return;
+
+    // Assign fresh sequential sort_order values to everything so ties/nulls
+    // from before this feature existed get resolved too.
+    const reordered = currentFilaments.slice();
+    [reordered[i], reordered[j]] = [reordered[j], reordered[i]];
+
+    // Optimistically update locally first for a snappy UI.
+    currentFilaments = reordered;
+    renderFilaments();
+
+    const updates = reordered.map((f, idx) =>
+      supabase.from('filaments').update({ sort_order: idx }).eq('id', f.id)
+    );
+    const results = await Promise.all(updates);
+    const failed = results.find(r => r.error);
+    if (failed){
+      alert('Could not save the new order: ' + failed.error.message);
+      loadFilaments();
+      return;
+    }
+    reordered.forEach((f, idx) => { f.sort_order = idx; });
+  }
+
+  function enterFilamentEdit(id){
+    const f = currentFilaments.find(x => x.id === id);
+    if (!f) return;
+    editingFilamentId = id;
+    document.getElementById('fil-color').value = f.color_name || '';
+    document.getElementById('fil-type').value = f.type || 'PLA';
+    document.getElementById('fil-price').value = f.price_per_100g != null ? f.price_per_100g : '';
+    filImageInput.value = '';
+    const img = filPublicUrl(f.image_path);
+    filImgPreview.style.backgroundImage = img ? `url(${img})` : '';
+    filAddBtn.textContent = 'Save changes';
+    filCancelBtn.style.display = 'inline-block';
+    filMsgEl.textContent = '';
+    renderFilaments();
+    document.querySelector('.fil-add-form')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function exitFilamentEdit(){
+    editingFilamentId = null;
+    document.getElementById('fil-color').value = '';
+    document.getElementById('fil-price').value = '';
+    filImageInput.value = '';
+    filImgPreview.style.backgroundImage = '';
+    filAddBtn.textContent = 'Add filament';
+    filCancelBtn.style.display = 'none';
+  }
+
+  filCancelBtn.addEventListener('click', () => { exitFilamentEdit(); renderFilaments(); });
+
+  filAddBtn.addEventListener('click', async () => {
+    const colorName = document.getElementById('fil-color').value.trim();
+    const type = document.getElementById('fil-type').value;
+    const priceRaw = document.getElementById('fil-price').value;
+    const price = Number(priceRaw);
+    const file = filImageInput.files[0];
+
+    if (!colorName || priceRaw === '' || isNaN(price) || price < 0){
+      filMsgEl.textContent = 'Please add a colour name and a valid price.';
+      return;
+    }
+
+    const isEditing = !!editingFilamentId;
+    filAddBtn.disabled = true;
+    filAddBtn.textContent = isEditing ? 'Saving…' : 'Adding…';
+    filMsgEl.textContent = '';
+
+    try {
+      let imagePath = isEditing
+        ? (currentFilaments.find(f => f.id === editingFilamentId)?.image_path || null)
+        : null;
+      if (file){
+        imagePath = `filaments/${Date.now()}-${sanitizeFileName(file.name)}`;
+        const { error: upErr } = await supabase.storage.from(FIL_BUCKET).upload(imagePath, file);
+        if (upErr) throw upErr;
+      }
+
+      if (isEditing){
+        const { error } = await supabase.from('filaments').update({
+          color_name: colorName,
+          type,
+          price_per_100g: price,
+          image_path: imagePath
+        }).eq('id', editingFilamentId);
+        if (error) throw error;
+        filMsgEl.textContent = 'Saved ✓';
+      } else {
+        const nextSortOrder = currentFilaments.length
+          ? Math.max(...currentFilaments.map(f => f.sort_order ?? 0)) + 1
+          : 0;
+        const { error } = await supabase.from('filaments').insert({
+          color_name: colorName,
+          type,
+          price_per_100g: price,
+          image_path: imagePath,
+          active: true,
+          sort_order: nextSortOrder
+        });
+        if (error) throw error;
+        filMsgEl.textContent = 'Added ✓';
+      }
+
+      exitFilamentEdit();
+      setTimeout(() => { if (filMsgEl.textContent === 'Added ✓' || filMsgEl.textContent === 'Saved ✓') filMsgEl.textContent = ''; }, 2500);
+      loadFilaments();
+
+    } catch (err){
+      filMsgEl.textContent = 'Error: ' + (err.message || 'please try again');
+      filAddBtn.textContent = isEditing ? 'Save changes' : 'Add filament';
+    } finally {
+      filAddBtn.disabled = false;
+    }
+  });
+
+  /* ---- Name modal ---- */
+  const nameOverlay = document.getElementById('name-overlay');
+  const nameInput = document.getElementById('name-input');
+  const nameMsg = document.getElementById('name-msg');
+
+  document.getElementById('my-name-btn').addEventListener('click', () => {
+    closeAllAdminModals();
+    nameInput.value = myDisplayName || '';
+    nameMsg.textContent = '';
+    nameOverlay.classList.add('open');
+  });
+  document.getElementById('name-close').addEventListener('click', () => nameOverlay.classList.remove('open'));
+  nameOverlay.addEventListener('click', (e) => { if (e.target === nameOverlay) nameOverlay.classList.remove('open'); });
+
+  document.getElementById('name-save').addEventListener('click', async () => {
+    const val = nameInput.value.trim();
+    if (!val){ nameMsg.textContent = 'Enter a name.'; return; }
+    const saveBtn = document.getElementById('name-save');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const { error } = await supabase.from('admin_profiles').upsert({
+      id: myUserId, email: session?.user?.email, display_name: val
+    });
+
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save name';
+
+    if (error){ nameMsg.textContent = 'Error: ' + error.message; return; }
+    myDisplayName = val;
+    nameMsg.textContent = 'Saved ✓';
+    setTimeout(() => nameOverlay.classList.remove('open'), 700);
+  });
+
+  /* ---- Admins modal ---- */
+  const adminsOverlay = document.getElementById('admins-overlay');
+  const adminsList = document.getElementById('admins-list');
+  const adminMsg = document.getElementById('admin-msg');
+  const adminAddBtn = document.getElementById('admin-add-btn');
+
+  document.getElementById('admins-btn').addEventListener('click', () => {
+    closeAllAdminModals();
+    adminsOverlay.classList.add('open');
+    loadAdmins();
+  });
+  document.getElementById('admins-close').addEventListener('click', () => adminsOverlay.classList.remove('open'));
+  adminsOverlay.addEventListener('click', (e) => { if (e.target === adminsOverlay) adminsOverlay.classList.remove('open'); });
+
+  async function loadAdmins(){
+    adminsList.innerHTML = '<div class="fil-empty">Loading…</div>';
+    const { data, error } = await supabase.from('admin_profiles').select('*').order('created_at', { ascending: true });
+    if (error){
+      adminsList.innerHTML = `<div class="fil-empty">Couldn't load admins: ${escapeHtml(error.message)}</div>`;
+      return;
+    }
+    if (!data || data.length === 0){
+      adminsList.innerHTML = '<div class="fil-empty">No admin profiles yet.</div>';
+      return;
+    }
+    adminsList.innerHTML = data.map(a => `
+      <div class="admin-row">
+        <div class="info">
+          <div class="name">${escapeHtml(a.display_name || 'Unnamed')} ${a.id === myUserId ? '<span class="you-badge">You</span>' : ''}</div>
+          <div class="email">${escapeHtml(a.email || '')}</div>
+        </div>
+        ${a.id === myUserId ? '' : `<button type="button" class="remove-admin-btn" data-remove="${a.id}" data-name="${escapeHtml(a.display_name || a.email || 'this admin')}">Remove</button>`}
+      </div>
+    `).join('');
+
+    adminsList.querySelectorAll('[data-remove]').forEach(btn => {
+      btn.addEventListener('click', () => removeAdmin(btn.dataset.remove, btn.dataset.name));
+    });
+  }
+
+  async function removeAdmin(id, name){
+    if (!confirm(`Remove ${name} from admin access? They'll no longer be able to sign in to this dashboard.\n\n(Their login will still exist in Supabase Auth — delete it there too if you want it fully gone.)`)) return;
+    const { error } = await supabase.from('admin_profiles').delete().eq('id', id);
+    if (error){
+      adminMsg.textContent = 'Error: ' + error.message;
+      return;
+    }
+    adminMsg.textContent = 'Removed ✓';
+    setTimeout(() => { if (adminMsg.textContent.startsWith('Removed')) adminMsg.textContent = ''; }, 3000);
+    loadAdmins();
+  }
+
+  adminAddBtn.addEventListener('click', async () => {
+    const email = document.getElementById('admin-email').value.trim();
+    const password = document.getElementById('admin-password').value;
+    if (!email || !password || password.length < 6){
+      adminMsg.textContent = 'Enter an email and a password of at least 6 characters.';
+      return;
+    }
+
+    adminAddBtn.disabled = true;
+    adminAddBtn.textContent = 'Adding…';
+    adminMsg.textContent = '';
+
+    try {
+      // Use a separate client instance so this sign-up doesn't disturb your
+      // own logged-in admin session.
+      const inviteClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+      const { data, error } = await inviteClient.auth.signUp({ email, password });
+      if (error) throw error;
+
+      const newId = data?.user?.id;
+      if (newId){
+        await supabase.from('admin_profiles').upsert({
+          id: newId, email, display_name: email.split('@')[0]
+        });
+      }
+
+      document.getElementById('admin-email').value = '';
+      document.getElementById('admin-password').value = '';
+      adminMsg.textContent = 'Added ✓ — they can sign in now.';
+      setTimeout(() => { if (adminMsg.textContent.startsWith('Added')) adminMsg.textContent = ''; }, 3000);
+      loadAdmins();
+
+    } catch (err){
+      adminMsg.textContent = 'Error: ' + (err.message || 'please try again');
+    } finally {
+      adminAddBtn.disabled = false;
+      adminAddBtn.textContent = 'Add admin';
+    }
+  });
+
+  checkSession();
 </script>
 
 </body>
