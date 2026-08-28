@@ -498,6 +498,18 @@
     cursor: pointer;
   }
   .chat-attach input{ position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .admin-chat-card{ max-width: 560px; display:flex; flex-direction:column; }
+  .admin-chat-messages{ max-height: 50vh; min-height: 200px; }
+  .chat-msg.mine{
+    align-self: flex-end;
+    background: var(--accent-dim);
+    border: 1px solid rgba(9,105,218,0.3);
+  }
+  .chat-msg.theirs{
+    align-self: flex-start;
+    background: var(--bg);
+    border: 1px solid rgba(31,35,40,0.12);
+  }
   .chat-send{
     background: var(--accent);
     color: #ffffff;
@@ -932,6 +944,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <a href="presets-admin.html"><span class="icon">🧩</span> Manage presets</a>
       <a href="quote.html" id="quote-builder-btn"><span class="icon">🧮</span> Quote builder</a>
       <button type="button" id="rates-btn"><span class="icon">⚙</span> Debug</button>
+      <button type="button" id="admin-chat-btn"><span class="icon">💬</span> Admin chat</button>
       <button type="button" id="my-name-btn"><span class="icon">🙋</span> Set your name</button>
       <button type="button" id="admins-btn"><span class="icon">👥</span> Manage admins</button>
     </nav>
@@ -1099,6 +1112,28 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   </div>
 </div>
 
+<!-- ADMIN CHAT MODAL -->
+<div id="admin-chat-overlay" class="modal-overlay">
+  <div class="modal-card admin-chat-card">
+    <div class="modal-head">
+      <h2>Admin chat</h2>
+      <button class="icon-btn" id="admin-chat-close">Close</button>
+    </div>
+    <p class="modal-sub">Visible to every admin. Not seen by customers.</p>
+    <div class="chat-messages admin-chat-messages" id="admin-chat-messages"><div class="chat-empty">Loading…</div></div>
+    <div class="chat-composer">
+      <textarea placeholder="Message the team…" id="admin-chat-body"></textarea>
+      <div class="chat-composer-row">
+        <label class="chat-attach">
+          <span id="admin-chat-attach-label">📎 Attach file</span>
+          <input type="file" id="admin-chat-attach" multiple>
+        </label>
+        <button class="chat-send" id="admin-chat-send">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
@@ -1226,6 +1261,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     document.getElementById('rates-overlay')?.classList.remove('open');
     document.getElementById('name-overlay')?.classList.remove('open');
     document.getElementById('admins-overlay')?.classList.remove('open');
+    document.getElementById('admin-chat-overlay')?.classList.remove('open');
+    if (window.stopAdminChatPoll) window.stopAdminChatPoll();
   }
 
   (function(){
@@ -1703,6 +1740,134 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       alert('Could not send: ' + (err.message || 'please try again'));
     }
   }
+
+  /* ---- Admin chat (team-wide, not tied to any order) ---- */
+  const ADMIN_CHAT_BUCKET = BUCKET;
+  const adminChatOverlay = document.getElementById('admin-chat-overlay');
+  const adminChatMessages = document.getElementById('admin-chat-messages');
+  const adminChatBody = document.getElementById('admin-chat-body');
+  const adminChatAttachInput = document.getElementById('admin-chat-attach');
+  const adminChatAttachLabel = document.getElementById('admin-chat-attach-label');
+  const adminChatSendBtn = document.getElementById('admin-chat-send');
+  let adminChatPollTimer = null;
+  let adminChatRenderCache = null;
+
+  document.getElementById('admin-chat-btn').addEventListener('click', () => {
+    closeAllAdminModals();
+    adminChatOverlay.classList.add('open');
+    loadAdminChat();
+    if (adminChatPollTimer) clearInterval(adminChatPollTimer);
+    adminChatPollTimer = setInterval(loadAdminChat, 3000);
+  });
+  function stopAdminChatPoll(){
+    if (adminChatPollTimer){ clearInterval(adminChatPollTimer); adminChatPollTimer = null; }
+  }
+  window.stopAdminChatPoll = stopAdminChatPoll;
+  document.getElementById('admin-chat-close').addEventListener('click', () => {
+    adminChatOverlay.classList.remove('open');
+    stopAdminChatPoll();
+  });
+  adminChatOverlay.addEventListener('click', (e) => {
+    if (e.target === adminChatOverlay){
+      adminChatOverlay.classList.remove('open');
+      stopAdminChatPoll();
+    }
+  });
+
+  adminChatAttachInput.addEventListener('change', () => {
+    const n = adminChatAttachInput.files.length;
+    adminChatAttachLabel.textContent = n === 0 ? '📎 Attach file'
+      : n === 1 ? `📎 ${adminChatAttachInput.files[0].name}`
+      : `📎 ${n} files`;
+  });
+
+  async function loadAdminChat(){
+    const { data, error } = await supabase
+      .from('admin_messages')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (error){
+      adminChatMessages.innerHTML = `<div class="chat-empty">Couldn't load messages: ${escapeHtml(error.message)}</div>`;
+      return;
+    }
+    if (!data || data.length === 0){
+      if (adminChatRenderCache !== 'empty'){
+        adminChatMessages.innerHTML = '<div class="chat-empty">No messages yet — say hi 👋</div>';
+        adminChatRenderCache = 'empty';
+      }
+      return;
+    }
+
+    const signature = JSON.stringify(data.map(m => [m.id, m.body, m.sender_id, m.sender_name, m.files, m.file_path]));
+    if (adminChatRenderCache === signature) return;
+    adminChatRenderCache = signature;
+
+    const wasNearBottom = adminChatMessages.scrollHeight - adminChatMessages.scrollTop - adminChatMessages.clientHeight < 40;
+
+    adminChatMessages.innerHTML = data.map(m => {
+      const mine = m.sender_id && m.sender_id === myUserId;
+      const fileLinks = (m.files && m.files.length > 0)
+        ? m.files
+        : (m.file_path ? [{ path: m.file_path, name: m.file_name }] : []);
+      return `
+      <div class="chat-msg ${mine ? 'mine' : 'theirs'}">
+        <div class="who">${mine ? 'You' : escapeHtml(m.sender_name || 'Admin')}</div>
+        ${m.body ? `<div>${escapeHtml(m.body)}</div>` : ''}
+        ${fileLinks.map(f => renderAttachment(publicFileUrl(f.path), f.name)).join('')}
+      </div>
+    `;
+    }).join('');
+
+    if (wasNearBottom){
+      adminChatMessages.scrollTop = adminChatMessages.scrollHeight;
+    }
+  }
+
+  async function sendAdminChatMessage(){
+    const body = adminChatBody.value.trim();
+    const files = Array.from(adminChatAttachInput.files);
+    if (!body && files.length === 0) return;
+
+    adminChatSendBtn.disabled = true;
+    try {
+      const uploaded = [];
+      for (const file of files){
+        const path = `admin-chat/${Date.now()}-${sanitizeFileName(file.name)}`;
+        const { error: upErr } = await supabase.storage.from(ADMIN_CHAT_BUCKET).upload(path, file);
+        if (upErr) throw upErr;
+        uploaded.push({ path, name: file.name });
+      }
+
+      const { error } = await supabase.from('admin_messages').insert({
+        sender_id: myUserId,
+        sender_name: myDisplayName || 'Admin',
+        body: body || null,
+        file_path: uploaded[0]?.path || null,
+        file_name: uploaded[0]?.name || null,
+        files: uploaded
+      });
+      if (error) throw error;
+
+      adminChatBody.value = '';
+      adminChatAttachInput.value = '';
+      adminChatAttachLabel.textContent = '📎 Attach file';
+      adminChatRenderCache = null; // force a fresh render since we just changed the data
+      loadAdminChat();
+
+    } catch (err){
+      alert('Could not send: ' + (err.message || 'please try again'));
+    } finally {
+      adminChatSendBtn.disabled = false;
+    }
+  }
+  adminChatSendBtn.addEventListener('click', sendAdminChatMessage);
+  adminChatBody.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey){
+      e.preventDefault();
+      sendAdminChatMessage();
+    }
+  });
 
   /* ---- Rates modal ---- */
   const ratesOverlay = document.getElementById('rates-overlay');
