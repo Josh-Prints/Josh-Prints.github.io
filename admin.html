@@ -522,6 +522,7 @@
     text-align: center;
     padding: 14px 0;
   }
+  .chat-retry{ color: var(--accent); }
   .chat-composer{ display: flex; flex-direction: column; gap: 8px; }
   .chat-composer textarea{
     width: 100%;
@@ -1873,16 +1874,51 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     return m.sender_name || 'Admin';
   }
 
+  function withTimeout(promise, ms = 10000){
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), ms))
+    ]);
+  }
+
   async function loadChat(orderId){
     const container = document.getElementById(`chat-messages-${orderId}`);
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('order_id', orderId)
-      .order('created_at', { ascending: true });
+    let data, error;
+    try {
+      ({ data, error } = await withTimeout(supabase
+        .from('messages')
+        .select('*')
+        .eq('order_id', orderId)
+        .order('created_at', { ascending: true })));
+    } catch (err){
+      // A thrown/rejected request (network hiccup, timeout, etc.) used to
+      // leave the "Loading…" placeholder stuck forever since nothing ever
+      // replaced it. Show a retry option instead, and let the next poll
+      // tick (or the button) try again.
+      if (chatRenderCache[orderId] !== 'error'){
+        container.innerHTML = `<div class="chat-empty">Couldn't load messages — <a href="#" class="chat-retry" data-id="${orderId}">retry</a></div>`;
+        chatRenderCache[orderId] = 'error';
+        container.querySelector('.chat-retry')?.addEventListener('click', (e) => {
+          e.preventDefault();
+          chatRenderCache[orderId] = null;
+          container.innerHTML = '<div class="chat-empty">Loading…</div>';
+          loadChat(orderId);
+        });
+      }
+      return;
+    }
 
     if (error){
-      container.innerHTML = `<div class="chat-empty">Couldn't load messages.</div>`;
+      if (chatRenderCache[orderId] !== 'error'){
+        container.innerHTML = `<div class="chat-empty">Couldn't load messages — <a href="#" class="chat-retry" data-id="${orderId}">retry</a></div>`;
+        chatRenderCache[orderId] = 'error';
+        container.querySelector('.chat-retry')?.addEventListener('click', (e) => {
+          e.preventDefault();
+          chatRenderCache[orderId] = null;
+          container.innerHTML = '<div class="chat-empty">Loading…</div>';
+          loadChat(orderId);
+        });
+      }
       return;
     }
     if (!data || data.length === 0){
