@@ -156,8 +156,62 @@
     border: 1px solid rgba(31,35,40,0.15);
     background: var(--bg-raised); color: var(--ink);
     font-size: 16px; cursor:pointer; line-height:1;
+    position: relative;
   }
   .hamburger-btn:hover{ background: var(--bg); }
+  .notif-dot{
+    position: absolute;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--bg-raised);
+    display: none;
+  }
+  .notif-dot.show{ display: block; }
+  .notif-dot.admin{ background: #d1242f; top: -3px; right: -3px; }
+  .notif-dot.job{ background: #bf5b04; top: -3px; left: -3px; }
+  .notif-dot.inline{
+    position: static;
+    display: none;
+    width: 8px; height: 8px;
+    margin-left: auto;
+    border: none;
+    flex-shrink: 0;
+  }
+  .notif-dot.inline.show{ display: inline-block; }
+  .chat-toggle{ position: relative; }
+  .chat-toggle .notif-dot.job{ top: -4px; left: auto; right: -4px; border-color: var(--bg-raised); }
+
+  .toast-stack{
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 320px;
+  }
+  .toast{
+    background: var(--bg-raised);
+    border: 1px solid rgba(31,35,40,0.12);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(31,35,40,0.16);
+    padding: 12px 14px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    animation: toastIn 0.3s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .toast.leaving{ animation: toastOut 0.25s ease both; }
+  .toast.admin{ border-left-color: #d1242f; }
+  .toast.job{ border-left-color: #bf5b04; }
+  .toast .toast-title{ font-weight: 600; margin-bottom: 2px; }
+  .toast.admin .toast-title{ color: #d1242f; }
+  .toast.job .toast-title{ color: #bf5b04; }
+  .toast .toast-body{ color: var(--ink-dim); font-size: 12.5px; line-height:1.4; }
+  @keyframes toastIn{ from{ opacity:0; transform: translateY(10px); } to{ opacity:1; transform: translateY(0); } }
+  @keyframes toastOut{ from{ opacity:1; transform: translateY(0); } to{ opacity:0; transform: translateY(6px); } }
 
   .sidebar-overlay{
     position: fixed; inset: 0; background: rgba(31,35,40,0.35);
@@ -929,7 +983,10 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     <div class="right">
       <button class="icon-btn" id="refresh-btn">Refresh</button>
       <button class="icon-btn" id="logout-btn">Sign out</button>
-      <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false">☰</button>
+      <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false">☰
+        <span class="notif-dot admin" id="menu-dot-admin"></span>
+        <span class="notif-dot job" id="menu-dot-job"></span>
+      </button>
     </div>
   </div>
   <div id="topbar-spacer"></div>
@@ -944,7 +1001,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <a href="presets-admin.html"><span class="icon">🧩</span> Manage presets</a>
       <a href="quote.html" id="quote-builder-btn"><span class="icon">🧮</span> Quote builder</a>
       <button type="button" id="rates-btn"><span class="icon">⚙</span> Debug</button>
-      <button type="button" id="admin-chat-btn"><span class="icon">💬</span> Admin chat</button>
+      <button type="button" id="admin-chat-btn"><span class="icon">💬</span> Admin chat<span class="notif-dot admin inline" id="sidebar-dot-admin"></span></button>
       <button type="button" id="my-name-btn"><span class="icon">🙋</span> Set your name</button>
       <button type="button" id="admins-btn"><span class="icon">👥</span> Manage admins</button>
     </nav>
@@ -1133,6 +1190,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     </div>
   </div>
 </div>
+
+<div class="toast-stack" id="toast-stack"></div>
 
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -1332,6 +1391,159 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     loginView.style.display = 'none';
     dashView.style.display = 'block';
     loadOrders();
+    startUnreadPolling();
+  }
+
+  /* ---- Unread notifications (admin chat + job messages) ---- */
+  const toastStack = document.getElementById('toast-stack');
+  const menuDotAdmin = document.getElementById('menu-dot-admin');
+  const menuDotJob = document.getElementById('menu-dot-job');
+  const sidebarDotAdmin = document.getElementById('sidebar-dot-admin');
+
+  const unreadJobOrders = new Set();
+  const toastedAdminIds = new Set();
+  const toastedJobIds = new Set();
+  const pageLoadedAt = new Date().toISOString();
+  let jobPollWatermark = pageLoadedAt;
+  let unreadPollTimer = null;
+
+  function lastReadKey(){ return `jp_admin_chat_last_read_${myUserId}`; }
+  function getAdminLastRead(){ return localStorage.getItem(lastReadKey()) || pageLoadedAt; }
+  function setAdminLastRead(ts){ localStorage.setItem(lastReadKey(), ts || new Date().toISOString()); }
+
+  function jobReadMapKey(){ return `jp_job_chat_last_read_${myUserId}`; }
+  function getJobReadMap(){
+    try { return JSON.parse(localStorage.getItem(jobReadMapKey()) || '{}'); }
+    catch { return {}; }
+  }
+  function setJobLastRead(orderId, ts){
+    const map = getJobReadMap();
+    map[orderId] = ts || new Date().toISOString();
+    localStorage.setItem(jobReadMapKey(), JSON.stringify(map));
+  }
+
+  function showToast(kind, title, body, onClick){
+    const el = document.createElement('div');
+    el.className = `toast ${kind}`;
+    el.innerHTML = `<div class="toast-title">${escapeHtml(title)}</div><div class="toast-body">${escapeHtml(body || '')}</div>`;
+    el.addEventListener('click', () => {
+      if (onClick) onClick();
+      dismissToast(el);
+    });
+    toastStack.appendChild(el);
+    setTimeout(() => dismissToast(el), 6000);
+  }
+  function dismissToast(el){
+    if (!el.isConnected || el.classList.contains('leaving')) return;
+    el.classList.add('leaving');
+    setTimeout(() => el.remove(), 250);
+  }
+
+  function updateMenuDots(){
+    menuDotAdmin.classList.toggle('show', unreadAdminChat);
+    menuDotJob.classList.toggle('show', unreadJobOrders.size > 0);
+  }
+  function updateSidebarAdminDot(){
+    sidebarDotAdmin.classList.toggle('show', unreadAdminChat);
+  }
+  function updateJobDot(orderId){
+    const dot = document.getElementById(`job-dot-${orderId}`);
+    if (dot) dot.classList.toggle('show', unreadJobOrders.has(orderId));
+  }
+  function refreshAllJobDots(){
+    unreadJobOrders.forEach(id => updateJobDot(id));
+  }
+
+  let unreadAdminChat = false;
+  function setUnreadAdminChat(val){
+    unreadAdminChat = val;
+    updateMenuDots();
+    updateSidebarAdminDot();
+  }
+
+  async function pollUnreadAdminChat(){
+    const since = getAdminLastRead();
+    const { data, error } = await supabase
+      .from('admin_messages')
+      .select('*')
+      .neq('sender_id', myUserId)
+      .gt('created_at', since)
+      .order('created_at', { ascending: true });
+    if (error || !data || data.length === 0) return;
+
+    const modalOpen = adminChatOverlay.classList.contains('open');
+    if (modalOpen){
+      // Being viewed live — nothing to flag, just move the watermark up.
+      setAdminLastRead(data[data.length - 1].created_at);
+      return;
+    }
+
+    setUnreadAdminChat(true);
+    const fresh = data.filter(m => !toastedAdminIds.has(m.id));
+    fresh.forEach(m => toastedAdminIds.add(m.id));
+    if (fresh.length > 0){
+      const latest = fresh[fresh.length - 1];
+      showToast(
+        'admin',
+        `${latest.sender_name || 'Admin'} · Admin chat`,
+        latest.body || (latest.file_name ? `📎 ${latest.file_name}` : 'New message'),
+        () => document.getElementById('admin-chat-btn').click()
+      );
+    }
+  }
+
+  async function pollUnreadJobMessages(){
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('sender', 'customer')
+      .gt('created_at', jobPollWatermark)
+      .order('created_at', { ascending: true });
+    if (error || !data || data.length === 0) return;
+
+    jobPollWatermark = data[data.length - 1].created_at;
+    const readMap = getJobReadMap();
+
+    data.forEach(m => {
+      const lastRead = readMap[m.order_id] || pageLoadedAt;
+      if (m.created_at <= lastRead) return; // this order's panel was open/read since this message
+
+      const panelOpen = openChatOrderId === m.order_id
+        && document.getElementById(`chat-panel-${m.order_id}`)?.classList.contains('open');
+      if (panelOpen){
+        setJobLastRead(m.order_id, m.created_at);
+        return;
+      }
+
+      unreadJobOrders.add(m.order_id);
+      updateJobDot(m.order_id);
+      updateMenuDots();
+
+      if (!toastedJobIds.has(m.id)){
+        toastedJobIds.add(m.id);
+        const order = currentOrders.find(o => o.id === m.order_id);
+        showToast(
+          'job',
+          `${order ? order.full_name : 'Customer'} · New message`,
+          m.body || (m.file_name ? `📎 ${m.file_name}` : 'Sent a file'),
+          () => {
+            const btn = ordersContainer.querySelector(`.chat-toggle[data-id="${m.order_id}"]`);
+            btn?.click();
+            btn?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        );
+      }
+    });
+  }
+
+  function startUnreadPolling(){
+    if (unreadPollTimer) return;
+    pollUnreadAdminChat();
+    pollUnreadJobMessages();
+    unreadPollTimer = setInterval(() => {
+      pollUnreadAdminChat();
+      pollUnreadJobMessages();
+    }, 6000);
   }
 
   loginForm.addEventListener('submit', async (e) => {
@@ -1358,6 +1570,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
   document.getElementById('logout-btn').addEventListener('click', async () => {
     await supabase.auth.signOut();
+    if (unreadPollTimer){ clearInterval(unreadPollTimer); unreadPollTimer = null; }
     showLogin();
   });
 
@@ -1453,7 +1666,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
           <input type="text" class="quote-input" placeholder="Quote $" data-id="${order.id}" value="${order.quote_amount ?? ''}">
           <button class="save-btn" data-id="${order.id}">Save</button>
           ${order.status !== 'cancelled' ? `<button class="cancel-order-btn" data-id="${order.id}">✕ Cancel order</button>` : ''}
-          <button class="chat-toggle" data-id="${order.id}">💬 Messages</button>
+          <button class="chat-toggle" data-id="${order.id}">💬 Messages<span class="notif-dot job" id="job-dot-${order.id}"></span></button>
           <button class="chat-toggle copy-link-btn" data-id="${order.id}">🔗 Copy link</button>
           ${order.deleted
             ? `<button class="chat-toggle restore-btn" data-id="${order.id}">♻️ Restore</button>`
@@ -1476,6 +1689,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       `;
       ordersContainer.appendChild(card);
     });
+    if (typeof refreshAllJobDots === 'function') refreshAllJobDots();
 
     // Copy link buttons
     ordersContainer.querySelectorAll('.copy-link-btn').forEach(btn => {
@@ -1525,8 +1739,15 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         if (panel.classList.contains('open')){
           openChatOrderId = id;
           loadChat(id);
+          setJobLastRead(id, new Date().toISOString());
+          unreadJobOrders.delete(id);
+          updateJobDot(id);
+          updateMenuDots();
           if (chatPollTimer) clearInterval(chatPollTimer);
-          chatPollTimer = setInterval(() => loadChat(id), 3000);
+          chatPollTimer = setInterval(() => {
+            loadChat(id);
+            setJobLastRead(id, new Date().toISOString());
+          }, 3000);
         } else if (openChatOrderId === id){
           openChatOrderId = null;
           if (chatPollTimer) clearInterval(chatPollTimer);
@@ -1755,6 +1976,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   document.getElementById('admin-chat-btn').addEventListener('click', () => {
     closeAllAdminModals();
     adminChatOverlay.classList.add('open');
+    setAdminLastRead(new Date().toISOString());
+    setUnreadAdminChat(false);
     loadAdminChat();
     if (adminChatPollTimer) clearInterval(adminChatPollTimer);
     adminChatPollTimer = setInterval(loadAdminChat, 3000);
