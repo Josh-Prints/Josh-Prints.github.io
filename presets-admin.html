@@ -36,7 +36,8 @@
   .login-card h1{ font-size:19px; margin:0 0 4px; display:flex; align-items:center; gap:8px; }
   .login-card h1 span{ color: var(--accent); }
   .logo-mark{ flex-shrink: 0; display:block; }
-  .logo-mark polygon{
+  .logo-loading{ flex-shrink: 0; display:block; }
+  .logo-loading polygon{
     transform-box: fill-box;
     transform-origin: center;
     animation: facetGrow 3.6s ease-in-out infinite backwards;
@@ -47,7 +48,6 @@
     80%  { transform: scale(1); }
     100% { transform: scale(0.55); }
   }
-  h1:hover .logo-mark polygon{ animation-duration: 1.8s; }
   .login-card .sub{ color: var(--ink-dim); font-size:13px; margin: 0 0 20px; }
   .login-card label{ display:block; font-size:13px; font-weight:600; margin: 12px 0 5px; }
   .login-card input{

@@ -59,7 +59,8 @@
   }
   .topbar .brand span{ color: var(--accent); }
   .logo-mark{ flex-shrink: 0; display:block; }
-  .logo-mark polygon{
+  .logo-loading{ flex-shrink: 0; display:block; }
+  .logo-loading polygon{
     transform-box: fill-box;
     transform-origin: center;
     animation: facetGrow 3.6s ease-in-out infinite backwards;
@@ -70,7 +71,6 @@
     80%  { transform: scale(1); }
     100% { transform: scale(0.55); }
   }
-  .topbar .brand:hover .logo-mark polygon{ animation-duration: 1.8s; }
   .topbar-links{ display:flex; align-items:center; gap:8px; }
   .topbar-links .btn-plain{
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -261,7 +261,7 @@
     border-color: var(--accent);
     background: linear-gradient(180deg, var(--accent-dim), transparent 60%);
   }
-  .fil-empty-note{ font-size: 13px; color: var(--ink-dim); }
+  .fil-empty-note{ font-size: 13px; color: var(--ink-dim); display:flex; align-items:center; gap:6px; }
 
   .dropzone{
     border: 1.5px dashed rgba(31,35,40,0.25);
@@ -615,7 +615,33 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     <div class="field">
       <label>Filament <span style="text-transform:none; letter-spacing:0;">(optional)</span></label>
       <div class="fil-picker" id="fil-picker">
-        <div class="fil-empty-note">Loading filaments…</div>
+        <div class="fil-empty-note"><svg class="logo-loading" width="13" height="13" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg"><polygon points="200,40.2 231.4,58.3 200,76.5 168.6,58.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.00s"/>
+      <polygon points="150.9,68.5 182.3,86.7 150.9,104.8 119.5,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
+      <polygon points="101.9,96.9 133.3,115 101.9,133.1 70.4,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="249.1,68.5 280.5,86.7 249.1,104.8 217.7,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
+      <polygon points="200,96.9 231.4,115 200,133.1 168.6,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="150.9,125.2 182.3,143.3 150.9,161.5 119.5,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="298.1,96.9 329.6,115 298.1,133.1 266.7,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="249.1,125.2 280.5,143.3 249.1,161.5 217.7,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="200,153.5 231.4,171.7 200,189.8 168.6,171.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="61.6,130.3 93,148.4 93,184.7 61.6,166.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="61.6,187 93,205.1 93,241.4 61.6,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="61.6,243.6 93,261.8 93,298 61.6,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="110.7,158.6 142.1,176.8 142.1,213 110.7,194.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="110.7,215.3 142.1,233.4 142.1,269.7 110.7,251.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="110.7,272 142.1,290.1 142.1,326.4 110.7,308.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="159.8,187 191.2,205.1 191.2,241.4 159.8,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="159.8,243.6 191.2,261.8 191.2,298 159.8,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="159.8,300.3 191.2,318.4 191.2,354.7 159.8,336.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
+      <polygon points="338.4,130.3 307,148.4 307,184.7 338.4,166.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="338.4,187 307,205.1 307,241.4 338.4,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="338.4,243.6 307,261.8 307,298 338.4,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="289.3,158.6 257.9,176.8 257.9,213 289.3,194.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="289.3,215.3 257.9,233.4 257.9,269.7 289.3,251.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="289.3,272 257.9,290.1 257.9,326.4 289.3,308.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="240.2,187 208.8,205.1 208.8,241.4 240.2,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/></svg>Loading filaments…</div>
       </div>
     </div>
 

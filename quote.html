@@ -49,7 +49,8 @@
     display: flex; align-items: center; gap: 6px;
   }
   .logo-mark{ flex-shrink: 0; display:block; }
-  .logo-mark polygon{
+  .logo-loading{ flex-shrink: 0; display:block; }
+  .logo-loading polygon{
     transform-box: fill-box;
     transform-origin: center;
     animation: facetGrow 3.6s ease-in-out infinite backwards;
@@ -60,7 +61,6 @@
     80%  { transform: scale(1); }
     100% { transform: scale(0.55); }
   }
-  .header-eyebrow:hover .logo-mark polygon{ animation-duration: 1.8s; }
   .header h1 {
     font-size: clamp(1.7rem, 5vw, 2.6rem);
     font-weight: 700; letter-spacing: -0.03em; line-height: 1.1;
