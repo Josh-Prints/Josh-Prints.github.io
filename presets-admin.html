@@ -57,7 +57,12 @@
   .login-card button{
     width:100%; margin-top:18px; padding:9px; background: var(--accent); color:#fff;
     border:none; border-radius:6px; font-weight:600; font-size:14px; cursor:pointer;
+    transition: background 0.15s, opacity 0.15s;
   }
+  .login-card button:hover:not(:disabled){ background:#0860ca; }
+  .login-card button:disabled{ opacity:0.65; cursor:default; }
+  .login-card input{ transition: border-color 0.15s, box-shadow 0.15s; }
+  .login-card input:focus{ outline:none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(9,105,218,0.14); }
   .login-err{ display:none; color: var(--err); font-size:12.5px; margin-top:10px; }
   .login-err.show{ display:block; }
 
@@ -83,6 +88,14 @@
   .page{ max-width: 900px; margin:0 auto; padding: 28px 24px 80px; }
 
   .grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap:16px; margin-top:20px; }
+  .grid-spinner{ grid-column:1/-1; display:flex; justify-content:center; padding:40px 0; }
+  .grid-spinner span{
+    width:22px; height:22px; border-radius:50%;
+    border:3px solid rgba(9,105,218,0.18); border-top-color: var(--accent);
+    animation: spin 0.7s linear infinite;
+  }
+  .grid-empty{ grid-column:1/-1; color: var(--ink-dim); font-size:13.5px; padding:20px 0; text-align:center; }
+  .grid-empty a{ color: var(--accent); }
   .tile{
     background: var(--bg-raised); border:1px solid rgba(31,35,40,0.12); border-radius:10px;
     overflow:hidden; opacity:0; transform: translateY(12px);
@@ -99,9 +112,11 @@
   .tile-actions button{
     flex:1; padding:6px; font-size:12.5px; border-radius:6px; cursor:pointer;
     border:1px solid rgba(31,35,40,0.15); background: var(--bg); color: var(--ink);
+    transition: background 0.15s, border-color 0.15s, transform 0.15s;
   }
   .tile-actions button.danger{ color: var(--err); }
-  .tile-actions button:hover{ background: #eef1f4; }
+  .tile-actions button:hover{ background: #eef1f4; transform: translateY(-1px); }
+  .tile-actions button:active{ transform: translateY(0) scale(0.96); }
   .tile-actions button.pin-btn.pinned{ color: #9a6700; border-color: rgba(154,103,0,0.4); background: rgba(154,103,0,0.08); }
   .tile.inactive{ opacity: 0.55; }
   .tile-badge{
@@ -129,7 +144,9 @@
   .field input, .field textarea{
     width:100%; padding:8px 11px; font-size:14px; border:1px solid rgba(31,35,40,0.18);
     border-radius:6px; font-family:inherit; background: var(--bg);
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
+  .field input:focus, .field textarea:focus{ outline:none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(9,105,218,0.14); }
   .field textarea{ min-height:70px; resize:vertical; }
   .field-row{ display:flex; align-items:center; gap:8px; }
   .img-preview{
@@ -210,7 +227,7 @@
       <input type="email" id="email" required autocomplete="username">
       <label for="password">Password</label>
       <input type="password" id="password" required autocomplete="current-password">
-      <button type="submit">Sign in</button>
+      <button type="submit" id="login-btn">Sign in</button>
       <div class="login-err" id="login-err"></div>
     </form>
   </div>
@@ -342,22 +359,38 @@
 
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const errEl = document.getElementById('login-err');
+    const loginBtn = document.getElementById('login-btn');
+    errEl.classList.remove('show');
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'Signing in…';
+
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
-    const errEl = document.getElementById('login-err');
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'Sign in';
+
     if (error){
       errEl.textContent = error.message;
       errEl.classList.add('show');
     } else {
-      errEl.classList.remove('show');
       showDashboard();
     }
   });
 
   async function loadPresets(){
+    gridEl.innerHTML = '<div class="grid-spinner"><span></span></div>';
     const { data, error } = await supabase.from('presets').select('*').order('created_at', { ascending:false });
-    if (error) return;
+    if (error){
+      // Leaving the grid stuck on its spinner forever is worse than a plain
+      // message — at least this tells the admin what happened and lets
+      // them retry without reloading the whole page.
+      gridEl.innerHTML = `<div class="grid-empty">Couldn't load presets: ${escapeHtml(error.message)} — <a href="#" id="presets-retry">retry</a></div>`;
+      document.getElementById('presets-retry')?.addEventListener('click', (e) => { e.preventDefault(); loadPresets(); });
+      return;
+    }
     presets = data || [];
     render();
   }

@@ -337,7 +337,7 @@
   </div>
 
   <div class="sidebar-overlay" id="sidebar-overlay"></div>
-  <div class="sidebar" id="sidebar" aria-hidden="true">
+  <div class="sidebar" id="sidebar" aria-hidden="true" inert>
     <div class="sidebar-head">
       <span>Menu</span>
       <button class="sidebar-close" id="sidebar-close" aria-label="Close menu">✕</button>
@@ -353,7 +353,7 @@
   <div class="hero">
     <div class="hero-eyebrow">Now taking orders</div>
     <h1>Custom 3D printing,<br>made to order.</h1>
-    <p>Founded by Joshua Paterson and co-owned with Kaisyn Hazer, in partnership with Oliver Horsfoll. Send a model or describe what you need. Get a quote back, track progress, and message me directly, start to finish.</p>
+    <p>Send a model or describe what you need. Get a quote back, track progress, and message me directly, start to finish.</p>
     <div class="hero-actions">
       <a class="btn btn-primary btn-lg" href="order-form.html">Start an order</a>
       <a class="btn btn-lg" href="browse.html">Browse presets</a>
@@ -407,12 +407,15 @@
       sidebar.classList.add('open');
       overlay.classList.add('open');
       sidebar.setAttribute('aria-hidden', 'false');
+      sidebar.removeAttribute('inert');
       btn.setAttribute('aria-expanded', 'true');
+      if (closeBtn) closeBtn.focus();
     }
     function closeSidebar(){
       sidebar.classList.remove('open');
       overlay.classList.remove('open');
       sidebar.setAttribute('aria-hidden', 'true');
+      sidebar.setAttribute('inert', '');
       btn.setAttribute('aria-expanded', 'false');
     }
 
@@ -420,10 +423,13 @@
       e.stopPropagation();
       sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
     });
-    overlay.addEventListener('click', closeSidebar);
-    closeBtn.addEventListener('click', closeSidebar);
+    overlay.addEventListener('click', () => { closeSidebar(); btn.focus(); });
+    closeBtn.addEventListener('click', () => { closeSidebar(); btn.focus(); });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeSidebar();
+      if (e.key === 'Escape' && sidebar.classList.contains('open')){
+        closeSidebar();
+        btn.focus();
+      }
     });
   })();
 
