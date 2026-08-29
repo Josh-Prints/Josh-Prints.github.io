@@ -88,7 +88,7 @@
     border-radius: 6px;
     color: var(--ink);
     padding: 11px 12px;
-    font-size: 14px;
+    font-size: 16px;
     margin-bottom: 16px;
     outline: none;
   }
@@ -386,7 +386,7 @@
     border-radius: 6px;
     padding: 7px 10px;
     font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
-    font-size: 12px;
+    font-size: 16px;
   }
   .quote-input{
     background: var(--bg);
@@ -395,7 +395,7 @@
     border-radius: 6px;
     padding: 7px 10px;
     font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
-    font-size: 12px;
+    font-size: 16px;
     width: 110px;
   }
   .save-btn{
@@ -550,7 +550,7 @@
     color: var(--ink);
     padding: 9px 11px;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
-    font-size: 13.5px;
+    font-size: 16px;
     resize: vertical;
     min-height: 46px;
   }
@@ -1006,7 +1006,12 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   select.status-select, .quote-input, .save-btn, .chat-toggle,
   .claim-btn, .unclaim-btn, .cancel-order-btn{
     padding: 9px 12px;
+  }
+  .save-btn, .chat-toggle, .claim-btn, .unclaim-btn, .cancel-order-btn{
     font-size: 12.5px;
+  }
+  select.status-select, .quote-input{
+    font-size: 16px;
   }
   .quote-input{ width: 90px; }
   .sort-select{ margin-left: 0; width: 100%; }
@@ -1339,7 +1344,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     <p class="modal-sub">Shown on jobs you claim, e.g. "Claimed by Josh".</p>
     <div class="modal-body">
       <label style="display:block; font-family: ui-monospace, monospace; font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:6px;">Display name</label>
-      <input type="text" id="name-input" placeholder="e.g. Josh" style="width:100%; background:var(--bg); border:1px solid rgba(31,35,40,0.18); border-radius:6px; color:var(--ink); padding:10px 12px; font-size:14px;">
+      <input type="text" id="name-input" placeholder="e.g. Josh" style="width:100%; background:var(--bg); border:1px solid rgba(31,35,40,0.18); border-radius:6px; color:var(--ink); padding:10px 12px; font-size:16px;">
     </div>
     <div class="modal-foot">
       <span id="name-msg"></span>
