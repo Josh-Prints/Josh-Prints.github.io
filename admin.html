@@ -963,6 +963,22 @@
     border-color: var(--accent);
     color: var(--accent);
   }
+  .discount-row{
+    display:flex; align-items:center; gap: 8px; margin-top: 8px;
+  }
+  .discount-badge{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px; padding: 4px 10px; border-radius: 20px;
+    background: rgba(154,103,0,0.1); border: 1px solid rgba(154,103,0,0.35);
+    color: var(--warn);
+  }
+  .discount-used-btn{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px; padding: 4px 10px; border-radius: 20px;
+    border: 1px solid rgba(var(--border-tint),0.18); background: var(--bg-raised);
+    color: var(--ink-dim); cursor:pointer;
+  }
+  .discount-used-btn:hover{ color: var(--ink); border-color: rgba(var(--border-tint),0.3); }
   .claim-btn, .unclaim-btn, .cancel-order-btn{
     font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 11.5px;
@@ -2108,6 +2124,11 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
             : `<span class="claim-badge">Unclaimed</span><button class="claim-btn" data-id="${order.id}">Claim job</button>`
           }
         </div>
+        ${order.signup_discount_snapshot ? `
+        <div class="discount-row">
+          <span class="discount-badge">🎉 Signup discount available (35% off, prints under 4hrs)</span>
+          <button type="button" class="discount-used-btn" data-discount-id="${order.id}" data-user-id="${order.user_id || ''}">Mark discount used</button>
+        </div>` : ''}
         ${order.filament_color ? `<div class="order-meta" style="margin-top:6px;">🧵 ${escapeHtml(order.filament_color)}${order.filament_type ? ' · ' + escapeHtml(order.filament_type) : ''}${order.filament_price_per_100g != null ? ` · $${Number(order.filament_price_per_100g).toFixed(2)}/100g` : ''}</div>` : ''}
         ${order.notes ? `<div class="order-notes">${escapeHtml(order.notes)}</div>` : ''}
         ${(() => {
@@ -2210,6 +2231,11 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     // Cancel order
     ordersContainer.querySelectorAll('.cancel-order-btn').forEach(btn => {
       btn.addEventListener('click', () => cancelOrder(btn.dataset.id));
+    });
+
+    // Mark signup discount as used
+    ordersContainer.querySelectorAll('.discount-used-btn').forEach(btn => {
+      btn.addEventListener('click', () => markDiscountUsed(btn.dataset.discountId, btn.dataset.userId));
     });
 
     // Chat toggles (exclude the copy-link/delete/restore buttons, which
@@ -2335,6 +2361,19 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     if (error){ alert('Could not update: ' + error.message); return; }
     const idx = currentOrders.findIndex(o => o.id === id);
     if (idx > -1) currentOrders[idx].status = 'cancelled';
+    renderOrders();
+  }
+
+  async function markDiscountUsed(orderId, userId){
+    if (!confirm('Mark this account\'s signup discount as used? They will no longer see it as available.')) return;
+    const { error: orderErr } = await supabase.from('orders').update({ signup_discount_snapshot: false }).eq('id', orderId);
+    if (orderErr){ alert('Could not update: ' + orderErr.message); return; }
+    if (userId){
+      const { error: profileErr } = await supabase.from('customer_profiles').update({ discount_available: false }).eq('id', userId);
+      if (profileErr){ alert('Order updated, but could not update the customer profile: ' + profileErr.message); }
+    }
+    const idx = currentOrders.findIndex(o => o.id === orderId);
+    if (idx > -1) currentOrders[idx].signup_discount_snapshot = false;
     renderOrders();
   }
 

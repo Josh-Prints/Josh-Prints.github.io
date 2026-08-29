@@ -138,6 +138,49 @@
   }
   .menu-dropdown a:hover{ background: var(--bg); }
   .menu-dropdown-divider{ height:1px; background: rgba(var(--border-tint),0.10); margin: 6px 4px; }
+  .google-btn{
+    display:flex; align-items:center; gap:10px; width:100%; box-sizing:border-box;
+    padding: 9px 12px; border-radius: 6px; border: none; background: none;
+    color: var(--ink); font-size: 14px; font-weight: 500;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    cursor:pointer; transition: background 0.15s;
+  }
+  .google-btn:hover{ background: var(--bg); }
+  .google-btn svg{ flex-shrink:0; }
+  .account-chip{
+    display:none; align-items:center; gap:10px; padding: 9px 12px;
+  }
+  .account-chip img{ width:24px; height:24px; border-radius:50%; flex-shrink:0; background: var(--bg); }
+  .account-chip .name{ font-size:14px; font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .account-signout-btn{
+    background:none; border:none; color: var(--ink-dim); font-size:12px; cursor:pointer;
+    text-decoration:underline; padding:0; font-family:inherit;
+  }
+  .account-modal-overlay{
+    position: fixed; inset:0; background: rgba(31,35,40,0.4);
+    display:flex; align-items:center; justify-content:center; padding: 20px;
+    z-index: 200; opacity:0; visibility:hidden; transition: opacity 0.2s ease, visibility 0.2s;
+  }
+  .account-modal-overlay.open{ opacity:1; visibility:visible; }
+  .account-modal{
+    background: var(--bg-raised); border-radius:12px; max-width: 340px; width:100%;
+    padding: 24px; transform: scale(0.94); transition: transform 0.25s cubic-bezier(0.22,1,0.36,1);
+  }
+  .account-modal-overlay.open .account-modal{ transform: scale(1); }
+  .account-modal h3{ margin: 0 0 6px; font-size:17px; color: var(--ink); }
+  .account-modal p{ margin: 0 0 14px; font-size:13px; color: var(--ink-dim); }
+  .account-modal input{
+    width:100%; box-sizing:border-box; padding: 9px 12px; font-size:16px;
+    border:1px solid rgba(var(--border-tint),0.18); border-radius:6px; font-family:inherit;
+    background: var(--bg); color: var(--ink); margin-bottom:14px;
+  }
+  .account-modal input:focus{ outline:none; border-color:var(--accent); }
+  .discount-banner{
+    display:none; align-items:center; gap:8px; padding: 10px 14px; margin-bottom: 18px;
+    background: rgba(26,127,55,0.1); border: 1px solid rgba(26,127,55,0.3);
+    border-radius: 8px; font-size: 13px; color: var(--ok);
+  }
+  .discount-banner.show{ display:flex; animation: fadeInUp 0.3s ease both; }
   .theme-row{
     display:flex; align-items:center; justify-content:space-between;
     padding: 9px 12px; font-size: 14px; font-weight: 500; color: var(--ink);
@@ -731,7 +774,17 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       <div class="menu-dropdown" id="menu-dropdown">
         <a href="index.html">Home</a>
         <a href="estimate.html">Estimate cost</a>
-        <a href="order.html">Track an order</a>
+        <a href="order.html" id="my-orders-link">Track an order</a>
+        <div class="menu-dropdown-divider"></div>
+        <button type="button" class="google-btn" id="google-signin-btn">
+          <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
+          Sign in with Google
+        </button>
+        <div class="account-chip" id="account-chip">
+          <img id="account-avatar" alt="">
+          <span class="name" id="account-name"></span>
+          <button type="button" class="account-signout-btn" id="account-signout-btn">Sign out</button>
+        </div>
         <div class="menu-dropdown-divider"></div>
         <div class="theme-row">
           <span>🌙 Dark mode</span>
@@ -739,6 +792,15 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<div class="account-modal-overlay" id="account-name-overlay">
+  <div class="account-modal">
+    <h3>Welcome!</h3>
+    <p>What's your name? We'll use this on your orders.</p>
+    <input type="text" id="account-name-input" placeholder="Full name">
+    <button type="button" class="btn-primary" id="account-name-save" style="width:100%; justify-content:center; display:flex; align-items:center; cursor:pointer; padding: 9px 14px; border-radius:7px; border:none; font-weight:600; font-size:14px;">Continue</button>
   </div>
 </div>
 
@@ -833,6 +895,8 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       <div class="hint">No file to hand? Leave this blank, it's only needed for Custom Print.</div>
     </div>
 
+    <div class="discount-banner" id="discount-banner">🎉 You have 35% off your next order under 4 hours — I'll apply it to your quote.</div>
+
     <button type="submit" id="submit-btn">
       <span class="progress-fill" id="progress-fill"></span>
       <span class="btn-label" id="btn-label">Send order</span>
@@ -878,6 +942,9 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
 
   let selectedFiles = [];
   let filaments = [];
+  let currentUser = null;
+  let currentProfileName = '';
+  let currentDiscountAvailable = false;
   let selectedFilament = null;
 
   function escapeHtml(str){
@@ -1045,8 +1112,10 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
     statusEl.classList.remove('show');
     clearFieldErrors();
 
-    const fullName = document.getElementById('full_name').value.trim();
-    const email = document.getElementById('email').value.trim();
+    const fullName = currentUser
+      ? (currentProfileName || currentUser.email || '')
+      : document.getElementById('full_name').value.trim();
+    const email = currentUser ? currentUser.email : document.getElementById('email').value.trim();
     const orderTypeInput = form.querySelector('input[name="order_type"]:checked');
     const notes = document.getElementById('notes').value.trim();
 
@@ -1121,7 +1190,9 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
           filament_id: selectedFilament ? selectedFilament.id : null,
           filament_color: selectedFilament ? selectedFilament.color_name : null,
           filament_type: selectedFilament ? selectedFilament.type : null,
-          filament_price_per_100g: selectedFilament ? selectedFilament.price_per_100g : null
+          filament_price_per_100g: selectedFilament ? selectedFilament.price_per_100g : null,
+          user_id: currentUser ? currentUser.id : null,
+          signup_discount_snapshot: currentDiscountAvailable
         });
 
       if (insertError) throw insertError;
@@ -1158,6 +1229,97 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       setTimeout(() => setBusy(false), 500);
     }
   });
+
+  // ---- customer account (Google sign-in) ----
+  (function(){
+    const signInBtn = document.getElementById('google-signin-btn');
+    if (!signInBtn) return;
+    const accountChip = document.getElementById('account-chip');
+    const accountName = document.getElementById('account-name');
+    const accountAvatar = document.getElementById('account-avatar');
+    const signOutBtn = document.getElementById('account-signout-btn');
+    const myOrdersLink = document.getElementById('my-orders-link');
+    const nameOverlay = document.getElementById('account-name-overlay');
+    const nameInput = document.getElementById('account-name-input');
+    const nameSaveBtn = document.getElementById('account-name-save');
+    const fieldFullName = document.getElementById('field-full_name');
+    const fieldEmail = document.getElementById('field-email');
+    const discountBanner = document.getElementById('discount-banner');
+
+    let pendingUser = null;
+
+    function renderSignedOut(){
+      signInBtn.style.display = 'flex';
+      accountChip.style.display = 'none';
+      if (myOrdersLink) myOrdersLink.textContent = 'Track an order';
+      fieldFullName.style.display = '';
+      fieldEmail.style.display = '';
+      document.getElementById('full_name').required = true;
+      document.getElementById('email').required = true;
+      discountBanner.classList.remove('show');
+      currentUser = null;
+      currentProfileName = '';
+      currentDiscountAvailable = false;
+    }
+    function renderSignedIn(user, profile){
+      currentUser = user;
+      currentProfileName = profile?.full_name || '';
+      currentDiscountAvailable = !!profile?.discount_available;
+
+      signInBtn.style.display = 'none';
+      accountChip.style.display = 'flex';
+      accountName.textContent = (currentProfileName || user.email || '').split(' ')[0];
+      accountAvatar.src = user.user_metadata?.avatar_url || '';
+      if (myOrdersLink) myOrdersLink.textContent = 'My orders';
+
+      fieldFullName.style.display = 'none';
+      fieldEmail.style.display = 'none';
+      document.getElementById('full_name').required = false;
+      document.getElementById('email').required = false;
+
+      discountBanner.classList.toggle('show', currentDiscountAvailable);
+    }
+
+    async function ensureProfile(user){
+      const { data: profile } = await supabase.from('customer_profiles').select('*').eq('id', user.id).maybeSingle();
+      if (profile) return profile;
+      pendingUser = user;
+      nameInput.value = user.user_metadata?.full_name || '';
+      nameOverlay.classList.add('open');
+      return null;
+    }
+
+    nameSaveBtn.addEventListener('click', async () => {
+      const name = nameInput.value.trim();
+      if (!name || !pendingUser) return;
+      const { error } = await supabase.from('customer_profiles').insert({
+        id: pendingUser.id, email: pendingUser.email, full_name: name,
+        avatar_url: pendingUser.user_metadata?.avatar_url || null
+      });
+      if (!error){
+        nameOverlay.classList.remove('open');
+        renderSignedIn(pendingUser, { full_name: name, discount_available: true });
+      }
+    });
+
+    signInBtn.addEventListener('click', () => {
+      supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+    });
+    signOutBtn.addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      renderSignedOut();
+    });
+
+    (async function init(){
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session){
+        const profile = await ensureProfile(session.user);
+        if (profile) renderSignedIn(session.user, profile);
+      } else {
+        renderSignedOut();
+      }
+    })();
+  })();
 </script>
 
 <script>
