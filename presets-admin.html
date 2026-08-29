@@ -468,9 +468,27 @@
     return name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
   }
 
+  // Being signed in is not enough to see this dashboard — customers can
+  // hold a Supabase session too (Google sign-in), so confirm the account
+  // is an actual admin before showing anything.
+  async function isAdmin(userId){
+    const { data } = await supabase
+      .from('admin_profiles')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
+    return !!data;
+  }
+
   async function checkSession(){
     const { data: { session } } = await supabase.auth.getSession();
-    if (session){ showDashboard(); } else { showLogin(); }
+    if (!session){ showLogin(); return; }
+    if (await isAdmin(session.user.id)){
+      showDashboard();
+    } else {
+      await supabase.auth.signOut();
+      showLogin();
+    }
   }
   function showLogin(){ loginView.style.display = 'flex'; dashView.style.display = 'none'; }
   function showDashboard(){ loginView.style.display = 'none'; dashView.style.display = 'block'; loadPresets(); }
@@ -485,7 +503,7 @@
 
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     loginBtn.disabled = false;
     loginBtn.textContent = 'Sign in';
@@ -493,8 +511,15 @@
     if (error){
       errEl.textContent = error.message;
       errEl.classList.add('show');
-    } else {
+      return;
+    }
+
+    if (await isAdmin(data.session.user.id)){
       showDashboard();
+    } else {
+      await supabase.auth.signOut();
+      errEl.textContent = 'This account is not an approved admin.';
+      errEl.classList.add('show');
     }
   });
 
