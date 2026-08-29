@@ -270,6 +270,48 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 .in-view{ opacity: 1 !important; transform: none !important; }
 [data-reveal]{ opacity: 0; transform: translateY(14px); transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.22,1,0.36,1); }
 /* ================= end animation kit ================= */
+
+/* ---- quote.html: extra motion pass ---- */
+@keyframes valueFlash{
+  0%{ color: var(--accent); transform: scale(1.08); }
+  100%{ color: inherit; transform: scale(1); }
+}
+@keyframes totalFlash{
+  0%{ text-shadow: 0 0 12px rgba(26,127,55,0.55); transform: scale(1.05); }
+  100%{ text-shadow: none; transform: scale(1); }
+}
+
+.header{ animation: fadeInDown 0.5s ease both; }
+.cost-bar-wrap{ animation: fadeInUp 0.45s ease 0.06s both; }
+.layout .card, .breakdown-card{ animation: fadeInUp 0.5s cubic-bezier(0.22,1,0.36,1) both; }
+.layout .card:nth-of-type(1){ animation-delay: 0.10s; }
+.layout .card:nth-of-type(2){ animation-delay: 0.16s; }
+.layout .card:nth-of-type(3){ animation-delay: 0.22s; }
+.breakdown-card{ animation-delay: 0.28s; }
+
+.bd-value{ display: inline-block; transition: color 0.15s ease; }
+.bd-value.flash{ animation: valueFlash 0.4s ease; }
+.total-value{ display: inline-block; }
+.total-value.flash{ animation: totalFlash 0.5s ease; }
+.cost-bar-total-preview.flash{ animation: valueFlash 0.4s ease; }
+
+.breakdown-row{ transition: opacity 0.2s ease, background 0.2s ease, transform 0.15s ease; }
+.breakdown-row:not(.dimmed):hover{ transform: translateX(2px); }
+
+input[type="range"]::-webkit-slider-thumb{ transition: box-shadow 0.15s, transform 0.1s ease; }
+input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
+.num-input, .rate-input, .text-field, .extra-reason, .extra-amount{ transition: border-color 0.15s ease, transform 0.12s ease; }
+.rate-input-wrap:focus-within, .text-field:focus, .extra-amount-wrap:focus-within{ transform: translateY(-1px); }
+
+.extra-row{ animation: fadeInUp 0.3s ease both; }
+.surcharge-note{ transition: background 0.2s ease; }
+
+@media (prefers-reduced-motion: reduce){
+  .header, .cost-bar-wrap, .layout .card, .breakdown-card, .bd-value.flash, .total-value.flash,
+  .cost-bar-total-preview.flash, .extra-row{
+    animation-duration: 0.001ms !important;
+  }
+}
 </style>
 </head>
 <body>
@@ -725,6 +767,19 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     return extraItems.reduce((sum, i) => sum + i.amount, 0);
   }
 
+  /* briefly flash an element when the text it's about to receive differs
+     from what it currently shows, so recalculated numbers feel alive
+     rather than snapping silently */
+  function setTextFlash(elm, text) {
+    if (elm.textContent !== text) {
+      elm.textContent = text;
+      elm.classList.remove('flash');
+      // force reflow so the animation restarts even on rapid successive changes
+      void elm.offsetWidth;
+      elm.classList.add('flash');
+    }
+  }
+
   function recalc() {
     const { modelHrs, printHrs, filGrams, rate, printRate, baseFee, filPerKg, surAmt, surThresh } = state;
     const modelCost = modelHrs * rate;
@@ -735,12 +790,12 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     const xtraCost  = extraTotal();
     const total     = modelCost + printCost + filCost + surCost + xtraCost;
 
-    el('valModel').textContent  = fmt(modelCost);
-    el('valPrint').textContent  = fmt(printCost);
-    el('valFil').textContent    = fmt(filCost);
-    el('valSur').textContent    = fmt(surCost);
-    el('totalVal').textContent  = fmtTotal(total);
-    el('barTotal').textContent  = fmtTotal(total);
+    setTextFlash(el('valModel'), fmt(modelCost));
+    setTextFlash(el('valPrint'), fmt(printCost));
+    setTextFlash(el('valFil'),   fmt(filCost));
+    setTextFlash(el('valSur'),   fmt(surCost));
+    setTextFlash(el('totalVal'), fmtTotal(total));
+    setTextFlash(el('barTotal'), fmtTotal(total));
 
     el('formulaModel').textContent = `${fmtHM(modelHrs)} × $${rate}/hr`;
     el('formulaPrint').textContent = `$${baseFee} + ${fmtHM(printHrs)}^1.4 × $${printRate}`;

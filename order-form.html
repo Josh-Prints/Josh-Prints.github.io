@@ -542,6 +542,99 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 .in-view{ opacity: 1 !important; transform: none !important; }
 [data-reveal]{ opacity: 0; transform: translateY(14px); transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.22,1,0.36,1); }
 /* ================= end animation kit ================= */
+
+/* ---- order-form: extra motion pass ---- */
+@keyframes spin{ to{ transform: rotate(360deg); } }
+@keyframes confettiFall{
+  0%{ transform: translateY(-6px) rotate(0deg); opacity:1; }
+  100%{ transform: translateY(70px) rotate(340deg); opacity:0; }
+}
+
+header{ animation: fadeInDown 0.5s ease both; }
+header .eyebrow{ animation: fadeInDown 0.45s ease both; }
+header h1{ animation: fadeInUp 0.5s ease 0.05s both; }
+header .lede{ animation: fadeInUp 0.5s ease 0.1s both; }
+
+form{ animation: fadeInUp 0.55s cubic-bezier(0.22,1,0.36,1) 0.08s both; }
+
+/* cascading field entrance */
+.field{ animation: fadeInUp 0.45s cubic-bezier(0.22,1,0.36,1) both; }
+.field:nth-of-type(1){ animation-delay: 0.10s; }
+.field:nth-of-type(2){ animation-delay: 0.16s; }
+.field:nth-of-type(3){ animation-delay: 0.22s; }
+.field:nth-of-type(4){ animation-delay: 0.28s; }
+.field:nth-of-type(5){ animation-delay: 0.34s; }
+.field:nth-of-type(6){ animation-delay: 0.40s; }
+
+label{ transition: color 0.2s ease; }
+.field:focus-within label{ color: var(--accent); }
+
+input[type="text"], textarea, select{
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+input[type="text"]:focus, textarea:focus, select:focus{
+  transform: translateY(-1px);
+}
+
+.order-type .card, .fil-opt .card{ transition: border-color .15s ease, background .15s ease, transform .15s ease; }
+.order-type:hover .card, .fil-opt:hover .card{ transform: translateY(-2px); }
+
+.fil-opt{ animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both; }
+.fil-opt:nth-child(1){ animation-delay: 0.02s; }
+.fil-opt:nth-child(2){ animation-delay: 0.06s; }
+.fil-opt:nth-child(3){ animation-delay: 0.10s; }
+.fil-opt:nth-child(4){ animation-delay: 0.14s; }
+.fil-opt:nth-child(5){ animation-delay: 0.18s; }
+.fil-opt:nth-child(6){ animation-delay: 0.22s; }
+
+/* progress fill: smoother visual transition, plus indeterminate shimmer while sending */
+.progress-fill{ transition: width .45s cubic-bezier(0.22,1,0.36,1); }
+.progress-fill.indeterminate{
+  width: 40% !important;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+  animation: shimmerSlide 1.1s ease-in-out infinite;
+}
+@keyframes shimmerSlide{
+  0%{ transform: translateX(-120%); }
+  100%{ transform: translateX(220%); }
+}
+
+.spinner{
+  display: inline-block;
+  width: 13px; height: 13px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  vertical-align: -2px;
+  margin-right: 7px;
+  animation: spin 0.7s linear infinite;
+}
+
+button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; }
+@keyframes pulseSoft{ 0%,100%{ filter: grayscale(0.3) brightness(0.9); } 50%{ filter: grayscale(0.15) brightness(0.98); } }
+
+.success-panel .check{ position: relative; }
+.confetti-piece{
+  position: absolute;
+  top: 40%; left: 50%;
+  width: 5px; height: 9px;
+  border-radius: 1px;
+  pointer-events: none;
+  animation: confettiFall 0.9s ease-out both;
+}
+
+.status{ transition: opacity 0.2s ease; }
+.link-box{ animation: fadeInUp 0.4s ease 0.25s both; }
+.view-order-btn{ animation: fadeInUp 0.4s ease 0.32s both; }
+
+@media (prefers-reduced-motion: reduce){
+  .fil-opt, .field, header, header *, form, .status.show, .link-box, .view-order-btn, .success-panel .check{
+    animation-duration: 0.001ms !important;
+  }
+  .confetti-piece{ display:none !important; }
+  .progress-fill.indeterminate{ animation: none !important; }
+  .spinner{ animation-duration: 0.7s !important; }
+}
 </style>
 </head>
 <body>
@@ -822,11 +915,31 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   function setBusy(isBusy, pct){
     submitBtn.disabled = isBusy;
     if (isBusy){
+      progressFill.classList.remove('indeterminate');
       progressFill.style.width = (pct ?? 0) + '%';
-      btnLabel.textContent = pct == null ? 'Sending…' : `Printing order… ${pct}%`;
+      btnLabel.innerHTML = pct == null
+        ? '<span class="spinner"></span>Sending…'
+        : `<span class="spinner"></span>Printing order… ${pct}%`;
     } else {
+      progressFill.classList.remove('indeterminate');
       progressFill.style.width = '0%';
       btnLabel.textContent = 'Send order';
+    }
+  }
+
+  function spawnConfetti(){
+    const check = document.querySelector('.success-panel .check');
+    if (!check) return;
+    const colors = ['#1a7f37', '#0969da', '#f0b429', '#cf222e'];
+    for (let i = 0; i < 14; i++){
+      const piece = document.createElement('span');
+      piece.className = 'confetti-piece';
+      piece.style.background = colors[i % colors.length];
+      piece.style.left = (35 + Math.random() * 30) + '%';
+      piece.style.animationDelay = (Math.random() * 0.15) + 's';
+      piece.style.transform = `rotate(${Math.random()*360}deg)`;
+      check.appendChild(piece);
+      setTimeout(() => piece.remove(), 1200);
     }
   }
 
@@ -913,8 +1026,13 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       let fileName = null;
       const uploadedFiles = [];
 
-      for (const file of selectedFiles){
+      for (let i = 0; i < selectedFiles.length; i++){
+        const file = selectedFiles[i];
         const path = `${orderId}/${sanitizeFileName(file.name)}`;
+        // Interpolate the visible progress across the 10→40 upload band so the
+        // bar glides smoothly (via the CSS width transition) instead of jumping.
+        const bandStart = 10, bandEnd = 40;
+        setBusy(true, Math.round(bandStart + (bandEnd - bandStart) * (i / selectedFiles.length)));
         const { error: uploadError } = await supabase
           .storage
           .from(BUCKET)
@@ -971,6 +1089,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       successPanel.classList.add('show');
       successPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
       document.getElementById('success-heading').focus();
+      setTimeout(spawnConfetti, 350);
 
     } catch (err) {
       console.error(err);
