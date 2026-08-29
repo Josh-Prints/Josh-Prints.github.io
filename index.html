@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JoshPrints</title>
@@ -16,6 +17,33 @@
     --accent: #0969da;
     --accent-emphasis: #0550ae;
     --btn-primary-hover: #0860ca;
+    --btn-hover-bg: #f3f4f6;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --canvas: #0d1117;
+      --canvas-inset: #161b22;
+      --border: #30363d;
+      --border-muted: #21262d;
+      --fg: #e6edf3;
+      --fg-muted: #8b949e;
+      --accent: #4493f8;
+      --accent-emphasis: #79c0ff;
+      --btn-primary-hover: #5aa6ff;
+      --btn-hover-bg: #21262d;
+    }
+  }
+  :root[data-theme="dark"]{
+    --canvas: #0d1117;
+    --canvas-inset: #161b22;
+    --border: #30363d;
+    --border-muted: #21262d;
+    --fg: #e6edf3;
+    --fg-muted: #8b949e;
+    --accent: #4493f8;
+    --accent-emphasis: #79c0ff;
+    --btn-primary-hover: #5aa6ff;
+    --btn-hover-bg: #21262d;
   }
   *{ box-sizing: border-box; }
   html{ -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
@@ -82,10 +110,10 @@
   .hamburger-btn{
     display:inline-flex; align-items:center; justify-content:center;
     width: 34px; height: 34px; border-radius: 6px;
-    border: 1px solid var(--border); background: #f6f8fa;
+    border: 1px solid var(--border); background: var(--canvas-inset);
     color: var(--fg); font-size: 16px; cursor:pointer; line-height:1;
   }
-  .hamburger-btn:hover{ background:#f3f4f6; border-color: var(--border-muted); }
+  .hamburger-btn:hover{ background: var(--btn-hover-bg); border-color: var(--border-muted); }
   .hamburger-btn{ transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), background 0.2s, border-color 0.2s; }
   .hamburger-btn:hover{ transform: rotate(90deg); }
   .hamburger-btn[aria-expanded="true"]{ transform: rotate(90deg); }
@@ -140,6 +168,23 @@
   .sidebar.open nav a:nth-child(2){ animation-delay: 0.1s; }
   .sidebar.open nav a:nth-child(3){ animation-delay: 0.15s; }
   .sidebar.open nav a:nth-child(4){ animation-delay: 0.2s; }
+  .theme-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 11px 12px; margin-top: 8px; border-top: 1px solid var(--border-muted);
+    font-size: 14.5px; font-weight: 500; color: var(--fg);
+  }
+  .theme-switch{
+    position:relative; width:38px; height:22px; border-radius:11px; flex-shrink:0;
+    background: var(--border); border:1px solid var(--border-muted);
+    cursor:pointer; padding:0; transition: background 0.2s ease, border-color 0.2s ease;
+  }
+  .theme-switch .thumb{
+    position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%;
+    background:#fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .theme-switch[aria-checked="true"]{ background: var(--accent); border-color: var(--accent); }
+  .theme-switch[aria-checked="true"] .thumb{ transform: translateX(16px); }
   .btn{
     display: inline-flex;
     align-items: center;
@@ -151,13 +196,13 @@
     line-height: 20px;
     border-radius: 6px;
     border: 1px solid var(--border);
-    background: #f6f8fa;
+    background: var(--canvas-inset);
     color: var(--fg);
     text-decoration: none;
     cursor: pointer;
     transition: background 0.2s, border-color 0.2s, transform 0.15s ease, box-shadow 0.2s;
   }
-  .btn:hover{ background: #f3f4f6; border-color: var(--border-muted); transform: translateY(-1px); box-shadow: 0 3px 10px rgba(31,35,40,0.08); }
+  .btn:hover{ background: var(--btn-hover-bg); border-color: var(--border-muted); transform: translateY(-1px); box-shadow: 0 3px 10px rgba(31,35,40,0.08); }
   .btn:active{ transform: translateY(0) scale(0.97); }
   .btn-primary{
     background: var(--accent);
@@ -385,6 +430,10 @@
       <a href="order-form.html"><span class="icon">✎</span> Start a custom order</a>
       <a href="order.html"><span class="icon">📦</span> Track an order</a>
     </nav>
+    <div class="theme-row">
+      <span>🌙 Dark mode</span>
+      <button type="button" class="theme-switch" id="theme-switch" role="switch" aria-checked="false" aria-label="Toggle dark mode"><span class="thumb"></span></button>
+    </div>
   </div>
 
   <div class="hero">
@@ -479,6 +528,26 @@
         btn.focus();
       }
     });
+  })();
+
+  (function(){
+    const toggle = document.getElementById('theme-switch');
+    if (!toggle) return;
+    function currentTheme(){
+      const explicit = localStorage.getItem('theme');
+      if (explicit) return explicit;
+      return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    function applyTheme(mode){
+      toggle.setAttribute('aria-checked', String(mode === 'dark'));
+    }
+    toggle.addEventListener('click', () => {
+      const next = currentTheme() === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', next);
+      document.documentElement.setAttribute('data-theme', next);
+      applyTheme(next);
+    });
+    applyTheme(currentTheme());
   })();
 
   (function(){

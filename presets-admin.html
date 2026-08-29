@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Manage presets — JoshPrints Admin</title>
@@ -14,7 +15,39 @@
     --accent: #0969da;
     --err: #cf222e;
     --ok: #1a7f37;
+    --btn-hover-bg: #eef1f4;
+    --btn-primary-hover: #0860ca;
+    --warn: #9a6700;
+    --border-tint: 31,35,40;
     --radius: 8px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg: #0d1117;
+      --bg-raised: #161b22;
+      --ink: #e6edf3;
+      --ink-dim: #8b949e;
+      --accent: #4493f8;
+      --err: #f85149;
+      --ok: #3fb950;
+      --btn-hover-bg: #21262d;
+      --btn-primary-hover: #5aa6ff;
+      --warn: #e3b341;
+      --border-tint: 255,255,255;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: #0d1117;
+    --bg-raised: #161b22;
+    --ink: #e6edf3;
+    --ink-dim: #8b949e;
+    --accent: #4493f8;
+    --err: #f85149;
+    --ok: #3fb950;
+    --btn-hover-bg: #21262d;
+    --btn-primary-hover: #5aa6ff;
+    --warn: #e3b341;
+    --border-tint: 255,255,255;
   }
   *{ box-sizing: border-box; }
   body{
@@ -39,7 +72,7 @@
 
   #login-view{ min-height:100vh; display:flex; align-items:center; justify-content:center; }
   .login-card{
-    background: var(--bg-raised); border:1px solid rgba(31,35,40,0.12);
+    background: var(--bg-raised); border:1px solid rgba(var(--border-tint),0.12);
     border-radius: var(--radius); padding: 32px; width: 320px;
   }
   .login-card h1{ font-size:19px; margin:0 0 4px; display:flex; align-items:center; gap:8px; }
@@ -60,7 +93,7 @@
   .login-card .sub{ color: var(--ink-dim); font-size:13px; margin: 0 0 20px; }
   .login-card label{ display:block; font-size:13px; font-weight:600; margin: 12px 0 5px; }
   .login-card input{
-    width:100%; padding:8px 11px; border:1px solid rgba(31,35,40,0.18);
+    width:100%; padding:8px 11px; border:1px solid rgba(var(--border-tint),0.18);
     border-radius:6px; font-size:16px; font-family:inherit;
     transition: border-color 0.15s, box-shadow 0.15s;
   }
@@ -70,7 +103,7 @@
     border:none; border-radius:6px; font-weight:600; font-size:14px; cursor:pointer;
     transition: background 0.15s, opacity 0.15s;
   }
-  .login-card button:hover:not(:disabled){ background:#0860ca; }
+  .login-card button:hover:not(:disabled){ background: var(--btn-primary-hover); }
   .login-card button:disabled{ opacity:0.65; cursor:default; }
   .login-card input{ transition: border-color 0.15s, box-shadow 0.15s; }
   .login-card input:focus{ outline:none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(9,105,218,0.14); }
@@ -80,7 +113,7 @@
   #dash-view{ display:none; }
   .topbar{
     display:flex; align-items:center; justify-content:space-between;
-    padding: 20px 28px; border-bottom: 1px solid rgba(31,35,40,0.10);
+    padding: 20px 28px; border-bottom: 1px solid rgba(var(--border-tint),0.10);
     animation: fadeInDown 0.4s ease both;
   }
   .topbar h1{ font-size:19px; margin:0; display:flex; align-items:center; gap:8px; }
@@ -89,12 +122,20 @@
   .btn{
     display:inline-flex; align-items:center; gap:6px; padding:7px 14px;
     font-size:13.5px; font-weight:600; border-radius:6px; cursor:pointer;
-    border:1px solid rgba(31,35,40,0.15); background: var(--bg-raised); color: var(--ink);
+    border:1px solid rgba(var(--border-tint),0.15); background: var(--bg-raised); color: var(--ink);
     text-decoration:none; transition: background 0.15s, transform 0.15s;
   }
   .btn:hover{ background: var(--bg); transform: translateY(-1px); }
   .btn-primary{ background: var(--accent); border-color: rgba(31,35,40,0.15); color:#fff; }
-  .btn-primary:hover{ background:#0860ca; }
+  .btn-primary:hover{ background: var(--btn-primary-hover); }
+  .theme-toggle-btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink:0;
+    border:1px solid rgba(var(--border-tint),0.15); background: var(--bg-raised); color: var(--ink);
+    font-size: 15px; cursor:pointer; line-height:1;
+    transition: background 0.15s, transform 0.15s;
+  }
+  .theme-toggle-btn:hover{ background: var(--bg); transform: translateY(-1px); }
 
   .page{ max-width: 900px; margin:0 auto; padding: 28px 24px 80px; }
 
@@ -108,12 +149,12 @@
   .grid-empty{ grid-column:1/-1; color: var(--ink-dim); font-size:13.5px; padding:20px 0; text-align:center; }
   .grid-empty a{ color: var(--accent); }
   .tile{
-    background: var(--bg-raised); border:1px solid rgba(31,35,40,0.12); border-radius:10px;
+    background: var(--bg-raised); border:1px solid rgba(var(--border-tint),0.12); border-radius:10px;
     overflow:hidden; opacity:0; transform: translateY(12px);
     animation: fadeInUp 0.4s cubic-bezier(0.22,1,0.36,1) forwards;
     transition: box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease, opacity 0.2s ease;
   }
-  .tile:hover{ box-shadow: 0 6px 20px rgba(31,35,40,0.1); transform: translateY(-3px); border-color: rgba(31,35,40,0.2); }
+  .tile:hover{ box-shadow: 0 6px 20px rgba(31,35,40,0.1); transform: translateY(-3px); border-color: rgba(var(--border-tint),0.2); }
   .tile-img img{ transition: transform 0.3s ease; }
   .tile:hover .tile-img img{ transform: scale(1.04); }
   .tile-img{
@@ -126,19 +167,19 @@
   .tile-actions{ display:flex; gap:8px; }
   .tile-actions button{
     flex:1; padding:6px; font-size:12.5px; border-radius:6px; cursor:pointer;
-    border:1px solid rgba(31,35,40,0.15); background: var(--bg); color: var(--ink);
+    border:1px solid rgba(var(--border-tint),0.15); background: var(--bg); color: var(--ink);
     transition: background 0.15s, transform 0.12s ease, border-color 0.15s, color 0.15s;
   }
   .tile-actions button.danger{ color: var(--err); }
-  .tile-actions button:hover{ background: #eef1f4; transform: translateY(-1px); }
+  .tile-actions button:hover{ background: var(--btn-hover-bg); transform: translateY(-1px); }
   .tile-actions button:active{ transform: translateY(0) scale(0.94); }
-  .tile-actions button.pin-btn.pinned{ color: #9a6700; border-color: rgba(154,103,0,0.4); background: rgba(154,103,0,0.08); }
+  .tile-actions button.pin-btn.pinned{ color: var(--warn); border-color: rgba(154,103,0,0.4); background: rgba(154,103,0,0.08); }
   .tile.inactive{ opacity: 0.55; }
   .tile-badge{
     display:inline-block; font-size:10.5px; font-weight:700; text-transform:uppercase;
     letter-spacing:0.04em; color: var(--ink-dim); margin-left:6px;
   }
-  .tile-badge.pin{ color: #9a6700; }
+  .tile-badge.pin{ color: var(--warn); }
 
   /* ---- modal (add/edit) ---- */
   .modal-overlay{
@@ -157,7 +198,7 @@
   .field{ margin-bottom:14px; }
   .field label{ display:block; font-size:13px; font-weight:600; margin-bottom:5px; }
   .field input, .field textarea{
-    width:100%; padding:8px 11px; font-size:16px; border:1px solid rgba(31,35,40,0.18);
+    width:100%; padding:8px 11px; font-size:16px; border:1px solid rgba(var(--border-tint),0.18);
     border-radius:6px; font-family:inherit; background: var(--bg);
     transition: border-color 0.15s, box-shadow 0.15s;
   }
@@ -170,7 +211,7 @@
   }
   .photo-thumb{
     position:relative; aspect-ratio:1/1; border-radius:8px; overflow:hidden;
-    border:1px solid rgba(31,35,40,0.15); background:var(--bg);
+    border:1px solid rgba(var(--border-tint),0.15); background:var(--bg);
     animation: popIn 0.2s ease both;
   }
   .photo-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
@@ -196,7 +237,7 @@
   .photo-thumb .photo-move.move-left{ left:4px; }
   .photo-thumb .photo-move.move-right{ right:4px; }
   .photo-add-tile{
-    aspect-ratio:1/1; border-radius:8px; border:1px dashed rgba(31,35,40,0.25);
+    aspect-ratio:1/1; border-radius:8px; border:1px dashed rgba(var(--border-tint),0.25);
     background:var(--bg); display:flex; align-items:center; justify-content:center;
     flex-direction:column; gap:4px; color:var(--ink-dim); font-size:11px; cursor:pointer;
     transition: border-color 0.15s, color 0.15s, background 0.15s;
@@ -215,7 +256,7 @@
   .checkbox-row{ display:flex; align-items:center; gap:8px; font-size:13.5px; margin-bottom:14px; }
 
   .file-drop{
-    border:1px dashed rgba(31,35,40,0.25); border-radius:8px; padding:14px;
+    border:1px dashed rgba(var(--border-tint),0.25); border-radius:8px; padding:14px;
     text-align:center; cursor:pointer; font-size:12.5px; color: var(--ink-dim);
     position:relative; background: var(--bg);
     transition: border-color 0.15s, background 0.15s;
@@ -226,7 +267,7 @@
   .file-current{
     display:flex; align-items:center; justify-content:space-between; gap:8px;
     font-size:12.5px; margin-bottom:8px; padding:8px 10px; background: var(--bg);
-    border-radius:6px; border:1px solid rgba(31,35,40,0.12);
+    border-radius:6px; border:1px solid rgba(var(--border-tint),0.12);
   }
   .file-current .name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .file-current button{
@@ -316,6 +357,7 @@
       <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
     </svg>Josh<span>Prints</span>: Presets</h1>
     <div class="right">
+      <button type="button" class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle dark mode" aria-pressed="false">🌙</button>
       <a class="btn" href="admin.html">← Back to orders</a>
       <button class="btn btn-primary" id="add-btn">+ Add preset</button>
     </div>
@@ -367,6 +409,30 @@
     </form>
   </div>
 </div>
+
+<script>
+  (function(){
+    const toggle = document.getElementById('theme-toggle');
+    if (!toggle) return;
+    function currentTheme(){
+      const explicit = localStorage.getItem('theme');
+      if (explicit) return explicit;
+      return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    function applyTheme(mode){
+      const isDark = mode === 'dark';
+      toggle.textContent = isDark ? '☀️' : '🌙';
+      toggle.setAttribute('aria-pressed', String(isDark));
+    }
+    toggle.addEventListener('click', () => {
+      const next = currentTheme() === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', next);
+      document.documentElement.setAttribute('data-theme', next);
+      applyTheme(next);
+    });
+    applyTheme(currentTheme());
+  })();
+</script>
 
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';

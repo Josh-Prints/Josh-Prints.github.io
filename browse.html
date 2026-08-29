@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Browse presets — JoshPrints</title>
@@ -15,7 +16,40 @@
     --fg-muted: #59636e;
     --accent: #0969da;
     --btn-primary-hover: #0860ca;
+    --btn-hover-bg: #f3f4f6;
     --ok: #1a7f37;
+    --err: #cf222e;
+    --border-tint: 31,35,40;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --canvas: #0d1117;
+      --canvas-inset: #161b22;
+      --border: #30363d;
+      --border-muted: #21262d;
+      --fg: #e6edf3;
+      --fg-muted: #8b949e;
+      --accent: #4493f8;
+      --btn-primary-hover: #5aa6ff;
+      --btn-hover-bg: #21262d;
+      --ok: #3fb950;
+      --err: #f85149;
+      --border-tint: 255,255,255;
+    }
+  }
+  :root[data-theme="dark"]{
+    --canvas: #0d1117;
+    --canvas-inset: #161b22;
+    --border: #30363d;
+    --border-muted: #21262d;
+    --fg: #e6edf3;
+    --fg-muted: #8b949e;
+    --accent: #4493f8;
+    --btn-primary-hover: #5aa6ff;
+    --btn-hover-bg: #21262d;
+    --ok: #3fb950;
+    --err: #f85149;
+    --border-tint: 255,255,255;
   }
   *{ box-sizing: border-box; }
   html{ -webkit-text-size-adjust: 100%; }
@@ -59,13 +93,21 @@
   .btn{
     display:inline-flex; align-items:center; justify-content:center; gap:6px;
     padding: 5px 16px; font-size:14px; font-weight:500; line-height:20px;
-    border-radius:6px; border:1px solid var(--border); background:#f6f8fa; color:var(--fg);
+    border-radius:6px; border:1px solid var(--border); background: var(--canvas-inset); color:var(--fg);
     text-decoration:none; cursor:pointer; transition: background 0.2s, transform 0.15s ease;
   }
-  .btn:hover{ background:#f3f4f6; border-color: var(--border-muted); box-shadow: 0 3px 10px rgba(31,35,40,0.08); transform: translateY(-1px); }
+  .btn:hover{ background: var(--btn-hover-bg); border-color: var(--border-muted); box-shadow: 0 3px 10px rgba(31,35,40,0.08); transform: translateY(-1px); }
   .btn:active{ transform: translateY(0) scale(0.97); }
   .btn-primary{ background: var(--accent); border-color: rgba(31,35,40,0.15); color:#fff; }
   .btn-primary:hover{ background: var(--btn-primary-hover); box-shadow: 0 4px 14px rgba(9,105,218,0.35); }
+  .theme-toggle-btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink:0;
+    border: 1px solid var(--border); background: var(--canvas-inset); color: var(--fg);
+    font-size: 15px; cursor:pointer; line-height:1;
+    transition: background 0.2s, border-color 0.2s, transform 0.15s ease;
+  }
+  .theme-toggle-btn:hover{ background: var(--btn-hover-bg); border-color: var(--border-muted); transform: translateY(-1px); }
 
   .page{ max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
   h1{ font-size: 26px; font-weight:600; margin: 0 0 6px; animation: fadeInUp 0.5s ease both; }
@@ -78,7 +120,7 @@
     background: var(--canvas-inset);
   }
   .search-wrap input{ transition: border-color 0.2s, background 0.2s, box-shadow 0.2s; }
-  .search-wrap input:focus{ outline:none; border-color: var(--accent); background:#fff; box-shadow: 0 0 0 3px rgba(9,105,218,0.12); }
+  .search-wrap input:focus{ outline:none; border-color: var(--accent); background: var(--canvas); box-shadow: 0 0 0 3px rgba(9,105,218,0.12); }
   .search-wrap .icon{ position:absolute; left:12px; top:50%; transform:translateY(-50%); color: var(--fg-muted); font-size:14px; pointer-events:none; transition: transform 0.2s ease, color 0.2s ease; }
   .search-wrap input:focus ~ .icon{ transform: translateY(-50%) scale(1.15); color: var(--accent); }
 
@@ -88,7 +130,7 @@
   }
   .tile{
     border:1px solid var(--border); border-radius:10px; overflow:hidden;
-    background:#fff; cursor:pointer; text-align:left;
+    background: var(--canvas); cursor:pointer; text-align:left;
     opacity:0; transform: translateY(14px);
     animation: fadeInUp 0.45s cubic-bezier(0.22,1,0.36,1) forwards;
     transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s;
@@ -153,7 +195,7 @@
   }
   .modal-overlay.open{ opacity:1; visibility:visible; }
   .modal{
-    background:#fff; border-radius:12px; max-width: 420px; width:100%;
+    background: var(--canvas); border-radius:12px; max-width: 420px; width:100%;
     padding: 28px; transform: scale(0.94) translateY(8px); transition: transform 0.25s cubic-bezier(0.22,1,0.36,1);
     max-height: 88vh; overflow-y: auto;
   }
@@ -167,7 +209,7 @@
     width:100%; padding: 8px 11px; font-size:16px; border:1px solid var(--border);
     border-radius:6px; font-family:inherit; background:var(--canvas-inset);
   }
-  .field input:focus, .field textarea:focus{ outline:none; border-color:var(--accent); background:#fff; box-shadow:0 0 0 3px rgba(9,105,218,0.12); }
+  .field input:focus, .field textarea:focus{ outline:none; border-color:var(--accent); background: var(--canvas); box-shadow:0 0 0 3px rgba(9,105,218,0.12); }
   .field textarea{ min-height: 70px; resize: vertical; }
   .modal-actions{ display:flex; gap:10px; margin-top: 18px; }
   .modal-actions .btn{ flex:1; }
@@ -180,7 +222,7 @@
   .modal-close:hover{ background: #fff; transform: rotate(90deg); }
   .modal{ position: relative; }
   @keyframes shake{ 10%,90%{ transform: translateX(-1px); } 20%,80%{ transform: translateX(2px); } 30%,50%,70%{ transform: translateX(-4px); } 40%,60%{ transform: translateX(4px); } }
-  .modal-error{ color:#cf222e; font-size:13px; margin-top: 8px; display:none; }
+  .modal-error{ color: var(--err); font-size:13px; margin-top: 8px; display:none; }
   .modal-error.shake{ animation: shake 0.5s ease; }
   .modal.replay h2, .modal.replay .modal-price, .modal.replay .modal-desc{ animation: fadeInUp 0.35s ease both; }
   .modal.replay .modal-price{ animation-delay: 0.04s; }
@@ -284,7 +326,10 @@
     </svg>
       JoshPrints
     </a>
-    <a class="btn" href="index.html">← Back home</a>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <button type="button" class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle dark mode" aria-pressed="false">🌙</button>
+      <a class="btn" href="index.html">← Back home</a>
+    </div>
   </div>
 
   <div class="page">
@@ -401,6 +446,30 @@
       </form>
     </div>
   </div>
+
+<script>
+  (function(){
+    const toggle = document.getElementById('theme-toggle');
+    if (!toggle) return;
+    function currentTheme(){
+      const explicit = localStorage.getItem('theme');
+      if (explicit) return explicit;
+      return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    function applyTheme(mode){
+      const isDark = mode === 'dark';
+      toggle.textContent = isDark ? '☀️' : '🌙';
+      toggle.setAttribute('aria-pressed', String(isDark));
+    }
+    toggle.addEventListener('click', () => {
+      const next = currentTheme() === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', next);
+      document.documentElement.setAttribute('data-theme', next);
+      applyTheme(next);
+    });
+    applyTheme(currentTheme());
+  })();
+</script>
 
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';

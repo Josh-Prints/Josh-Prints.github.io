@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>3D Print Quote Calculator</title>
@@ -29,6 +30,51 @@
     --seg-print:  #8250df;
     --seg-fil:    #2da44e;
     --seg-sur:    #bc4c00;
+    --border-tint: 31,35,40;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:         #0d1117;
+      --surface:    #161b22;
+      --surface2:   #21262d;
+      --border:     #30363d;
+      --border2:    #21262d;
+      --accent:     #4493f8;
+      --accent-d:   #79c0ff;
+      --accent-gl:  rgba(68,147,248,0.14);
+      --accent-gll: rgba(68,147,248,0.08);
+      --green:      #3fb950;
+      --green-gl:   rgba(63,185,80,0.14);
+      --text:       #e6edf3;
+      --muted:      #8b949e;
+      --muted2:     #6e7681;
+      --seg-model:  #4493f8;
+      --seg-print:  #a371f7;
+      --seg-fil:    #3fb950;
+      --seg-sur:    #e0823d;
+      --border-tint: 255,255,255;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:         #0d1117;
+    --surface:    #161b22;
+    --surface2:   #21262d;
+    --border:     #30363d;
+    --border2:    #21262d;
+    --accent:     #4493f8;
+    --accent-d:   #79c0ff;
+    --accent-gl:  rgba(68,147,248,0.14);
+    --accent-gll: rgba(68,147,248,0.08);
+    --green:      #3fb950;
+    --green-gl:   rgba(63,185,80,0.14);
+    --text:       #e6edf3;
+    --muted:      #8b949e;
+    --muted2:     #6e7681;
+    --seg-model:  #4493f8;
+    --seg-print:  #a371f7;
+    --seg-fil:    #3fb950;
+    --seg-sur:    #e0823d;
+    --border-tint: 255,255,255;
   }
 
   html { font-size: 16px; }
@@ -282,6 +328,15 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 }
 
 .header{ animation: fadeInDown 0.5s ease both; }
+.theme-toggle-btn{
+  position: fixed; top: 1.25rem; right: 1.25rem; z-index: 50;
+  display:inline-flex; align-items:center; justify-content:center;
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  font-size: 15px; cursor:pointer; line-height:1;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+.theme-toggle-btn:hover{ background: var(--surface2); transform: translateY(-1px); }
 .cost-bar-wrap{ animation: fadeInUp 0.45s ease 0.06s both; }
 .layout .card, .breakdown-card{ animation: fadeInUp 0.5s cubic-bezier(0.22,1,0.36,1) both; }
 .layout .card:nth-of-type(1){ animation-delay: 0.10s; }
@@ -316,6 +371,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
 </head>
 <body>
 
+<button type="button" class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle dark mode" aria-pressed="false">🌙</button>
 <div class="header">
   <a href="admin.html" style="display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,'SF Mono','Roboto Mono',monospace;font-size:0.72rem;color:var(--muted);text-decoration:none;margin-bottom:0.9rem;letter-spacing:0.04em;">&larr; Back to admin</a>
   <div class="header-eyebrow"><svg class="logo-mark" width="16" height="16" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
@@ -597,6 +653,28 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
 <div class="footer">All values update live · No data leaves your device</div>
 
 <script>
+  (function(){
+    const toggle = document.getElementById('theme-toggle');
+    if (!toggle) return;
+    function currentTheme(){
+      const explicit = localStorage.getItem('theme');
+      if (explicit) return explicit;
+      return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    function applyTheme(mode){
+      const isDark = mode === 'dark';
+      toggle.textContent = isDark ? '☀️' : '🌙';
+      toggle.setAttribute('aria-pressed', String(isDark));
+    }
+    toggle.addEventListener('click', () => {
+      const next = currentTheme() === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', next);
+      document.documentElement.setAttribute('data-theme', next);
+      applyTheme(next);
+    });
+    applyTheme(currentTheme());
+  })();
+
   const state = { modelHrs:2, printHrs:4, filGrams:120, rate:6, printRate:0.25, baseFee:1.75, filPerKg:50, surAmt:2, surThresh:3 };
   let activePreset = 'PLA';
   const el  = id => document.getElementById(id);
