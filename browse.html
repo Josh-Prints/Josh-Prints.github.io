@@ -60,9 +60,10 @@
     border-radius:6px; border:1px solid var(--border); background:#f6f8fa; color:var(--fg);
     text-decoration:none; cursor:pointer; transition: background 0.2s, transform 0.15s ease;
   }
-  .btn:hover{ background:#f3f4f6; transform: translateY(-1px); }
+  .btn:hover{ background:#f3f4f6; border-color: var(--border-muted); box-shadow: 0 3px 10px rgba(31,35,40,0.08); transform: translateY(-1px); }
+  .btn:active{ transform: translateY(0) scale(0.97); }
   .btn-primary{ background: var(--accent); border-color: rgba(31,35,40,0.15); color:#fff; }
-  .btn-primary:hover{ background: var(--btn-primary-hover); }
+  .btn-primary:hover{ background: var(--btn-primary-hover); box-shadow: 0 4px 14px rgba(9,105,218,0.35); }
 
   .page{ max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
   h1{ font-size: 26px; font-weight:600; margin: 0 0 6px; animation: fadeInUp 0.5s ease both; }
@@ -89,6 +90,7 @@
     transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s;
   }
   .tile:hover{ box-shadow: 0 8px 22px rgba(31,35,40,0.1); transform: translateY(-3px); border-color: var(--border-muted); }
+  .tile:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
   .tile-img{
     width:100%; aspect-ratio: 4/3; object-fit: cover;
     background: var(--canvas-inset);
@@ -158,8 +160,10 @@
   .fil-opt input{ position:absolute; opacity:0; inset:0; cursor:pointer; }
   .fil-opt .card{
     border: 1px solid var(--border); border-radius: 8px; padding: 8px;
-    text-align: center; transition: border-color .15s ease, background .15s ease;
+    text-align: center; transition: border-color .15s ease, background .15s ease, transform .15s ease;
   }
+  .fil-opt:hover .card{ border-color: var(--border-muted); transform: translateY(-1px); }
+  .fil-opt input:focus-visible + .card{ outline: 2px solid var(--accent); outline-offset: 2px; }
   .fil-opt .swatch{
     width: 100%; aspect-ratio: 1/1; border-radius: 6px; margin-bottom: 6px;
     background-size: cover; background-position: center; background-color: var(--canvas-inset);
@@ -252,7 +256,7 @@
   </div>
 
   <div class="modal-overlay" id="modal-overlay">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-name">
       <button class="modal-close" id="modal-close">✕</button>
       <h2 id="modal-name"></h2>
       <div class="modal-price" id="modal-price"></div>
@@ -391,13 +395,25 @@
     render(presets);
   }
 
+  let hasRenderedOnce = false;
+
   function render(list){
     gridEl.innerHTML = '';
     emptyEl.style.display = list.length === 0 ? 'block' : 'none';
     list.forEach((p, i) => {
       const tile = document.createElement('div');
       tile.className = 'tile';
-      tile.style.animationDelay = (i * 0.05) + 's';
+      tile.setAttribute('role', 'button');
+      tile.setAttribute('tabindex', '0');
+      tile.setAttribute('aria-label', `Order ${p.name}`);
+      if (hasRenderedOnce){
+        // Skip the staggered entrance replay on filtered re-renders (e.g. while typing a search) — it's jarring on every keystroke.
+        tile.style.animation = 'none';
+        tile.style.opacity = '1';
+        tile.style.transform = 'none';
+      } else {
+        tile.style.animationDelay = (i * 0.05) + 's';
+      }
       const img = publicUrl(p.image_path);
       tile.innerHTML = `
         <div class="tile-img">${img ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;" alt="">` : 'No image'}</div>
@@ -416,8 +432,16 @@
         if (e.target.closest('[data-stop]')) return;
         openModal(p);
       });
+      tile.addEventListener('keydown', (e) => {
+        if (e.target.closest('[data-stop]')) return;
+        if (e.key === 'Enter' || e.key === ' '){
+          e.preventDefault();
+          openModal(p);
+        }
+      });
       gridEl.appendChild(tile);
     });
+    hasRenderedOnce = true;
   }
 
   searchInput.addEventListener('input', () => {
@@ -433,7 +457,10 @@
   const form = document.getElementById('order-form');
   const errorEl = document.getElementById('modal-error');
 
+  let lastFocusedEl = null;
+
   function openModal(preset){
+    lastFocusedEl = document.activeElement;
     selectedPreset = preset;
     selectedFilament = null;
     document.getElementById('modal-name').textContent = preset.name;
@@ -454,13 +481,17 @@
     form.reset();
     errorEl.style.display = 'none';
     overlay.classList.add('open');
+    document.getElementById('m-name').focus();
   }
-  function closeModal(){ overlay.classList.remove('open'); }
+  function closeModal(){
+    overlay.classList.remove('open');
+    if (lastFocusedEl && typeof lastFocusedEl.focus === 'function') lastFocusedEl.focus();
+  }
 
   document.getElementById('modal-close').addEventListener('click', closeModal);
   document.getElementById('modal-cancel').addEventListener('click', closeModal);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal(); });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();

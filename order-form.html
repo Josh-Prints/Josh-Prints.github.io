@@ -185,6 +185,20 @@
     box-shadow: 0 0 0 3px var(--accent-dim);
   }
 
+  .field.invalid input[type="text"],
+  .field.invalid textarea{
+    border-color: var(--err);
+    animation: shake 0.4s ease;
+  }
+  .field.invalid .order-types{ animation: shake 0.4s ease; }
+  .field-error{
+    display: none;
+    color: var(--err);
+    font-size: 12px;
+    margin-top: 6px;
+  }
+  .field.invalid .field-error{ display: block; animation: fadeInUp 0.2s ease both; }
+
   textarea{ resize: vertical; min-height: 96px; font-family: inherit; }
 
   select{
@@ -488,6 +502,7 @@
 @keyframes pulseDot{ 0%,100%{ transform: scale(1); opacity:1; } 50%{ transform: scale(1.4); opacity:0.55; } }
 @keyframes bump{ 0%{ transform: scale(1); } 35%{ transform: scale(1.06); } 100%{ transform: scale(1); } }
 @keyframes shimmer{ 0%{ background-position: -200px 0; } 100%{ background-position: 200px 0; } }
+@keyframes shake{ 10%,90%{ transform: translateX(-1px); } 20%,80%{ transform: translateX(2px); } 30%,50%,70%{ transform: translateX(-3px); } 40%,60%{ transform: translateX(3px); } }
 @media (prefers-reduced-motion: reduce){
   *{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
 }
@@ -582,19 +597,21 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   </header>
 
   <form id="order-form" novalidate>
-    <div class="field">
+    <div class="field" id="field-full_name">
       <label for="full_name">Full name <span class="req">*</span></label>
       <input type="text" id="full_name" name="full_name" placeholder="e.g. Alex Rivera" required autocomplete="name">
+      <div class="field-error">Please add your full name.</div>
     </div>
 
-    <div class="field">
+    <div class="field" id="field-email">
       <label for="email">Email <span class="req">*</span></label>
       <input type="text" id="email" name="email" placeholder="e.g. alex@email.com" required autocomplete="email" inputmode="email">
+      <div class="field-error" id="email-error">Please add a valid email address.</div>
     </div>
 
-    <div class="field">
-      <label>Order type <span class="req">*</span></label>
-      <div class="order-types">
+    <div class="field" id="field-order_type">
+      <label id="order-type-label">Order type <span class="req">*</span></label>
+      <div class="order-types" role="radiogroup" aria-labelledby="order-type-label">
         <label class="order-type">
           <input type="radio" name="order_type" value="custom_model" required>
           <div class="card">
@@ -610,6 +627,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
           </div>
         </label>
       </div>
+      <div class="field-error">Please choose an order type.</div>
     </div>
 
     <div class="field">
@@ -667,12 +685,12 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <span class="btn-label" id="btn-label">Send order</span>
     </button>
 
-    <div class="status" id="status"></div>
+    <div class="status" id="status" role="alert" aria-live="assertive"></div>
   </form>
 
   <div class="success-panel" id="success-panel">
     <div class="check">✓</div>
-    <h2>Order received</h2>
+    <h2 tabindex="-1" id="success-heading">Order received</h2>
     <div class="save-warning">
       <span class="icon">⚠️</span>
       <span class="text"><strong>Save this link now.</strong> It's the only way to check your order status, see your quote, and message me. If you lose it, there's no way to look it up, so bookmark it, screenshot it, or copy it somewhere safe before you leave this page.</span>
@@ -816,6 +834,18 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     return name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
   }
 
+  document.getElementById('full_name').addEventListener('input', () => {
+    document.getElementById('field-full_name').classList.remove('invalid');
+  });
+  document.getElementById('email').addEventListener('input', () => {
+    document.getElementById('field-email').classList.remove('invalid');
+  });
+  form.querySelectorAll('input[name="order_type"]').forEach(input => {
+    input.addEventListener('change', () => {
+      document.getElementById('field-order_type').classList.remove('invalid');
+    });
+  });
+
   document.getElementById('copy-link-btn').addEventListener('click', async () => {
     const text = document.getElementById('order-link-text').textContent;
     try {
@@ -829,17 +859,43 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     }
   });
 
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  function clearFieldErrors(){
+    ['field-full_name', 'field-email', 'field-order_type'].forEach(id => {
+      document.getElementById(id).classList.remove('invalid');
+    });
+  }
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     statusEl.classList.remove('show');
+    clearFieldErrors();
 
     const fullName = document.getElementById('full_name').value.trim();
     const email = document.getElementById('email').value.trim();
     const orderTypeInput = form.querySelector('input[name="order_type"]:checked');
     const notes = document.getElementById('notes').value.trim();
 
-    if (!fullName || !email || !orderTypeInput){
-      showStatus('err', 'Please add your name, email, and pick an order type.');
+    let firstInvalid = null;
+    if (!fullName){
+      document.getElementById('field-full_name').classList.add('invalid');
+      firstInvalid = firstInvalid || document.getElementById('full_name');
+    }
+    if (!email || !EMAIL_RE.test(email)){
+      document.getElementById('email-error').textContent = !email
+        ? 'Please add your email.' : 'That email address doesn’t look right.';
+      document.getElementById('field-email').classList.add('invalid');
+      firstInvalid = firstInvalid || document.getElementById('email');
+    }
+    if (!orderTypeInput){
+      document.getElementById('field-order_type').classList.add('invalid');
+      firstInvalid = firstInvalid || form.querySelector('input[name="order_type"]');
+    }
+
+    if (firstInvalid){
+      showStatus('err', 'Please fix the highlighted field(s) below.');
+      firstInvalid.focus();
       return;
     }
 
@@ -911,7 +967,10 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       }).catch(() => { /* silent — link is already shown on screen */ });
 
       form.style.display = 'none';
-      document.getElementById('success-panel').classList.add('show');
+      const successPanel = document.getElementById('success-panel');
+      successPanel.classList.add('show');
+      successPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('success-heading').focus();
 
     } catch (err) {
       console.error(err);

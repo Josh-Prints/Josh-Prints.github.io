@@ -140,7 +140,7 @@
   .text-field:focus { border-color: var(--accent); }
   .text-field::placeholder { color: var(--muted2); }
   textarea.text-field { resize: vertical; min-height: 72px; }
-  input[type="date"].text-field { color-scheme: dark; }
+  input[type="date"].text-field { color-scheme: light; }
 
   /* BREAKDOWN */
   .breakdown-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; grid-column: 1 / -1; }
@@ -367,7 +367,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     </div>
     <div class="rates-grid">
       <div class="rate-block">
-        <div class="rate-label">Labor rate</div>
+        <label class="rate-label" for="laborRate">Labor rate</label>
         <div class="rate-input-wrap">
           <div class="rate-prefix">$</div>
           <input type="number" id="laborRate" class="rate-input" min="0" max="999" step="0.5" value="6">
@@ -375,14 +375,14 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         </div>
       </div>
       <div class="rate-block">
-        <div class="rate-label">Base handling fee</div>
+        <label class="rate-label" for="baseFee">Base handling fee</label>
         <div class="rate-input-wrap">
           <div class="rate-prefix">$</div>
           <input type="number" id="baseFee" class="rate-input" min="0" max="999" step="0.25" value="1.75">
         </div>
       </div>
       <div class="rate-block">
-        <div class="rate-label">Print rate <span style="color:var(--muted2)">(curve)</span></div>
+        <label class="rate-label" for="printRate">Print rate <span style="color:var(--muted2)">(curve)</span></label>
         <div class="rate-input-wrap">
           <div class="rate-prefix">$</div>
           <input type="number" id="printRate" class="rate-input" min="0" max="999" step="0.01" value="0.25">
@@ -390,7 +390,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         </div>
       </div>
       <div class="rate-block" style="grid-column: 1 / -1;">
-        <div class="rate-label">Filament cost</div>
+        <label class="rate-label" for="filCostKg">Filament cost</label>
         <div class="preset-label" style="margin-top:0.4rem;">Presets</div>
         <div class="preset-row">
           <button class="preset-btn" id="presetPLA"    onclick="setFilPreset('PLA')">PLA — $50/kg</button>
@@ -405,14 +405,14 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         </div>
       </div>
       <div class="rate-block">
-        <div class="rate-label">Surcharge amount</div>
+        <label class="rate-label" for="surchargeAmt">Surcharge amount</label>
         <div class="rate-input-wrap">
           <div class="rate-prefix">$</div>
           <input type="number" id="surchargeAmt" class="rate-input" min="0" max="999" step="0.5" value="2">
         </div>
       </div>
       <div class="rate-block">
-        <div class="rate-label">Surcharge if print &gt;</div>
+        <label class="rate-label" for="surchargeThreshold">Surcharge if print &gt;</label>
         <div class="rate-input-wrap">
           <input type="number" id="surchargeThreshold" class="rate-input" min="0" max="99" step="0.5" value="3" style="padding-left:0.85rem">
           <div class="rate-suffix">hrs</div>
@@ -558,6 +558,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   const state = { modelHrs:2, printHrs:4, filGrams:120, rate:6, printRate:0.25, baseFee:1.75, filPerKg:50, surAmt:2, surThresh:3 };
   let activePreset = 'PLA';
   const el  = id => document.getElementById(id);
+  const escapeAttr = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmt     = v => '$' + v.toFixed(2);
   const fmtTotal = v => el('roundDown').checked ? '$' + Math.floor(v).toFixed(0) : fmt(v);
 
@@ -568,9 +569,12 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   let selectedColour = 'Black';
   document.querySelectorAll('.colour-btn').forEach(btn => {
     btn.title = btn.dataset.colour;
+    btn.setAttribute('aria-label', btn.dataset.colour);
+    btn.setAttribute('aria-pressed', btn.classList.contains('active') ? 'true' : 'false');
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.colour-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.colour-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
       btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
       selectedColour = btn.dataset.colour;
       updateNotes();
     });
@@ -593,8 +597,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   const PRESETS = { PLA: 50, ABS: 60, TPU: 65 };
   function setFilPreset(name) {
     activePreset = name;
-    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.preset-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
     el('preset' + name).classList.add('active');
+    el('preset' + name).setAttribute('aria-pressed', 'true');
     if (name !== 'Custom') {
       const price = PRESETS[name];
       el('filCostKg').value = price;
@@ -611,8 +616,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     state.filPerKg = +el('filCostKg').value || 0;
     if (activePreset !== 'Custom') {
       activePreset = 'Custom';
-      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.preset-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
       el('presetCustom').classList.add('active');
+      el('presetCustom').setAttribute('aria-pressed', 'true');
       updateNotes();
     }
     recalc();
@@ -695,14 +701,14 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       const row = document.createElement('div');
       row.className = 'extra-row';
       row.innerHTML = `
-        <input class="extra-reason" type="text" placeholder="Reason (e.g. rush fee)" value="${item.reason}"
+        <input class="extra-reason" type="text" placeholder="Reason (e.g. rush fee)" value="${escapeAttr(item.reason)}" aria-label="Extra cost reason"
           oninput="updateExtra(${item.id},'reason',this.value)">
         <div class="extra-amount-wrap">
           <span class="extra-prefix">$</span>
-          <input class="extra-amount" type="number" min="0" step="0.5" placeholder="0.00" value="${item.amount || ''}"
+          <input class="extra-amount" type="number" min="0" step="0.5" placeholder="0.00" value="${item.amount || ''}" aria-label="Extra cost amount"
             oninput="updateExtra(${item.id},'amount',this.value)">
         </div>
-        <button class="extra-remove" onclick="removeExtraRow(${item.id})" title="Remove">✕</button>`;
+        <button class="extra-remove" onclick="removeExtraRow(${item.id})" title="Remove" aria-label="Remove extra cost">✕</button>`;
       list.appendChild(row);
     });
   }
@@ -753,7 +759,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     activeExtras.forEach(item => {
       const div = document.createElement('div');
       div.className = 'breakdown-row' + (item.amount === 0 ? ' dimmed' : '');
-      div.innerHTML = `<div class="bd-left"><div class="bd-swatch" style="background:#64B5F6"></div><span class="bd-label">${item.reason || 'Extra cost'}</span></div><span class="bd-value">${fmt(item.amount)}</span>`;
+      div.innerHTML = `<div class="bd-left"><div class="bd-swatch" style="background:#64B5F6"></div><span class="bd-label">${escapeAttr(item.reason) || 'Extra cost'}</span></div><span class="bd-value">${fmt(item.amount)}</span>`;
       extraRowsEl.appendChild(div);
     });
 

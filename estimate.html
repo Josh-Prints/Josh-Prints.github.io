@@ -345,24 +345,24 @@
     <div class="card">
       <div class="card-title">Print details</div>
       <div class="input-group">
-        <div class="input-label"><span class="input-label-text">Print time</span><span class="input-label-unit">hours</span></div>
+        <div class="input-label"><span class="input-label-text" id="printHrsLabel">Print time</span><span class="input-label-unit">hours</span></div>
         <div class="input-row">
-          <input type="range" id="printHrsRange" min="0" max="48" step="0.25" value="4">
-          <input type="number" id="printHrsNum" class="num-input" min="0" max="999" step="0.25" value="4">
+          <input type="range" id="printHrsRange" min="0" max="48" step="0.25" value="4" aria-labelledby="printHrsLabel">
+          <input type="number" id="printHrsNum" class="num-input" min="0" max="999" step="0.25" value="4" aria-labelledby="printHrsLabel">
         </div>
       </div>
       <div class="input-group">
-        <div class="input-label"><span class="input-label-text">Filament used</span><span class="input-label-unit">grams</span></div>
+        <div class="input-label"><span class="input-label-text" id="filGramsLabel">Filament used</span><span class="input-label-unit">grams</span></div>
         <div class="input-row">
-          <input type="range" id="filGramsRange" min="0" max="1000" step="5" value="120">
-          <input type="number" id="filGramsNum" class="num-input" min="0" max="9999" step="1" value="120">
+          <input type="range" id="filGramsRange" min="0" max="1000" step="5" value="120" aria-labelledby="filGramsLabel">
+          <input type="number" id="filGramsNum" class="num-input" min="0" max="9999" step="1" value="120" aria-labelledby="filGramsLabel">
         </div>
       </div>
       <div class="input-group">
-        <div class="input-label"><span class="input-label-text">Design / modeling time</span><span class="input-label-unit">hours</span></div>
+        <div class="input-label"><span class="input-label-text" id="modelHrsLabel">Design / modeling time</span><span class="input-label-unit">hours</span></div>
         <div class="input-row">
-          <input type="range" id="modelHrsRange" min="0" max="20" step="0.25" value="0">
-          <input type="number" id="modelHrsNum" class="num-input" min="0" max="999" step="0.25" value="0">
+          <input type="range" id="modelHrsRange" min="0" max="20" step="0.25" value="0" aria-labelledby="modelHrsLabel">
+          <input type="number" id="modelHrsNum" class="num-input" min="0" max="999" step="0.25" value="0" aria-labelledby="modelHrsLabel">
         </div>
         <div style="font-size:12px;color:var(--fg-subtle);margin-top:6px;">Leave at 0 if you already have a ready-to-print file</div>
       </div>
@@ -371,9 +371,9 @@
     <div class="card">
       <div class="card-title">Filament type</div>
       <div class="preset-row">
-        <button class="preset-btn active" id="presetPLA" onclick="setPreset('PLA')">PLA — $50/kg</button>
-        <button class="preset-btn" id="presetABS" onclick="setPreset('ABS')">ABS — $60/kg</button>
-        <button class="preset-btn" id="presetTPU" onclick="setPreset('TPU')">TPU (flexible) — $65/kg</button>
+        <button type="button" class="preset-btn active" id="presetPLA" aria-pressed="true" onclick="setPreset('PLA')">PLA — $50/kg</button>
+        <button type="button" class="preset-btn" id="presetABS" aria-pressed="false" onclick="setPreset('ABS')">ABS — $60/kg</button>
+        <button type="button" class="preset-btn" id="presetTPU" aria-pressed="false" onclick="setPreset('TPU')">TPU (flexible) — $65/kg</button>
       </div>
     </div>
 
@@ -423,8 +423,12 @@
 
   function setPreset(name){
     activePreset = name;
-    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.preset-btn').forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-pressed', 'false');
+    });
     el('preset' + name).classList.add('active');
+    el('preset' + name).setAttribute('aria-pressed', 'true');
     state.filPerKg = PRESETS[name];
     recalc();
   }
@@ -437,7 +441,9 @@
       recalc();
     });
     el(numId).addEventListener('input', () => {
-      const v = +el(numId).value || 0;
+      const min = +el(numId).min || 0;
+      const raw = +el(numId).value || 0;
+      const v = Math.max(raw, min);
       state[key] = v;
       el(rangeId).value = Math.min(v, +el(rangeId).max);
       recalc();

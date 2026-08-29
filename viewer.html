@@ -69,6 +69,7 @@
   }
   #download-link:hover{ background: rgba(9,105,218,0.08); transform: translateY(-1px); box-shadow: 0 3px 10px rgba(9,105,218,0.18); }
   #download-link:active{ transform: translateY(0) scale(0.96); }
+  #download-link:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
 
   #viewport{ position: absolute; top: 48px; left:0; right:0; bottom:0; opacity: 0; transition: opacity 0.5s ease; }
   #viewport.ready{ opacity: 1; }
@@ -206,6 +207,14 @@
   if (url){
     document.getElementById('download-link').href = url;
     document.getElementById('error-download').href = url;
+  } else {
+    // No file URL at all — leaving these as dead "#" links let people click
+    // "Download" and land nowhere with no feedback. Hide/disable instead.
+    document.getElementById('download-link').style.display = 'none';
+    const errDl = document.getElementById('error-download');
+    errDl.removeAttribute('href');
+    errDl.style.pointerEvents = 'none';
+    errDl.style.opacity = '0.5';
   }
 
   const SUPPORTED = ['stl', 'obj', '3mf'];

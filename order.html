@@ -227,7 +227,7 @@
     align-items: center; justify-content: center;
     padding: 28px;
   }
-  .pdf-modal.open{ display:flex; }
+  .pdf-modal.open{ display:flex; animation: fadeIn 0.2s ease both; }
   .pdf-modal-inner{
     background: #fff;
     width: 100%; height: 100%; max-width: 880px;
@@ -236,6 +236,7 @@
     overflow: hidden;
     display:flex;
   }
+  .pdf-modal.open .pdf-modal-inner{ animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1) both; }
   .pdf-modal-frame{ flex:1; border:none; width:100%; height:100%; }
   .pdf-modal-close{
     position:absolute; top:10px; right:10px; z-index:2;
@@ -408,6 +409,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 .modal-overlay{ animation: fadeIn 0.2s ease both; }
 .modal-card{ animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1) both; }
 .msg, .chat-msg{ animation: fadeInUp 0.3s ease both; }
+#lookup-error.show, .composer-error.show{ animation: fadeInUp 0.25s ease both; }
 .in-view{ opacity: 1 !important; transform: none !important; }
 [data-reveal]{ opacity: 0; transform: translateY(14px); transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.22,1,0.36,1); }
 /* ================= end animation kit ================= */
@@ -495,11 +497,11 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         Paste the tracking link or order ID you were given when you placed your order.
       </p>
       <div style="display:flex; gap:8px;">
-        <input type="text" id="lookup-input" placeholder="Order ID or full tracking link"
+        <input type="text" id="lookup-input" placeholder="Order ID or full tracking link" aria-label="Order ID or tracking link"
           style="flex:1; padding:8px 12px; border:1px solid rgba(31,35,40,0.15); border-radius:6px; font-size:14px; font-family:inherit;">
         <button type="button" id="lookup-btn" class="send-btn">View order</button>
       </div>
-      <div id="lookup-error" style="display:none; color: var(--err); font-size: 13px; margin-top: 10px;"></div>
+      <div id="lookup-error" role="alert" style="display:none; color: var(--err); font-size: 13px; margin-top: 10px;"></div>
     </div>
   </div>
   <div id="not-found" style="display:none;">Couldn't find that order. Double check the link you were sent.</div>
@@ -525,22 +527,23 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <div id="messages"></div>
       <div id="deleted-notice" class="deleted-notice" style="display:none;">This order has been deleted. Messaging is closed.</div>
       <div class="composer" id="composer-wrap">
-        <textarea id="msg-body" placeholder="Write a message…"></textarea>
+        <textarea id="msg-body" placeholder="Write a message…" aria-label="Message"></textarea>
         <div class="composer-row">
           <button type="button" class="attach-btn" id="attach-btn">
             <span id="attach-label">📎 Attach file</span>
-            <input type="file" id="attach-input" multiple>
+            <input type="file" id="attach-input" multiple aria-label="Attach file">
           </button>
           <button type="button" class="send-btn" id="send-btn">Send</button>
         </div>
+        <div id="composer-error" class="composer-error" role="alert" style="display:none; color: var(--err); font-size: 12.5px;"></div>
       </div>
     </div>
   </div>
 </div>
 
 <div class="pdf-modal" id="pdf-modal">
-  <div class="pdf-modal-inner">
-    <button type="button" class="pdf-modal-close" id="pdf-modal-close">✕</button>
+  <div class="pdf-modal-inner" role="dialog" aria-modal="true" aria-label="File preview">
+    <button type="button" class="pdf-modal-close" id="pdf-modal-close" aria-label="Close preview">✕</button>
     <iframe class="pdf-modal-frame" id="pdf-modal-frame" src=""></iframe>
   </div>
 </div>
@@ -621,6 +624,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     const preview = e.target.closest('.pdf-preview');
     if (preview) openPdfModal(preview.dataset.url);
   });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && pdfModal.classList.contains('open')) closePdfModal();
+  });
 
   function extractOrderId(raw){
     const trimmed = raw.trim();
@@ -643,6 +649,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     if (!id){
       errorEl.textContent = 'Enter an order ID or paste your tracking link.';
       errorEl.style.display = 'block';
+      errorEl.classList.add('show');
       return;
     }
     const url = new URL(window.location.href);
@@ -701,9 +708,10 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       document.getElementById('composer-wrap').style.display = 'flex';
     }
 
+    const isLive = !order.deleted && (order.status === 'new' || order.status === 'printing');
     document.getElementById('status-pill').className = order.deleted
       ? 'status-pill status-cancelled'
-      : 'status-pill status-' + order.status;
+      : 'status-pill status-' + order.status + (isLive ? ' active' : '');
     document.getElementById('status-text').textContent = order.deleted
       ? 'Deleted'
       : (STATUS_LABEL[order.status] || order.status);
@@ -778,6 +786,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     if (!body && attachedFiles.length === 0) return;
 
     const sendBtn = document.getElementById('send-btn');
+    const composerError = document.getElementById('composer-error');
+    composerError.classList.remove('show');
+    composerError.style.display = 'none';
     sendBtn.disabled = true;
     sendBtn.textContent = 'Sending…';
 
@@ -807,7 +818,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       loadMessages();
 
     } catch (err){
-      alert('Could not send: ' + (err.message || 'please try again'));
+      composerError.textContent = 'Could not send: ' + (err.message || 'please try again.');
+      composerError.style.display = 'block';
+      composerError.classList.add('show');
     } finally {
       sendBtn.disabled = false;
       sendBtn.textContent = 'Send';

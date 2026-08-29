@@ -963,6 +963,9 @@ a, button, .btn, .btn-plain, .btn-download, .chip, .icon-btn, .chat-toggle, .col
 .btn:active, .btn-plain:active, .btn-download:active, .send-btn:active, .attach-btn:active, .icon-btn:active, .chip:active{
   transform: translateY(0) scale(0.96);
 }
+button:disabled, .btn:disabled, .save-btn:disabled, .chat-send:disabled{
+  opacity: 0.6; cursor: default; transform: none !important; filter: none !important;
+}
 .card{ animation: fadeInUp 0.5s ease both; transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s; }
 .card:hover{ box-shadow: 0 4px 16px rgba(31,35,40,0.08); }
 .dot{ transition: transform 0.2s; }
@@ -2046,7 +2049,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
     // Chat send buttons
     ordersContainer.querySelectorAll('.chat-send').forEach(btn => {
-      btn.addEventListener('click', () => sendChatMessage(btn.dataset.id));
+      btn.addEventListener('click', () => sendChatMessage(btn.dataset.id, btn));
     });
 
     // Save buttons
@@ -2287,13 +2290,17 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     }
   }
 
-  async function sendChatMessage(orderId){
+  async function sendChatMessage(orderId, btn){
     const bodyEl = document.getElementById(`chat-body-${orderId}`);
     const fileInput = document.getElementById(`chat-attach-${orderId}`);
     const body = bodyEl.value.trim();
     const files = Array.from(fileInput.files);
 
     if (!body && files.length === 0) return;
+
+    // Guard against double-sends (e.g. a fast double click) firing the
+    // upload + insert twice while the first send is still in flight.
+    if (btn) btn.disabled = true;
 
     try {
       const uploaded = [];
@@ -2323,6 +2330,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
     } catch (err){
       alert('Could not send: ' + (err.message || 'please try again'));
+    } finally {
+      if (btn) btn.disabled = false;
     }
   }
 
