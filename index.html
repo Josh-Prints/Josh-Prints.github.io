@@ -32,6 +32,9 @@
   @keyframes fadeInUp{ from{ opacity:0; transform: translateY(16px); } to{ opacity:1; transform: translateY(0); } }
   @keyframes popIn{ from{ opacity:0; transform: scale(0.9); } to{ opacity:1; transform: scale(1); } }
   @keyframes pulseDot{ 0%,100%{ transform: scale(1); opacity:1; } 50%{ transform: scale(1.4); opacity:0.5; } }
+  @keyframes shimmer{ 0%{ background-position: -200% 0; } 100%{ background-position: 200% 0; } }
+  @keyframes arrowNudge{ 0%,100%{ transform: translateX(0); } 50%{ transform: translateX(3px); } }
+  @keyframes softFloat{ 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-4px); } }
   @media (prefers-reduced-motion: reduce){
     *{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
   }
@@ -54,8 +57,10 @@
     color: var(--fg);
     text-decoration: none;
   }
-  .brand-text span{ color: var(--accent); }
-  .logo-mark{ flex-shrink: 0; display:block; }
+  .brand-text span{ color: var(--accent); transition: color 0.2s; }
+  .logo-mark{ flex-shrink: 0; display:block; transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+  .brand:hover .logo-mark{ transform: scale(1.08) rotate(-4deg); }
+  .brand:hover .brand-text span{ color: var(--accent-emphasis); }
   .logo-loading{ flex-shrink: 0; display:block; }
   .logo-loading polygon{
     transform-box: fill-box;
@@ -127,7 +132,14 @@
     transition: background 0.15s, padding-left 0.15s;
   }
   .sidebar nav a:hover{ background: var(--canvas-inset); padding-left: 16px; }
-  .sidebar nav a .icon{ font-size: 15px; width: 18px; text-align:center; }
+  .sidebar nav a .icon{ font-size: 15px; width: 18px; text-align:center; display:inline-block; transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1); }
+  .sidebar nav a:hover .icon{ transform: scale(1.2) rotate(-6deg); }
+  .sidebar nav{ }
+  .sidebar.open nav a{ animation: fadeInUp 0.35s ease both; }
+  .sidebar.open nav a:nth-child(1){ animation-delay: 0.05s; }
+  .sidebar.open nav a:nth-child(2){ animation-delay: 0.1s; }
+  .sidebar.open nav a:nth-child(3){ animation-delay: 0.15s; }
+  .sidebar.open nav a:nth-child(4){ animation-delay: 0.2s; }
   .btn{
     display: inline-flex;
     align-items: center;
@@ -240,8 +252,10 @@
     color: var(--fg-muted);
     line-height: 1.5;
   }
-  .strip-item .desc a{ transition: opacity 0.15s; }
-  .strip-item .desc a:hover{ opacity: 0.7; }
+  .strip-item .desc a{ transition: opacity 0.15s, box-shadow 0.15s; box-shadow: inset 0 -1px 0 0 rgba(9,105,218,0); }
+  .strip-item .desc a:hover{ opacity: 0.85; box-shadow: inset 0 -1px 0 0 var(--accent); }
+  .strip-item .label{ transition: transform 0.2s ease; }
+  .strip-item:hover .label{ transform: translateX(2px); }
 
   /* ---- featured presets ---- */
   .featured{
@@ -258,8 +272,11 @@
   }
   .featured-head a{
     font-size: 13px; color: var(--accent); text-decoration:none; white-space:nowrap;
+    display: inline-flex; align-items: center; gap: 2px;
   }
   .featured-head a:hover{ text-decoration: underline; }
+  .featured-head a .arrow{ display:inline-block; transition: transform 0.2s ease; }
+  .featured-head a:hover .arrow{ transform: translateX(3px); }
   .featured-grid{
     display:grid; grid-template-columns: repeat(3, 1fr); gap:16px;
   }
@@ -272,16 +289,36 @@
     transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
   }
   .featured-tile:hover{
-    border-color: var(--accent); transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(31,35,40,0.08);
+    border-color: var(--accent); transform: translateY(-4px);
+    box-shadow: 0 10px 24px rgba(31,35,40,0.1);
   }
+  .featured-tile:active{ transform: translateY(-1px) scale(0.98); }
+  .featured-tile:hover .featured-img img{ transform: scale(1.05); }
   .featured-img{
     width:100%; aspect-ratio:4/3; object-fit:cover; background: var(--canvas-inset);
     display:flex; align-items:center; justify-content:center; color: var(--fg-muted); font-size:12px;
+    overflow: hidden;
   }
+  .featured-img img{ transition: transform 0.4s cubic-bezier(0.22,1,0.36,1); }
   .featured-body{ padding: 10px 12px; }
   .featured-name{ font-size: 13.5px; font-weight:600; margin-bottom:2px; }
   .featured-price{ font-family: ui-monospace, "SF Mono", "Roboto Mono", monospace; font-size:12px; color: var(--accent); }
+
+  /* ---- skeleton shimmer (loading placeholders) ---- */
+  .skeleton{
+    background: linear-gradient(90deg, var(--canvas-inset) 25%, #eef1f4 37%, var(--canvas-inset) 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+    border-radius: 10px;
+  }
+  .featured-skel-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; }
+  .featured-skel-tile{ border:1px solid var(--border-muted); border-radius:10px; overflow:hidden; }
+  .featured-skel-img{ width:100%; aspect-ratio:4/3; }
+  .featured-skel-line{ height:10px; margin:10px 12px; border-radius:4px; }
+  .featured-skel-line.short{ width: 50%; }
+  @media (max-width: 640px){
+    .featured-skel-grid{ grid-template-columns: repeat(2, 1fr); }
+  }
 
   @media (max-width: 640px){
     .featured-grid{ grid-template-columns: repeat(2, 1fr); }
@@ -365,9 +402,20 @@
   <div class="featured" id="featured-section" style="display:none;">
     <div class="featured-head">
       <h2>Featured presets</h2>
-      <a href="browse.html">Browse all →</a>
+      <a href="browse.html">Browse all <span class="arrow">→</span></a>
     </div>
     <div class="featured-grid" id="featured-grid"></div>
+  </div>
+
+  <div class="featured" id="featured-skeleton">
+    <div class="featured-head">
+      <div class="skeleton" style="width:140px;height:20px;"></div>
+    </div>
+    <div class="featured-skel-grid">
+      <div class="featured-skel-tile"><div class="skeleton featured-skel-img"></div><div class="skeleton featured-skel-line"></div><div class="skeleton featured-skel-line short"></div></div>
+      <div class="featured-skel-tile"><div class="skeleton featured-skel-img"></div><div class="skeleton featured-skel-line"></div><div class="skeleton featured-skel-line short"></div></div>
+      <div class="featured-skel-tile"><div class="skeleton featured-skel-img"></div><div class="skeleton featured-skel-line"></div><div class="skeleton featured-skel-line short"></div></div>
+    </div>
   </div>
 
   <div class="strip">
@@ -472,7 +520,9 @@
       .order('created_at', { ascending: false })
       .limit(6);
 
-    if (error || !data || data.length === 0) return;
+    const skeleton = document.getElementById('featured-skeleton');
+    if (error || !data || data.length === 0){ if (skeleton) skeleton.style.display = 'none'; return; }
+    if (skeleton) skeleton.style.display = 'none';
 
     const section = document.getElementById('featured-section');
     const grid = document.getElementById('featured-grid');

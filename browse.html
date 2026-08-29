@@ -31,6 +31,8 @@
   @keyframes fadeInDown{ from{ opacity:0; transform: translateY(-10px); } to{ opacity:1; transform: translateY(0); } }
   @keyframes fadeInUp{ from{ opacity:0; transform: translateY(14px); } to{ opacity:1; transform: translateY(0); } }
   @keyframes popIn{ from{ opacity:0; transform: scale(0.94); } to{ opacity:1; transform: scale(1); } }
+  @keyframes settleIn{ from{ opacity:0; transform: scale(0.97); } to{ opacity:1; transform: scale(1); } }
+  @keyframes shimmer{ 0%{ background-position: -200% 0; } 100%{ background-position: 200% 0; } }
     @media (prefers-reduced-motion: reduce){
     *{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
   }
@@ -75,8 +77,10 @@
     border:1px solid var(--border); border-radius:8px; font-family:inherit;
     background: var(--canvas-inset);
   }
+  .search-wrap input{ transition: border-color 0.2s, background 0.2s, box-shadow 0.2s; }
   .search-wrap input:focus{ outline:none; border-color: var(--accent); background:#fff; box-shadow: 0 0 0 3px rgba(9,105,218,0.12); }
-  .search-wrap .icon{ position:absolute; left:12px; top:50%; transform:translateY(-50%); color: var(--fg-muted); font-size:14px; pointer-events:none; }
+  .search-wrap .icon{ position:absolute; left:12px; top:50%; transform:translateY(-50%); color: var(--fg-muted); font-size:14px; pointer-events:none; transition: transform 0.2s ease, color 0.2s ease; }
+  .search-wrap input:focus ~ .icon{ transform: translateY(-50%) scale(1.15); color: var(--accent); }
 
   .grid{
     display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -91,12 +95,17 @@
   }
   .tile:hover{ box-shadow: 0 8px 22px rgba(31,35,40,0.1); transform: translateY(-3px); border-color: var(--border-muted); }
   .tile:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+  .tile:active{ transform: translateY(-1px) scale(0.99); }
+  .tile.settle{ animation: settleIn 0.18s ease forwards; }
   .tile-img{
     width:100%; aspect-ratio: 4/3; object-fit: cover;
     background: var(--canvas-inset);
     display:flex; align-items:center; justify-content:center;
     color: var(--fg-muted); font-size:12px; font-family: ui-monospace, monospace;
+    overflow: hidden;
   }
+  .tile-img img{ transition: transform 0.4s cubic-bezier(0.22,1,0.36,1); }
+  .tile:hover .tile-img img{ transform: scale(1.06); }
   .tile-body{ padding: 12px 14px 14px; }
   .tile-name{ font-weight:600; font-size:14.5px; margin-bottom:4px; }
   .tile-desc{ color: var(--fg-muted); font-size:13px; line-height:1.4; margin-bottom:8px;
@@ -109,13 +118,31 @@
     border:1px solid var(--border); color: var(--fg);
     transition: background 0.15s;
   }
-  .tile-model-row a:hover{ background: var(--canvas-inset); }
+  .tile-model-row a{ transition: background 0.15s, transform 0.15s ease; }
+  .tile-model-row a:hover{ background: var(--canvas-inset); transform: translateY(-1px); }
+  .tile-model-row a:active{ transform: translateY(0) scale(0.96); }
   .tile-model-row a.view3d{ color: var(--accent); border-color: rgba(9,105,218,0.35); }
 
   #empty, #loading{
     text-align:center; color: var(--fg-muted); padding: 60px 0; font-size:14px;
   }
+  #empty{ animation: fadeInUp 0.4s ease both; }
   #loading{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+
+  /* ---- skeleton shimmer (loading placeholders) ---- */
+  .skeleton{
+    background: linear-gradient(90deg, var(--canvas-inset) 25%, #eef1f4 37%, var(--canvas-inset) 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+  .skel-grid{
+    display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 18px;
+  }
+  .skel-tile{ border:1px solid var(--border-muted); border-radius:10px; overflow:hidden; opacity:0; animation: fadeInUp 0.4s ease forwards; }
+  .skel-img{ width:100%; aspect-ratio:4/3; }
+  .skel-line{ height:10px; margin:12px 14px; border-radius:4px; }
+  .skel-line.short{ width:60%; }
 
   /* ---- order modal ---- */
   .modal-overlay{
@@ -146,10 +173,16 @@
   .modal-close{
     position:absolute; top: 14px; right:14px; background:none; border:none;
     font-size:18px; color: var(--fg-muted); cursor:pointer; width:28px; height:28px; border-radius:6px;
+    transition: background 0.15s, transform 0.2s ease;
   }
-  .modal-close:hover{ background: var(--canvas-inset); }
+  .modal-close:hover{ background: var(--canvas-inset); transform: rotate(90deg); }
   .modal{ position: relative; }
+  @keyframes shake{ 10%,90%{ transform: translateX(-1px); } 20%,80%{ transform: translateX(2px); } 30%,50%,70%{ transform: translateX(-4px); } 40%,60%{ transform: translateX(4px); } }
   .modal-error{ color:#cf222e; font-size:13px; margin-top: 8px; display:none; }
+  .modal-error.shake{ animation: shake 0.5s ease; }
+  .modal.replay h2, .modal.replay .modal-price, .modal.replay .modal-desc{ animation: fadeInUp 0.35s ease both; }
+  .modal.replay .modal-price{ animation-delay: 0.04s; }
+  .modal.replay .modal-desc{ animation-delay: 0.08s; }
 
   /* ---- filament picker ---- */
   .fil-picker{
@@ -160,18 +193,20 @@
   .fil-opt input{ position:absolute; opacity:0; inset:0; cursor:pointer; }
   .fil-opt .card{
     border: 1px solid var(--border); border-radius: 8px; padding: 8px;
-    text-align: center; transition: border-color .15s ease, background .15s ease, transform .15s ease;
+    text-align: center; transition: border-color .15s ease, background .15s ease, transform .15s ease, box-shadow .15s ease;
   }
-  .fil-opt:hover .card{ border-color: var(--border-muted); transform: translateY(-1px); }
+  .fil-opt:hover .card{ border-color: var(--border-muted); transform: translateY(-2px); box-shadow: 0 4px 10px rgba(31,35,40,0.08); }
   .fil-opt input:focus-visible + .card{ outline: 2px solid var(--accent); outline-offset: 2px; }
   .fil-opt .swatch{
     width: 100%; aspect-ratio: 1/1; border-radius: 6px; margin-bottom: 6px;
     background-size: cover; background-position: center; background-color: var(--canvas-inset);
     border: 1px solid var(--border);
+    transition: transform .15s ease;
   }
   .fil-opt .name{ font-size: 11.5px; font-weight: 600; line-height:1.3; }
   .fil-opt .meta{ font-size: 10.5px; color: var(--fg-muted); margin-top: 2px; }
-  .fil-opt input:checked + .card{ border-color: var(--accent); background: rgba(9,105,218,0.08); }
+  .fil-opt input:checked + .card{ border-color: var(--accent); background: rgba(9,105,218,0.08); animation: popIn 0.25s ease; }
+  .fil-opt input:checked + .card .swatch{ transform: scale(1.06); }
   .fil-empty-note{ font-size: 12.5px; color: var(--fg-muted); display:flex; align-items:center; gap:6px; }
 </style>
 </head>
@@ -218,11 +253,11 @@
     <p class="subtitle">Ready-to-print designs. Pick one and it goes straight into the queue.</p>
 
     <div class="search-wrap">
-      <span class="icon">🔍</span>
       <input type="text" id="search-input" placeholder="Search presets…">
+      <span class="icon">🔍</span>
     </div>
 
-    <div id="loading"><svg class="logo-loading" width="28" height="28" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+    <div id="loading" style="display:none;"><svg class="logo-loading" width="28" height="28" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
       <polygon points="200,40.2 231.4,58.3 200,76.5 168.6,58.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.00s"/>
       <polygon points="150.9,68.5 182.3,86.7 150.9,104.8 119.5,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
       <polygon points="101.9,96.9 133.3,115 101.9,133.1 70.4,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
@@ -251,6 +286,12 @@
       <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
       <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
     </svg>Loading presets…</div>
+    <div class="skel-grid" id="skel-grid">
+      <div class="skel-tile"><div class="skeleton skel-img"></div><div class="skeleton skel-line"></div><div class="skeleton skel-line short"></div></div>
+      <div class="skel-tile" style="animation-delay:0.06s"><div class="skeleton skel-img"></div><div class="skeleton skel-line"></div><div class="skeleton skel-line short"></div></div>
+      <div class="skel-tile" style="animation-delay:0.12s"><div class="skeleton skel-img"></div><div class="skeleton skel-line"></div><div class="skeleton skel-line short"></div></div>
+      <div class="skel-tile" style="animation-delay:0.18s"><div class="skeleton skel-img"></div><div class="skeleton skel-line"></div><div class="skeleton skel-line short"></div></div>
+    </div>
     <div id="empty" style="display:none;">No presets match your search.</div>
     <div class="grid" id="grid"></div>
   </div>
@@ -326,10 +367,12 @@
 
   const gridEl = document.getElementById('grid');
   const loadingEl = document.getElementById('loading');
+  const skelGridEl = document.getElementById('skel-grid');
   const emptyEl = document.getElementById('empty');
   const searchInput = document.getElementById('search-input');
 
   let presets = [];
+  let firstRender = true;
   let selectedPreset = null;
   let filaments = [];
   let selectedFilament = null;
@@ -386,6 +429,7 @@
       .order('created_at', { ascending: false });
 
     loadingEl.style.display = 'none';
+    if (skelGridEl) skelGridEl.style.display = 'none';
     if (error || !data){
       emptyEl.textContent = 'Could not load presets right now.';
       emptyEl.style.display = 'block';
@@ -402,18 +446,12 @@
     emptyEl.style.display = list.length === 0 ? 'block' : 'none';
     list.forEach((p, i) => {
       const tile = document.createElement('div');
-      tile.className = 'tile';
+      // full staggered entrance only on first load; re-filters get a quick, uniform settle so typing doesn't feel janky
+      tile.className = hasRenderedOnce ? 'tile settle' : 'tile';
+      tile.style.animationDelay = hasRenderedOnce ? '0s' : (i * 0.05) + 's';
       tile.setAttribute('role', 'button');
       tile.setAttribute('tabindex', '0');
       tile.setAttribute('aria-label', `Order ${p.name}`);
-      if (hasRenderedOnce){
-        // Skip the staggered entrance replay on filtered re-renders (e.g. while typing a search) — it's jarring on every keystroke.
-        tile.style.animation = 'none';
-        tile.style.opacity = '1';
-        tile.style.transform = 'none';
-      } else {
-        tile.style.animationDelay = (i * 0.05) + 's';
-      }
       const img = publicUrl(p.image_path);
       tile.innerHTML = `
         <div class="tile-img">${img ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;" alt="">` : 'No image'}</div>
@@ -458,10 +496,15 @@
   const errorEl = document.getElementById('modal-error');
 
   let lastFocusedEl = null;
-
+  const modalEl = document.querySelector('.modal');
   function openModal(preset){
     lastFocusedEl = document.activeElement;
     selectedPreset = preset;
+    if (modalEl){
+      modalEl.classList.remove('replay');
+      void modalEl.offsetWidth;
+      modalEl.classList.add('replay');
+    }
     selectedFilament = null;
     document.getElementById('modal-name').textContent = preset.name;
     document.getElementById('modal-price').textContent = preset.price != null ? `$${Number(preset.price).toFixed(2)}` : '';
@@ -530,6 +573,9 @@
     } catch (err){
       errorEl.textContent = 'Could not place order: ' + (err.message || 'please try again.');
       errorEl.style.display = 'block';
+      errorEl.classList.remove('shake');
+      void errorEl.offsetWidth;
+      errorEl.classList.add('shake');
       submitBtn.disabled = false;
       submitBtn.textContent = 'Place order';
     }

@@ -36,6 +36,8 @@
   @keyframes fadeInUp{ from{ opacity:0; transform: translateY(16px); } to{ opacity:1; transform: translateY(0); } }
   @keyframes pulseDot{ 0%,100%{ transform: scale(1); opacity:1; } 50%{ transform: scale(1.4); opacity:0.5; } }
   @keyframes bump{ 0%{ transform: scale(1); } 35%{ transform: scale(1.06); } 100%{ transform: scale(1); } }
+  @keyframes popTiny{ from{ opacity:0; transform: translate(-50%, 4px) scale(0.9); } to{ opacity:1; transform: translate(-50%, 0) scale(1); } }
+  @keyframes glowPulse{ 0%,100%{ box-shadow: 0 0 0 0 rgba(26,127,55,0); } 50%{ box-shadow: 0 0 0 6px rgba(26,127,55,0.08); } }
   @media (prefers-reduced-motion: reduce){
     *{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
   }
@@ -171,6 +173,7 @@
   }
   .total-value{ display: inline-block; transition: transform 0.15s; }
   .total-value.bump{ animation: bump 0.3s ease; }
+  .total-card:hover{ animation: glowPulse 1.6s ease-in-out infinite; }
   .total-label{
     font-size: 12px;
     font-weight: 600;
@@ -214,11 +217,13 @@
   .input-label{ display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
   .input-label-text{ font-size: 14px; font-weight: 500; }
   .input-label-unit{ font-size: 12px; color: var(--fg-subtle); }
-  .input-row{ display: flex; align-items: center; gap: 12px; }
+  .input-row{ display: flex; align-items: center; gap: 12px; position: relative; }
 
   input[type="range"]{
     flex: 1; -webkit-appearance: none; appearance: none; height: 4px;
-    border-radius: 99px; background: var(--border); outline: none; cursor: pointer;
+    border-radius: 99px; outline: none; cursor: pointer;
+    background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--fill, 0%), var(--border) var(--fill, 0%), var(--border) 100%);
+    transition: background 0.05s linear;
   }
   input[type="range"]::-webkit-slider-thumb{
     -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
@@ -231,6 +236,21 @@
   input[type="range"]::-moz-range-thumb{
     width: 16px; height: 16px; border-radius: 50%; background: var(--accent);
     border: 2px solid var(--canvas); cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s;
+  }
+  input[type="range"]:hover::-moz-range-thumb{ transform: scale(1.15); }
+  input[type="range"]:active::-moz-range-thumb{ transform: scale(1.3); }
+  .range-bubble{
+    position: absolute; top: -26px; left: 0;
+    transform: translate(-50%, 4px) scale(0.9);
+    background: var(--fg); color: #fff; font-size: 11px; font-weight: 600;
+    padding: 3px 7px; border-radius: 5px; white-space: nowrap;
+    opacity: 0; pointer-events: none;
+  }
+  .range-bubble.show{ animation: popTiny 0.15s ease forwards; }
+  .range-bubble::after{
+    content: ""; position: absolute; left: 50%; top: 100%; transform: translateX(-50%);
+    border: 4px solid transparent; border-top-color: var(--fg);
   }
 
   .num-input{
@@ -261,6 +281,7 @@
   }
   .breakdown-row:hover{ background: var(--canvas); }
   .bd-value{ display: inline-block; transition: transform 0.15s; }
+  .bd-value.bump{ animation: bump 0.3s ease; }
   .breakdown-row.dimmed{ opacity: 0.4; }
   .bd-left{ display: flex; align-items: center; gap: 10px; }
   .bd-swatch{ width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
@@ -433,11 +454,42 @@
     recalc();
   }
 
+  function updateFill(rangeEl){
+    const min = +rangeEl.min || 0, max = +rangeEl.max || 100, v = +rangeEl.value;
+    const pct = max > min ? ((v - min) / (max - min)) * 100 : 0;
+    rangeEl.style.setProperty('--fill', pct + '%');
+  }
+
+  function makeBubble(rangeEl){
+    const bubble = document.createElement('div');
+    bubble.className = 'range-bubble';
+    rangeEl.parentElement.appendChild(bubble);
+    let hideTimer = null;
+    function position(){
+      const min = +rangeEl.min || 0, max = +rangeEl.max || 100, v = +rangeEl.value;
+      const pct = max > min ? (v - min) / (max - min) : 0;
+      bubble.style.left = (pct * rangeEl.offsetWidth) + 'px';
+      bubble.textContent = v;
+    }
+    function show(){
+      position();
+      bubble.classList.add('show');
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => bubble.classList.remove('show'), 700);
+    }
+    rangeEl.addEventListener('input', show);
+    rangeEl.addEventListener('pointerdown', show);
+  }
+
   function syncPair(rangeId, numId, key){
-    el(rangeId).addEventListener('input', () => {
-      const v = +el(rangeId).value;
+    const rangeEl = el(rangeId);
+    updateFill(rangeEl);
+    makeBubble(rangeEl);
+    rangeEl.addEventListener('input', () => {
+      const v = +rangeEl.value;
       el(numId).value = v;
       state[key] = v;
+      updateFill(rangeEl);
       recalc();
     });
     el(numId).addEventListener('input', () => {
@@ -445,7 +497,8 @@
       const raw = +el(numId).value || 0;
       const v = Math.max(raw, min);
       state[key] = v;
-      el(rangeId).value = Math.min(v, +el(rangeId).max);
+      rangeEl.value = Math.min(v, +rangeEl.max);
+      updateFill(rangeEl);
       recalc();
     });
   }
@@ -462,10 +515,16 @@
     const surCost   = surActive ? SUR_AMT : 0;
     const total     = modelCost + printCost + filCost + surCost;
 
-    el('valModel').textContent = fmt(modelCost);
-    el('valPrint').textContent = fmt(printCost);
-    el('valFil').textContent   = fmt(filCost);
-    el('valSur').textContent   = fmt(surCost);
+    [['valModel', modelCost], ['valPrint', printCost], ['valFil', filCost], ['valSur', surCost]].forEach(([id, val]) => {
+      const node = el(id);
+      const next = fmt(val);
+      if (node.textContent !== next){
+        node.textContent = next;
+        node.classList.remove('bump');
+        void node.offsetWidth;
+        node.classList.add('bump');
+      }
+    });
     const totalEl = el('totalVal');
     if (totalEl.textContent !== fmt(total)){
       totalEl.textContent = fmt(total);
