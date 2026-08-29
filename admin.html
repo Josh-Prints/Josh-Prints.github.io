@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JoshPrints - Admin</title>
@@ -20,7 +21,43 @@
     --err: #cf222e;
     --warn: #9a6700;
     --warn-dim: #9a670022;
+    --btn-hover-bg: #eef1f4;
+    --border-tint: 31,35,40;
     --radius: 6px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg: #0d1117;
+      --bg-raised: #161b22;
+      --bg-raised-2: #1c2128;
+      --ink: #e6edf3;
+      --ink-dim: #8b949e;
+      --accent: #4493f8;
+      --accent-dim: #4493f826;
+      --ok: #3fb950;
+      --ok-dim: #3fb95026;
+      --err: #f85149;
+      --warn: #d29922;
+      --warn-dim: #d2992226;
+      --btn-hover-bg: #21262d;
+      --border-tint: 255,255,255;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: #0d1117;
+    --bg-raised: #161b22;
+    --bg-raised-2: #1c2128;
+    --ink: #e6edf3;
+    --ink-dim: #8b949e;
+    --accent: #4493f8;
+    --accent-dim: #4493f826;
+    --ok: #3fb950;
+    --ok-dim: #3fb95026;
+    --err: #f85149;
+    --warn: #d29922;
+    --warn-dim: #d2992226;
+    --btn-hover-bg: #21262d;
+    --border-tint: 255,255,255;
   }
   *{ box-sizing: border-box; }
   body{
@@ -46,7 +83,7 @@
     width: 100%;
     max-width: 360px;
     background: var(--bg-raised);
-    border: 1px solid rgba(31,35,40,0.10);
+    border: 1px solid rgba(var(--border-tint),0.10);
     border-radius: var(--radius);
     padding: 32px;
   }
@@ -84,7 +121,7 @@
   .login-card input{
     width:100%;
     background: var(--bg);
-    border: 1px solid rgba(31,35,40,0.15);
+    border: 1px solid rgba(var(--border-tint),0.15);
     border-radius: 6px;
     color: var(--ink);
     padding: 11px 12px;
@@ -107,7 +144,7 @@
   }
   .login-card button:disabled{ opacity: .6; cursor: default; }
   .login-err{
-    color: #cf222e;
+    color: var(--err);
     font-size: 12.5px;
     font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     margin-top: 14px;
@@ -123,7 +160,7 @@
     align-items:center;
     justify-content: space-between;
     padding: 20px 28px;
-    border-bottom: 1px solid rgba(31,35,40,0.10);
+    border-bottom: 1px solid rgba(var(--border-tint),0.10);
     flex-wrap: wrap;
     gap: 12px;
     position: fixed;
@@ -156,7 +193,7 @@
   .topbar .right{ display:flex; align-items:center; gap:12px; }
   .icon-btn{
     background: var(--bg-raised);
-    border: 1px solid rgba(31,35,40,0.15);
+    border: 1px solid rgba(var(--border-tint),0.15);
     color: var(--ink-dim);
     border-radius: 6px;
     padding: 8px 14px;
@@ -164,13 +201,13 @@
     font-size: 12px;
     cursor: pointer;
   }
-  .icon-btn:hover{ color: var(--ink); border-color: rgba(31,35,40,0.3); }
+  .icon-btn:hover{ color: var(--ink); border-color: rgba(var(--border-tint),0.3); }
 
   .menu-wrap{ position: relative; }
   .hamburger-btn{
     display:inline-flex; align-items:center; justify-content:center;
     width: 34px; height: 34px; border-radius: 6px;
-    border: 1px solid rgba(31,35,40,0.15);
+    border: 1px solid rgba(var(--border-tint),0.15);
     background: var(--bg-raised); color: var(--ink);
     font-size: 16px; cursor:pointer; line-height:1;
     position: relative;
@@ -210,7 +247,7 @@
   }
   .toast{
     background: var(--bg-raised);
-    border: 1px solid rgba(31,35,40,0.12);
+    border: 1px solid rgba(var(--border-tint),0.12);
     border-left: 4px solid var(--accent);
     border-radius: 8px;
     box-shadow: 0 8px 24px rgba(31,35,40,0.16);
@@ -240,7 +277,7 @@
     position: fixed; top:0; right:0; bottom:0;
     width: 280px; max-width: 82vw;
     background: var(--bg-raised);
-    border-left: 1px solid rgba(31,35,40,0.12);
+    border-left: 1px solid rgba(var(--border-tint),0.12);
     box-shadow: -12px 0 30px rgba(31,35,40,0.16);
     z-index: 95;
     transform: translateX(100%);
@@ -266,6 +303,23 @@
   }
   .sidebar nav a:hover, .sidebar nav button:hover{ background: var(--bg); padding-left:16px; }
   .sidebar nav .icon{ font-size:15px; width:18px; text-align:center; }
+  .theme-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 11px 12px; margin-top: 8px; border-top: 1px solid rgba(var(--border-tint),0.10);
+    font-size: 14.5px; font-weight: 500; color: var(--ink);
+  }
+  .theme-switch{
+    position:relative; width:38px; height:22px; border-radius:11px; flex-shrink:0;
+    background: rgba(var(--border-tint),0.15); border:1px solid rgba(var(--border-tint),0.18);
+    cursor:pointer; padding:0; transition: background 0.2s ease, border-color 0.2s ease;
+  }
+  .theme-switch .thumb{
+    position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%;
+    background:#fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .theme-switch[aria-checked="true"]{ background: var(--accent); border-color: var(--accent); }
+  .theme-switch[aria-checked="true"] .thumb{ transform: translateX(16px); }
 
   .toolbar{
     display:flex;
@@ -287,7 +341,7 @@
     font-size: 12px;
     padding: 7px 13px;
     border-radius: 20px;
-    border: 1px solid rgba(31,35,40,0.18);
+    border: 1px solid rgba(var(--border-tint),0.18);
     color: var(--ink-dim);
     cursor: pointer;
     background: transparent;
@@ -302,7 +356,7 @@
 
   .order-card{
     background: var(--bg-raised);
-    border: 1px solid rgba(31,35,40,0.10);
+    border: 1px solid rgba(var(--border-tint),0.10);
     border-radius: var(--radius);
     padding: 18px 20px;
     margin-bottom: 14px;
@@ -381,7 +435,7 @@
   }
   select.status-select{
     background: var(--bg);
-    border: 1px solid rgba(31,35,40,0.18);
+    border: 1px solid rgba(var(--border-tint),0.18);
     color: var(--ink);
     border-radius: 6px;
     padding: 7px 10px;
@@ -390,7 +444,7 @@
   }
   .quote-input{
     background: var(--bg);
-    border: 1px solid rgba(31,35,40,0.18);
+    border: 1px solid rgba(var(--border-tint),0.18);
     color: var(--ink);
     border-radius: 6px;
     padding: 7px 10px;
@@ -401,7 +455,7 @@
   .save-btn{
     background: var(--ok-dim);
     border: 1px solid var(--ok);
-    color: #1a7f37;
+    color: var(--ok);
     border-radius: 6px;
     padding: 7px 12px;
     font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
@@ -417,7 +471,7 @@
 
   .chat-toggle{
     background: none;
-    border: 1px solid rgba(31,35,40,0.18);
+    border: 1px solid rgba(var(--border-tint),0.18);
     color: var(--ink-dim);
     border-radius: 6px;
     padding: 7px 12px;
@@ -430,7 +484,7 @@
   .chat-panel{
     display: none;
     margin-top: 14px;
-    border-top: 1px solid rgba(31,35,40,0.10);
+    border-top: 1px solid rgba(var(--border-tint),0.10);
     padding-top: 14px;
   }
   .chat-panel.open{ display: block; animation: fadeInUp 0.25s ease both; }
@@ -457,7 +511,7 @@
   .chat-msg.customer{
     align-self: flex-start;
     background: var(--bg);
-    border: 1px solid rgba(31,35,40,0.12);
+    border: 1px solid rgba(var(--border-tint),0.12);
   }
   .chat-msg .who{
     font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
@@ -492,12 +546,12 @@
     width: 108px;
     height: 136px;
     margin-top: 6px;
-    border: 1px solid rgba(31,35,40,0.15);
+    border: 1px solid rgba(var(--border-tint),0.15);
     border-radius: 8px;
     overflow: hidden;
     position: relative;
     cursor: pointer;
-    background: #ffffff;
+    background: var(--bg-raised);
   }
   .pdf-preview embed{ width: 100%; height: 100%; pointer-events: none; }
   .pdf-preview .pdf-preview-label{
@@ -519,7 +573,7 @@
   }
   .pdf-modal.open{ display:flex; }
   .pdf-modal-inner{
-    background: #fff;
+    background: var(--bg-raised);
     width: 100%; height: 100%; max-width: 880px;
     border-radius: 10px;
     position: relative;
@@ -545,7 +599,7 @@
   .chat-composer textarea{
     width: 100%;
     background: var(--bg);
-    border: 1px solid rgba(31,35,40,0.18);
+    border: 1px solid rgba(var(--border-tint),0.18);
     border-radius: 6px;
     color: var(--ink);
     padding: 9px 11px;
@@ -564,7 +618,7 @@
     font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 11.5px;
     color: var(--ink-dim);
-    border: 1px dashed rgba(31,35,40,0.25);
+    border: 1px dashed rgba(var(--border-tint),0.25);
     border-radius: 6px;
     padding: 6px 10px;
     position: relative;
@@ -581,7 +635,7 @@
   .chat-msg.theirs{
     align-self: flex-start;
     background: var(--bg);
-    border: 1px solid rgba(31,35,40,0.12);
+    border: 1px solid rgba(var(--border-tint),0.12);
   }
   .chat-send{
     background: var(--accent);
@@ -603,9 +657,9 @@
   }
   .status-new .status-dot{ background: var(--accent); }
   .status-quoted .status-dot{ background: var(--warn); }
-  .status-in_progress .status-dot{ background: #0969da; }
+  .status-in_progress .status-dot{ background: var(--accent); }
   .status-completed .status-dot{ background: var(--ok); }
-  .status-cancelled .status-dot{ background: #656d76; }
+  .status-cancelled .status-dot{ background: var(--ink-dim); }
 
   .empty{
     text-align: center;
@@ -634,7 +688,7 @@
     overflow-y: auto;
     background: var(--bg-raised);
     border-radius: var(--radius);
-    border: 1px solid rgba(31,35,40,0.10);
+    border: 1px solid rgba(var(--border-tint),0.10);
     padding: 24px;
   }
   .modal-head{
@@ -662,7 +716,7 @@
     color: var(--ink-dim);
     margin: 20px 0 12px;
     padding-top: 16px;
-    border-top: 1px solid rgba(31,35,40,0.10);
+    border-top: 1px solid rgba(var(--border-tint),0.10);
   }
   .rates-form-grid{
     display: grid;
@@ -688,7 +742,7 @@
   }
   .rates-form-grid input{
     background: var(--bg);
-    border: 1px solid rgba(31,35,40,0.18);
+    border: 1px solid rgba(var(--border-tint),0.18);
     border-radius: 6px;
     color: var(--ink);
     padding: 9px 10px;
@@ -716,7 +770,7 @@
     display:flex;
     gap: 6px;
     margin-bottom: 18px;
-    border-bottom: 1px solid rgba(31,35,40,0.10);
+    border-bottom: 1px solid rgba(var(--border-tint),0.10);
   }
   .debug-tab{
     background:none;
@@ -748,7 +802,7 @@
     display:flex;
     align-items:center;
     gap: 12px;
-    border: 1px solid rgba(31,35,40,0.10);
+    border: 1px solid rgba(var(--border-tint),0.10);
     border-radius: 8px;
     padding: 9px 10px;
   }
@@ -759,7 +813,7 @@
     background-size: cover;
     background-position: center;
     background-color: var(--bg);
-    border: 1px solid rgba(31,35,40,0.12);
+    border: 1px solid rgba(var(--border-tint),0.12);
   }
   .fil-info{ flex: 1; min-width: 0; }
   .fil-name{
@@ -780,7 +834,7 @@
     font-size: 11px;
     padding: 5px 10px;
     border-radius: 20px;
-    border: 1px solid rgba(31,35,40,0.18);
+    border: 1px solid rgba(var(--border-tint),0.18);
     background: transparent;
     color: var(--ink-dim);
     cursor: pointer;
@@ -788,11 +842,11 @@
   .fil-toggle.is-active{
     background: var(--ok-dim);
     border-color: var(--ok);
-    color: #1a7f37;
+    color: var(--ok);
   }
   .fil-del{
     background: none;
-    border: 1px solid rgba(31,35,40,0.18);
+    border: 1px solid rgba(var(--border-tint),0.18);
     color: var(--err);
     border-radius: 6px;
     padding: 5px 9px;
@@ -801,7 +855,7 @@
   }
   .fil-edit{
     background: none;
-    border: 1px solid rgba(31,35,40,0.18);
+    border: 1px solid rgba(var(--border-tint),0.18);
     color: var(--ink);
     border-radius: 6px;
     padding: 5px 9px;
@@ -811,7 +865,7 @@
   .fil-reorder{ display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
   .fil-reorder button{
     background: none;
-    border: 1px solid rgba(31,35,40,0.18);
+    border: 1px solid rgba(var(--border-tint),0.18);
     color: var(--ink-dim);
     border-radius: 5px;
     width: 22px;
@@ -821,13 +875,13 @@
     cursor: pointer;
     padding: 0;
   }
-  .fil-reorder button:hover{ color: var(--ink); border-color: rgba(31,35,40,0.35); }
+  .fil-reorder button:hover{ color: var(--ink); border-color: rgba(var(--border-tint),0.35); }
   .fil-reorder button:disabled{ opacity: 0.3; cursor: default; }
   .fil-row.editing{ outline: 2px solid var(--accent); outline-offset: -1px; border-radius: 8px; }
   .fil-add-actions{ display:flex; align-items:center; gap: 10px; }
   .fil-cancel-edit{
     background: none;
-    border: 1px solid rgba(31,35,40,0.18);
+    border: 1px solid rgba(var(--border-tint),0.18);
     color: var(--ink-dim);
     border-radius: 6px;
     padding: 8px 14px;
@@ -842,7 +896,7 @@
     display: flex; align-items: center; justify-content: center; gap: 6px;
   }
   .fil-add-form{
-    border-top: 1px solid rgba(31,35,40,0.10);
+    border-top: 1px solid rgba(var(--border-tint),0.10);
     padding-top: 16px;
   }
   .fil-add-grid{
@@ -859,7 +913,7 @@
   }
   .fil-add-grid input, .fil-add-grid select{
     background: var(--bg);
-    border: 1px solid rgba(31,35,40,0.18);
+    border: 1px solid rgba(var(--border-tint),0.18);
     border-radius: 6px;
     color: var(--ink);
     padding: 9px 10px;
@@ -875,7 +929,7 @@
     background-size: cover;
     background-position: center;
     background-color: var(--bg);
-    border: 1px dashed rgba(31,35,40,0.25);
+    border: 1px dashed rgba(var(--border-tint),0.25);
     flex-shrink: 0;
   }
   .fil-img-row{ display:flex; align-items:center; gap: 12px; }
@@ -901,7 +955,7 @@
     padding: 4px 10px;
     border-radius: 20px;
     background: var(--bg);
-    border: 1px solid rgba(31,35,40,0.15);
+    border: 1px solid rgba(var(--border-tint),0.15);
     color: var(--ink-dim);
   }
   .claim-badge.mine{
@@ -914,7 +968,7 @@
     font-size: 11.5px;
     padding: 5px 11px;
     border-radius: 20px;
-    border: 1px solid rgba(31,35,40,0.18);
+    border: 1px solid rgba(var(--border-tint),0.18);
     background: transparent;
     color: var(--ink-dim);
     cursor: pointer;
@@ -923,7 +977,7 @@
   .unclaim-btn:hover, .cancel-order-btn:hover{ color: var(--err); border-color: var(--err); }
   .admin-row{
     display:flex; align-items:center; gap:12px;
-    border: 1px solid rgba(31,35,40,0.10); border-radius:8px; padding:9px 10px;
+    border: 1px solid rgba(var(--border-tint),0.10); border-radius:8px; padding:9px 10px;
   }
   .admin-row .info{ flex:1; min-width:0; }
   .admin-row .name{ font-weight:600; font-size:13.5px; }
@@ -1004,7 +1058,7 @@ button:disabled, .btn:disabled, .save-btn:disabled, .chat-send:disabled{
 .toast:hover{ transform: translateY(-2px); box-shadow: 0 10px 28px rgba(31,35,40,0.2); }
 .spinner{
   display:inline-block; width:14px; height:14px; border-radius:50%;
-  border: 2px solid rgba(31,35,40,0.18); border-top-color: var(--accent);
+  border: 2px solid rgba(var(--border-tint),0.18); border-top-color: var(--accent);
   animation: spin 0.7s linear infinite; vertical-align: -2px; margin-right: 6px;
 }
 .shake{ animation: shakeX 0.4s ease both; }
@@ -1208,6 +1262,10 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <button type="button" id="my-name-btn"><span class="icon">🙋</span> Set your name</button>
       <button type="button" id="admins-btn"><span class="icon">👥</span> Manage admins</button>
     </nav>
+    <div class="theme-row">
+      <span>🌙 Dark mode</span>
+      <button type="button" class="theme-switch" id="theme-switch" role="switch" aria-checked="false" aria-label="Toggle dark mode"><span class="thumb"></span></button>
+    </div>
   </div>
 
   <div class="header-wrap" id="header-wrap">
@@ -1386,7 +1444,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     <p class="modal-sub">Shown on jobs you claim, e.g. "Claimed by Josh".</p>
     <div class="modal-body">
       <label style="display:block; font-family: ui-monospace, monospace; font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:6px;">Display name</label>
-      <input type="text" id="name-input" placeholder="e.g. Josh" style="width:100%; background:var(--bg); border:1px solid rgba(31,35,40,0.18); border-radius:6px; color:var(--ink); padding:10px 12px; font-size:16px;">
+      <input type="text" id="name-input" placeholder="e.g. Josh" style="width:100%; background:var(--bg); border:1px solid rgba(var(--border-tint),0.18); border-radius:6px; color:var(--ink); padding:10px 12px; font-size:16px;">
     </div>
     <div class="modal-foot">
       <span id="name-msg"></span>
@@ -1620,6 +1678,26 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     sidebar.querySelectorAll('nav a, nav button').forEach(item => {
       item.addEventListener('click', closeSidebar);
     });
+  })();
+
+  (function(){
+    const toggle = document.getElementById('theme-switch');
+    if (!toggle) return;
+    function currentTheme(){
+      const explicit = localStorage.getItem('theme');
+      if (explicit) return explicit;
+      return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    function applyTheme(mode){
+      toggle.setAttribute('aria-checked', String(mode === 'dark'));
+    }
+    toggle.addEventListener('click', () => {
+      const next = currentTheme() === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', next);
+      document.documentElement.setAttribute('data-theme', next);
+      applyTheme(next);
+    });
+    applyTheme(currentTheme());
   })();
 
   // Only one admin modal (Debug/Rates, Set your name, Manage admins) should

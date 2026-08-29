@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Your order - JoshPrints</title>
@@ -18,7 +19,39 @@
     --ok-dim: #1a7f371f;
     --warn: #9a6700;
     --err: #cf222e;
+    --btn-hover-bg: #eef1f4;
+    --border-tint: 31,35,40;
     --radius: 6px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg: #0d1117;
+      --bg-raised: #161b22;
+      --ink: #e6edf3;
+      --ink-dim: #8b949e;
+      --accent: #4493f8;
+      --accent-dim: #4493f826;
+      --ok: #3fb950;
+      --ok-dim: #3fb95026;
+      --warn: #e3b341;
+      --err: #f85149;
+      --btn-hover-bg: #21262d;
+      --border-tint: 255,255,255;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: #0d1117;
+    --bg-raised: #161b22;
+    --ink: #e6edf3;
+    --ink-dim: #8b949e;
+    --accent: #4493f8;
+    --accent-dim: #4493f826;
+    --ok: #3fb950;
+    --ok-dim: #3fb95026;
+    --warn: #e3b341;
+    --err: #f85149;
+    --btn-hover-bg: #21262d;
+    --border-tint: 255,255,255;
   }
   *{ box-sizing: border-box; }
   body{
@@ -37,7 +70,7 @@
     display:flex; align-items:center; justify-content:space-between;
     padding: 14px 20px;
     background: var(--bg-raised);
-    border-bottom: 1px solid rgba(31,35,40,0.10);
+    border-bottom: 1px solid rgba(var(--border-tint),0.10);
   }
   .topbar .brand{
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -69,14 +102,14 @@
   .hamburger-btn{
     display:inline-flex; align-items:center; justify-content:center;
     width: 34px; height: 34px; border-radius: 7px;
-    border: 1px solid rgba(31,35,40,0.15);
+    border: 1px solid rgba(var(--border-tint),0.15);
     background: var(--bg); color: var(--ink);
     font-size: 16px; cursor:pointer; line-height:1;
   }
-  .hamburger-btn:hover{ background: rgba(31,35,40,0.05); }
+  .hamburger-btn:hover{ background: rgba(var(--border-tint),0.05); }
   .menu-dropdown{
     display:none; position:absolute; top:calc(100% + 8px); right:0;
-    background: var(--bg-raised); border: 1px solid rgba(31,35,40,0.12);
+    background: var(--bg-raised); border: 1px solid rgba(var(--border-tint),0.12);
     border-radius: 10px; box-shadow: 0 10px 30px rgba(31,35,40,0.16);
     padding: 6px; min-width: 190px; z-index: 80;
   }
@@ -87,6 +120,24 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
   .menu-dropdown a:hover{ background: var(--bg); }
+  .menu-dropdown-divider{ height:1px; background: rgba(var(--border-tint),0.10); margin: 6px 4px; }
+  .theme-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 9px 12px; font-size: 14px; font-weight: 500; color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  .theme-switch{
+    position:relative; width:38px; height:22px; border-radius:11px; flex-shrink:0;
+    background: rgba(var(--border-tint),0.15); border:1px solid rgba(var(--border-tint),0.18);
+    cursor:pointer; padding:0; transition: background 0.2s ease, border-color 0.2s ease;
+  }
+  .theme-switch .thumb{
+    position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%;
+    background:#fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .theme-switch[aria-checked="true"]{ background: var(--accent); border-color: var(--accent); }
+  .theme-switch[aria-checked="true"] .thumb{ transform: translateX(16px); }
 
   h1{
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -108,7 +159,7 @@
 
   .card{
     background: var(--bg-raised);
-    border: 1px solid rgba(31,35,40,0.10);
+    border: 1px solid rgba(var(--border-tint),0.10);
     border-radius: var(--radius);
     padding: 24px 26px;
     margin-bottom: 18px;
@@ -135,18 +186,18 @@
   .status-pill .dot{ width: 7px; height: 7px; border-radius: 50%; }
   .status-new{ background: var(--accent-dim); color: var(--accent); }
   .status-new .dot{ background: var(--accent); }
-  .status-aknowleged{ background: rgba(154,103,0,0.10); color: #7a5300; }
-  .status-aknowleged .dot{ background: #7a5300; }
+  .status-aknowleged{ background: rgba(154,103,0,0.10); color: var(--warn); }
+  .status-aknowleged .dot{ background: var(--warn); }
   .status-quoted{ background: rgba(154,103,0,0.14); color: var(--warn); }
   .status-quoted .dot{ background: var(--warn); }
-  .status-printing{ background: rgba(9,105,218,0.14); color: #0969da; }
-  .status-printing .dot{ background: #0969da; }
+  .status-printing{ background: rgba(9,105,218,0.14); color: var(--accent); }
+  .status-printing .dot{ background: var(--accent); }
   .status-completed{ background: var(--ok-dim); color: var(--ok); }
   .status-completed .dot{ background: var(--ok); }
-  .status-sold{ background: rgba(26,127,55,0.18); color: #14602b; }
-  .status-sold .dot{ background: #14602b; }
-  .status-cancelled{ background: rgba(101,109,118,0.14); color: #656d76; }
-  .status-cancelled .dot{ background: #656d76; }
+  .status-sold{ background: rgba(26,127,55,0.18); color: var(--ok); }
+  .status-sold .dot{ background: var(--ok); }
+  .status-cancelled{ background: rgba(101,109,118,0.14); color: var(--ink-dim); }
+  .status-cancelled .dot{ background: var(--ink-dim); }
 
   .quote-amount{
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -158,7 +209,7 @@
     display: flex;
     justify-content: space-between;
     padding: 9px 0;
-    border-top: 1px solid rgba(31,35,40,0.08);
+    border-top: 1px solid rgba(var(--border-tint),0.08);
     font-size: 13.5px;
   }
   .detail-row:first-of-type{ border-top: none; }
@@ -201,12 +252,12 @@
     width: 118px;
     height: 148px;
     margin-top: 8px;
-    border: 1px solid rgba(31,35,40,0.15);
+    border: 1px solid rgba(var(--border-tint),0.15);
     border-radius: 8px;
     overflow: hidden;
     position: relative;
     cursor: pointer;
-    background: #ffffff;
+    background: var(--bg-raised);
   }
   .pdf-preview embed{ width: 100%; height: 100%; pointer-events: none; }
   .pdf-preview .pdf-preview-label{
@@ -229,7 +280,7 @@
   }
   .pdf-modal.open{ display:flex; animation: fadeIn 0.2s ease both; }
   .pdf-modal-inner{
-    background: #fff;
+    background: var(--bg-raised);
     width: 100%; height: 100%; max-width: 880px;
     border-radius: 10px;
     position: relative;
@@ -276,7 +327,7 @@
   .msg.admin{
     align-self: flex-start;
     background: var(--bg);
-    border: 1px solid rgba(31,35,40,0.12);
+    border: 1px solid rgba(var(--border-tint),0.12);
     border-bottom-left-radius: 2px;
   }
   .msg .who{
@@ -315,7 +366,7 @@
   .composer textarea{
     width: 100%;
     background: var(--bg);
-    border: 1px solid rgba(31,35,40,0.18);
+    border: 1px solid rgba(var(--border-tint),0.18);
     border-radius: 8px;
     color: var(--ink);
     padding: 11px 13px;
@@ -337,7 +388,7 @@
     font-size: 12px;
     color: var(--ink-dim);
     background: none;
-    border: 1px dashed rgba(31,35,40,0.25);
+    border: 1px dashed rgba(var(--border-tint),0.25);
     border-radius: 6px;
     padding: 8px 12px;
     cursor: pointer;
@@ -523,6 +574,11 @@ h1{ animation: fadeInDown 0.5s ease both; }
         <a href="index.html">Home</a>
         <a href="estimate.html">Estimate cost</a>
         <a href="order-form.html">Start an order</a>
+        <div class="menu-dropdown-divider"></div>
+        <div class="theme-row">
+          <span>🌙 Dark mode</span>
+          <button type="button" class="theme-switch" id="theme-switch" role="switch" aria-checked="false" aria-label="Toggle dark mode"><span class="thumb"></span></button>
+        </div>
       </div>
     </div>
   </div>
@@ -567,7 +623,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
       </p>
       <div style="display:flex; gap:8px;">
         <input type="text" id="lookup-input" placeholder="Order ID or full tracking link" aria-label="Order ID or tracking link"
-          style="flex:1; padding:8px 12px; border:1px solid rgba(31,35,40,0.15); border-radius:6px; font-size:14px; font-family:inherit;">
+          style="flex:1; padding:8px 12px; border:1px solid rgba(var(--border-tint),0.15); border-radius:6px; font-size:14px; font-family:inherit;">
         <button type="button" id="lookup-btn" class="send-btn">View order</button>
       </div>
       <div id="lookup-error" role="alert" class="composer-error" style="margin-top: 10px;"></div>
@@ -922,6 +978,26 @@ h1{ animation: fadeInDown 0.5s ease both; }
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') menu.classList.remove('open');
     });
+  })();
+
+  (function(){
+    const toggle = document.getElementById('theme-switch');
+    if (!toggle) return;
+    function currentTheme(){
+      const explicit = localStorage.getItem('theme');
+      if (explicit) return explicit;
+      return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    function applyTheme(mode){
+      toggle.setAttribute('aria-checked', String(mode === 'dark'));
+    }
+    toggle.addEventListener('click', () => {
+      const next = currentTheme() === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', next);
+      document.documentElement.setAttribute('data-theme', next);
+      applyTheme(next);
+    });
+    applyTheme(currentTheme());
   })();
 </script>
 </body>
