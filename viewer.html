@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Model preview — JoshPrints</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg">
 <style>
   :root{
     --bg: #f6f8fa;
@@ -32,6 +33,12 @@
     border-bottom: 1px solid var(--border);
     animation: fadeInDown 0.4s ease both;
   }
+  #fname-wrap{
+    display:flex; align-items:center; gap:8px; min-width:0; perspective: 400px;
+  }
+  .logo-mark{ flex-shrink: 0; display:block; animation: logoSpin 5s linear infinite; transform-style: preserve-3d; }
+  @keyframes logoSpin{ from{ transform: rotateY(0deg); } to{ transform: rotateY(360deg); } }
+  #fname-wrap:hover .logo-mark{ animation-duration: 0.7s; }
   #fname{
     font-size: 13.5px;
     font-weight: 600;
@@ -95,7 +102,10 @@
 <body>
 
   <div id="topbar">
-    <div id="fname">Model preview</div>
+    <div id="fname-wrap">
+      <img src="logo.svg" alt="" width="18" height="18" class="logo-mark">
+      <div id="fname">Model preview</div>
+    </div>
     <a id="download-link" href="#">⇩ Download original</a>
   </div>
 

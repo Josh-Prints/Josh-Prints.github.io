@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Your order - JoshPrints</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg">
 <style>
   :root{
     --bg: #f6f8fa;
@@ -41,8 +42,12 @@
   .topbar .brand{
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-weight: 700; font-size: 17px; color: var(--ink); text-decoration: none;
+    display: flex; align-items: center; gap: 8px; perspective: 400px;
   }
   .topbar .brand span{ color: var(--accent); }
+  .logo-mark{ flex-shrink: 0; display:block; animation: logoSpin 5s linear infinite; transform-style: preserve-3d; }
+  @keyframes logoSpin{ from{ transform: rotateY(0deg); } to{ transform: rotateY(360deg); } }
+  .topbar .brand:hover .logo-mark{ animation-duration: 0.7s; }
   .topbar-links{ display:flex; align-items:center; gap:8px; }
   .topbar-links .btn-plain{
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -399,7 +404,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 </head>
 <body>
 <div class="topbar">
-  <a class="brand" href="index.html">Josh<span>Prints</span></a>
+  <a class="brand" href="index.html"><img src="logo.svg" alt="" width="20" height="20" class="logo-mark">Josh<span>Prints</span></a>
   <div class="topbar-links">
     <a class="btn-plain" href="order-form.html">Order</a>
     <div class="menu-wrap">

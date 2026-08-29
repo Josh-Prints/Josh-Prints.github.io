@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>3D Print Quote Calculator</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
@@ -45,7 +46,11 @@
     font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 0.7rem; letter-spacing: 0.18em;
     text-transform: uppercase; color: var(--accent); margin-bottom: 0.55rem;
+    display: flex; align-items: center; gap: 6px; perspective: 400px;
   }
+  .logo-mark{ flex-shrink: 0; display:block; animation: logoSpin 5s linear infinite; transform-style: preserve-3d; }
+  @keyframes logoSpin{ from{ transform: rotateY(0deg); } to{ transform: rotateY(360deg); } }
+  .header-eyebrow:hover .logo-mark{ animation-duration: 0.7s; }
   .header h1 {
     font-size: clamp(1.7rem, 5vw, 2.6rem);
     font-weight: 700; letter-spacing: -0.03em; line-height: 1.1;
@@ -261,7 +266,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
 <div class="header">
   <a href="admin.html" style="display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,'SF Mono','Roboto Mono',monospace;font-size:0.72rem;color:var(--muted);text-decoration:none;margin-bottom:0.9rem;letter-spacing:0.04em;">&larr; Back to admin</a>
-  <div class="header-eyebrow">JoshPrints · Quote Builder</div>
+  <div class="header-eyebrow"><img src="logo.svg" alt="" width="16" height="16" class="logo-mark">JoshPrints · Quote Builder</div>
   <h1>3D Print <span>Quote</span> Calculator</h1>
   <p class="header-sub">Modeling labor · Filament · Surcharge — updates live.</p>
 </div>

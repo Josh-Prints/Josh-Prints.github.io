@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Manage presets — JoshPrints Admin</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg">
 <style>
   :root{
     --bg: #f6f8fa;
@@ -32,8 +33,11 @@
     background: var(--bg-raised); border:1px solid rgba(31,35,40,0.12);
     border-radius: var(--radius); padding: 32px; width: 320px;
   }
-  .login-card h1{ font-size:19px; margin:0 0 4px; }
+  .login-card h1{ font-size:19px; margin:0 0 4px; display:flex; align-items:center; gap:8px; perspective:400px; }
   .login-card h1 span{ color: var(--accent); }
+  .logo-mark{ flex-shrink: 0; display:block; animation: logoSpin 5s linear infinite; transform-style: preserve-3d; }
+  @keyframes logoSpin{ from{ transform: rotateY(0deg); } to{ transform: rotateY(360deg); } }
+  h1:hover .logo-mark{ animation-duration: 0.7s; }
   .login-card .sub{ color: var(--ink-dim); font-size:13px; margin: 0 0 20px; }
   .login-card label{ display:block; font-size:13px; font-weight:600; margin: 12px 0 5px; }
   .login-card input{
@@ -53,7 +57,7 @@
     padding: 20px 28px; border-bottom: 1px solid rgba(31,35,40,0.10);
     animation: fadeInDown 0.4s ease both;
   }
-  .topbar h1{ font-size:19px; margin:0; }
+  .topbar h1{ font-size:19px; margin:0; display:flex; align-items:center; gap:8px; perspective:400px; }
   .topbar h1 span{ color: var(--accent); }
   .topbar .right{ display:flex; gap:10px; }
   .btn{
@@ -161,7 +165,7 @@
 
 <div id="login-view">
   <div class="login-card">
-    <h1>Josh<span>Prints</span></h1>
+    <h1><img src="logo.svg" alt="" width="20" height="20" class="logo-mark">Josh<span>Prints</span></h1>
     <p class="sub">Admin: sign in to manage presets</p>
     <form id="login-form">
       <label for="email">Email</label>
@@ -176,7 +180,7 @@
 
 <div id="dash-view">
   <div class="topbar">
-    <h1>Josh<span>Prints</span>: Presets</h1>
+    <h1><img src="logo.svg" alt="" width="20" height="20" class="logo-mark">Josh<span>Prints</span>: Presets</h1>
     <div class="right">
       <a class="btn" href="admin.html">← Back to orders</a>
       <button class="btn btn-primary" id="add-btn">+ Add preset</button>
