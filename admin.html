@@ -980,6 +980,82 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 .in-view{ opacity: 1 !important; transform: none !important; }
 [data-reveal]{ opacity: 0; transform: translateY(14px); transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.22,1,0.36,1); }
 /* ================= end animation kit ================= */
+
+/* ================= responsive (mobile) ================= */
+@media (max-width: 768px){
+  .login-card{ padding: 22px; }
+
+  .topbar{ padding: 14px 16px; }
+  .topbar h1{ font-size: 16px; }
+  .topbar .right{ gap: 8px; }
+  main{ padding: 16px 14px 48px; }
+
+  .toolbar{ padding: 14px 14px 0; gap: 8px; }
+  .chip{ padding: 6px 11px; font-size: 11.5px; }
+
+  .icon-btn{ padding: 8px 10px; font-size: 11.5px; }
+  .hamburger-btn{ width: 40px; height: 40px; }
+  .sidebar{ width: 260px; }
+  .sidebar nav a, .sidebar nav button{ padding: 13px 12px; }
+
+  .order-card{ padding: 14px 14px; }
+  .order-top{ gap: 8px; }
+  .order-name{ font-size: 14.5px; }
+  .order-bottom{ gap: 8px; }
+  .order-bottom > *{ flex: 1 1 auto; }
+  select.status-select, .quote-input, .save-btn, .chat-toggle,
+  .claim-btn, .unclaim-btn, .cancel-order-btn{
+    padding: 9px 12px;
+    font-size: 12.5px;
+  }
+  .quote-input{ width: 90px; }
+  .sort-select{ margin-left: 0; width: 100%; }
+
+  .chat-messages{ max-height: 220px; }
+  .chat-msg{ max-width: 92%; }
+  .admin-chat-card{ max-width: 100%; }
+  .chat-composer-row{ flex-wrap: wrap; }
+  .chat-attach{ flex: 1 1 auto; text-align:center; }
+  .chat-send{ flex: 1 1 auto; padding: 10px 16px; }
+
+  .pdf-preview{ width: 88px; height: 112px; }
+  .pdf-modal{ padding: 10px; }
+
+  .modal-card{ padding: 18px; max-width: 100%; }
+  .rates-form-grid, .fil-add-grid{ grid-template-columns: 1fr; }
+  .modal-foot{ flex-wrap: wrap; }
+  .modal-foot button{ flex: 1 1 auto; padding: 11px 14px; }
+
+  .fil-row{ flex-wrap: wrap; }
+  .fil-info{ flex-basis: 100%; order: 1; }
+  .fil-actions{ order: 2; margin-left: auto; }
+  .fil-add-actions{ flex-wrap: wrap; }
+  .fil-add-actions button{ flex: 1 1 auto; }
+
+  .admin-row{ flex-wrap: wrap; }
+  .admin-row .info{ flex-basis: 100%; }
+
+  .debug-tabs{ overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
+  .debug-tab{ white-space: nowrap; }
+
+  .toast-stack{ left: 12px; right: 12px; bottom: 12px; max-width: none; }
+}
+
+@media (max-width: 480px){
+  .login-card{ padding: 18px; }
+  .login-card h1{ font-size: 20px; }
+
+  .topbar h1{ font-size: 14.5px; }
+  .topbar h1 svg{ width: 18px; height: 18px; }
+
+  .order-bottom{ flex-direction: column; align-items: stretch; }
+  .order-bottom > *{ width: 100%; }
+  .quote-input{ width: 100%; }
+
+  .fil-swatch{ width: 30px; height: 30px; }
+  .pdf-preview{ width: 76px; height: 96px; }
+}
+/* ================= end responsive ================= */
 </style>
 </head>
 <body>
@@ -2291,16 +2367,16 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   }
 
   async function sendChatMessage(orderId, btn){
+    // Guard against double-sends (e.g. a fast double click) firing the
+    // upload + insert twice while the first send is still in flight.
+    if (btn) btn.disabled = true;
+
     const bodyEl = document.getElementById(`chat-body-${orderId}`);
     const fileInput = document.getElementById(`chat-attach-${orderId}`);
     const body = bodyEl.value.trim();
     const files = Array.from(fileInput.files);
 
-    if (!body && files.length === 0) return;
-
-    // Guard against double-sends (e.g. a fast double click) firing the
-    // upload + insert twice while the first send is still in flight.
-    if (btn) btn.disabled = true;
+    if (!body && files.length === 0) { if (btn) btn.disabled = false; return; }
 
     try {
       const uploaded = [];
