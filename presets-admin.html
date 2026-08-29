@@ -164,12 +164,45 @@
   .field input:focus, .field textarea:focus{ outline:none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(9,105,218,0.14); }
   .field textarea{ min-height:70px; resize:vertical; }
   .field-row{ display:flex; align-items:center; gap:8px; }
-  .img-preview{
-    width:100%; aspect-ratio:4/3; border-radius:8px; background: var(--bg);
-    border:1px dashed rgba(31,35,40,0.2); display:flex; align-items:center; justify-content:center;
-    color: var(--ink-dim); font-size:12.5px; margin-bottom:10px; overflow:hidden;
+  .photo-grid{
+    display:grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap:8px; margin-bottom:10px;
   }
-  .img-preview img{ width:100%; height:100%; object-fit:cover; }
+  .photo-thumb{
+    position:relative; aspect-ratio:1/1; border-radius:8px; overflow:hidden;
+    border:1px solid rgba(31,35,40,0.15); background:var(--bg);
+    animation: popIn 0.2s ease both;
+  }
+  .photo-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .photo-thumb .cover-badge{
+    position:absolute; top:4px; left:4px; background:rgba(9,105,218,0.9); color:#fff;
+    font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
+    padding:2px 5px; border-radius:4px; pointer-events:none;
+  }
+  .photo-thumb .photo-remove{
+    position:absolute; top:4px; right:4px; width:20px; height:20px; border-radius:50%;
+    background:rgba(31,35,40,0.65); color:#fff; border:none; font-size:12px; line-height:1;
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition: background 0.15s, transform 0.15s ease;
+  }
+  .photo-thumb .photo-remove:hover{ background:rgba(207,34,46,0.9); transform:scale(1.1); }
+  .photo-thumb .photo-move{
+    position:absolute; bottom:4px; width:20px; height:20px; border-radius:50%;
+    background:rgba(31,35,40,0.55); color:#fff; border:none; font-size:11px; line-height:1;
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition: background 0.15s;
+  }
+  .photo-thumb .photo-move:hover{ background:rgba(31,35,40,0.8); }
+  .photo-thumb .photo-move.move-left{ left:4px; }
+  .photo-thumb .photo-move.move-right{ right:4px; }
+  .photo-add-tile{
+    aspect-ratio:1/1; border-radius:8px; border:1px dashed rgba(31,35,40,0.25);
+    background:var(--bg); display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:4px; color:var(--ink-dim); font-size:11px; cursor:pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .photo-add-tile:hover{ border-color: var(--accent); color: var(--accent); background: rgba(9,105,218,0.05); }
+  .photo-add-tile .plus{ font-size:20px; line-height:1; }
   .modal-actions{ display:flex; gap:10px; margin-top:18px; }
   .modal-actions .btn{ flex:1; justify-content:center; }
   .modal-close{
@@ -298,9 +331,9 @@
     <h2 id="modal-title">Add preset</h2>
     <form id="preset-form">
       <div class="field">
-        <label>Image</label>
-        <div class="img-preview" id="img-preview">No image</div>
-        <input type="file" id="p-image" accept="image/*">
+        <label>Photos <span style="font-weight:400;">(the first one is the cover photo — customers can swipe through the rest)</span></label>
+        <div class="photo-grid" id="photo-grid"></div>
+        <input type="file" id="p-image" accept="image/*" multiple style="display:none;">
       </div>
       <div class="field">
         <label>3D file <span style="font-weight:400;">(so customers can view it in 3D and download it)</span></label>
@@ -349,11 +382,12 @@
 
   let presets = [];
   let editingId = null;
-  let pendingImageFile = null;
   let pendingModelFile = null;
   let currentModelPath = null;
   let currentModelName = null;
   let removeExistingModel = false;
+  let pendingPhotos = []; // { key, kind:'existing'|'new', path?, file?, url }
+  let photoKeySeq = 0;
 
   const MODEL_EXTS = ['stl', 'obj', '3mf', 'step', 'stp', 'iges', 'igs'];
   function fileExt(name){ return (name || '').split('.').pop().toLowerCase(); }
@@ -420,11 +454,13 @@
       tile.className = 'tile' + (p.active ? '' : ' inactive');
       tile.style.animationDelay = (i * 0.04) + 's';
       const img = publicUrl(p.image_path);
+      const photoCount = (p.image_path ? 1 : 0) + (p.image_paths?.length || 0);
       tile.innerHTML = `
         <div class="tile-img">${img ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;" alt="">` : 'No image'}</div>
         <div class="tile-body">
           <div class="tile-name">${escapeHtml(p.name)}${!p.active ? '<span class="tile-badge">Hidden</span>' : ''}${p.pinned ? '<span class="tile-badge pin">📌 Pinned</span>' : ''}</div>
           <div class="tile-price">${p.price != null ? '$' + Number(p.price).toFixed(2) : 'No price set'}</div>
+          ${photoCount > 1 ? `<div class="tile-model-badge">🖼 ${photoCount} photos</div>` : ''}
           ${p.model_path ? `<div class="tile-model-badge">🧊 ${escapeHtml(p.model_name || '3D file')}</div>` : ''}
           <div class="tile-actions">
             <button type="button" class="pin-btn${p.pinned ? ' pinned' : ''}" data-pin="${p.id}">${p.pinned ? '📌 Pinned' : '📌 Pin'}</button>
@@ -464,7 +500,8 @@
   const overlay = document.getElementById('modal-overlay');
   const form = document.getElementById('preset-form');
   const errorEl = document.getElementById('modal-error');
-  const imgPreview = document.getElementById('img-preview');
+  const photoGridEl = document.getElementById('photo-grid');
+  const photoInput = document.getElementById('p-image');
 
   document.getElementById('add-btn').addEventListener('click', () => openModal(null));
   document.getElementById('modal-close').addEventListener('click', closeModal);
@@ -474,7 +511,6 @@
 
   function openModal(preset){
     editingId = preset ? preset.id : null;
-    pendingImageFile = null;
     pendingModelFile = null;
     removeExistingModel = false;
     currentModelPath = preset?.model_path || null;
@@ -484,17 +520,61 @@
     document.getElementById('p-price').value = preset?.price ?? '';
     document.getElementById('p-desc').value = preset?.description || '';
     document.getElementById('p-active').checked = preset ? preset.active : true;
-    document.getElementById('p-image').value = '';
+    photoInput.value = '';
     document.getElementById('p-model').value = '';
     document.getElementById('model-drop-label').textContent = 'Drop an STL, OBJ, 3MF, or STEP file, or tap to browse';
     document.getElementById('model-drop').classList.remove('has-file');
-    const existingImg = preset ? publicUrl(preset.image_path) : null;
-    imgPreview.innerHTML = existingImg ? `<img src="${existingImg}" alt="">` : 'No image';
+    const existingPaths = preset ? [preset.image_path, ...(preset.image_paths || [])].filter(Boolean) : [];
+    pendingPhotos = existingPaths.map(path => ({ key: 'existing-' + (photoKeySeq++), kind: 'existing', path, url: publicUrl(path) }));
+    renderPhotoGrid();
     renderModelCurrent();
     errorEl.style.display = 'none';
     overlay.classList.add('open');
   }
   function closeModal(){ overlay.classList.remove('open'); }
+
+  function renderPhotoGrid(){
+    photoGridEl.innerHTML = pendingPhotos.map((p, i) => `
+      <div class="photo-thumb" data-key="${p.key}">
+        <img src="${p.url}" alt="">
+        ${i === 0 ? '<span class="cover-badge">Cover</span>' : ''}
+        <button type="button" class="photo-remove" data-remove="${p.key}" aria-label="Remove photo">✕</button>
+        ${i > 0 ? `<button type="button" class="photo-move move-left" data-move-left="${p.key}" aria-label="Move earlier">‹</button>` : ''}
+        ${i < pendingPhotos.length - 1 ? `<button type="button" class="photo-move move-right" data-move-right="${p.key}" aria-label="Move later">›</button>` : ''}
+      </div>
+    `).join('') + `
+      <button type="button" class="photo-add-tile" id="photo-add-tile"><span class="plus">+</span>Add photo${pendingPhotos.length ? 's' : ''}</button>
+    `;
+    document.getElementById('photo-add-tile').addEventListener('click', () => photoInput.click());
+    photoGridEl.querySelectorAll('[data-remove]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        pendingPhotos = pendingPhotos.filter(p => p.key !== btn.dataset.remove);
+        renderPhotoGrid();
+      });
+    });
+    photoGridEl.querySelectorAll('[data-move-left]').forEach(btn => {
+      btn.addEventListener('click', () => movePhoto(btn.dataset.moveLeft, -1));
+    });
+    photoGridEl.querySelectorAll('[data-move-right]').forEach(btn => {
+      btn.addEventListener('click', () => movePhoto(btn.dataset.moveRight, 1));
+    });
+  }
+
+  function movePhoto(key, dir){
+    const i = pendingPhotos.findIndex(p => p.key === key);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= pendingPhotos.length) return;
+    [pendingPhotos[i], pendingPhotos[j]] = [pendingPhotos[j], pendingPhotos[i]];
+    renderPhotoGrid();
+  }
+
+  photoInput.addEventListener('change', (e) => {
+    Array.from(e.target.files).forEach(file => {
+      pendingPhotos.push({ key: 'new-' + (photoKeySeq++), kind: 'new', file, url: URL.createObjectURL(file) });
+    });
+    e.target.value = '';
+    renderPhotoGrid();
+  });
 
   function renderModelCurrent(){
     const el = document.getElementById('model-current');
@@ -528,14 +608,6 @@
     document.getElementById('model-drop').classList.add('has-file');
   });
 
-  document.getElementById('p-image').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    pendingImageFile = file || null;
-    if (file){
-      imgPreview.innerHTML = `<img src="${URL.createObjectURL(file)}" alt="">`;
-    }
-  });
-
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('p-name').value.trim();
@@ -551,13 +623,16 @@
     errorEl.style.display = 'none';
 
     try {
-      let imagePath = null;
-      if (pendingImageFile){
-        const path = `presets/${Date.now()}-${sanitizeFileName(pendingImageFile.name)}`;
-        const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, pendingImageFile);
-        if (upErr) throw upErr;
-        imagePath = path;
+      for (let i = 0; i < pendingPhotos.length; i++){
+        const p = pendingPhotos[i];
+        if (p.kind === 'new'){
+          const path = `presets/${Date.now()}-${i}-${sanitizeFileName(p.file.name)}`;
+          const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, p.file);
+          if (upErr) throw upErr;
+          p.path = path;
+        }
       }
+      const photoPaths = pendingPhotos.map(p => p.path);
 
       let modelPath, modelName;
       if (pendingModelFile){
@@ -571,8 +646,11 @@
         modelName = null;
       }
 
-      const payload = { name, price, description: description || null, active };
-      if (imagePath) payload.image_path = imagePath;
+      const payload = {
+        name, price, description: description || null, active,
+        image_path: photoPaths[0] || null,
+        image_paths: photoPaths.slice(1)
+      };
       if (modelPath !== undefined) payload.model_path = modelPath;
       if (modelName !== undefined) payload.model_name = modelName;
 
