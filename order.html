@@ -74,10 +74,18 @@
   }
   .topbar .brand{
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-weight: 700; font-size: 17px; color: var(--ink); text-decoration: none;
+    font-weight: 600; font-size: 16px; color: var(--ink); text-decoration: none;
     display: flex; align-items: center; gap: 8px;
   }
-  .topbar .brand span{ color: var(--accent); }
+  .brand-text span{ color: var(--accent); }
+  .btn{
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 5px 16px; font-size: 14px; font-weight: 500; line-height: 20px;
+    border-radius: 6px; border: 1px solid rgba(var(--border-tint),0.15);
+    background: var(--bg); color: var(--ink); text-decoration: none; cursor: pointer;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  .btn-primary{ background: var(--accent); border-color: rgba(var(--border-tint),0.15); color: #fff; }
   .logo-mark{ flex-shrink: 0; display:block; }
   .logo-loading{ flex-shrink: 0; display:block; }
   .logo-loading polygon{
@@ -101,7 +109,7 @@
   .menu-wrap{ position: relative; }
   .hamburger-btn{
     display:inline-flex; align-items:center; justify-content:center;
-    width: 34px; height: 34px; border-radius: 7px;
+    width: 34px; height: 34px; border-radius: 6px;
     border: 1px solid rgba(var(--border-tint),0.15);
     background: var(--bg); color: var(--ink);
     font-size: 16px; cursor:pointer; line-height:1;
@@ -587,7 +595,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
 </head>
 <body>
 <div class="topbar">
-  <a class="brand" href="index.html"><svg class="logo-mark" width="20" height="20" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <a class="brand" href="index.html"><svg class="logo-mark" width="32" height="32" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
       <polygon points="200,40.2 231.4,58.3 200,76.5 168.6,58.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.00s"/>
       <polygon points="150.9,68.5 182.3,86.7 150.9,104.8 119.5,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
       <polygon points="101.9,96.9 133.3,115 101.9,133.1 70.4,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
@@ -615,13 +623,14 @@ h1{ animation: fadeInDown 0.5s ease both; }
       <polygon points="240.2,187 208.8,205.1 208.8,241.4 240.2,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
       <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
       <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
-    </svg>Josh<span>Prints</span></a>
+    </svg><span class="brand-text">Josh<span>Prints</span></span></a>
   <div class="topbar-links">
-    <a class="btn-plain" href="order-form.html">Order</a>
+    <a class="btn btn-primary" href="order-form.html">Order</a>
     <div class="menu-wrap">
       <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false">☰</button>
       <div class="menu-dropdown" id="menu-dropdown">
         <a href="index.html">Home</a>
+        <a href="browse.html">Browse designs</a>
         <a href="estimate.html">Estimate cost</a>
         <a href="order-form.html">Start an order</a>
         <div class="menu-dropdown-divider"></div>
