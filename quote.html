@@ -656,7 +656,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
 <div class="download-wrap">
   <label class="round-check-label">
     <input type="checkbox" id="roundDown">
-    Round down to dollar
+    Round down to $0.50
   </label>
   <label class="round-check-label">
     <input type="checkbox" id="extraCostToggle" onchange="toggleExtraCosts()">
@@ -700,7 +700,8 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
   const el  = id => document.getElementById(id);
   const escapeAttr = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmt     = v => '$' + v.toFixed(2);
-  const fmtTotal = v => el('roundDown').checked ? '$' + Math.floor(v).toFixed(0) : fmt(v);
+  const roundToHalf = v => Math.floor(v * 2) / 2;
+  const fmtTotal = v => el('roundDown').checked ? fmt(roundToHalf(v)) : fmt(v);
 
   /* default date */
   el('invoiceDate').value = new Date().toISOString().split('T')[0];
@@ -967,7 +968,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
     const discAmt   = subtotal * (discountPct / 100);
     const rawTotal  = subtotal - discAmt;
     const roundDown = el('roundDown').checked;
-    const total     = roundDown ? Math.floor(rawTotal) : rawTotal;
+    const total     = roundDown ? roundToHalf(rawTotal) : rawTotal;
     const fmtPdf    = v => '$' + v.toFixed(2);
 
     const yourName   = el('yourName').value.trim()   || 'Your Name';
