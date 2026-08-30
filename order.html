@@ -891,7 +891,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
     myOrdersListEl.innerHTML = data.map(o => `
       <a class="my-order-row" href="order.html?order=${o.id}">
         <span>
-          ${escapeHtml(o.order_type === 'preset' ? 'Preset order' : o.order_type === 'custom_model' ? 'Custom model' : 'Custom print')}
+          ${escapeHtml(o.order_type === 'design' ? 'Design order' : o.order_type === 'custom_model' ? 'Custom model' : 'Custom print')}
           <div class="meta">${STATUS_LABEL[o.status] || o.status} · ${new Date(o.created_at).toLocaleDateString()}</div>
         </span>
         <span>→</span>
@@ -972,7 +972,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
     document.getElementById('d-name').textContent = order.full_name;
     document.getElementById('d-type').textContent =
       order.order_type === 'custom_model' ? 'Custom Model'
-      : order.order_type === 'preset' ? `Preset: ${order.preset_name || 'Unknown'}${order.preset_price != null ? ' ($' + Number(order.preset_price).toFixed(2) + ')' : ''}`
+      : order.order_type === 'design' ? `Design: ${order.design_name || 'Unknown'}${order.design_price != null ? ' ($' + Number(order.design_price).toFixed(2) + ')' : ''}`
       : 'Custom Print';
     document.getElementById('d-created').textContent = new Date(order.created_at).toLocaleString();
 

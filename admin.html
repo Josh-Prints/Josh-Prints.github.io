@@ -1277,7 +1277,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     </div>
     <nav>
       <a href="index.html"><span class="icon">🏠</span> Back to main site</a>
-      <a href="presets-admin.html"><span class="icon">🧩</span> Manage presets</a>
+      <a href="designs-admin.html"><span class="icon">🧩</span> Manage designs</a>
       <a href="admin-users.html"><span class="icon">🧑‍🤝‍🧑</span> Customers</a>
       <a href="quote.html" id="quote-builder-btn"><span class="icon">🧮</span> Quote builder</a>
       <button type="button" id="rates-btn"><span class="icon">⚙</span> Debug</button>
@@ -2084,7 +2084,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       card.style.animationDelay = Math.min(idx * 30, 300) + 'ms';
 
       const typeLabel = order.order_type === 'custom_model' ? 'Custom Model'
-        : order.order_type === 'preset' ? `Preset: ${escapeHtml(order.preset_name || 'Unknown')}`
+        : order.order_type === 'design' ? `Design: ${escapeHtml(order.design_name || 'Unknown')}`
         : 'Custom Print';
       const created = new Date(order.created_at).toLocaleString();
 

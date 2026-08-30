@@ -4,7 +4,7 @@
 <script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Manage presets — JoshPrints Admin</title>
+<title>Manage designs — JoshPrints Admin</title>
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <style>
   :root{
@@ -313,7 +313,7 @@
       <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
       <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
     </svg>Josh<span>Prints</span></h1>
-    <p class="sub">Admin: sign in to manage presets</p>
+    <p class="sub">Admin: sign in to manage designs</p>
     <form id="login-form">
       <label for="email">Email</label>
       <input type="email" id="email" required autocomplete="username">
@@ -355,11 +355,11 @@
       <polygon points="240.2,187 208.8,205.1 208.8,241.4 240.2,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
       <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
       <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
-    </svg>Josh<span>Prints</span>: Presets</h1>
+    </svg>Josh<span>Prints</span>: Designs</h1>
     <div class="right">
       <button type="button" class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle dark mode" aria-pressed="false">🌙</button>
       <a class="btn" href="admin.html">← Back to orders</a>
-      <button class="btn btn-primary" id="add-btn">+ Add preset</button>
+      <button class="btn btn-primary" id="add-btn">+ Add design</button>
     </div>
   </div>
   <div class="page">
@@ -370,8 +370,8 @@
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal">
     <button class="modal-close" id="modal-close">✕</button>
-    <h2 id="modal-title">Add preset</h2>
-    <form id="preset-form">
+    <h2 id="modal-title">Add design</h2>
+    <form id="design-form">
       <div class="field">
         <label>Photos <span style="font-weight:400;">(the first one is the cover photo — customers can swipe through the rest)</span></label>
         <div class="photo-grid" id="photo-grid"></div>
@@ -404,7 +404,7 @@
       <div class="modal-error" id="modal-error"></div>
       <div class="modal-actions">
         <button type="button" class="btn" id="modal-cancel">Cancel</button>
-        <button type="submit" class="btn btn-primary" id="modal-save">Save preset</button>
+        <button type="submit" class="btn btn-primary" id="modal-save">Save design</button>
       </div>
     </form>
   </div>
@@ -446,7 +446,7 @@
   const dashView = document.getElementById('dash-view');
   const gridEl = document.getElementById('grid');
 
-  let presets = [];
+  let designs = [];
   let editingId = null;
   let pendingModelFile = null;
   let currentModelPath = null;
@@ -491,7 +491,7 @@
     }
   }
   function showLogin(){ loginView.style.display = 'flex'; dashView.style.display = 'none'; }
-  function showDashboard(){ loginView.style.display = 'none'; dashView.style.display = 'block'; loadPresets(); }
+  function showDashboard(){ loginView.style.display = 'none'; dashView.style.display = 'block'; loadDesigns(); }
 
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -523,24 +523,24 @@
     }
   });
 
-  async function loadPresets(){
+  async function loadDesigns(){
     gridEl.innerHTML = '<div class="grid-spinner"><span></span></div>';
-    const { data, error } = await supabase.from('presets').select('*').order('created_at', { ascending:false });
+    const { data, error } = await supabase.from('designs').select('*').order('created_at', { ascending:false });
     if (error){
       // Leaving the grid stuck on its spinner forever is worse than a plain
       // message — at least this tells the admin what happened and lets
       // them retry without reloading the whole page.
-      gridEl.innerHTML = `<div class="grid-empty">Couldn't load presets: ${escapeHtml(error.message)} — <a href="#" id="presets-retry">retry</a></div>`;
-      document.getElementById('presets-retry')?.addEventListener('click', (e) => { e.preventDefault(); loadPresets(); });
+      gridEl.innerHTML = `<div class="grid-empty">Couldn't load designs: ${escapeHtml(error.message)} — <a href="#" id="designs-retry">retry</a></div>`;
+      document.getElementById('designs-retry')?.addEventListener('click', (e) => { e.preventDefault(); loadDesigns(); });
       return;
     }
-    presets = data || [];
+    designs = data || [];
     render();
   }
 
   function render(){
     gridEl.innerHTML = '';
-    presets.forEach((p, i) => {
+    designs.forEach((p, i) => {
       const tile = document.createElement('div');
       tile.className = 'tile' + (p.active ? '' : ' inactive');
       tile.style.animationDelay = (i * 0.04) + 's';
@@ -567,29 +567,29 @@
       btn.addEventListener('click', () => togglePinned(btn.dataset.pin));
     });
     gridEl.querySelectorAll('[data-edit]').forEach(btn => {
-      btn.addEventListener('click', () => openModal(presets.find(p => p.id === btn.dataset.edit)));
+      btn.addEventListener('click', () => openModal(designs.find(p => p.id === btn.dataset.edit)));
     });
     gridEl.querySelectorAll('[data-delete]').forEach(btn => {
-      btn.addEventListener('click', () => deletePreset(btn.dataset.delete));
+      btn.addEventListener('click', () => deleteDesign(btn.dataset.delete));
     });
   }
 
   async function togglePinned(id){
-    const preset = presets.find(p => p.id === id);
-    if (!preset) return;
-    const { error } = await supabase.from('presets').update({ pinned: !preset.pinned }).eq('id', id);
-    if (!error) loadPresets();
+    const design = designs.find(p => p.id === id);
+    if (!design) return;
+    const { error } = await supabase.from('designs').update({ pinned: !design.pinned }).eq('id', id);
+    if (!error) loadDesigns();
   }
 
-  async function deletePreset(id){
-    if (!confirm('Delete this preset? This cannot be undone.')) return;
-    const { error } = await supabase.from('presets').delete().eq('id', id);
-    if (!error) loadPresets();
+  async function deleteDesign(id){
+    if (!confirm('Delete this design? This cannot be undone.')) return;
+    const { error } = await supabase.from('designs').delete().eq('id', id);
+    if (!error) loadDesigns();
   }
 
   // ---- add/edit modal ----
   const overlay = document.getElementById('modal-overlay');
-  const form = document.getElementById('preset-form');
+  const form = document.getElementById('design-form');
   const errorEl = document.getElementById('modal-error');
   const photoGridEl = document.getElementById('photo-grid');
   const photoInput = document.getElementById('p-image');
@@ -600,22 +600,22 @@
   overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
-  function openModal(preset){
-    editingId = preset ? preset.id : null;
+  function openModal(design){
+    editingId = design ? design.id : null;
     pendingModelFile = null;
     removeExistingModel = false;
-    currentModelPath = preset?.model_path || null;
-    currentModelName = preset?.model_name || null;
-    document.getElementById('modal-title').textContent = preset ? 'Edit preset' : 'Add preset';
-    document.getElementById('p-name').value = preset?.name || '';
-    document.getElementById('p-price').value = preset?.price ?? '';
-    document.getElementById('p-desc').value = preset?.description || '';
-    document.getElementById('p-active').checked = preset ? preset.active : true;
+    currentModelPath = design?.model_path || null;
+    currentModelName = design?.model_name || null;
+    document.getElementById('modal-title').textContent = design ? 'Edit design' : 'Add design';
+    document.getElementById('p-name').value = design?.name || '';
+    document.getElementById('p-price').value = design?.price ?? '';
+    document.getElementById('p-desc').value = design?.description || '';
+    document.getElementById('p-active').checked = design ? design.active : true;
     photoInput.value = '';
     document.getElementById('p-model').value = '';
     document.getElementById('model-drop-label').textContent = 'Drop an STL, OBJ, 3MF, or STEP file, or tap to browse';
     document.getElementById('model-drop').classList.remove('has-file');
-    const existingPaths = preset ? [preset.image_path, ...(preset.image_paths || [])].filter(Boolean) : [];
+    const existingPaths = design ? [design.image_path, ...(design.image_paths || [])].filter(Boolean) : [];
     pendingPhotos = existingPaths.map(path => ({ key: 'existing-' + (photoKeySeq++), kind: 'existing', path, url: publicUrl(path) }));
     renderPhotoGrid();
     renderModelCurrent();
@@ -714,6 +714,10 @@
     errorEl.style.display = 'none';
 
     try {
+      // Storage paths intentionally still start with "presets/" — renaming
+      // this would mean moving every existing uploaded photo/model object,
+      // for no visible benefit (customers and admins never see storage
+      // paths). New uploads just keep landing in the same folder as before.
       for (let i = 0; i < pendingPhotos.length; i++){
         const p = pendingPhotos[i];
         if (p.kind === 'new'){
@@ -747,21 +751,21 @@
 
       let error;
       if (editingId){
-        ({ error } = await supabase.from('presets').update(payload).eq('id', editingId));
+        ({ error } = await supabase.from('designs').update(payload).eq('id', editingId));
       } else {
-        ({ error } = await supabase.from('presets').insert(payload));
+        ({ error } = await supabase.from('designs').insert(payload));
       }
       if (error) throw error;
 
       closeModal();
-      loadPresets();
+      loadDesigns();
 
     } catch (err){
       errorEl.textContent = 'Could not save: ' + (err.message || 'please try again.');
       errorEl.style.display = 'block';
     } finally {
       saveBtn.disabled = false;
-      saveBtn.textContent = 'Save preset';
+      saveBtn.textContent = 'Save design';
     }
   });
 

@@ -348,7 +348,7 @@
     custListEl.innerHTML = '<div class="cust-list-spinner"><span></span></div>';
     const [profilesRes, ordersRes] = await Promise.all([
       supabase.from('customer_profiles').select('*').order('created_at', { ascending: false }),
-      supabase.from('orders').select('id, user_id, status, quote_amount, preset_price, order_type, created_at, deleted').not('user_id', 'is', null)
+      supabase.from('orders').select('id, user_id, status, quote_amount, design_price, order_type, created_at, deleted').not('user_id', 'is', null)
     ]);
 
     if (profilesRes.error){
@@ -367,7 +367,7 @@
     let lastDate = null;
     custOrders.forEach(o => {
       byStatus[o.status] = (byStatus[o.status] || 0) + 1;
-      const amount = o.quote_amount ?? o.preset_price ?? 0;
+      const amount = o.quote_amount ?? o.design_price ?? 0;
       value += Number(amount) || 0;
       if (!lastDate || o.created_at > lastDate) lastDate = o.created_at;
     });
