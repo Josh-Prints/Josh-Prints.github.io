@@ -77,6 +77,7 @@
     animation: fadeInDown 0.5s ease both;
   }
   .brand{ display:flex; align-items:center; gap:8px; font-weight:600; font-size:16px; color:var(--fg); text-decoration:none; }
+  .brand-text span{ color: var(--accent); }
   .logo-mark{ flex-shrink: 0; display:block; }
   .logo-loading{ flex-shrink: 0; display:block; }
   .logo-loading polygon{
@@ -100,34 +101,69 @@
   .btn:active{ transform: translateY(0) scale(0.97); }
   .btn-primary{ background: var(--accent); border-color: rgba(31,35,40,0.15); color:#fff; }
   .btn-primary:hover{ background: var(--btn-primary-hover); box-shadow: 0 4px 14px rgba(9,105,218,0.35); }
-  .theme-toggle-btn{
+  .topbar-links{ display: flex; gap: 8px; align-items: center; }
+  .menu-wrap{ position: relative; }
+  .hamburger-btn{
     display:inline-flex; align-items:center; justify-content:center;
-    width: 34px; height: 34px; border-radius: 50%; flex-shrink:0;
-    border: 1px solid var(--border); background: var(--canvas-inset); color: var(--fg);
-    font-size: 15px; cursor:pointer; line-height:1;
-    transition: background 0.2s, border-color 0.2s, transform 0.15s ease;
+    width: 34px; height: 34px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--canvas-inset);
+    color: var(--fg); font-size: 16px; cursor:pointer; line-height:1;
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), background 0.2s, border-color 0.2s;
   }
-  .theme-toggle-btn:hover{ background: var(--btn-hover-bg); border-color: var(--border-muted); transform: translateY(-1px); }
+  .hamburger-btn:hover{ background: var(--btn-hover-bg); border-color: var(--border-muted); transform: rotate(90deg); }
+  .menu-dropdown{
+    display:block; position:absolute; top:calc(100% + 8px); right:0;
+    background: var(--canvas); border: 1px solid var(--border-muted);
+    border-radius: 10px; box-shadow: 0 10px 30px rgba(31,35,40,0.14);
+    padding: 6px; min-width: 190px; z-index: 80;
+    opacity:0; visibility:hidden; pointer-events:none;
+    transform: translateY(-6px) scale(0.97); transform-origin: top right;
+    transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.34,1.56,0.64,1), visibility 0.18s;
+  }
+  .menu-dropdown.open{ opacity:1; visibility:visible; pointer-events:auto; transform: translateY(0) scale(1); }
+  .menu-dropdown a{
+    display:block; padding: 9px 12px; border-radius: 6px;
+    font-size: 14px; color: var(--fg); text-decoration:none;
+    transition: background 0.15s, padding-left 0.15s;
+  }
+  .menu-dropdown a:hover{ background: var(--canvas-inset); padding-left: 16px; }
+  .menu-dropdown-divider{ height:1px; background: var(--border-muted); margin: 6px 4px; }
+  .theme-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 9px 12px; font-size: 14px; font-weight: 500; color: var(--fg);
+  }
+  .theme-switch{
+    position:relative; width:38px; height:22px; border-radius:11px; flex-shrink:0;
+    background: var(--border); border:1px solid var(--border-muted);
+    cursor:pointer; padding:0; transition: background 0.2s ease, border-color 0.2s ease;
+  }
+  .theme-switch .thumb{
+    position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%;
+    background:#fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .theme-switch[aria-checked="true"]{ background: var(--accent); border-color: var(--accent); }
+  .theme-switch[aria-checked="true"] .thumb{ transform: translateX(16px); }
   .google-btn{
-    display:flex; align-items:center; gap:8px;
-    padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border);
-    background: var(--canvas-inset); color: var(--fg); font-size: 13.5px; font-weight: 500;
-    font-family: inherit; cursor:pointer; transition: background 0.15s, border-color 0.15s;
+    display:flex; align-items:center; gap:10px; width:100%; box-sizing:border-box;
+    padding: 9px 12px; border-radius: 6px; border: none; background: none;
+    color: var(--fg); font-size: 14px; font-weight: 500; font-family: inherit;
+    cursor:pointer; transition: background 0.15s;
   }
-  .google-btn:hover{ background: var(--btn-hover-bg); }
+  .google-btn:hover{ background: var(--canvas-inset); }
   .google-btn svg{ flex-shrink:0; }
   .account-chip{
-    display:none; align-items:center; gap:8px;
+    display:none; align-items:center; gap:10px; padding: 9px 12px;
   }
-  .account-chip img{ width:28px; height:28px; border-radius:50%; flex-shrink:0; background: var(--canvas-inset); }
-  .account-chip .name{ font-size:13.5px; font-weight:600; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .account-chip img{ width:24px; height:24px; border-radius:50%; flex-shrink:0; background: var(--canvas-inset); }
+  .account-chip .name{ font-size:14px; font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .account-edit-btn{
-    background:none; border:none; cursor:pointer; font-size:12px; padding:2px; opacity:0.65;
+    background:none; border:none; cursor:pointer; font-size:13px; padding:2px; opacity:0.65;
     transition: opacity 0.15s;
   }
   .account-edit-btn:hover{ opacity:1; }
   .account-signout-btn{
-    background:none; border:none; color: var(--fg-muted); font-size:11.5px; cursor:pointer;
+    background:none; border:none; color: var(--fg-muted); font-size:12px; cursor:pointer;
     text-decoration:underline; padding:0; font-family:inherit;
   }
   .account-modal-overlay{
@@ -336,7 +372,7 @@
 
   <div class="topbar">
     <a class="brand" href="index.html">
-      <svg class="logo-mark" width="20" height="20" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+      <svg class="logo-mark" width="32" height="32" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
       <polygon points="200,40.2 231.4,58.3 200,76.5 168.6,58.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.00s"/>
       <polygon points="150.9,68.5 182.3,86.7 150.9,104.8 119.5,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
       <polygon points="101.9,96.9 133.3,115 101.9,133.1 70.4,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
@@ -365,22 +401,36 @@
       <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
       <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
     </svg>
-      JoshPrints
+      <span class="brand-text">Josh<span>Prints</span></span>
     </a>
-    <div style="display:flex; align-items:center; gap:8px;">
-      <button type="button" class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle dark mode" aria-pressed="false">🌙</button>
-      <button type="button" class="google-btn" id="google-signin-btn">
-        <svg width="14" height="14" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
-        Sign in
-      </button>
-      <div class="account-chip" id="account-chip">
-        <img id="account-avatar" alt="">
-        <span class="name" id="account-name"></span>
-        <button type="button" class="account-edit-btn" id="account-edit-btn" aria-label="Edit profile" title="Edit profile">✏️</button>
-        <button type="button" class="account-signout-btn" id="account-signout-btn">Sign out</button>
+    <div class="topbar-links">
+      <a class="btn btn-primary" href="order-form.html">Order</a>
+      <div class="menu-wrap">
+        <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false">☰</button>
+        <div class="menu-dropdown" id="menu-dropdown">
+          <a href="index.html">Home</a>
+          <a href="estimate.html">Estimate cost</a>
+          <a href="order-form.html">Start a custom order</a>
+          <a href="order.html" id="my-orders-link">Track an order</a>
+          <div class="menu-dropdown-divider"></div>
+          <button type="button" class="google-btn" id="google-signin-btn">
+            <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
+            Sign in with Google
+          </button>
+          <div class="account-chip" id="account-chip">
+            <img id="account-avatar" alt="">
+            <span class="name" id="account-name"></span>
+            <button type="button" class="account-edit-btn" id="account-edit-btn" aria-label="Edit profile" title="Edit profile">✏️</button>
+            <button type="button" class="account-signout-btn" id="account-signout-btn">Sign out</button>
+          </div>
+          <a href="admin.html" id="admin-link" style="display:none;">🛠️ Admin dashboard</a>
+          <div class="menu-dropdown-divider"></div>
+          <div class="theme-row">
+            <span>🌙 Dark mode</span>
+            <button type="button" class="theme-switch" id="theme-switch" role="switch" aria-checked="false" aria-label="Toggle dark mode"><span class="thumb"></span></button>
+          </div>
+        </div>
       </div>
-      <a class="btn" href="admin.html" id="admin-link" style="display:none;">🛠️ Admin</a>
-      <a class="btn" href="index.html">← Back home</a>
     </div>
   </div>
 
@@ -510,7 +560,7 @@
 
 <script>
   (function(){
-    const toggle = document.getElementById('theme-toggle');
+    const toggle = document.getElementById('theme-switch');
     if (!toggle) return;
     function currentTheme(){
       const explicit = localStorage.getItem('theme');
@@ -518,9 +568,7 @@
       return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
     function applyTheme(mode){
-      const isDark = mode === 'dark';
-      toggle.textContent = isDark ? '☀️' : '🌙';
-      toggle.setAttribute('aria-pressed', String(isDark));
+      toggle.setAttribute('aria-checked', String(mode === 'dark'));
     }
     toggle.addEventListener('click', () => {
       const next = currentTheme() === 'dark' ? 'light' : 'dark';
@@ -529,6 +577,23 @@
       applyTheme(next);
     });
     applyTheme(currentTheme());
+  })();
+
+  (function(){
+    const btn = document.getElementById('menu-btn');
+    const menu = document.getElementById('menu-dropdown');
+    if (!btn || !menu) return;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = menu.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.addEventListener('click', (e) => {
+      if (!menu.contains(e.target) && e.target !== btn) menu.classList.remove('open');
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') menu.classList.remove('open');
+    });
   })();
 </script>
 
@@ -838,6 +903,7 @@
     const editBtn = document.getElementById('account-edit-btn');
     const signOutBtn = document.getElementById('account-signout-btn');
     const adminLink = document.getElementById('admin-link');
+    const myOrdersLink = document.getElementById('my-orders-link');
     const nameOverlay = document.getElementById('account-name-overlay');
     const nameInput = document.getElementById('account-name-input');
     const nameSaveBtn = document.getElementById('account-name-save');
@@ -851,6 +917,7 @@
       signInBtn.style.display = 'flex';
       accountChip.style.display = 'none';
       if (adminLink) adminLink.style.display = 'none';
+      if (myOrdersLink) myOrdersLink.textContent = 'Track an order';
       currentUser = null;
       currentProfileName = '';
     }
@@ -861,6 +928,7 @@
       accountChip.style.display = 'flex';
       accountName.textContent = (currentProfileName || user.email || '').split(' ')[0];
       accountAvatar.src = user.user_metadata?.avatar_url || '';
+      if (myOrdersLink) myOrdersLink.textContent = 'My orders';
     }
 
     function openModal(mode){
@@ -889,7 +957,7 @@
     async function checkAdmin(userId){
       if (!adminLink) return;
       const { data } = await supabase.from('admin_profiles').select('id').eq('id', userId).maybeSingle();
-      adminLink.style.display = data ? 'inline-flex' : 'none';
+      adminLink.style.display = data ? 'block' : 'none';
     }
 
     editBtn.addEventListener('click', () => openModal('edit'));
