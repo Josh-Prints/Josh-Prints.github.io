@@ -470,6 +470,7 @@
       <a href="estimate.html"><span class="icon">💲</span> Estimate cost</a>
       <a href="order-form.html"><span class="icon">✎</span> Start a custom order</a>
       <a href="order.html" id="my-orders-link"><span class="icon">📦</span> Track an order</a>
+      <a href="admin.html" id="admin-link" style="display:none;"><span class="icon">🛠️</span> Admin dashboard</a>
     </nav>
     <div class="theme-row" style="border-top:1px solid var(--border-muted); margin-top:8px;">
       <button type="button" class="google-btn" id="google-signin-btn">
@@ -683,6 +684,7 @@
     const editBtn = document.getElementById('account-edit-btn');
     const signOutBtn = document.getElementById('account-signout-btn');
     const myOrdersLink = document.getElementById('my-orders-link');
+    const adminLink = document.getElementById('admin-link');
     const nameOverlay = document.getElementById('account-name-overlay');
     const nameInput = document.getElementById('account-name-input');
     const nameSaveBtn = document.getElementById('account-name-save');
@@ -699,6 +701,7 @@
       signInBtn.style.display = 'flex';
       accountChip.style.display = 'none';
       if (myOrdersLink) myOrdersLink.innerHTML = '<span class="icon">📦</span> Track an order';
+      if (adminLink) adminLink.style.display = 'none';
       currentUser = null;
       currentProfileName = '';
     }
@@ -733,6 +736,12 @@
       pendingUser = user;
       openModal('signup');
       return null;
+    }
+
+    async function checkAdmin(userId){
+      if (!adminLink) return;
+      const { data } = await supabase.from('admin_profiles').select('id').eq('id', userId).maybeSingle();
+      adminLink.style.display = data ? 'flex' : 'none';
     }
 
     editBtn.addEventListener('click', () => openModal('edit'));
@@ -774,6 +783,7 @@
       if (session){
         const profile = await ensureProfile(session.user);
         if (profile) renderSignedIn(session.user, profile);
+        checkAdmin(session.user.id);
       } else {
         renderSignedOut();
       }

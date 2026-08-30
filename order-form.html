@@ -791,6 +791,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
           <button type="button" class="account-edit-btn" id="account-edit-btn" aria-label="Edit profile" title="Edit profile">✏️</button>
           <button type="button" class="account-signout-btn" id="account-signout-btn">Sign out</button>
         </div>
+        <a href="admin.html" id="admin-link" style="display:none;">🛠️ Admin dashboard</a>
         <div class="menu-dropdown-divider"></div>
         <div class="theme-row">
           <span>🌙 Dark mode</span>
@@ -1246,6 +1247,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
     const editBtn = document.getElementById('account-edit-btn');
     const signOutBtn = document.getElementById('account-signout-btn');
     const myOrdersLink = document.getElementById('my-orders-link');
+    const adminLink = document.getElementById('admin-link');
     const nameOverlay = document.getElementById('account-name-overlay');
     const nameInput = document.getElementById('account-name-input');
     const nameSaveBtn = document.getElementById('account-name-save');
@@ -1262,6 +1264,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       signInBtn.style.display = 'flex';
       accountChip.style.display = 'none';
       if (myOrdersLink) myOrdersLink.textContent = 'Track an order';
+      if (adminLink) adminLink.style.display = 'none';
       fieldFullName.style.display = '';
       fieldEmail.style.display = '';
       document.getElementById('full_name').required = true;
@@ -1313,6 +1316,12 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       return null;
     }
 
+    async function checkAdmin(userId){
+      if (!adminLink) return;
+      const { data } = await supabase.from('admin_profiles').select('id').eq('id', userId).maybeSingle();
+      adminLink.style.display = data ? 'block' : 'none';
+    }
+
     editBtn.addEventListener('click', () => openModal('edit'));
 
     nameSaveBtn.addEventListener('click', async () => {
@@ -1352,6 +1361,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       if (session){
         const profile = await ensureProfile(session.user);
         if (profile) renderSignedIn(session.user, profile);
+        checkAdmin(session.user.id);
       } else {
         renderSignedOut();
       }
