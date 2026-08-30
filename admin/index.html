@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JoshPrints - Admin</title>
-<link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="icon" type="image/svg+xml" href="../logo.svg">
 <style>
   :root{
     --bg: #f6f8fa;
@@ -1276,10 +1276,10 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <button class="sidebar-close" id="sidebar-close" aria-label="Close menu">✕</button>
     </div>
     <nav>
-      <a href="index.html"><span class="icon">🏠</span> Back to main site</a>
-      <a href="designs-admin.html"><span class="icon">🧩</span> Manage designs</a>
-      <a href="admin-users.html"><span class="icon">🧑‍🤝‍🧑</span> Customers</a>
-      <a href="quote.html" id="quote-builder-btn"><span class="icon">🧮</span> Quote builder</a>
+      <a href="../index.html"><span class="icon">🏠</span> Back to main site</a>
+      <a href="designs.html"><span class="icon">🧩</span> Manage designs</a>
+      <a href="customers.html"><span class="icon">🧑‍🤝‍🧑</span> Customers</a>
+      <a href="../quote.html" id="quote-builder-btn"><span class="icon">🧮</span> Quote builder</a>
       <button type="button" id="rates-btn"><span class="icon">⚙</span> Debug</button>
       <button type="button" id="admin-chat-btn"><span class="icon">💬</span> Admin chat<span class="notif-dot admin inline" id="sidebar-dot-admin"></span></button>
       <button type="button" id="my-name-btn"><span class="icon">🙋</span> Set your name</button>
@@ -1642,7 +1642,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       </div>`;
     }
     const viewBtn = MODEL_EXTS.includes(ext)
-      ? `<a class="view3d-btn" href="viewer.html?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name || '')}" target="_blank">👁 View in 3D</a>`
+      ? `<a class="view3d-btn" href="../viewer.html?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name || '')}" target="_blank">👁 View in 3D</a>`
       : '';
     return `<span class="file-attachment"><a class="file-link" target="_blank" href="${url}">⇩ ${safeName}</a>${viewBtn}</span>`;
   }
