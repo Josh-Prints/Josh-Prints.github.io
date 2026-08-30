@@ -153,6 +153,11 @@
   }
   .account-chip img{ width:24px; height:24px; border-radius:50%; flex-shrink:0; background: var(--canvas-inset); }
   .account-chip .name{ font-size:14px; font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .account-edit-btn{
+    background:none; border:none; cursor:pointer; font-size:13px; padding:2px; opacity:0.65;
+    transition: opacity 0.15s;
+  }
+  .account-edit-btn:hover{ opacity:1; }
   .account-signout-btn{
     background:none; border:none; color: var(--fg-muted); font-size:12px; cursor:pointer;
     text-decoration:underline; padding:0; font-family:inherit;
@@ -444,6 +449,7 @@
           <div class="account-chip" id="account-chip">
             <img id="account-avatar" alt="">
             <span class="name" id="account-name"></span>
+            <button type="button" class="account-edit-btn" id="account-edit-btn" aria-label="Edit profile" title="Edit profile">✏️</button>
             <button type="button" class="account-signout-btn" id="account-signout-btn">Sign out</button>
           </div>
           <div class="menu-dropdown-divider"></div>
@@ -457,8 +463,8 @@
 
     <div class="account-modal-overlay" id="account-name-overlay">
       <div class="account-modal">
-        <h3>Welcome!</h3>
-        <p>What's your name? We'll use this on your orders.</p>
+        <h3 id="account-modal-title">Welcome!</h3>
+        <p id="account-modal-desc">What's your name? We'll use this on your orders.</p>
         <input type="text" id="account-name-input" placeholder="Full name">
         <button type="button" class="btn btn-primary" id="account-name-save" style="width:100%; justify-content:center;">Continue</button>
       </div>
@@ -732,42 +738,80 @@
     const accountChip = document.getElementById('account-chip');
     const accountName = document.getElementById('account-name');
     const accountAvatar = document.getElementById('account-avatar');
+    const editBtn = document.getElementById('account-edit-btn');
     const signOutBtn = document.getElementById('account-signout-btn');
     const myOrdersLink = document.getElementById('my-orders-link');
     const nameOverlay = document.getElementById('account-name-overlay');
     const nameInput = document.getElementById('account-name-input');
     const nameSaveBtn = document.getElementById('account-name-save');
+    const modalTitle = document.getElementById('account-modal-title');
+    const modalDesc = document.getElementById('account-modal-desc');
 
     const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
     const supabase = createClient('https://paycasfatsakidsriwqt.supabase.co', 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv');
 
     let pendingUser = null;
+    let currentUser = null;
+    let currentProfileName = '';
+    let modalMode = 'signup';
 
     function renderSignedOut(){
       signInBtn.style.display = 'flex';
       accountChip.style.display = 'none';
       if (myOrdersLink) myOrdersLink.textContent = 'Track an order';
+      currentUser = null;
+      currentProfileName = '';
     }
     function renderSignedIn(user, profile){
+      currentUser = user;
+      currentProfileName = profile?.full_name || '';
       signInBtn.style.display = 'none';
       accountChip.style.display = 'flex';
-      accountName.textContent = (profile?.full_name || user.user_metadata?.full_name || user.email || '').split(' ')[0];
+      accountName.textContent = (currentProfileName || user.email || '').split(' ')[0];
       accountAvatar.src = user.user_metadata?.avatar_url || '';
       if (myOrdersLink) myOrdersLink.textContent = 'My orders';
+    }
+
+    function openModal(mode){
+      modalMode = mode;
+      if (mode === 'edit'){
+        modalTitle.textContent = 'Edit profile';
+        modalDesc.textContent = "Update the name we'll use on your orders.";
+        nameInput.value = currentProfileName;
+      } else {
+        modalTitle.textContent = 'Welcome!';
+        modalDesc.textContent = "What's your name? We'll use this on your orders.";
+        nameInput.value = pendingUser?.user_metadata?.full_name || '';
+      }
+      nameOverlay.classList.add('open');
+      nameInput.focus();
     }
 
     async function ensureProfile(user){
       const { data: profile } = await supabase.from('customer_profiles').select('*').eq('id', user.id).maybeSingle();
       if (profile) return profile;
       pendingUser = user;
-      nameInput.value = user.user_metadata?.full_name || '';
-      nameOverlay.classList.add('open');
+      openModal('signup');
       return null;
     }
 
+    editBtn.addEventListener('click', () => openModal('edit'));
+
     nameSaveBtn.addEventListener('click', async () => {
       const name = nameInput.value.trim();
-      if (!name || !pendingUser) return;
+      if (!name) return;
+
+      if (modalMode === 'edit'){
+        if (!currentUser) return;
+        const { error } = await supabase.from('customer_profiles').update({ full_name: name }).eq('id', currentUser.id);
+        if (!error){
+          nameOverlay.classList.remove('open');
+          renderSignedIn(currentUser, { full_name: name });
+        }
+        return;
+      }
+
+      if (!pendingUser) return;
       const { error } = await supabase.from('customer_profiles').insert({
         id: pendingUser.id, email: pendingUser.email, full_name: name,
         avatar_url: pendingUser.user_metadata?.avatar_url || null
