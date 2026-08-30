@@ -30,6 +30,7 @@
     --seg-print:  #8250df;
     --seg-fil:    #2da44e;
     --seg-sur:    #bc4c00;
+    --seg-discount: #cf222e;
     --border-tint: 31,35,40;
   }
   @media (prefers-color-scheme: dark){
@@ -52,6 +53,7 @@
       --seg-print:  #a371f7;
       --seg-fil:    #3fb950;
       --seg-sur:    #e0823d;
+      --seg-discount: #f85149;
       --border-tint: 255,255,255;
     }
   }
@@ -74,6 +76,7 @@
     --seg-print:  #a371f7;
     --seg-fil:    #3fb950;
     --seg-sur:    #e0823d;
+    --seg-discount: #f85149;
     --border-tint: 255,255,255;
   }
 
@@ -200,6 +203,15 @@
   .bd-label { font-size: 0.82rem; color: var(--muted); }
   .bd-formula { font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 0.68rem; color: var(--muted2); margin-left: 0.25rem; }
   .bd-value { font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 0.9rem; font-weight: 500; color: var(--text); }
+  .discount-pct-input {
+    width: 42px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px;
+    color: var(--text); font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 0.72rem;
+    padding: 2px 4px; text-align: right; -moz-appearance: textfield;
+  }
+  .discount-pct-input:focus { outline: none; border-color: var(--accent); }
+  .discount-pct-input::-webkit-outer-spin-button, .discount-pct-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .bd-value.discount { color: var(--seg-discount); }
+  .bd-value.discount.dimmed-value { color: var(--muted2); opacity: 0.6; }
   .divider-row { height: 1px; background: var(--border2); margin: 0.3rem 0; }
   .total-row { display: flex; justify-content: space-between; align-items: center; padding: 0.9rem 0.85rem 0.75rem; border-radius: 11px; background: var(--green-gl); border: 1px solid rgba(74,222,128,0.2); margin-top: 0.4rem; }
   .total-label { font-weight: 700; font-size: 0.85rem; letter-spacing: 0.04em; }
@@ -623,6 +635,14 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
         <span class="bd-value" id="valSur">$0.00</span>
       </div>
       <div id="extraRows"></div>
+      <div class="breakdown-row" id="rowDiscount">
+        <div class="bd-left">
+          <div class="bd-swatch" style="background:var(--seg-discount)"></div>
+          <span class="bd-label">Discount</span>
+          <span class="bd-formula"><input type="number" id="discountPct" class="discount-pct-input" min="0" max="100" step="1" value="0" aria-label="Discount percent">%</span>
+        </div>
+        <span class="bd-value discount" id="valDiscount">−$0.00</span>
+      </div>
       <div class="divider-row"></div>
       <div class="total-row">
         <span class="total-label">TOTAL</span>
@@ -675,7 +695,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
     applyTheme(currentTheme());
   })();
 
-  const state = { modelHrs:2, printHrs:4, filGrams:120, rate:6, printRate:0.25, baseFee:1.75, filPerKg:50, surAmt:2, surThresh:3 };
+  const state = { modelHrs:2, printHrs:4, filGrams:120, rate:6, printRate:0.25, baseFee:1.75, filPerKg:50, surAmt:2, surThresh:3, discountPct:0 };
   let activePreset = 'PLA';
   const el  = id => document.getElementById(id);
   const escapeAttr = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -791,6 +811,14 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
     el(id).addEventListener('input', () => { state[key] = +el(id).value || 0; recalc(); });
   });
 
+  el('discountPct').addEventListener('input', () => {
+    const raw = +el('discountPct').value || 0;
+    const clamped = Math.min(100, Math.max(0, raw));
+    if (clamped !== raw) el('discountPct').value = clamped;
+    state.discountPct = clamped;
+    recalc();
+  });
+
   /* extra costs */
   let extraItems = [];
   let extraIdCounter = 0;
@@ -859,14 +887,19 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
   }
 
   function recalc() {
-    const { modelHrs, printHrs, filGrams, rate, printRate, baseFee, filPerKg, surAmt, surThresh } = state;
+    const { modelHrs, printHrs, filGrams, rate, printRate, baseFee, filPerKg, surAmt, surThresh, discountPct } = state;
     const modelCost = modelHrs * rate;
     const printCost = printHrs > 0 ? baseFee + printRate * Math.pow(printHrs, 1.4) : 0;
     const filCost   = filGrams * (filPerKg / 1000);
     const surActive = printHrs > surThresh;
     const surCost   = surActive ? surAmt : 0;
     const xtraCost  = extraTotal();
-    const total     = modelCost + printCost + filCost + surCost + xtraCost;
+    const subtotal  = modelCost + printCost + filCost + surCost + xtraCost;
+    const discAmt   = subtotal * (discountPct / 100);
+    const total     = subtotal - discAmt;
+
+    setTextFlash(el('valDiscount'), '−' + fmt(discAmt));
+    el('valDiscount').classList.toggle('dimmed-value', discountPct === 0);
 
     setTextFlash(el('valModel'), fmt(modelCost));
     setTextFlash(el('valPrint'), fmt(printCost));
@@ -905,8 +938,11 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
       noteText.innerHTML = `Surcharge inactive — print time (${fmtHM(printHrs)}) is within ${fmtHM(surThresh)} limit`;
     }
 
-    if (total > 0) {
-      const pct = v => ((v/total)*100).toFixed(2)+'%';
+    // Segment widths represent the underlying cost composition, so they're
+    // based on the pre-discount subtotal — using the discounted total here
+    // would make the segments overshoot 100% once a discount is applied.
+    if (subtotal > 0) {
+      const pct = v => ((v/subtotal)*100).toFixed(2)+'%';
       el('segModel').style.width = pct(modelCost);
       el('segPrint').style.width = pct(printCost);
       el('segFil').style.width   = pct(filCost);
@@ -921,13 +957,15 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
 
-    const { modelHrs, printHrs, filGrams, rate, printRate, baseFee, filPerKg, surAmt, surThresh } = state;
+    const { modelHrs, printHrs, filGrams, rate, printRate, baseFee, filPerKg, surAmt, surThresh, discountPct } = state;
     const modelCost = modelHrs * rate;
     const printCost = printHrs > 0 ? baseFee + printRate * Math.pow(printHrs, 1.4) : 0;
     const filCost   = filGrams * (filPerKg / 1000);
     const surActive = printHrs > surThresh;
     const surCost   = surActive ? surAmt : 0;
-    const rawTotal  = modelCost + printCost + filCost + surCost + extraTotal();
+    const subtotal  = modelCost + printCost + filCost + surCost + extraTotal();
+    const discAmt   = subtotal * (discountPct / 100);
+    const rawTotal  = subtotal - discAmt;
     const roundDown = el('roundDown').checked;
     const total     = roundDown ? Math.floor(rawTotal) : rawTotal;
     const fmtPdf    = v => '$' + v.toFixed(2);
@@ -1012,6 +1050,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
         rows.push([item.reason || 'Extra cost', '—', fmtPdf(item.amount)]);
       });
     }
+    if (discountPct > 0) rows.push(['Discount', `${discountPct}% off`, '−' + fmtPdf(discAmt)]);
 
     doc.autoTable({
       startY: y,
