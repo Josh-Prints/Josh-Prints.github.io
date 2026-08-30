@@ -1121,7 +1121,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
     });
 
     signInBtn.addEventListener('click', () => {
-      supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+      supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + window.location.pathname } });
     });
     signOutBtn.addEventListener('click', async () => {
       await supabase.auth.signOut();
@@ -1134,15 +1134,14 @@ h1{ animation: fadeInDown 0.5s ease both; }
       }
     });
 
-    (async function init(){
-      const { data: { session } } = await supabase.auth.getSession();
+    supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session){
         const profile = await ensureProfile(session.user);
         if (profile) renderSignedIn(session.user, profile);
       } else {
         renderSignedOut();
       }
-    })();
+    });
   })();
 </script>
 
