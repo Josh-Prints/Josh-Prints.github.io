@@ -4,7 +4,7 @@
 <script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Browse presets — JoshPrints</title>
+<title>Browse designs — JoshPrints</title>
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <style>
   :root{
@@ -394,11 +394,11 @@
   </div>
 
   <div class="page">
-    <h1>Browse presets</h1>
+    <h1>Browse designs</h1>
     <p class="subtitle">Ready-to-print designs. Pick one and it goes straight into the queue.</p>
 
     <div class="search-wrap">
-      <input type="text" id="search-input" placeholder="Search presets…">
+      <input type="text" id="search-input" placeholder="Search designs…">
       <span class="icon">🔍</span>
     </div>
 
@@ -430,14 +430,14 @@
       <polygon points="240.2,187 208.8,205.1 208.8,241.4 240.2,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
       <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
       <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
-    </svg>Loading presets…</div>
+    </svg>Loading designs…</div>
     <div class="skel-grid" id="skel-grid">
       <div class="skel-tile"><div class="skeleton skel-img"></div><div class="skeleton skel-line"></div><div class="skeleton skel-line short"></div></div>
       <div class="skel-tile" style="animation-delay:0.06s"><div class="skeleton skel-img"></div><div class="skeleton skel-line"></div><div class="skeleton skel-line short"></div></div>
       <div class="skel-tile" style="animation-delay:0.12s"><div class="skeleton skel-img"></div><div class="skeleton skel-line"></div><div class="skeleton skel-line short"></div></div>
       <div class="skel-tile" style="animation-delay:0.18s"><div class="skeleton skel-img"></div><div class="skeleton skel-line"></div><div class="skeleton skel-line short"></div></div>
     </div>
-    <div id="empty" style="display:none;">No presets match your search.</div>
+    <div id="empty" style="display:none;">No designs match your search.</div>
     <div class="grid" id="grid"></div>
   </div>
 
@@ -546,9 +546,9 @@
   const emptyEl = document.getElementById('empty');
   const searchInput = document.getElementById('search-input');
 
-  let presets = [];
+  let designs = [];
   let firstRender = true;
-  let selectedPreset = null;
+  let selectedDesign = null;
   let filaments = [];
   let selectedFilament = null;
   let currentUser = null;
@@ -598,9 +598,9 @@
     });
   }
 
-  async function loadPresets(){
+  async function loadDesigns(){
     const { data, error } = await supabase
-      .from('presets')
+      .from('designs')
       .select('*')
       .eq('active', true)
       .order('created_at', { ascending: false });
@@ -608,12 +608,12 @@
     loadingEl.style.display = 'none';
     if (skelGridEl) skelGridEl.style.display = 'none';
     if (error || !data){
-      emptyEl.textContent = 'Could not load presets right now.';
+      emptyEl.textContent = 'Could not load designs right now.';
       emptyEl.style.display = 'block';
       return;
     }
-    presets = data;
-    render(presets);
+    designs = data;
+    render(designs);
   }
 
   let hasRenderedOnce = false;
@@ -662,7 +662,7 @@
 
   searchInput.addEventListener('input', () => {
     const q = searchInput.value.trim().toLowerCase();
-    const filtered = !q ? presets : presets.filter(p =>
+    const filtered = !q ? designs : designs.filter(p =>
       p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q)
     );
     render(filtered);
@@ -675,8 +675,8 @@
 
   let lastFocusedEl = null;
   const modalEl = document.querySelector('.modal');
-  function getPhotoUrls(preset){
-    return [preset.image_path, ...(preset.image_paths || [])].filter(Boolean).map(publicUrl);
+  function getPhotoUrls(design){
+    return [design.image_path, ...(design.image_paths || [])].filter(Boolean).map(publicUrl);
   }
 
   function setupGallery(photos){
@@ -716,26 +716,26 @@
     nextBtn.onclick = () => trackEl.scrollBy({ left: trackEl.clientWidth, behavior: reduceMotion ? 'auto' : 'smooth' });
   }
 
-  function openModal(preset){
+  function openModal(design){
     lastFocusedEl = document.activeElement;
-    selectedPreset = preset;
+    selectedDesign = design;
     if (modalEl){
       modalEl.classList.remove('replay');
       void modalEl.offsetWidth;
       modalEl.classList.add('replay');
     }
     selectedFilament = null;
-    setupGallery(getPhotoUrls(preset));
-    document.getElementById('modal-name').textContent = preset.name;
-    document.getElementById('modal-price').textContent = preset.price != null ? `$${Number(preset.price).toFixed(2)}` : '';
-    document.getElementById('modal-desc').textContent = preset.description || '';
+    setupGallery(getPhotoUrls(design));
+    document.getElementById('modal-name').textContent = design.name;
+    document.getElementById('modal-price').textContent = design.price != null ? `$${Number(design.price).toFixed(2)}` : '';
+    document.getElementById('modal-desc').textContent = design.description || '';
     const modelRow = document.getElementById('modal-model-row');
-    if (preset.model_path){
-      const modelUrl = publicUrl(preset.model_path);
+    if (design.model_path){
+      const modelUrl = publicUrl(design.model_path);
       modelRow.style.display = 'flex';
       modelRow.innerHTML = `
-        <a class="view3d" href="viewer.html?url=${encodeURIComponent(modelUrl)}&name=${encodeURIComponent(preset.model_name || '')}" target="_blank">👁 View in 3D</a>
-        <a href="${modelUrl}" download="${escapeHtml(preset.model_name || 'model')}">⇩ Download</a>
+        <a class="view3d" href="viewer.html?url=${encodeURIComponent(modelUrl)}&name=${encodeURIComponent(design.model_name || '')}" target="_blank">👁 View in 3D</a>
+        <a href="${modelUrl}" download="${escapeHtml(design.model_name || 'model')}">⇩ Download</a>
       `;
     } else {
       modelRow.style.display = 'none';
@@ -784,7 +784,7 @@
       : document.getElementById('m-name').value.trim();
     const email = currentUser ? currentUser.email : document.getElementById('m-email').value.trim();
     const notes = document.getElementById('m-notes').value.trim();
-    if (!fullName || !email || !selectedPreset) return;
+    if (!fullName || !email || !selectedDesign) return;
 
     const submitBtn = document.getElementById('modal-submit');
     submitBtn.disabled = true;
@@ -798,11 +798,11 @@
         full_name: fullName,
         email: email,
         user_id: currentUser ? currentUser.id : null,
-        order_type: 'preset',
+        order_type: 'design',
         notes: notes || null,
-        preset_id: selectedPreset.id,
-        preset_name: selectedPreset.name,
-        preset_price: selectedPreset.price,
+        design_id: selectedDesign.id,
+        design_name: selectedDesign.name,
+        design_price: selectedDesign.price,
         filament_id: selectedFilament ? selectedFilament.id : null,
         filament_color: selectedFilament ? selectedFilament.color_name : null,
         filament_type: selectedFilament ? selectedFilament.type : null,
@@ -825,7 +825,7 @@
     }
   });
 
-  loadPresets();
+  loadDesigns();
   loadFilaments();
 
   // ---- customer account (Google sign-in) ----

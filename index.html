@@ -343,7 +343,7 @@
   .strip-item .label{ transition: transform 0.2s ease; }
   .strip-item:hover .label{ transform: translateX(2px); }
 
-  /* ---- featured presets ---- */
+  /* ---- featured designs ---- */
   .featured{
     max-width: 780px;
     margin: 0 auto;
@@ -466,7 +466,7 @@
       <button class="sidebar-close" id="sidebar-close" aria-label="Close menu">✕</button>
     </div>
     <nav>
-      <a href="browse.html"><span class="icon">🔍</span> Browse presets</a>
+      <a href="browse.html"><span class="icon">🔍</span> Browse designs</a>
       <a href="estimate.html"><span class="icon">💲</span> Estimate cost</a>
       <a href="order-form.html"><span class="icon">✎</span> Start a custom order</a>
       <a href="order.html" id="my-orders-link"><span class="icon">📦</span> Track an order</a>
@@ -505,7 +505,7 @@
     <p>Founded by Joshua Paterson and co-owned with Kaisyn Hazer, in partnership with Oliver Horsfoll. Send a model or describe what you need. Get a quote back, track progress, and message me directly, start to finish.</p>
     <div class="hero-actions">
       <a class="btn btn-primary btn-lg" href="order-form.html">Start an order</a>
-      <a class="btn btn-lg" href="browse.html">Browse presets</a>
+      <a class="btn btn-lg" href="browse.html">Browse designs</a>
       <a class="btn btn-lg" href="estimate.html">Estimate cost</a>
       <a class="btn btn-lg" href="order.html">Track an order</a>
     </div>
@@ -513,7 +513,7 @@
 
   <div class="featured" id="featured-section" style="display:none;">
     <div class="featured-head">
-      <h2>Featured presets</h2>
+      <h2>Featured designs</h2>
       <a href="browse.html">Browse all <span class="arrow">→</span></a>
     </div>
     <div class="featured-grid" id="featured-grid"></div>
@@ -538,7 +538,7 @@
       </div>
       <div class="strip-item">
         <div class="label">browse</div>
-        <div class="desc">Want something quick? <a href="browse.html" style="color:var(--accent);">Browse ready-to-order presets</a>.</div>
+        <div class="desc">Want something quick? <a href="browse.html" style="color:var(--accent);">Browse ready-to-order designs</a>.</div>
       </div>
       <div class="strip-item">
         <div class="label">custom_print</div>
@@ -645,7 +645,7 @@
 
   async function loadFeatured(){
     const { data, error } = await supabase
-      .from('presets')
+      .from('designs')
       .select('*')
       .eq('active', true)
       .eq('pinned', true)
