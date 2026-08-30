@@ -379,6 +379,7 @@
         <button type="button" class="account-edit-btn" id="account-edit-btn" aria-label="Edit profile" title="Edit profile">✏️</button>
         <button type="button" class="account-signout-btn" id="account-signout-btn">Sign out</button>
       </div>
+      <a class="btn" href="admin.html" id="admin-link" style="display:none;">🛠️ Admin</a>
       <a class="btn" href="index.html">← Back home</a>
     </div>
   </div>
@@ -454,11 +455,11 @@
       <div class="modal-desc" id="modal-desc"></div>
       <div class="tile-model-row" id="modal-model-row" style="display:none; margin-bottom:16px;"></div>
       <form id="order-form">
-        <div class="field">
+        <div class="field" id="field-m-name">
           <label for="m-name">Full name</label>
           <input type="text" id="m-name" required>
         </div>
-        <div class="field">
+        <div class="field" id="field-m-email">
           <label for="m-email">Email</label>
           <input type="email" id="m-email" required>
         </div>
@@ -550,6 +551,8 @@
   let selectedPreset = null;
   let filaments = [];
   let selectedFilament = null;
+  let currentUser = null;
+  let currentProfileName = '';
 
   function escapeHtml(str){
     return (str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -740,8 +743,29 @@
     }
     form.reset();
     errorEl.style.display = 'none';
+    const fieldName = document.getElementById('field-m-name');
+    const fieldEmail = document.getElementById('field-m-email');
+    const nameInput = document.getElementById('m-name');
+    const emailInput = document.getElementById('m-email');
+    if (currentUser){
+      fieldName.style.display = 'none';
+      fieldEmail.style.display = 'none';
+      nameInput.required = false;
+      emailInput.required = false;
+      nameInput.value = currentProfileName || currentUser.email || '';
+      emailInput.value = currentUser.email || '';
+    } else {
+      fieldName.style.display = '';
+      fieldEmail.style.display = '';
+      nameInput.required = true;
+      emailInput.required = true;
+    }
     overlay.classList.add('open');
-    document.getElementById('m-name').focus();
+    if (currentUser){
+      document.getElementById('m-notes').focus();
+    } else {
+      nameInput.focus();
+    }
   }
   function closeModal(){
     overlay.classList.remove('open');
@@ -755,8 +779,10 @@
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const fullName = document.getElementById('m-name').value.trim();
-    const email = document.getElementById('m-email').value.trim();
+    const fullName = currentUser
+      ? (currentProfileName || currentUser.email || '')
+      : document.getElementById('m-name').value.trim();
+    const email = currentUser ? currentUser.email : document.getElementById('m-email').value.trim();
     const notes = document.getElementById('m-notes').value.trim();
     if (!fullName || !email || !selectedPreset) return;
 
@@ -771,6 +797,7 @@
         id: orderId,
         full_name: fullName,
         email: email,
+        user_id: currentUser ? currentUser.id : null,
         order_type: 'preset',
         notes: notes || null,
         preset_id: selectedPreset.id,
@@ -810,6 +837,7 @@
     const accountAvatar = document.getElementById('account-avatar');
     const editBtn = document.getElementById('account-edit-btn');
     const signOutBtn = document.getElementById('account-signout-btn');
+    const adminLink = document.getElementById('admin-link');
     const nameOverlay = document.getElementById('account-name-overlay');
     const nameInput = document.getElementById('account-name-input');
     const nameSaveBtn = document.getElementById('account-name-save');
@@ -817,13 +845,12 @@
     const modalDesc = document.getElementById('account-modal-desc');
 
     let pendingUser = null;
-    let currentUser = null;
-    let currentProfileName = '';
     let modalMode = 'signup';
 
     function renderSignedOut(){
       signInBtn.style.display = 'flex';
       accountChip.style.display = 'none';
+      if (adminLink) adminLink.style.display = 'none';
       currentUser = null;
       currentProfileName = '';
     }
@@ -857,6 +884,12 @@
       pendingUser = user;
       openModal('signup');
       return null;
+    }
+
+    async function checkAdmin(userId){
+      if (!adminLink) return;
+      const { data } = await supabase.from('admin_profiles').select('id').eq('id', userId).maybeSingle();
+      adminLink.style.display = data ? 'inline-flex' : 'none';
     }
 
     editBtn.addEventListener('click', () => openModal('edit'));
@@ -898,6 +931,7 @@
       if (session){
         const profile = await ensureProfile(session.user);
         if (profile) renderSignedIn(session.user, profile);
+        checkAdmin(session.user.id);
       } else {
         renderSignedOut();
       }
