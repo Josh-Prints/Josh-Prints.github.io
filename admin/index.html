@@ -100,7 +100,7 @@
   .logo-loading polygon{
     transform-box: fill-box;
     transform-origin: center;
-    animation: facetGrow 3.6s ease-in-out infinite backwards;
+    animation: facetGrow 2s ease-in-out infinite backwards;
   }
   @keyframes facetGrow{
     0%   { transform: scale(0.3); }
@@ -2038,7 +2038,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
     // keep the loading logo on screen a moment even on a fast connection —
     // otherwise it can flash by too quickly to notice
-    const minDisplay = 1200 - (Date.now() - loadStart);
+    const minDisplay = 1800 - (Date.now() - loadStart);
     if (minDisplay > 0) await new Promise(r => setTimeout(r, minDisplay));
 
     if (error){
