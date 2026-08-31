@@ -1037,6 +1037,24 @@
     color: var(--ink-dim); cursor:pointer;
   }
   .discount-used-btn:hover{ color: var(--ink); border-color: rgba(var(--border-tint),0.3); }
+  .credit-row{
+    display:flex; align-items:center; flex-wrap:wrap; gap: 8px; margin-top: 8px;
+  }
+  .credit-badge{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px; padding: 4px 10px; border-radius: 20px;
+    background: rgba(var(--border-tint),0.08); border: 1px solid rgba(var(--border-tint),0.18);
+    color: var(--ink-dim);
+  }
+  .credit-use-label{
+    display:flex; align-items:center; gap: 6px;
+    font-size: 12.5px; color: var(--ink-dim); cursor:pointer;
+  }
+  .credit-use-amount{
+    width: 72px; padding: 3px 6px; font-size: 12.5px;
+    border: 1px solid rgba(var(--border-tint),0.18); border-radius: 5px;
+    font-family: inherit; background: var(--bg); color: var(--ink);
+  }
   .claim-btn, .unclaim-btn, .cancel-order-btn{
     font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 11.5px;
@@ -1415,6 +1433,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <button type="button" class="debug-tab active" data-tab="rates">Rates</button>
       <button type="button" class="debug-tab" data-tab="filaments">Filaments</button>
       <button type="button" class="debug-tab" data-tab="banner">Banner</button>
+      <button type="button" class="debug-tab" data-tab="credit">Store Credit</button>
     </div>
 
     <!-- Rates section -->
@@ -1533,6 +1552,24 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <div class="modal-foot">
         <span id="banner-msg"></span>
         <button class="save-btn" id="banner-save">Save banner</button>
+      </div>
+    </div>
+
+    <!-- Store credit section -->
+    <div class="debug-section" id="debug-section-credit">
+      <div class="modal-body">
+        <p class="modal-sub" style="margin:0 0 16px;">Customers earn store credit automatically when a signed-in customer's order is marked "Sold" — a percentage of the quoted price, added to their balance. They can use it toward future orders (you apply it per-order on the order card).</p>
+        <div class="theme-row">
+          <span>💳 Store credit enabled</span>
+          <button type="button" class="theme-switch" id="credit-enabled-toggle" role="switch" aria-checked="false" aria-label="Store credit enabled"><span class="thumb"></span></button>
+        </div>
+        <div class="rates-form-grid" style="margin-top:14px;">
+          <label>Credit rate<span class="unit">% of quoted price</span><input type="number" id="credit-rate" step="1" min="0" max="100" value="10"></label>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <span id="credit-msg"></span>
+        <button class="save-btn" id="credit-save">Save store credit</button>
       </div>
     </div>
 
@@ -1680,6 +1717,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   const filterBar = document.getElementById('filter-bar');
 
   let currentOrders = [];
+  let customerCreditMap = {};
   let activeFilter = 'all';
   let openChatOrderId = null;
   let chatPollTimer = null;
@@ -2146,6 +2184,14 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       return;
     }
     currentOrders = data || [];
+
+    const userIds = [...new Set(currentOrders.map(o => o.user_id).filter(Boolean))];
+    customerCreditMap = {};
+    if (userIds.length > 0){
+      const { data: profiles } = await supabase.from('customer_profiles').select('id, store_credit').in('id', userIds);
+      (profiles || []).forEach(p => { customerCreditMap[p.id] = p.store_credit; });
+    }
+
     renderOrders();
   }
 
@@ -2215,6 +2261,17 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         <div class="discount-row">
           <span class="discount-badge">🎉 Signup discount available (35% off, prints under 4hrs)</span>
           <button type="button" class="discount-used-btn" data-discount-id="${order.id}" data-user-id="${order.user_id || ''}">Mark discount used</button>
+        </div>` : ''}
+        ${order.user_id ? `
+        <div class="credit-row">
+          <span class="credit-badge">💳 Store credit: $${Number(customerCreditMap[order.user_id] || 0).toFixed(2)}</span>
+          <label class="credit-use-label">
+            <input type="checkbox" class="credit-use-checkbox" data-id="${order.id}" ${order.use_store_credit ? 'checked' : ''}>
+            Use store credit
+          </label>
+          <input type="number" class="credit-use-amount" data-id="${order.id}" step="0.01" min="0"
+            value="${Number(order.store_credit_use_amount || 0).toFixed(2)}"
+            style="display:${order.use_store_credit ? 'inline-block' : 'none'};">
         </div>` : ''}
         ${order.filament_color ? `<div class="order-meta" style="margin-top:6px;">🧵 ${escapeHtml(order.filament_color)}${order.filament_type ? ' · ' + escapeHtml(order.filament_type) : ''}${order.filament_price_per_100g != null ? ` · $${Number(order.filament_price_per_100g).toFixed(2)}/100g` : ''}</div>` : ''}
         ${order.notes ? `<div class="order-notes">${escapeHtml(order.notes)}</div>` : ''}
@@ -2325,6 +2382,22 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       btn.addEventListener('click', () => markDiscountUsed(btn.dataset.discountId, btn.dataset.userId));
     });
 
+    // Store credit "use" checkbox — show/hide and default the amount field
+    ordersContainer.querySelectorAll('.credit-use-checkbox').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const id = cb.dataset.id;
+        const amountInput = ordersContainer.querySelector(`.credit-use-amount[data-id="${id}"]`);
+        amountInput.style.display = cb.checked ? 'inline-block' : 'none';
+        if (cb.checked && Number(amountInput.value) === 0){
+          const order = currentOrders.find(o => o.id === id);
+          const quoteInput = ordersContainer.querySelector(`.quote-input[data-id="${id}"]`);
+          const quote = Number(quoteInput.value) || 0;
+          const balance = order && order.user_id ? Number(customerCreditMap[order.user_id] || 0) : 0;
+          amountInput.value = Math.max(0, Math.min(balance, quote)).toFixed(2);
+        }
+      });
+    });
+
     // Chat toggles (exclude the copy-link/delete/restore buttons, which
     // share the .chat-toggle class for styling only, not this behavior)
     ordersContainer.querySelectorAll('.chat-toggle:not(.copy-link-btn):not(.delete-btn):not(.restore-btn)').forEach(btn => {
@@ -2378,13 +2451,65 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         const newStatus = select.value;
         const quoteRaw = quoteInput.value.trim();
         const quoteAmount = quoteRaw === '' ? null : Number(quoteRaw);
+        const order = currentOrders.find(o => o.id === id);
 
         btn.disabled = true;
         btn.textContent = 'Saving…';
 
+        const payload = { status: newStatus, quote_amount: quoteAmount };
+        let newBalance = null;
+
+        if (order && order.user_id){
+          const useCheckbox = ordersContainer.querySelector(`.credit-use-checkbox[data-id="${id}"]`);
+          const useAmountInput = ordersContainer.querySelector(`.credit-use-amount[data-id="${id}"]`);
+          const useChecked = useCheckbox ? useCheckbox.checked : false;
+
+          const [{ data: settingsRow }, { data: profileRow }] = await Promise.all([
+            supabase.from('settings').select('store_credit_rate, store_credit_enabled').eq('id', 1).single(),
+            supabase.from('customer_profiles').select('store_credit').eq('id', order.user_id).single()
+          ]);
+
+          let balance = profileRow ? Number(profileRow.store_credit) || 0 : 0;
+
+          // Award (or claw back) credit so it always matches 10% of the
+          // current quote while the order is "sold" — 0 the moment it's
+          // anything else, so moving off "sold" claws it back automatically.
+          const desiredAward = (newStatus === 'sold' && settingsRow?.store_credit_enabled && quoteAmount)
+            ? Math.round(quoteAmount * (settingsRow.store_credit_rate ?? 0.10) * 100) / 100
+            : 0;
+          const prevAward = Number(order.store_credit_awarded) || 0;
+          balance += (desiredAward - prevAward);
+
+          // How much credit this order is spending, capped to what's
+          // available and to the order price — never more than either.
+          let desiredUse = 0;
+          if (useChecked){
+            const cap = Math.max(0, Math.min(balance, quoteAmount || 0));
+            const raw = useAmountInput && useAmountInput.value.trim() !== '' ? Number(useAmountInput.value) : cap;
+            desiredUse = isNaN(raw) ? cap : Math.max(0, Math.min(raw, cap));
+          }
+          const prevUse = Number(order.store_credit_use_amount) || 0;
+          balance -= (desiredUse - prevUse);
+          balance = Math.max(0, Math.round(balance * 100) / 100);
+
+          if (desiredAward !== prevAward || desiredUse !== prevUse){
+            const { error: creditErr } = await supabase.from('customer_profiles').update({ store_credit: balance }).eq('id', order.user_id);
+            if (creditErr){
+              btn.disabled = false;
+              btn.textContent = 'Save';
+              alert('Could not update store credit: ' + creditErr.message);
+              return;
+            }
+          }
+          payload.store_credit_awarded = desiredAward;
+          payload.use_store_credit = useChecked;
+          payload.store_credit_use_amount = desiredUse;
+          newBalance = balance;
+        }
+
         const { error } = await supabase
           .from('orders')
-          .update({ status: newStatus, quote_amount: quoteAmount })
+          .update(payload)
           .eq('id', id);
 
         btn.disabled = false;
@@ -2396,8 +2521,10 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         }
         const idx = currentOrders.findIndex(o => o.id === id);
         if (idx > -1){
-          currentOrders[idx].status = newStatus;
-          currentOrders[idx].quote_amount = quoteAmount;
+          Object.assign(currentOrders[idx], payload);
+        }
+        if (order && order.user_id && newBalance !== null){
+          customerCreditMap[order.user_id] = newBalance;
         }
         lastUpdatedOrderId = id;
         renderOrders();
@@ -2859,6 +2986,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     bannerEnabledToggle.setAttribute('aria-checked', String(!!data.banner_enabled));
     bannerForceToggle.setAttribute('aria-checked', String(!!data.banner_force_scroll));
     renderBannerPreview();
+
+    creditEnabledToggle.setAttribute('aria-checked', String(!!data.store_credit_enabled));
+    creditRateInput.value = Math.round((data.store_credit_rate ?? 0.10) * 100);
   }
 
   ratesSaveBtn.addEventListener('click', async () => {
@@ -2962,6 +3092,45 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     }
     bannerMsgEl.textContent = 'Saved ✓ — live everywhere now.';
     setTimeout(() => { if (bannerMsgEl.textContent.startsWith('Saved')) bannerMsgEl.textContent = ''; }, 3000);
+  });
+
+  /* ---- Store credit ---- */
+  const creditEnabledToggle = document.getElementById('credit-enabled-toggle');
+  const creditRateInput = document.getElementById('credit-rate');
+  const creditSaveBtn = document.getElementById('credit-save');
+  const creditMsgEl = document.getElementById('credit-msg');
+
+  creditEnabledToggle.addEventListener('click', () => toggleSwitch(creditEnabledToggle));
+
+  creditSaveBtn.addEventListener('click', async () => {
+    const rateRaw = creditRateInput.value;
+    const ratePct = Number(rateRaw);
+    if (rateRaw === '' || isNaN(ratePct) || ratePct < 0 || ratePct > 100){
+      creditMsgEl.textContent = 'Enter a rate between 0 and 100.';
+      return;
+    }
+
+    creditSaveBtn.disabled = true;
+    creditSaveBtn.textContent = 'Saving…';
+    creditMsgEl.textContent = '';
+
+    const payload = {
+      store_credit_enabled: creditEnabledToggle.getAttribute('aria-checked') === 'true',
+      store_credit_rate: ratePct / 100,
+      updated_at: new Date().toISOString()
+    };
+
+    const { error } = await supabase.from('settings').update(payload).eq('id', 1);
+
+    creditSaveBtn.disabled = false;
+    creditSaveBtn.textContent = 'Save store credit';
+
+    if (error){
+      creditMsgEl.textContent = 'Error: ' + error.message;
+      return;
+    }
+    creditMsgEl.textContent = 'Saved ✓ — live everywhere now.';
+    setTimeout(() => { if (creditMsgEl.textContent.startsWith('Saved')) creditMsgEl.textContent = ''; }, 3000);
   });
 
   /* ---- Debug modal tabs ---- */
