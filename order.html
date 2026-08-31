@@ -369,6 +369,7 @@
   }
   .pdf-modal.open .pdf-modal-inner{ animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1) both; }
   .pdf-modal-frame{ flex:1; border:none; width:100%; height:100%; }
+  .pdf-modal-img{ flex:1; width:100%; height:100%; object-fit:contain; display:none; }
   .pdf-modal-close{
     position:absolute; top:10px; right:10px; z-index:2;
     background: rgba(31,35,40,0.75); color:#fff; border:none; border-radius:50%;
@@ -780,6 +781,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
   <div class="pdf-modal-inner" role="dialog" aria-modal="true" aria-label="File preview">
     <button type="button" class="pdf-modal-close" id="pdf-modal-close" aria-label="Close preview">✕</button>
     <iframe class="pdf-modal-frame" id="pdf-modal-frame" src=""></iframe>
+    <img class="pdf-modal-img" id="pdf-modal-img" src="" alt="">
   </div>
 </div>
 
@@ -865,8 +867,17 @@ h1{ animation: fadeInDown 0.5s ease both; }
 
   const pdfModal = document.getElementById('pdf-modal');
   const pdfModalFrame = document.getElementById('pdf-modal-frame');
-  function openPdfModal(url){
-    pdfModalFrame.src = url;
+  const pdfModalImg = document.getElementById('pdf-modal-img');
+  function openPdfModal(url, isImage){
+    if (isImage){
+      pdfModalFrame.style.display = 'none';
+      pdfModalImg.style.display = 'block';
+      pdfModalImg.src = url;
+    } else {
+      pdfModalImg.style.display = 'none';
+      pdfModalFrame.style.display = 'block';
+      pdfModalFrame.src = url;
+    }
     pdfModal.classList.remove('closing');
     pdfModal.classList.add('open');
   }
@@ -877,13 +888,14 @@ h1{ animation: fadeInDown 0.5s ease both; }
     setTimeout(() => {
       pdfModal.classList.remove('closing');
       pdfModalFrame.src = '';
+      pdfModalImg.src = '';
     }, 220);
   }
   document.getElementById('pdf-modal-close').addEventListener('click', closePdfModal);
   pdfModal.addEventListener('click', (e) => { if (e.target === pdfModal) closePdfModal(); });
   document.addEventListener('click', (e) => {
     const preview = e.target.closest('.pdf-preview, .img-preview');
-    if (preview) openPdfModal(preview.dataset.url);
+    if (preview) openPdfModal(preview.dataset.url, preview.classList.contains('img-preview'));
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && pdfModal.classList.contains('open')) closePdfModal();
