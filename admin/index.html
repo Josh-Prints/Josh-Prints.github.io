@@ -611,6 +611,7 @@
     display:flex;
   }
   .pdf-modal-frame{ flex:1; border:none; width:100%; height:100%; }
+  .pdf-modal-img{ flex:1; width:100%; height:100%; object-fit:contain; display:none; }
   .pdf-modal-close{
     position:absolute; top:10px; right:10px; z-index:2;
     background: rgba(31,35,40,0.75); color:#fff; border:none; border-radius:50%;
@@ -1371,6 +1372,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   <div class="pdf-modal-inner">
     <button type="button" class="pdf-modal-close" id="pdf-modal-close">✕</button>
     <iframe class="pdf-modal-frame" id="pdf-modal-frame" src=""></iframe>
+    <img class="pdf-modal-img" id="pdf-modal-img" src="" alt="">
   </div>
 </div>
 
@@ -1681,19 +1683,29 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
   const pdfModal = document.getElementById('pdf-modal');
   const pdfModalFrame = document.getElementById('pdf-modal-frame');
-  function openPdfModal(url){
-    pdfModalFrame.src = url;
+  const pdfModalImg = document.getElementById('pdf-modal-img');
+  function openPdfModal(url, isImage){
+    if (isImage){
+      pdfModalFrame.style.display = 'none';
+      pdfModalImg.style.display = 'block';
+      pdfModalImg.src = url;
+    } else {
+      pdfModalImg.style.display = 'none';
+      pdfModalFrame.style.display = 'block';
+      pdfModalFrame.src = url;
+    }
     pdfModal.classList.add('open');
   }
   function closePdfModal(){
     pdfModal.classList.remove('open');
     pdfModalFrame.src = '';
+    pdfModalImg.src = '';
   }
   document.getElementById('pdf-modal-close').addEventListener('click', closePdfModal);
   pdfModal.addEventListener('click', (e) => { if (e.target === pdfModal) closePdfModal(); });
   document.addEventListener('click', (e) => {
     const preview = e.target.closest('.pdf-preview, .img-preview');
-    if (preview) openPdfModal(preview.dataset.url);
+    if (preview) openPdfModal(preview.dataset.url, preview.classList.contains('img-preview'));
   });
 
   (function(){
