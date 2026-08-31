@@ -823,6 +823,32 @@
   .debug-section{ display:none; }
   .debug-section.active{ display:block; }
 
+  /* ---- Banner section ---- */
+  .banner-textarea{
+    width:100%; box-sizing:border-box; margin-top:6px; padding:9px 12px;
+    border:1px solid rgba(var(--border-tint),0.18); border-radius:6px;
+    font-family:inherit; font-size:14px; resize:vertical; background:var(--bg); color:var(--ink);
+  }
+  .banner-textarea:focus{ outline:none; border-color:var(--accent); }
+  .banner-preview-frame{
+    border:1px solid rgba(var(--border-tint),0.15); border-radius:8px; overflow:hidden;
+  }
+  .site-banner{ display:none; overflow:hidden; background: linear-gradient(90deg,#ffb300,#ff7d1a); border-bottom:1px solid rgba(0,0,0,0.12); }
+  .site-banner.show{ display:block; }
+  .site-banner-inner{ padding: 9px 20px; white-space:nowrap; display:flex; justify-content:center; }
+  .site-banner-inner.scrolling{
+    justify-content:flex-start;
+    animation: bannerBounce var(--banner-duration, 10s) ease-in-out infinite alternate;
+  }
+  .site-banner-text{ font-size:13.5px; font-weight:600; color:#241300; letter-spacing:0.1px; }
+  @keyframes bannerBounce{
+    from{ transform: translateX(0); }
+    to{ transform: translateX(calc(-1 * var(--banner-distance, 0px))); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .site-banner-inner.scrolling{ animation:none; justify-content:flex-start; }
+  }
+
   /* ---- Filaments section ---- */
   .fil-list{
     display:flex;
@@ -1388,6 +1414,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     <div class="debug-tabs">
       <button type="button" class="debug-tab active" data-tab="rates">Rates</button>
       <button type="button" class="debug-tab" data-tab="filaments">Filaments</button>
+      <button type="button" class="debug-tab" data-tab="banner">Banner</button>
     </div>
 
     <!-- Rates section -->
@@ -1477,6 +1504,35 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
           </div>
           <div id="fil-msg"></div>
         </div>
+      </div>
+    </div>
+
+    <!-- Banner section -->
+    <div class="debug-section" id="debug-section-banner">
+      <div class="modal-body">
+        <label style="display:block;">Announcement message
+          <textarea class="banner-textarea" id="banner-msg-input" rows="2" placeholder="e.g. 🎄 Holiday orders close Dec 18 — order now to get it in time!"></textarea>
+        </label>
+        <div class="theme-row" style="margin-top:14px;">
+          <span>📢 Show banner</span>
+          <button type="button" class="theme-switch" id="banner-enabled-toggle" role="switch" aria-checked="false" aria-label="Show banner"><span class="thumb"></span></button>
+        </div>
+        <div class="theme-row">
+          <span>↔ Force scroll (even if it fits)</span>
+          <button type="button" class="theme-switch" id="banner-force-toggle" role="switch" aria-checked="false" aria-label="Force scroll"><span class="thumb"></span></button>
+        </div>
+        <div class="modal-divider">Preview</div>
+        <div class="banner-preview-frame">
+          <div class="site-banner" id="banner-preview">
+            <div class="site-banner-inner" id="banner-preview-inner">
+              <span class="site-banner-text" id="banner-preview-text"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <span id="banner-msg"></span>
+        <button class="save-btn" id="banner-save">Save banner</button>
       </div>
     </div>
 
@@ -2798,6 +2854,11 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       document.getElementById(id).value = data[col];
     });
     ratesMsg.textContent = '';
+
+    bannerMsgInput.value = data.banner_message || '';
+    bannerEnabledToggle.setAttribute('aria-checked', String(!!data.banner_enabled));
+    bannerForceToggle.setAttribute('aria-checked', String(!!data.banner_force_scroll));
+    renderBannerPreview();
   }
 
   ratesSaveBtn.addEventListener('click', async () => {
@@ -2832,6 +2893,75 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     }
     ratesMsg.textContent = 'Saved ✓ — live everywhere now.';
     setTimeout(() => { if (ratesMsg.textContent.startsWith('Saved')) ratesMsg.textContent = ''; }, 3000);
+  });
+
+  /* ---- Banner ---- */
+  const bannerMsgInput = document.getElementById('banner-msg-input');
+  const bannerEnabledToggle = document.getElementById('banner-enabled-toggle');
+  const bannerForceToggle = document.getElementById('banner-force-toggle');
+  const bannerSaveBtn = document.getElementById('banner-save');
+  const bannerMsgEl = document.getElementById('banner-msg');
+  const bannerPreviewEl = document.getElementById('banner-preview');
+  const bannerPreviewInnerEl = document.getElementById('banner-preview-inner');
+  const bannerPreviewTextEl = document.getElementById('banner-preview-text');
+
+  function toggleSwitch(el){
+    el.setAttribute('aria-checked', String(el.getAttribute('aria-checked') !== 'true'));
+  }
+  bannerEnabledToggle.addEventListener('click', () => { toggleSwitch(bannerEnabledToggle); renderBannerPreview(); });
+  bannerForceToggle.addEventListener('click', () => { toggleSwitch(bannerForceToggle); renderBannerPreview(); });
+  bannerMsgInput.addEventListener('input', renderBannerPreview);
+
+  function renderBannerPreview(){
+    const message = bannerMsgInput.value.trim();
+    const enabled = bannerEnabledToggle.getAttribute('aria-checked') === 'true';
+    const forceScroll = bannerForceToggle.getAttribute('aria-checked') === 'true';
+
+    bannerPreviewInnerEl.classList.remove('scrolling');
+    bannerPreviewInnerEl.style.removeProperty('--banner-distance');
+    bannerPreviewInnerEl.style.removeProperty('--banner-duration');
+
+    if (!enabled || !message){
+      bannerPreviewEl.classList.remove('show');
+      return;
+    }
+    bannerPreviewTextEl.textContent = message;
+    bannerPreviewEl.classList.add('show');
+    requestAnimationFrame(() => {
+      const overflow = bannerPreviewTextEl.scrollWidth - bannerPreviewInnerEl.clientWidth;
+      if (overflow > 0 || forceScroll){
+        const distance = overflow > 0 ? overflow : 60;
+        const duration = Math.min(24, Math.max(5, distance / 45));
+        bannerPreviewInnerEl.style.setProperty('--banner-distance', distance + 'px');
+        bannerPreviewInnerEl.style.setProperty('--banner-duration', duration + 's');
+        bannerPreviewInnerEl.classList.add('scrolling');
+      }
+    });
+  }
+
+  bannerSaveBtn.addEventListener('click', async () => {
+    bannerSaveBtn.disabled = true;
+    bannerSaveBtn.textContent = 'Saving…';
+    bannerMsgEl.textContent = '';
+
+    const payload = {
+      banner_message: bannerMsgInput.value.trim(),
+      banner_enabled: bannerEnabledToggle.getAttribute('aria-checked') === 'true',
+      banner_force_scroll: bannerForceToggle.getAttribute('aria-checked') === 'true',
+      updated_at: new Date().toISOString()
+    };
+
+    const { error } = await supabase.from('settings').update(payload).eq('id', 1);
+
+    bannerSaveBtn.disabled = false;
+    bannerSaveBtn.textContent = 'Save banner';
+
+    if (error){
+      bannerMsgEl.textContent = 'Error: ' + error.message;
+      return;
+    }
+    bannerMsgEl.textContent = 'Saved ✓ — live everywhere now.';
+    setTimeout(() => { if (bannerMsgEl.textContent.startsWith('Saved')) bannerMsgEl.textContent = ''; }, 3000);
   });
 
   /* ---- Debug modal tabs ---- */
