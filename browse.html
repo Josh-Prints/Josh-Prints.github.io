@@ -76,6 +76,22 @@
     padding: 16px 24px; border-bottom: 1px solid var(--border-muted);
     animation: fadeInDown 0.5s ease both;
   }
+  /* ---- Site banner ---- */
+  .site-banner{ display:none; overflow:hidden; background: linear-gradient(90deg,#ffb300,#ff7d1a); border-bottom:1px solid rgba(0,0,0,0.12); }
+  .site-banner.show{ display:block; }
+  .site-banner-inner{ padding: 9px 20px; white-space:nowrap; display:flex; justify-content:center; }
+  .site-banner-inner.scrolling{
+    justify-content:flex-start;
+    animation: bannerBounce var(--banner-duration, 10s) ease-in-out infinite alternate;
+  }
+  .site-banner-text{ font-size:13.5px; font-weight:600; color:#241300; letter-spacing:0.1px; }
+  @keyframes bannerBounce{
+    from{ transform: translateX(0); }
+    to{ transform: translateX(calc(-1 * var(--banner-distance, 0px))); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .site-banner-inner.scrolling{ animation:none; justify-content:flex-start; }
+  }
   .brand{ display:flex; align-items:center; gap:8px; font-weight:600; font-size:16px; color:var(--fg); text-decoration:none; }
   .brand-text span{ color: var(--accent); }
   .logo-mark{ flex-shrink: 0; display:block; }
@@ -434,6 +450,12 @@
     </div>
   </div>
 
+  <div class="site-banner" id="site-banner">
+    <div class="site-banner-inner" id="site-banner-inner">
+      <span class="site-banner-text" id="site-banner-text"></span>
+    </div>
+  </div>
+
   <div class="account-modal-overlay" id="account-name-overlay">
     <div class="account-modal">
       <h3 id="account-modal-title">Welcome!</h3>
@@ -604,6 +626,28 @@
   const SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
   const BUCKET = 'order-files';
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  (async function initSiteBanner(){
+    const bannerEl = document.getElementById('site-banner');
+    if (!bannerEl) return;
+    const innerEl = document.getElementById('site-banner-inner');
+    const textEl = document.getElementById('site-banner-text');
+    const { data, error } = await supabase.from('settings')
+      .select('banner_enabled, banner_message, banner_force_scroll').eq('id', 1).single();
+    if (error || !data || !data.banner_enabled || !data.banner_message || !data.banner_message.trim()) return;
+    textEl.textContent = data.banner_message;
+    bannerEl.classList.add('show');
+    requestAnimationFrame(() => {
+      const overflow = textEl.scrollWidth - innerEl.clientWidth;
+      if (overflow > 0 || data.banner_force_scroll){
+        const distance = overflow > 0 ? overflow : 60;
+        const duration = Math.min(24, Math.max(5, distance / 45));
+        innerEl.style.setProperty('--banner-distance', distance + 'px');
+        innerEl.style.setProperty('--banner-duration', duration + 's');
+        innerEl.classList.add('scrolling');
+      }
+    });
+  })();
 
   const gridEl = document.getElementById('grid');
   const loadingEl = document.getElementById('loading');
