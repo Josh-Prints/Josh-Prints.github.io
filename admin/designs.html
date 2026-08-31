@@ -605,10 +605,11 @@
       <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
     </svg></div>`;
     const loadStart = Date.now();
+    const minDisplayMs = 2000 + Math.random() * 2000;
     const { data, error } = await supabase.from('designs').select('*').order('created_at', { ascending:false });
     // keep the loading logo on screen a moment even on a fast connection —
     // otherwise it can flash by too quickly to notice
-    const minDisplay = 1800 - (Date.now() - loadStart);
+    const minDisplay = minDisplayMs - (Date.now() - loadStart);
     if (minDisplay > 0) await new Promise(r => setTimeout(r, minDisplay));
     if (error){
       // Leaving the grid stuck on its spinner forever is worse than a plain
