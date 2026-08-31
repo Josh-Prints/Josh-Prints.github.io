@@ -1051,7 +1051,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
         rows.push([item.reason || 'Extra cost', '—', fmtPdf(item.amount)]);
       });
     }
-    if (discountPct > 0) rows.push(['Discount', `${discountPct}% off`, '−' + fmtPdf(discAmt)]);
+    if (discountPct > 0) rows.push(['Discount', `${discountPct}% off`, '-' + fmtPdf(discAmt)]);
 
     doc.autoTable({
       startY: y,
