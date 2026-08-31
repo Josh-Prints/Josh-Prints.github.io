@@ -803,8 +803,9 @@ h1{ animation: fadeInDown 0.5s ease both; }
   // keep the loading logo on screen a moment even on a fast connection —
   // otherwise it can flash by too quickly to notice
   const loadingShownAt = Date.now();
+  const minLoadingMs = 2000 + Math.random() * 2000;
   async function ensureMinLoadingTime(){
-    const remaining = 1800 - (Date.now() - loadingShownAt);
+    const remaining = minLoadingMs - (Date.now() - loadingShownAt);
     if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
   }
 
