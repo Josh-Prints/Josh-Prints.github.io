@@ -145,7 +145,7 @@
   }
   .search-wrap input:focus{ outline:none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(9,105,218,0.12); }
 
-  .cust-list-spinner{ display:flex; justify-content:center; padding:50px 0; }
+  .cust-list-spinner{ display:flex; align-items:center; justify-content:center; min-height:50vh; }
   .cust-list-spinner span{
     width:22px; height:22px; border-radius:50%;
     border:3px solid rgba(9,105,218,0.18); border-top-color: var(--accent);
@@ -402,10 +402,16 @@
       <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
       <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
     </svg></div>`;
+    const loadStart = Date.now();
     const [profilesRes, ordersRes] = await Promise.all([
       supabase.from('customer_profiles').select('*').order('created_at', { ascending: false }),
       supabase.from('orders').select('id, user_id, status, quote_amount, design_price, order_type, created_at, deleted').not('user_id', 'is', null)
     ]);
+
+    // keep the loading logo on screen a moment even on a fast connection —
+    // otherwise it can flash by too quickly to notice
+    const minDisplay = 1200 - (Date.now() - loadStart);
+    if (minDisplay > 0) await new Promise(r => setTimeout(r, minDisplay));
 
     if (profilesRes.error){
       custListEl.innerHTML = `<div class="cust-empty">Couldn't load customers: ${escapeHtml(profilesRes.error.message)}</div>`;

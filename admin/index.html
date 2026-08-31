@@ -674,7 +674,8 @@
     color: var(--ink-dim);
     font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 13px;
-    padding: 60px 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 50vh;
   }
 
   /* ---- Rates modal ---- */
@@ -2029,10 +2030,16 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <polygon points="240.2,187 208.8,205.1 208.8,241.4 240.2,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
       <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
       <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/></svg></div>`;
+    const loadStart = Date.now();
     const { data, error } = await supabase
       .from('orders')
       .select('*')
       .order('created_at', { ascending: false });
+
+    // keep the loading logo on screen a moment even on a fast connection —
+    // otherwise it can flash by too quickly to notice
+    const minDisplay = 1200 - (Date.now() - loadStart);
+    if (minDisplay > 0) await new Promise(r => setTimeout(r, minDisplay));
 
     if (error){
       ordersContainer.innerHTML = `<div class="empty">Couldn't load orders: ${escapeHtml(error.message)}</div>`;
