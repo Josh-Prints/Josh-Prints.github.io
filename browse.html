@@ -247,7 +247,7 @@
     text-align:center; color: var(--fg-muted); padding: 60px 0; font-size:14px;
   }
   #empty{ animation: fadeInUp 0.4s ease both; }
-  #loading{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+  #loading{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; min-height:50vh; }
 
   /* ---- skeleton shimmer (loading placeholders) ---- */
   .skeleton{
@@ -664,11 +664,17 @@
   }
 
   async function loadDesigns(){
+    const loadStart = Date.now();
     const { data, error } = await supabase
       .from('designs')
       .select('*')
       .eq('active', true)
       .order('created_at', { ascending: false });
+
+    // keep the loading logo on screen a moment even on a fast connection —
+    // otherwise it can flash by too quickly to notice
+    const minDisplay = 1200 - (Date.now() - loadStart);
+    if (minDisplay > 0) await new Promise(r => setTimeout(r, minDisplay));
 
     loadingEl.style.display = 'none';
     if (skelGridEl) skelGridEl.style.display = 'none';
