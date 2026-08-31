@@ -327,6 +327,28 @@
     padding: 4px 6px;
     white-space: nowrap; overflow:hidden; text-overflow: ellipsis;
   }
+  .img-preview{
+    display: block;
+    width: 118px;
+    height: 118px;
+    margin-top: 8px;
+    border: 1px solid rgba(var(--border-tint),0.15);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    background: var(--bg-raised);
+  }
+  .img-preview img{ width: 100%; height: 100%; object-fit: cover; display:block; }
+  .img-preview .pdf-preview-label{
+    position: absolute; left:0; right:0; bottom:0;
+    background: rgba(31,35,40,0.78);
+    color: #fff;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 10px;
+    padding: 4px 6px;
+    white-space: nowrap; overflow:hidden; text-overflow: ellipsis;
+  }
 
   .pdf-modal{
     display:none;
@@ -812,12 +834,14 @@ h1{ animation: fadeInDown 0.5s ease both; }
   }
 
   const MODEL_EXTS = ['stl', 'obj', '3mf', 'step', 'stp', 'iges', 'igs'];
+  const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
   function fileExt(name){
     return (name || '').split('.').pop().toLowerCase();
   }
 
   // Renders one attachment: a plain link, a link + "View in 3D" button for
-  // model files, or a small clickable PDF thumbnail for PDFs.
+  // model files, a small clickable PDF thumbnail for PDFs, or a small
+  // clickable image thumbnail for images.
   function renderAttachment(url, name){
     const ext = fileExt(name);
     const safeName = escapeHtml(name || 'attachment');
@@ -825,6 +849,12 @@ h1{ animation: fadeInDown 0.5s ease both; }
       return `<div class="pdf-preview" data-url="${url}" title="Click to view ${safeName}">
         <embed src="${url}#toolbar=0&navpanes=0&view=FitH" type="application/pdf">
         <div class="pdf-preview-label">📄 ${safeName}</div>
+      </div>`;
+    }
+    if (IMAGE_EXTS.includes(ext)){
+      return `<div class="img-preview" data-url="${url}" title="Click to view ${safeName}">
+        <img src="${url}" alt="${safeName}" loading="lazy">
+        <div class="pdf-preview-label">🖼 ${safeName}</div>
       </div>`;
     }
     const viewBtn = MODEL_EXTS.includes(ext)
@@ -852,7 +882,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
   document.getElementById('pdf-modal-close').addEventListener('click', closePdfModal);
   pdfModal.addEventListener('click', (e) => { if (e.target === pdfModal) closePdfModal(); });
   document.addEventListener('click', (e) => {
-    const preview = e.target.closest('.pdf-preview');
+    const preview = e.target.closest('.pdf-preview, .img-preview');
     if (preview) openPdfModal(preview.dataset.url);
   });
   document.addEventListener('keydown', (e) => {
