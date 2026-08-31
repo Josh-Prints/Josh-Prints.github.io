@@ -255,6 +255,17 @@
   .modal-error{ color: var(--err); font-size:13px; margin-top:8px; display:none; }
   .checkbox-row{ display:flex; align-items:center; gap:8px; font-size:13.5px; margin-bottom:14px; }
 
+  .color-restrict-list{
+    border:1px solid rgba(var(--border-tint),0.15); border-radius:8px;
+    max-height:160px; overflow-y:auto; padding:4px 10px; margin-top:2px;
+  }
+  .color-restrict-item{
+    display:flex; align-items:center; gap:8px; padding:7px 0;
+    font-size:13px; border-bottom:1px solid rgba(var(--border-tint),0.08);
+  }
+  .color-restrict-item:last-child{ border-bottom:none; }
+  .color-restrict-empty{ font-size:12.5px; color: var(--ink-dim); padding:8px 0; }
+
   .file-drop{
     border:1px dashed rgba(var(--border-tint),0.25); border-radius:8px; padding:14px;
     text-align:center; cursor:pointer; font-size:12.5px; color: var(--ink-dim);
@@ -401,6 +412,13 @@
         <input type="checkbox" id="p-active" checked>
         <label for="p-active" style="margin:0;">Visible to customers</label>
       </div>
+      <div class="field">
+        <div class="checkbox-row" style="margin-bottom:8px;">
+          <input type="checkbox" id="p-restrict-colors">
+          <label for="p-restrict-colors" style="margin:0;">Restrict available colors for this design</label>
+        </div>
+        <div class="color-restrict-list" id="color-restrict-list" style="display:none;"></div>
+      </div>
       <div class="modal-error" id="modal-error"></div>
       <div class="modal-actions">
         <button type="button" class="btn" id="modal-cancel">Cancel</button>
@@ -454,6 +472,8 @@
   let removeExistingModel = false;
   let pendingPhotos = []; // { key, kind:'existing'|'new', path?, file?, url }
   let photoKeySeq = 0;
+  let allFilaments = [];
+  let selectedFilamentIds = new Set();
 
   const MODEL_EXTS = ['stl', 'obj', '3mf', 'step', 'stp', 'iges', 'igs'];
   function fileExt(name){ return (name || '').split('.').pop().toLowerCase(); }
@@ -491,7 +511,38 @@
     }
   }
   function showLogin(){ loginView.style.display = 'flex'; dashView.style.display = 'none'; }
-  function showDashboard(){ loginView.style.display = 'none'; dashView.style.display = 'block'; loadDesigns(); }
+  function showDashboard(){ loginView.style.display = 'none'; dashView.style.display = 'block'; loadDesigns(); loadFilamentsForRestriction(); }
+
+  async function loadFilamentsForRestriction(){
+    const { data } = await supabase.from('filaments').select('*').eq('active', true)
+      .order('sort_order', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true });
+    allFilaments = data || [];
+  }
+
+  function renderColorRestrictList(){
+    const el = document.getElementById('color-restrict-list');
+    if (allFilaments.length === 0){
+      el.innerHTML = '<div class="color-restrict-empty">No active filament colors set up yet — add some in the Debug → Filaments tab first.</div>';
+      return;
+    }
+    el.innerHTML = allFilaments.map(f => `
+      <label class="color-restrict-item">
+        <input type="checkbox" data-fil-id="${f.id}" ${selectedFilamentIds.has(f.id) ? 'checked' : ''}>
+        ${escapeHtml(f.color_name)} <span style="color:var(--ink-dim);">· ${escapeHtml(f.type)}</span>
+      </label>
+    `).join('');
+    el.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        if (cb.checked) selectedFilamentIds.add(cb.dataset.filId);
+        else selectedFilamentIds.delete(cb.dataset.filId);
+      });
+    });
+  }
+
+  document.getElementById('p-restrict-colors').addEventListener('change', (e) => {
+    document.getElementById('color-restrict-list').style.display = e.target.checked ? 'block' : 'none';
+  });
 
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -653,6 +704,23 @@
     renderPhotoGrid();
     renderModelCurrent();
     errorEl.style.display = 'none';
+
+    selectedFilamentIds = new Set();
+    document.getElementById('p-restrict-colors').checked = false;
+    document.getElementById('color-restrict-list').style.display = 'none';
+    if (design){
+      supabase.from('design_filaments').select('filament_id').eq('design_id', design.id).then(({ data }) => {
+        if (data && data.length > 0){
+          selectedFilamentIds = new Set(data.map(r => r.filament_id));
+          document.getElementById('p-restrict-colors').checked = true;
+          document.getElementById('color-restrict-list').style.display = 'block';
+        }
+        renderColorRestrictList();
+      });
+    } else {
+      renderColorRestrictList();
+    }
+
     overlay.classList.add('open');
   }
   function closeModal(){ overlay.classList.remove('open'); }
@@ -782,13 +850,26 @@
       if (modelPath !== undefined) payload.model_path = modelPath;
       if (modelName !== undefined) payload.model_name = modelName;
 
-      let error;
+      let error, savedId;
       if (editingId){
+        savedId = editingId;
         ({ error } = await supabase.from('designs').update(payload).eq('id', editingId));
       } else {
-        ({ error } = await supabase.from('designs').insert(payload));
+        let data;
+        ({ data, error } = await supabase.from('designs').insert(payload).select('id').single());
+        savedId = data?.id;
       }
       if (error) throw error;
+
+      // Keep design_filaments in sync: no rows = unrestricted (every active
+      // colour offered), so clear first, then re-add only if restricted.
+      const restrictOn = document.getElementById('p-restrict-colors').checked;
+      await supabase.from('design_filaments').delete().eq('design_id', savedId);
+      if (restrictOn && selectedFilamentIds.size > 0){
+        const rows = [...selectedFilamentIds].map(filament_id => ({ design_id: savedId, filament_id }));
+        const { error: dfErr } = await supabase.from('design_filaments').insert(rows);
+        if (dfErr) throw dfErr;
+      }
 
       closeModal();
       loadDesigns();

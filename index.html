@@ -196,7 +196,9 @@
     display:none; align-items:center; gap:10px; padding: 10px 12px;
   }
   .account-chip img{ width:26px; height:26px; border-radius:50%; flex-shrink:0; background: var(--canvas-inset); }
-  .account-chip .name{ font-size:14.5px; font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .account-id{ flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+  .account-chip .name{ font-size:14.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .account-credit{ font-size:11px; color: var(--ink-dim); font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; }
   .account-edit-btn{
     background:none; border:none; cursor:pointer; font-size:13px; padding:2px; opacity:0.65;
     transition: opacity 0.15s;
@@ -501,7 +503,10 @@
       </button>
       <div class="account-chip" id="account-chip">
         <img id="account-avatar" alt="">
-        <span class="name" id="account-name"></span>
+        <div class="account-id">
+          <span class="name" id="account-name"></span>
+          <span class="account-credit" id="account-credit"></span>
+        </div>
         <button type="button" class="account-edit-btn" id="account-edit-btn" aria-label="Edit profile" title="Edit profile">✏️</button>
         <button type="button" class="account-signout-btn" id="account-signout-btn">Sign out</button>
       </div>
@@ -724,6 +729,7 @@
     const signInBtn = document.getElementById('google-signin-btn');
     const accountChip = document.getElementById('account-chip');
     const accountName = document.getElementById('account-name');
+    const accountCredit = document.getElementById('account-credit');
     const accountAvatar = document.getElementById('account-avatar');
     const editBtn = document.getElementById('account-edit-btn');
     const signOutBtn = document.getElementById('account-signout-btn');
@@ -756,6 +762,7 @@
       accountChip.style.display = 'flex';
       accountName.textContent = (currentProfileName || user.email || '').split(' ')[0];
       accountAvatar.src = user.user_metadata?.avatar_url || '';
+      accountCredit.textContent = '💳 $' + Number(profile?.store_credit || 0).toFixed(2);
       if (myOrdersLink) myOrdersLink.innerHTML = '<span class="icon">📦</span> My orders';
     }
 

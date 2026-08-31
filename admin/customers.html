@@ -179,6 +179,18 @@
     border: 1px solid rgba(var(--border-tint),0.12);
   }
   .chip.discount{ background: var(--ok-subtle); color: var(--ok); border-color: var(--ok-subtle); }
+  .credit-edit-btn{
+    background:none; border:none; cursor:pointer; font-size:12px; padding:0 0 0 4px; opacity:0.6;
+  }
+  .credit-edit-btn:hover{ opacity:1; }
+  .credit-edit-input{
+    width:80px; padding:3px 6px; font-size:13px; font-family: ui-monospace, monospace;
+    border:1px solid rgba(var(--border-tint),0.18); border-radius:5px; background:var(--bg); color:var(--ink);
+  }
+  .credit-save-btn{
+    font-size:11px; padding:3px 8px; margin-left:4px; border-radius:5px;
+    border:1px solid var(--ok); background:var(--ok-subtle); color:var(--ok); cursor:pointer;
+  }
 </style>
 </head>
 <body>
@@ -481,6 +493,10 @@
             <div class="cust-stat"><div class="num">${s.total}</div><div class="label">Orders</div></div>
             <div class="cust-stat"><div class="num">$${s.value.toFixed(2)}</div><div class="label">Est. value</div></div>
             <div class="cust-stat"><div class="num">${lastOrder}</div><div class="label">Last order</div></div>
+            <div class="cust-stat">
+              <div class="num" id="cust-credit-wrap-${c.id}">$${Number(c.store_credit || 0).toFixed(2)}<button type="button" class="credit-edit-btn" data-id="${c.id}" title="Edit store credit">✏️</button></div>
+              <div class="label">Store credit</div>
+            </div>
           </div>
           ${statusChips || c.discount_available ? `
           <div class="cust-extra">
@@ -493,6 +509,42 @@
   }
 
   searchInput.addEventListener('input', render);
+
+  custListEl.addEventListener('click', async (e) => {
+    const editBtn = e.target.closest('.credit-edit-btn');
+    if (editBtn){
+      const id = editBtn.dataset.id;
+      const current = customers.find(c => c.id === id);
+      const value = Number(current?.store_credit || 0).toFixed(2);
+      const wrap = document.getElementById(`cust-credit-wrap-${id}`);
+      wrap.innerHTML = `<input type="number" step="0.01" min="0" class="credit-edit-input" id="cust-credit-input-${id}" value="${value}"><button type="button" class="credit-save-btn" data-id="${id}">Save</button>`;
+      document.getElementById(`cust-credit-input-${id}`).focus();
+      return;
+    }
+    const saveBtn = e.target.closest('.credit-save-btn');
+    if (saveBtn){
+      const id = saveBtn.dataset.id;
+      const input = document.getElementById(`cust-credit-input-${id}`);
+      const newVal = Number(input.value);
+      if (input.value.trim() === '' || isNaN(newVal) || newVal < 0){
+        input.style.borderColor = '#e5484d';
+        return;
+      }
+      saveBtn.disabled = true;
+      saveBtn.textContent = '…';
+      const { error } = await supabase.from('customer_profiles').update({ store_credit: newVal }).eq('id', id);
+      if (error){
+        alert('Could not save: ' + error.message);
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save';
+        return;
+      }
+      const current = customers.find(c => c.id === id);
+      if (current) current.store_credit = newVal;
+      const wrap = document.getElementById(`cust-credit-wrap-${id}`);
+      wrap.innerHTML = `$${newVal.toFixed(2)}<button type="button" class="credit-edit-btn" data-id="${id}" title="Edit store credit">✏️</button>`;
+    }
+  });
 </script>
 
 </body>
