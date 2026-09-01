@@ -149,20 +149,12 @@
   }
   .google-btn:hover{ background: var(--canvas-inset); }
   .google-btn svg{ flex-shrink:0; }
-  .email-code-panel{ padding: 8px 12px 6px; display:flex; flex-direction:column; gap:6px; }
-  .email-code-field{
-    width:100%; box-sizing:border-box; padding:7px 10px; font-size:14px;
-    border:1px solid rgba(var(--border-tint),0.18); border-radius:6px;
-    font-family:inherit; background:var(--canvas); color:var(--fg);
+  .email-code-msg{ font-size:12px; color:var(--fg-muted); min-height:14px; margin-top:4px; }
+  .email-code-cancel-btn{
+    display:block; width:100%; text-align:center; margin-top:12px;
+    background:none; border:none; color:var(--fg-muted); font-size:13px;
+    text-decoration:underline; cursor:pointer; font-family:inherit; padding:0;
   }
-  .email-code-field:focus{ outline:none; border-color:var(--accent); }
-  .email-code-step2{ display:flex; gap:6px; }
-  .email-code-step2 .email-code-field{ flex:1; min-width:0; }
-  .email-code-send-btn, .email-code-verify-btn{
-    padding:7px 12px; font-size:13px; border-radius:6px; border:1px solid var(--accent);
-    background:var(--accent); color:#fff; cursor:pointer; white-space:nowrap; font-family:inherit;
-  }
-  .email-code-msg{ font-size:11.5px; color:var(--fg-muted); min-height:14px; }
   .account-chip{
     display:none; align-items:center; gap:10px; padding: 9px 12px;
   }
@@ -468,15 +460,6 @@
           <button type="button" class="google-btn" id="email-code-btn">
             ✉️ Sign in with email code
           </button>
-          <div class="email-code-panel" id="email-code-panel" style="display:none;">
-            <input type="email" id="email-code-input" class="email-code-field" placeholder="you@example.com">
-            <button type="button" class="email-code-send-btn" id="email-code-send-btn">Send code</button>
-            <div class="email-code-step2" id="email-code-step2" style="display:none;">
-              <input type="text" id="email-code-token-input" class="email-code-field" placeholder="6-digit code" inputmode="numeric" maxlength="6">
-              <button type="button" class="email-code-verify-btn" id="email-code-verify-btn">Verify</button>
-            </div>
-            <div class="email-code-msg" id="email-code-msg"></div>
-          </div>
           <div class="account-chip" id="account-chip">
             <img id="account-avatar" alt="">
             <div class="account-id">
@@ -502,6 +485,21 @@
         <p id="account-modal-desc">What's your name? We'll use this on your orders.</p>
         <input type="text" id="account-name-input" placeholder="Full name">
         <button type="button" class="btn btn-primary" id="account-name-save" style="width:100%; justify-content:center;">Continue</button>
+      </div>
+    </div>
+
+    <div class="account-modal-overlay" id="email-code-overlay">
+      <div class="account-modal">
+        <h3>Sign in with email code</h3>
+        <p>Enter your email and we'll send you a 6-digit code.</p>
+        <input type="email" id="email-code-input" placeholder="you@example.com">
+        <button type="button" class="btn btn-primary" id="email-code-send-btn" style="width:100%; justify-content:center;">Send code</button>
+        <div id="email-code-step2" style="display:none;">
+          <input type="text" id="email-code-token-input" placeholder="6-digit code" inputmode="numeric" maxlength="6">
+          <button type="button" class="btn btn-primary" id="email-code-verify-btn" style="width:100%; justify-content:center;">Verify</button>
+        </div>
+        <div class="email-code-msg" id="email-code-msg"></div>
+        <button type="button" class="email-code-cancel-btn" id="email-code-cancel-btn">Cancel</button>
       </div>
     </div>
   </div>
@@ -784,13 +782,14 @@
     const modalTitle = document.getElementById('account-modal-title');
     const modalDesc = document.getElementById('account-modal-desc');
     const emailCodeBtn = document.getElementById('email-code-btn');
-    const emailCodePanel = document.getElementById('email-code-panel');
+    const emailCodeOverlay = document.getElementById('email-code-overlay');
     const emailCodeInput = document.getElementById('email-code-input');
     const emailCodeSendBtn = document.getElementById('email-code-send-btn');
     const emailCodeStep2 = document.getElementById('email-code-step2');
     const emailCodeTokenInput = document.getElementById('email-code-token-input');
     const emailCodeVerifyBtn = document.getElementById('email-code-verify-btn');
     const emailCodeMsg = document.getElementById('email-code-msg');
+    const emailCodeCancelBtn = document.getElementById('email-code-cancel-btn');
 
     const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
     const supabase = createClient('https://paycasfatsakidsriwqt.supabase.co', 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv');
@@ -802,7 +801,7 @@
     let pendingOtpEmail = '';
 
     function resetEmailCodePanel(){
-      emailCodePanel.style.display = 'none';
+      emailCodeOverlay.classList.remove('open');
       emailCodeStep2.style.display = 'none';
       emailCodeInput.value = '';
       emailCodeTokenInput.value = '';
@@ -893,13 +892,14 @@
     });
 
     emailCodeBtn.addEventListener('click', () => {
-      const open = emailCodePanel.style.display !== 'none';
-      if (open){
-        resetEmailCodePanel();
-      } else {
-        emailCodePanel.style.display = 'flex';
-        emailCodeInput.focus();
-      }
+      document.getElementById('menu-dropdown')?.classList.remove('open');
+      emailCodeOverlay.classList.add('open');
+      emailCodeInput.focus();
+    });
+    emailCodeCancelBtn.addEventListener('click', resetEmailCodePanel);
+    emailCodeOverlay.addEventListener('click', (e) => { if (e.target === emailCodeOverlay) resetEmailCodePanel(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && emailCodeOverlay.classList.contains('open')) resetEmailCodePanel();
     });
 
     emailCodeSendBtn.addEventListener('click', async () => {
