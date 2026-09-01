@@ -224,6 +224,13 @@
     width:110px; padding:6px 9px; font-size:13px; font-family:inherit;
     border:1px solid rgba(var(--border-tint),0.18); border-radius:6px; background:var(--bg); color:var(--ink);
   }
+  .card-history{
+    margin-top:12px; padding-top:12px; border-top:1px solid rgba(var(--border-tint),0.1);
+    flex-direction:column; gap:6px;
+  }
+  .card-history .history-row{ display:flex; align-items:center; justify-content:space-between; font-size:12.5px; }
+  .card-history .h-label{ color: var(--ink-dim); }
+  .card-history .h-amount{ font-family: ui-monospace, monospace; font-weight:600; }
 
   .form-card{
     background: var(--bg-raised); border:1px solid rgba(var(--border-tint),0.12);
@@ -765,6 +772,12 @@
       const target = Number(c.monthly_target) || 0;
       const pct = target > 0 ? Math.min(100, (spent / target) * 100) : (spent > 0 ? 100 : 0);
       const over = target > 0 && spent > target;
+      const historyRows = categoryMonthlyHistory(c.id).map(h => `
+        <div class="history-row">
+          <span class="h-label">${h.label}</span>
+          <span class="h-amount">${money(h.spent)}</span>
+        </div>
+      `).join('');
       return `
         <div class="budget-card" style="animation-delay:${i * 0.04}s;">
           <div class="budget-card-head">
@@ -773,6 +786,7 @@
           </div>
           <div class="progress-track"><div class="progress-bar${over ? ' over' : ''}" style="width:${pct}%;"></div></div>
           <div class="budget-card-actions">
+            <button type="button" class="link-btn cat-history-btn" data-id="${c.id}">View history</button>
             <button type="button" class="link-btn cat-edit-btn" data-id="${c.id}">Edit budget</button>
             <button type="button" class="link-btn danger cat-del-btn" data-id="${c.id}">Delete category</button>
           </div>
@@ -780,9 +794,26 @@
             <input type="number" step="1" min="0" id="cat-edit-input-${c.id}" value="${target}">
             <button type="button" class="btn-primary cat-save-btn" data-id="${c.id}" style="padding:6px 12px; font-size:12.5px;">Save</button>
           </div>
+          <div class="card-history" id="cat-history-${c.id}" style="display:none;">${historyRows}</div>
         </div>
       `;
     }).join('');
+  }
+
+  function categoryMonthlyHistory(categoryId){
+    const now = new Date();
+    const keys = [];
+    for (let i = 0; i < 6; i++){
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      keys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+    const spentByMonth = {};
+    expenses.forEach(e => {
+      if (e.category_id !== categoryId) return;
+      const k = monthKey(e.spent_at);
+      spentByMonth[k] = (spentByMonth[k] || 0) + (Number(e.amount) || 0);
+    });
+    return keys.map(k => ({ key: k, label: monthLabel(k), spent: spentByMonth[k] || 0 }));
   }
 
   function renderExpenseCategorySelect(){
@@ -829,6 +860,14 @@
   });
 
   budgetListEl.addEventListener('click', async (e) => {
+    const historyBtn = e.target.closest('.cat-history-btn');
+    if (historyBtn){
+      const panel = document.getElementById(`cat-history-${historyBtn.dataset.id}`);
+      const isOpen = panel.style.display === 'flex';
+      panel.style.display = isOpen ? 'none' : 'flex';
+      historyBtn.textContent = isOpen ? 'View history' : 'Hide history';
+      return;
+    }
     const editBtn = e.target.closest('.cat-edit-btn');
     if (editBtn){
       const row = document.getElementById(`cat-edit-row-${editBtn.dataset.id}`);
