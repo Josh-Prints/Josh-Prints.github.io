@@ -214,7 +214,7 @@
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   import { STLLoader } from 'three/addons/loaders/STLLoader.js';
   import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
-  import { ThreeMFLoader } from 'three/addons/loaders/3MFLoader.js';
+  import { unzipSync, strFromU8 } from 'three/addons/libs/fflate.module.js';
 
   const params = new URLSearchParams(window.location.search);
   const url = params.get('url');
@@ -337,6 +337,103 @@
 
     const onLoadError = (err) => showError('load-failed', err);
 
+    // three.js's own ThreeMFLoader doesn't follow the 3MF Production
+    // Extension's multi-part files (github.com/mrdoob/three.js/issues/30174)
+    // — slicers like Bambu Studio / OrcaSlicer routinely export the actual
+    // mesh into a separate part (e.g. 3D/Objects/object_1.model) and only
+    // reference it from the root part via <component p:path="...">, which
+    // the stock loader silently fails on. This is a small parser that
+    // follows those references across files inside the zip.
+    async function load3MF(fileUrl){
+      const res = await fetch(fileUrl);
+      if (!res.ok) throw new Error(`Couldn't download the file (HTTP ${res.status})`);
+      const zip = unzipSync(new Uint8Array(await res.arrayBuffer()));
+
+      const parser = new DOMParser();
+      const partCache = new Map();
+      function readPart(path){
+        path = path.replace(/^\/+/, '');
+        if (partCache.has(path)) return partCache.get(path);
+        const bytes = zip[path];
+        if (!bytes) throw new Error('3MF part missing from archive: ' + path);
+        const doc = parser.parseFromString(strFromU8(bytes), 'application/xml');
+        partCache.set(path, doc);
+        return doc;
+      }
+
+      function parseTransform(str){
+        const t = str.trim().split(/\s+/).map(Number);
+        const m = new THREE.Matrix4();
+        m.set(
+          t[0], t[3], t[6], t[9],
+          t[1], t[4], t[7], t[10],
+          t[2], t[5], t[8], t[11],
+          0, 0, 0, 1
+        );
+        return m;
+      }
+
+      function meshFromNode(meshNode){
+        const positions = [];
+        meshNode.querySelectorAll('vertices > vertex').forEach(v => {
+          positions.push(parseFloat(v.getAttribute('x')), parseFloat(v.getAttribute('y')), parseFloat(v.getAttribute('z')));
+        });
+        const indices = [];
+        meshNode.querySelectorAll('triangles > triangle').forEach(tri => {
+          indices.push(parseInt(tri.getAttribute('v1'), 10), parseInt(tri.getAttribute('v2'), 10), parseInt(tri.getAttribute('v3'), 10));
+        });
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geometry.setIndex(indices);
+        geometry.computeVertexNormals();
+        return new THREE.Mesh(geometry, material);
+      }
+
+      // Resolves one <object id> within a given part, following <component
+      // p:path> references into other archive parts when present.
+      function resolveObject(partPath, objectId, seen){
+        const key = partPath + '#' + objectId;
+        if (seen.has(key)) throw new Error('Circular 3MF component reference: ' + key);
+        seen.add(key);
+
+        const doc = readPart(partPath);
+        const objectNode = Array.from(doc.querySelectorAll('resources > object'))
+          .find(o => o.getAttribute('id') === String(objectId));
+        if (!objectNode) throw new Error(`3MF object id ${objectId} not found in ${partPath}`);
+
+        const group = new THREE.Group();
+        const meshNode = objectNode.querySelector(':scope > mesh');
+        if (meshNode) group.add(meshFromNode(meshNode));
+
+        objectNode.querySelectorAll(':scope > components > component').forEach(comp => {
+          const refPath = comp.getAttribute('p:path') || comp.getAttribute('path') || partPath;
+          const child = resolveObject(refPath, comp.getAttribute('objectid'), seen);
+          const transformStr = comp.getAttribute('transform');
+          if (transformStr) child.applyMatrix4(parseTransform(transformStr));
+          group.add(child);
+        });
+
+        return group;
+      }
+
+      const rootRelsDoc = readPart('_rels/.rels');
+      const rootRel = Array.from(rootRelsDoc.querySelectorAll('Relationship'))
+        .find(r => /3dmodel/i.test(r.getAttribute('Type') || ''));
+      const rootPath = rootRel ? rootRel.getAttribute('Target') : '3D/3dmodel.model';
+
+      const rootDoc = readPart(rootPath);
+      const root = new THREE.Group();
+      rootDoc.querySelectorAll('build > item').forEach(item => {
+        const obj = resolveObject(rootPath, item.getAttribute('objectid'), new Set());
+        const transformStr = item.getAttribute('transform');
+        if (transformStr) obj.applyMatrix4(parseTransform(transformStr));
+        root.add(obj);
+      });
+
+      if (root.children.length === 0) throw new Error('No printable objects found in this 3MF file');
+      return root;
+    }
+
     if (ext === 'stl'){
       new STLLoader().load(url, geometry => {
         geometry.computeVertexNormals();
@@ -348,10 +445,7 @@
         frameObject(obj);
       }, onLoadProgress, onLoadError);
     } else if (ext === '3mf'){
-      new ThreeMFLoader().load(url, obj => {
-        obj.traverse(child => { if (child.isMesh && !child.material) child.material = material; });
-        frameObject(obj);
-      }, onLoadProgress, onLoadError);
+      load3MF(url).then(frameObject).catch(onLoadError);
     }
 
     function animate(){
