@@ -440,6 +440,19 @@
     .hero{ padding: 56px 20px 48px; }
     .hero-actions{ flex-direction: column; }
   }
+
+  /* ---- recent activity ---- */
+  .recent-activity{ padding-bottom: 56px; }
+  .recent-activity-list{ display:flex; flex-direction:column; gap:10px; }
+  .recent-activity-item{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding: 12px 14px; border:1px solid var(--border-muted); border-radius:8px;
+    background: var(--canvas-inset);
+    opacity:0; transform: translateY(10px); animation: fadeInUp 0.4s ease both;
+  }
+  .recent-activity-text{ font-size:13.5px; color: var(--fg); }
+  .recent-activity-text b{ font-weight:600; }
+  .recent-activity-time{ font-size:12px; color: var(--fg-muted); white-space:nowrap; flex-shrink:0; }
 </style>
 </head>
 <body>
@@ -606,6 +619,13 @@
     </div>
   </div>
 
+  <div class="featured recent-activity" id="recent-activity-section" style="display:none;">
+    <div class="featured-head">
+      <h2>Recent activity</h2>
+    </div>
+    <div class="recent-activity-list" id="recent-activity-list"></div>
+  </div>
+
 <script>
   (function(){
     const btn = document.getElementById('menu-btn');
@@ -747,6 +767,35 @@
   }
 
   loadFeatured();
+
+  function timeAgo(dateStr){
+    const diffMs = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 60) return mins <= 1 ? 'just now' : `${mins} min ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `${days}d ago`;
+    const months = Math.floor(days / 30);
+    return `${months}mo ago`;
+  }
+
+  async function loadRecentCustomers(){
+    const section = document.getElementById('recent-activity-section');
+    const listEl = document.getElementById('recent-activity-list');
+    if (!section) return;
+    const { data, error } = await supabase.rpc('get_recent_customers', { p_limit: 6 });
+    if (error || !data || data.length === 0) return;
+    listEl.innerHTML = data.map((r, i) => `
+      <div class="recent-activity-item" style="animation-delay:${i * 0.05}s;">
+        <div class="recent-activity-text"><b>${escapeHtml(r.first_name || 'Someone')}</b> ordered ${escapeHtml(r.order_label || 'a custom print')}</div>
+        <div class="recent-activity-time">${timeAgo(r.created_at)}</div>
+      </div>
+    `).join('');
+    section.style.display = 'block';
+  }
+
+  loadRecentCustomers();
 
   // ---- customer account (Google sign-in) ----
   (function(){
