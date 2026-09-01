@@ -22,6 +22,8 @@
     --radius: 8px;
     --ok-subtle: rgba(26,127,55,0.1);
     --err-subtle: rgba(207,34,46,0.1);
+    --series-1: var(--accent);
+    --series-2: #eb6834;
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
@@ -38,6 +40,7 @@
       --border-tint: 255,255,255;
       --ok-subtle: rgba(63,185,80,0.12);
       --err-subtle: rgba(248,81,73,0.12);
+      --series-2: #d95926;
     }
   }
   :root[data-theme="dark"]{
@@ -54,6 +57,7 @@
     --border-tint: 255,255,255;
     --ok-subtle: rgba(63,185,80,0.12);
     --err-subtle: rgba(248,81,73,0.12);
+    --series-2: #d95926;
   }
   *{ box-sizing: border-box; }
   body{
@@ -167,6 +171,31 @@
   .month-row .m-label{ font-size:13.5px; font-weight:600; }
   .month-row .m-count{ font-size:12px; color: var(--ink-dim); }
   .month-row .m-amount{ font-family: ui-monospace, monospace; font-weight:700; }
+  .month-row .m-side{ text-align:right; }
+
+  .chart-card{
+    background: var(--bg-raised); border:1px solid rgba(var(--border-tint),0.12);
+    border-radius: var(--radius); padding: 16px 16px 10px;
+  }
+  .chart-legend{ display:flex; gap:18px; margin: 0 0 8px 4px; flex-wrap:wrap; }
+  .chart-legend-item{ display:flex; align-items:center; gap:7px; font-size:12.5px; color: var(--ink-dim); }
+  .chart-legend-swatch{ width:16px; height:2px; border-radius:1px; flex-shrink:0; }
+  .chart-wrap{ position:relative; }
+  #revenue-chart{ display:block; width:100%; height:220px; touch-action:none; }
+  .chart-gridline{ stroke: rgba(var(--border-tint),0.12); stroke-width:1; }
+  .chart-axis-label{ fill: var(--ink-dim); font-size:10px; font-family: ui-monospace, monospace; }
+  .chart-end-label{ fill: var(--ink); font-size:11px; font-weight:700; font-family: ui-monospace, monospace; }
+  .chart-tooltip{
+    position:absolute; top:6px; pointer-events:none; background: var(--bg);
+    border:1px solid rgba(var(--border-tint),0.15); border-radius:7px; padding:8px 10px;
+    font-size:12px; min-width:132px; box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+  }
+  .chart-tooltip[hidden]{ display:none; }
+  .chart-tooltip .ct-month{ font-weight:700; margin-bottom:5px; }
+  .chart-tooltip .ct-row{ display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:3px; }
+  .chart-tooltip .ct-key{ display:flex; align-items:center; gap:6px; color: var(--ink-dim); }
+  .chart-tooltip .ct-swatch{ width:10px; height:2px; border-radius:1px; flex-shrink:0; }
+  .chart-tooltip .ct-val{ font-weight:700; font-family: ui-monospace, monospace; }
 
   .budget-card{
     background: var(--bg-raised); border:1px solid rgba(var(--border-tint),0.12);
@@ -335,7 +364,17 @@
     <div id="content-wrap" style="display:none;">
       <div class="stats-row" id="stats-row"></div>
 
-      <div class="section-title">Revenue by month</div>
+      <div class="section-title">Revenue vs. expenses</div>
+      <div class="section-note">Last 6 months. Hover or focus the chart for exact figures.</div>
+      <div class="chart-card">
+        <div class="chart-legend" id="chart-legend"></div>
+        <div class="chart-wrap">
+          <svg id="revenue-chart" viewBox="0 0 640 220" preserveAspectRatio="none" role="img" aria-label="Revenue and expenses by month, last 6 months" tabindex="0"></svg>
+          <div class="chart-tooltip" id="chart-tooltip" hidden></div>
+        </div>
+      </div>
+
+      <div class="section-title">Monthly detail</div>
       <div class="card-list" id="revenue-table"></div>
 
       <div class="section-title">Budget categories</div>
@@ -421,6 +460,11 @@
     return (str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
   function money(n){ return '$' + Number(n || 0).toFixed(2); }
+  function moneyCompact(n){
+    const v = Number(n) || 0;
+    if (v >= 1000) return '$' + (v / 1000).toFixed(v % 1000 === 0 ? 0 : 1) + 'K';
+    return '$' + Math.round(v);
+  }
   function monthKey(dateStr){
     const d = new Date(dateStr);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -430,6 +474,36 @@
     return new Date(y, m - 1, 1).toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
   }
   function orderRevenue(o){ return Number(o.quote_amount ?? o.design_price ?? 0) || 0; }
+
+  function shortMonthLabel(key){
+    const [y, m] = key.split('-').map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'short' });
+  }
+  function niceMax(value){
+    if (value <= 0) return 10;
+    const magnitude = Math.pow(10, Math.floor(Math.log10(value)));
+    const residual = value / magnitude;
+    let niceResidual;
+    if (residual <= 1) niceResidual = 1;
+    else if (residual <= 2) niceResidual = 2;
+    else if (residual <= 2.5) niceResidual = 2.5;
+    else if (residual <= 5) niceResidual = 5;
+    else niceResidual = 10;
+    return niceResidual * magnitude;
+  }
+  function revenueExpenseSeries(){
+    const now = new Date();
+    const keys = [];
+    for (let i = 5; i >= 0; i--){
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      keys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+    const revByMonth = {};
+    orders.forEach(o => { const k = monthKey(o.created_at); revByMonth[k] = (revByMonth[k] || 0) + orderRevenue(o); });
+    const expByMonth = {};
+    expenses.forEach(e => { const k = monthKey(e.spent_at); expByMonth[k] = (expByMonth[k] || 0) + (Number(e.amount) || 0); });
+    return keys.map(k => ({ key: k, label: shortMonthLabel(k), revenue: revByMonth[k] || 0, expense: expByMonth[k] || 0 }));
+  }
 
   async function isAdmin(userId){
     const { data } = await supabase.from('admin_profiles').select('id').eq('id', userId).maybeSingle();
@@ -494,10 +568,129 @@
 
   function renderAll(){
     renderStats();
+    renderRevenueChart();
     renderRevenueTable();
     renderBudgetCategories();
     renderExpenseCategorySelect();
     renderExpenseList();
+  }
+
+  function renderRevenueChart(){
+    const series = revenueExpenseSeries();
+    const svg = document.getElementById('revenue-chart');
+    const legendEl = document.getElementById('chart-legend');
+    const tooltip = document.getElementById('chart-tooltip');
+
+    legendEl.innerHTML = `
+      <div class="chart-legend-item"><span class="chart-legend-swatch" style="background:var(--series-1);"></span>Revenue</div>
+      <div class="chart-legend-item"><span class="chart-legend-swatch" style="background:var(--series-2);"></span>Expenses</div>
+    `;
+
+    const W = 640, H = 220, padL = 42, padR = 46, padT = 16, padB = 26;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const n = series.length;
+    const xStep = n > 1 ? plotW / (n - 1) : 0;
+    const maxVal = Math.max(1, ...series.map(d => Math.max(d.revenue, d.expense)));
+    const yMax = niceMax(maxVal * 1.1);
+
+    const xAt = i => padL + i * xStep;
+    const yAt = v => padT + plotH - (v / yMax) * plotH;
+
+    const gridTicks = [0, 0.25, 0.5, 0.75, 1].map(f => yMax * f);
+    const gridSvg = gridTicks.map(t => `
+      <line class="chart-gridline" x1="${padL}" y1="${yAt(t).toFixed(1)}" x2="${W - padR}" y2="${yAt(t).toFixed(1)}" vector-effect="non-scaling-stroke"/>
+      <text class="chart-axis-label" x="${padL - 6}" y="${(yAt(t) + 3).toFixed(1)}" text-anchor="end">${moneyCompact(t)}</text>
+    `).join('');
+
+    const xLabelsSvg = series.map((d, i) => `
+      <text class="chart-axis-label" x="${xAt(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">${d.label}</text>
+    `).join('');
+
+    const seriesPath = key => series.map((d, i) => `${i === 0 ? 'M' : 'L'}${xAt(i).toFixed(1)},${yAt(d[key]).toFixed(1)}`).join(' ');
+    const seriesMarkers = (key, color) => series.map((d, i) => `
+      <circle cx="${xAt(i).toFixed(1)}" cy="${yAt(d[key]).toFixed(1)}" r="6" fill="var(--bg-raised)"/>
+      <circle cx="${xAt(i).toFixed(1)}" cy="${yAt(d[key]).toFixed(1)}" r="4" fill="${color}"/>
+    `).join('');
+
+    const lastIdx = n - 1;
+    let revEndY = yAt(series[lastIdx].revenue);
+    let expEndY = yAt(series[lastIdx].expense);
+    if (Math.abs(revEndY - expEndY) < 14){
+      const mid = (revEndY + expEndY) / 2;
+      if (revEndY <= expEndY){ revEndY = mid - 7; expEndY = mid + 7; }
+      else { revEndY = mid + 7; expEndY = mid - 7; }
+    }
+    const endLabelsSvg = `
+      <text class="chart-end-label" x="${(xAt(lastIdx) + 9).toFixed(1)}" y="${(revEndY + 3.5).toFixed(1)}">${moneyCompact(series[lastIdx].revenue)}</text>
+      <text class="chart-end-label" x="${(xAt(lastIdx) + 9).toFixed(1)}" y="${(expEndY + 3.5).toFixed(1)}">${moneyCompact(series[lastIdx].expense)}</text>
+    `;
+
+    svg.innerHTML = `
+      ${gridSvg}
+      <path d="${seriesPath('revenue')}" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      <path d="${seriesPath('expense')}" fill="none" stroke="var(--series-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      ${seriesMarkers('revenue', 'var(--series-1)')}
+      ${seriesMarkers('expense', 'var(--series-2)')}
+      ${xLabelsSvg}
+      ${endLabelsSvg}
+      <line id="chart-crosshair" x1="${xAt(lastIdx)}" y1="${padT}" x2="${xAt(lastIdx)}" y2="${padT + plotH}" stroke="rgba(var(--border-tint),0.35)" stroke-width="1" vector-effect="non-scaling-stroke" style="display:none;"/>
+    `;
+
+    function showAt(i){
+      const d = series[i];
+      const cross = document.getElementById('chart-crosshair');
+      cross.setAttribute('x1', xAt(i));
+      cross.setAttribute('x2', xAt(i));
+      cross.style.display = 'block';
+      tooltip.hidden = false;
+      const monthEl = document.createElement('div');
+      monthEl.className = 'ct-month';
+      monthEl.textContent = monthLabel(d.key);
+      const revRow = tooltipRow('var(--series-1)', 'Revenue', money(d.revenue));
+      const expRow = tooltipRow('var(--series-2)', 'Expenses', money(d.expense));
+      tooltip.replaceChildren(monthEl, revRow, expRow);
+
+      const wrapRect = svg.parentElement.getBoundingClientRect();
+      const pct = n > 1 ? i / (n - 1) : 0;
+      const ttWidth = 140;
+      let left = pct * wrapRect.width - ttWidth / 2;
+      left = Math.max(4, Math.min(left, wrapRect.width - ttWidth - 4));
+      tooltip.style.left = left + 'px';
+    }
+    function tooltipRow(color, label, value){
+      const row = document.createElement('div');
+      row.className = 'ct-row';
+      const key = document.createElement('span');
+      key.className = 'ct-key';
+      const swatch = document.createElement('span');
+      swatch.className = 'ct-swatch';
+      swatch.style.background = color;
+      key.appendChild(swatch);
+      key.appendChild(document.createTextNode(label));
+      const val = document.createElement('span');
+      val.className = 'ct-val';
+      val.textContent = value;
+      row.appendChild(key);
+      row.appendChild(val);
+      return row;
+    }
+    function hideTooltip(){
+      tooltip.hidden = true;
+      const cross = document.getElementById('chart-crosshair');
+      if (cross) cross.style.display = 'none';
+    }
+    function nearestIndex(clientX){
+      const rect = svg.getBoundingClientRect();
+      const scaleX = W / rect.width;
+      const vx = (clientX - rect.left) * scaleX;
+      const idx = Math.round((vx - padL) / (xStep || 1));
+      return Math.max(0, Math.min(n - 1, idx));
+    }
+    svg.onpointermove = (e) => showAt(nearestIndex(e.clientX));
+    svg.onpointerleave = hideTooltip;
+    svg.onfocus = () => showAt(lastIdx);
+    svg.onblur = hideTooltip;
+    hideTooltip();
   }
 
   function renderStats(){
@@ -535,7 +728,12 @@
       byMonth[key].count++;
       byMonth[key].total += orderRevenue(o);
     });
-    const keys = Object.keys(byMonth).sort().reverse().slice(0, 6);
+    const expByMonth = {};
+    expenses.forEach(e => {
+      const key = monthKey(e.spent_at);
+      expByMonth[key] = (expByMonth[key] || 0) + (Number(e.amount) || 0);
+    });
+    const keys = Array.from(new Set([...Object.keys(byMonth), ...Object.keys(expByMonth)])).sort().reverse().slice(0, 6);
     if (keys.length === 0){
       revenueTableEl.innerHTML = '<div class="empty-note">No sold orders yet.</div>';
       return;
@@ -544,9 +742,12 @@
       <div class="month-row">
         <div>
           <div class="m-label">${monthLabel(k)}</div>
-          <div class="m-count">${byMonth[k].count} order${byMonth[k].count === 1 ? '' : 's'}</div>
+          <div class="m-count">${(byMonth[k]?.count || 0)} order${(byMonth[k]?.count || 0) === 1 ? '' : 's'}</div>
         </div>
-        <div class="m-amount">${money(byMonth[k].total)}</div>
+        <div class="m-side">
+          <div class="m-amount">${money(byMonth[k]?.total || 0)}</div>
+          <div class="m-count">${money(expByMonth[k] || 0)} spent</div>
+        </div>
       </div>
     `).join('');
   }
