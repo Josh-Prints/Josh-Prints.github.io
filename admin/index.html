@@ -710,7 +710,11 @@
     align-items: center;
     justify-content: center;
     padding: 20px;
-    z-index: 50;
+    /* Above the sidebar (95) and its overlay (90) — these popups (Set your
+       name, Manage admins, Debug, Admin chat) are all opened from inside the
+       sidebar menu, which stays open underneath them, so they must render
+       above it or they end up partially hidden behind the sidebar panel. */
+    z-index: 250;
   }
   .modal-overlay.open{ display: flex; }
   .modal-card{
