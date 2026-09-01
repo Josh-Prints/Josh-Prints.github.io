@@ -195,7 +195,7 @@
   </div>
 
   <div id="error">
-    <div>Preview isn't available for this file type.</div>
+    <div id="error-heading">Preview isn't available for this file type.</div>
     <div><a id="error-download" href="#">Download the file</a> to view it in your slicer or CAD software.</div>
   </div>
 
@@ -256,7 +256,11 @@
     }, Math.max(0, remaining));
   }
 
-  function showError(){
+  function showError(reason, err){
+    if (err) console.error('viewer.html: failed to load', name, err);
+    document.getElementById('error-heading').textContent = reason === 'load-failed'
+      ? "This file couldn't be previewed — it may use features our 3D viewer doesn't support yet."
+      : "Preview isn't available for this file type.";
     hideLoading();
     errorEl.style.display = 'flex';
     errorEl.classList.add('shake');
@@ -270,7 +274,7 @@
   }
 
   if (!url || !SUPPORTED.includes(ext)){
-    showError();
+    showError('unsupported');
   } else {
     initViewer();
   }
@@ -331,21 +335,23 @@
       hintEl.style.display = 'block';
     }
 
+    const onLoadError = (err) => showError('load-failed', err);
+
     if (ext === 'stl'){
       new STLLoader().load(url, geometry => {
         geometry.computeVertexNormals();
         frameObject(new THREE.Mesh(geometry, material));
-      }, onLoadProgress, showError);
+      }, onLoadProgress, onLoadError);
     } else if (ext === 'obj'){
       new OBJLoader().load(url, obj => {
         obj.traverse(child => { if (child.isMesh) child.material = material; });
         frameObject(obj);
-      }, onLoadProgress, showError);
+      }, onLoadProgress, onLoadError);
     } else if (ext === '3mf'){
       new ThreeMFLoader().load(url, obj => {
         obj.traverse(child => { if (child.isMesh && !child.material) child.material = material; });
         frameObject(obj);
-      }, onLoadProgress, showError);
+      }, onLoadProgress, onLoadError);
     }
 
     function animate(){
