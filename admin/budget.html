@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget &amp; Analytics — JoshPrints Admin</title>
+<link rel="icon" type="image/svg+xml" href="../logo.svg">
+<style>
+  :root{
+    --bg: #f6f8fa;
+    --bg-raised: #ffffff;
+    --ink: #1f2328;
+    --ink-dim: #656d76;
+    --accent: #0969da;
+    --err: #cf222e;
+    --ok: #1a7f37;
+    --btn-hover-bg: #eef1f4;
+    --btn-primary-hover: #0860ca;
+    --warn: #9a6700;
+    --border-tint: 31,35,40;
+    --radius: 8px;
+    --ok-subtle: rgba(26,127,55,0.1);
+    --err-subtle: rgba(207,34,46,0.1);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg: #0d1117;
+      --bg-raised: #161b22;
+      --ink: #e6edf3;
+      --ink-dim: #8b949e;
+      --accent: #4493f8;
+      --err: #f85149;
+      --ok: #3fb950;
+      --btn-hover-bg: #21262d;
+      --btn-primary-hover: #5aa6ff;
+      --warn: #e3b341;
+      --border-tint: 255,255,255;
+      --ok-subtle: rgba(63,185,80,0.12);
+      --err-subtle: rgba(248,81,73,0.12);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: #0d1117;
+    --bg-raised: #161b22;
+    --ink: #e6edf3;
+    --ink-dim: #8b949e;
+    --accent: #4493f8;
+    --err: #f85149;
+    --ok: #3fb950;
+    --btn-hover-bg: #21262d;
+    --btn-primary-hover: #5aa6ff;
+    --warn: #e3b341;
+    --border-tint: 255,255,255;
+    --ok-subtle: rgba(63,185,80,0.12);
+    --err-subtle: rgba(248,81,73,0.12);
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+  }
+  @keyframes fadeInDown{ from{ opacity:0; transform: translateY(-8px);} to{ opacity:1; transform: translateY(0);} }
+  @keyframes fadeInUp{ from{ opacity:0; transform: translateY(12px);} to{ opacity:1; transform: translateY(0);} }
+  @keyframes popIn{ from{ opacity:0; transform: scale(0.92);} to{ opacity:1; transform: scale(1);} }
+  @keyframes facetGrow{
+    0%   { transform: scale(0.3); }
+    30%  { transform: scale(1.15); }
+    80%  { transform: scale(1.15); }
+    100% { transform: scale(0.3); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+  a, button, .btn{ transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.12s ease, box-shadow 0.15s, opacity 0.15s; }
+  button:active, .btn:active{ transform: translateY(0) scale(0.96); }
+  .login-card{ animation: popIn 0.35s cubic-bezier(0.34,1.56,0.64,1) both; }
+
+  #login-view{ min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .login-card{
+    background: var(--bg-raised); border:1px solid rgba(var(--border-tint),0.12);
+    border-radius: var(--radius); padding: 32px; width: 320px;
+  }
+  .login-card h1{ font-size:19px; margin:0 0 4px; display:flex; align-items:center; gap:8px; }
+  .login-card h1 .brand-text span{ color: var(--accent); }
+  .logo-mark{ flex-shrink: 0; display:block; }
+  .logo-loading{ flex-shrink: 0; display:block; }
+  .logo-loading polygon{
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: facetGrow 2s ease-in-out infinite backwards;
+  }
+  .login-card .sub{ color: var(--ink-dim); font-size:13px; margin: 0 0 20px; }
+  .google-btn{
+    display:flex; align-items:center; justify-content:center; gap:10px; width:100%; box-sizing:border-box;
+    background: var(--bg); color: var(--ink); border: 1px solid rgba(var(--border-tint),0.15);
+    border-radius: 8px; padding: 12px; font-family: inherit;
+    font-weight: 600; font-size: 14px; cursor: pointer; transition: background 0.15s, border-color 0.15s;
+  }
+  .google-btn:hover{ background: var(--bg-raised); border-color: rgba(var(--border-tint),0.3); }
+  .google-btn svg{ flex-shrink:0; }
+  .login-err{ display:none; color: var(--err); font-size:12.5px; margin-top:10px; }
+  .login-err.show{ display:block; }
+
+  #dash-view{ display:none; }
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 20px 28px; border-bottom: 1px solid rgba(var(--border-tint),0.10);
+    animation: fadeInDown 0.4s ease both;
+    flex-wrap: wrap; gap: 12px;
+  }
+  .topbar h1{ font-size:19px; margin:0; display:flex; align-items:center; gap:8px; }
+  .topbar h1 .brand-text span{ color: var(--accent); }
+  .topbar .right{ display:flex; gap:10px; align-items:center; }
+  .btn{
+    display:inline-flex; align-items:center; gap:6px; padding:7px 14px;
+    font-size:13.5px; font-weight:600; border-radius:6px; cursor:pointer;
+    border:1px solid rgba(var(--border-tint),0.15); background: var(--bg-raised); color: var(--ink);
+    text-decoration:none; transition: background 0.15s, transform 0.15s;
+  }
+  .btn:hover{ background: var(--bg); transform: translateY(-1px); }
+  .btn-primary{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    padding:9px 16px; font-size:13.5px; font-weight:600; border-radius:6px; cursor:pointer;
+    border:1px solid var(--accent); background: var(--accent); color:#fff;
+  }
+  .btn-primary:hover{ background: var(--btn-primary-hover); border-color: var(--btn-primary-hover); }
+  .btn-primary:disabled{ opacity:0.6; cursor:default; }
+  .theme-toggle-btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink:0;
+    border:1px solid rgba(var(--border-tint),0.15); background: var(--bg-raised); color: var(--ink);
+    font-size: 15px; cursor:pointer; line-height:1;
+    transition: background 0.15s, transform 0.15s;
+  }
+  .theme-toggle-btn:hover{ background: var(--bg); transform: translateY(-1px); }
+
+  .page{ max-width: 900px; margin:0 auto; padding: 24px 24px 80px; }
+  .page-spinner{ display:flex; align-items:center; justify-content:center; min-height:50vh; }
+
+  .stats-row{ display:flex; gap:12px; flex-wrap:wrap; margin-bottom:30px; }
+  .stat-tile{
+    flex:1; min-width:150px; background: var(--bg-raised); border:1px solid rgba(var(--border-tint),0.12);
+    border-radius: var(--radius); padding: 14px 16px;
+    opacity:0; transform: translateY(10px); animation: fadeInUp 0.4s ease both;
+  }
+  .stat-tile .num{ font-size:22px; font-weight:700; font-family: ui-monospace, monospace; }
+  .stat-tile .num.positive{ color: var(--ok); }
+  .stat-tile .num.negative{ color: var(--err); }
+  .stat-tile .label{ font-size:12px; color: var(--ink-dim); margin-top:2px; }
+
+  .section-title{
+    font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
+    color: var(--ink-dim); margin: 34px 0 12px;
+  }
+  .section-title:first-of-type{ margin-top:0; }
+  .section-note{ font-size:12.5px; color: var(--ink-dim); margin: -6px 0 14px; line-height:1.5; }
+
+  .card-list{ display:flex; flex-direction:column; gap:10px; }
+  .empty-note{ color: var(--ink-dim); font-size:13.5px; padding: 14px 0; }
+
+  .month-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding: 10px 14px; background: var(--bg-raised); border:1px solid rgba(var(--border-tint),0.1);
+    border-radius: 6px;
+  }
+  .month-row .m-label{ font-size:13.5px; font-weight:600; }
+  .month-row .m-count{ font-size:12px; color: var(--ink-dim); }
+  .month-row .m-amount{ font-family: ui-monospace, monospace; font-weight:700; }
+
+  .budget-card{
+    background: var(--bg-raised); border:1px solid rgba(var(--border-tint),0.12);
+    border-radius: var(--radius); padding: 16px 18px;
+    opacity:0; transform: translateY(10px); animation: fadeInUp 0.35s ease both;
+  }
+  .budget-card-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .budget-card-name{ font-weight:700; font-size:14.5px; }
+  .budget-card-nums{ font-size:12.5px; color: var(--ink-dim); font-family: ui-monospace, monospace; }
+  .budget-card-nums.over{ color: var(--err); font-weight:600; }
+  .progress-track{
+    margin-top:10px; height:8px; border-radius:5px; overflow:hidden;
+    background: rgba(var(--border-tint),0.1);
+  }
+  .progress-bar{ height:100%; border-radius:5px; background: var(--accent); transition: width 0.3s ease; }
+  .progress-bar.over{ background: var(--err); }
+  .budget-card-actions{ margin-top:12px; display:flex; gap:14px; }
+  .link-btn{
+    background:none; border:none; padding:0; font-size:12px; cursor:pointer;
+    color: var(--ink-dim); text-decoration:underline; font-family:inherit;
+  }
+  .link-btn:hover{ color: var(--ink); }
+  .link-btn.danger:hover{ color: var(--err); }
+  .target-edit-row{ display:flex; gap:8px; margin-top:10px; align-items:center; }
+  .target-edit-row input{
+    width:110px; padding:6px 9px; font-size:13px; font-family:inherit;
+    border:1px solid rgba(var(--border-tint),0.18); border-radius:6px; background:var(--bg); color:var(--ink);
+  }
+
+  .form-card{
+    background: var(--bg-raised); border:1px solid rgba(var(--border-tint),0.12);
+    border-radius: var(--radius); padding: 16px 18px;
+  }
+  .form-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; align-items:end; }
+  .form-grid label{ display:flex; flex-direction:column; gap:5px; font-size:11.5px; color: var(--ink-dim); text-transform:uppercase; letter-spacing:0.03em; }
+  .form-grid input, .form-grid select{
+    padding: 8px 10px; font-size:14px; border-radius:6px; font-family:inherit;
+    border:1px solid rgba(var(--border-tint),0.18); background: var(--bg); color: var(--ink);
+  }
+  .form-grid input:focus, .form-grid select:focus{ outline:none; border-color: var(--accent); }
+  .form-msg{ font-size:12px; color: var(--err); margin-top:8px; min-height:14px; }
+
+  .expense-row{
+    display:flex; align-items:center; gap:12px; padding: 10px 14px;
+    background: var(--bg-raised); border:1px solid rgba(var(--border-tint),0.1); border-radius:6px;
+  }
+  .expense-row .e-main{ flex:1; min-width:0; }
+  .expense-row .e-desc{ font-size:13.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .expense-row .e-meta{ font-size:11.5px; color: var(--ink-dim); margin-top:1px; }
+  .expense-row .e-amount{ font-family: ui-monospace, monospace; font-weight:700; white-space:nowrap; }
+  .expense-row .e-del{
+    background:none; border:none; cursor:pointer; color: var(--ink-dim); font-size:13px; padding:2px 4px;
+  }
+  .expense-row .e-del:hover{ color: var(--err); }
+</style>
+</head>
+<body>
+
+<div id="login-view">
+  <div class="login-card">
+    <h1><svg class="logo-mark" width="20" height="20" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="200,40.2 231.4,58.3 200,76.5 168.6,58.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.00s"/>
+      <polygon points="150.9,68.5 182.3,86.7 150.9,104.8 119.5,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
+      <polygon points="101.9,96.9 133.3,115 101.9,133.1 70.4,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="249.1,68.5 280.5,86.7 249.1,104.8 217.7,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
+      <polygon points="200,96.9 231.4,115 200,133.1 168.6,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="150.9,125.2 182.3,143.3 150.9,161.5 119.5,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="298.1,96.9 329.6,115 298.1,133.1 266.7,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="249.1,125.2 280.5,143.3 249.1,161.5 217.7,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="200,153.5 231.4,171.7 200,189.8 168.6,171.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="61.6,130.3 93,148.4 93,184.7 61.6,166.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="61.6,187 93,205.1 93,241.4 61.6,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="61.6,243.6 93,261.8 93,298 61.6,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="110.7,158.6 142.1,176.8 142.1,213 110.7,194.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="110.7,215.3 142.1,233.4 142.1,269.7 110.7,251.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="110.7,272 142.1,290.1 142.1,326.4 110.7,308.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="159.8,187 191.2,205.1 191.2,241.4 159.8,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="159.8,243.6 191.2,261.8 191.2,298 159.8,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="159.8,300.3 191.2,318.4 191.2,354.7 159.8,336.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
+      <polygon points="338.4,130.3 307,148.4 307,184.7 338.4,166.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="338.4,187 307,205.1 307,241.4 338.4,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="338.4,243.6 307,261.8 307,298 338.4,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="289.3,158.6 257.9,176.8 257.9,213 289.3,194.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="289.3,215.3 257.9,233.4 257.9,269.7 289.3,251.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="289.3,272 257.9,290.1 257.9,326.4 289.3,308.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="240.2,187 208.8,205.1 208.8,241.4 240.2,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
+    </svg><span class="brand-text">Josh<span>Prints</span></span></h1>
+    <p class="sub">Admin: sign in with your approved Google account</p>
+    <button type="button" class="google-btn" id="admin-google-signin-btn">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
+      Sign in with Google
+    </button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<div id="dash-view">
+  <div class="topbar">
+    <h1><svg class="logo-mark" width="20" height="20" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="200,40.2 231.4,58.3 200,76.5 168.6,58.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.00s"/>
+      <polygon points="150.9,68.5 182.3,86.7 150.9,104.8 119.5,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
+      <polygon points="101.9,96.9 133.3,115 101.9,133.1 70.4,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="249.1,68.5 280.5,86.7 249.1,104.8 217.7,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
+      <polygon points="200,96.9 231.4,115 200,133.1 168.6,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="150.9,125.2 182.3,143.3 150.9,161.5 119.5,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="298.1,96.9 329.6,115 298.1,133.1 266.7,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="249.1,125.2 280.5,143.3 249.1,161.5 217.7,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="200,153.5 231.4,171.7 200,189.8 168.6,171.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="61.6,130.3 93,148.4 93,184.7 61.6,166.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="61.6,187 93,205.1 93,241.4 61.6,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="61.6,243.6 93,261.8 93,298 61.6,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="110.7,158.6 142.1,176.8 142.1,213 110.7,194.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="110.7,215.3 142.1,233.4 142.1,269.7 110.7,251.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="110.7,272 142.1,290.1 142.1,326.4 110.7,308.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="159.8,187 191.2,205.1 191.2,241.4 159.8,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="159.8,243.6 191.2,261.8 191.2,298 159.8,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="159.8,300.3 191.2,318.4 191.2,354.7 159.8,336.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
+      <polygon points="338.4,130.3 307,148.4 307,184.7 338.4,166.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="338.4,187 307,205.1 307,241.4 338.4,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="338.4,243.6 307,261.8 307,298 338.4,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="289.3,158.6 257.9,176.8 257.9,213 289.3,194.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="289.3,215.3 257.9,233.4 257.9,269.7 289.3,251.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="289.3,272 257.9,290.1 257.9,326.4 289.3,308.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="240.2,187 208.8,205.1 208.8,241.4 240.2,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
+    </svg><span class="brand-text">Josh<span>Prints</span></span>: Budget &amp; analytics</h1>
+    <div class="right">
+      <button type="button" class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle dark mode" aria-pressed="false">🌙</button>
+      <a class="btn" href="index.html">← Back to orders</a>
+    </div>
+  </div>
+  <div class="page" id="page-content">
+    <div class="page-spinner" id="page-spinner"><svg class="logo-loading" width="96" height="96" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="200,40.2 231.4,58.3 200,76.5 168.6,58.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.00s"/>
+      <polygon points="150.9,68.5 182.3,86.7 150.9,104.8 119.5,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
+      <polygon points="101.9,96.9 133.3,115 101.9,133.1 70.4,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="249.1,68.5 280.5,86.7 249.1,104.8 217.7,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
+      <polygon points="200,96.9 231.4,115 200,133.1 168.6,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="150.9,125.2 182.3,143.3 150.9,161.5 119.5,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="298.1,96.9 329.6,115 298.1,133.1 266.7,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="249.1,125.2 280.5,143.3 249.1,161.5 217.7,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="200,153.5 231.4,171.7 200,189.8 168.6,171.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="61.6,130.3 93,148.4 93,184.7 61.6,166.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="61.6,187 93,205.1 93,241.4 61.6,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="61.6,243.6 93,261.8 93,298 61.6,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="110.7,158.6 142.1,176.8 142.1,213 110.7,194.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="110.7,215.3 142.1,233.4 142.1,269.7 110.7,251.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="110.7,272 142.1,290.1 142.1,326.4 110.7,308.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="159.8,187 191.2,205.1 191.2,241.4 159.8,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="159.8,243.6 191.2,261.8 191.2,298 159.8,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="159.8,300.3 191.2,318.4 191.2,354.7 159.8,336.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
+      <polygon points="338.4,130.3 307,148.4 307,184.7 338.4,166.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="338.4,187 307,205.1 307,241.4 338.4,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="338.4,243.6 307,261.8 307,298 338.4,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="289.3,158.6 257.9,176.8 257.9,213 289.3,194.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="289.3,215.3 257.9,233.4 257.9,269.7 289.3,251.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="289.3,272 257.9,290.1 257.9,326.4 289.3,308.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="240.2,187 208.8,205.1 208.8,241.4 240.2,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
+    </svg></div>
+
+    <div id="content-wrap" style="display:none;">
+      <div class="stats-row" id="stats-row"></div>
+
+      <div class="section-title">Revenue by month</div>
+      <div class="card-list" id="revenue-table"></div>
+
+      <div class="section-title">Budget categories</div>
+      <div class="section-note">Set a monthly spending target per category (e.g. Filament, Packaging). "Spent" totals the expenses you log below for that category in the current calendar month.</div>
+      <div class="card-list" id="budget-list"></div>
+      <div class="form-card" style="margin-top:14px;">
+        <div class="form-grid">
+          <label>Category name<input type="text" id="cat-name-input" placeholder="e.g. Filament"></label>
+          <label>Monthly budget ($)<input type="number" id="cat-target-input" step="1" min="0" placeholder="100"></label>
+          <button type="button" class="btn-primary" id="cat-add-btn">+ Add category</button>
+        </div>
+        <div class="form-msg" id="cat-form-msg"></div>
+      </div>
+
+      <div class="section-title">Log an expense</div>
+      <div class="form-card">
+        <div class="form-grid">
+          <label>Category<select id="exp-category-select"></select></label>
+          <label>What did you buy?<input type="text" id="exp-desc-input" placeholder="e.g. 5x PLA spools"></label>
+          <label>Amount ($)<input type="number" id="exp-amount-input" step="0.01" min="0" placeholder="45.00"></label>
+          <label>Date<input type="date" id="exp-date-input"></label>
+          <button type="button" class="btn-primary" id="exp-add-btn">+ Log expense</button>
+        </div>
+        <div class="form-msg" id="exp-form-msg"></div>
+      </div>
+
+      <div class="section-title">Recent expenses</div>
+      <div class="card-list" id="expense-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    const toggle = document.getElementById('theme-toggle');
+    if (!toggle) return;
+    function currentTheme(){
+      const explicit = localStorage.getItem('theme');
+      if (explicit) return explicit;
+      return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    function applyTheme(mode){
+      const isDark = mode === 'dark';
+      toggle.textContent = isDark ? '☀️' : '🌙';
+      toggle.setAttribute('aria-pressed', String(isDark));
+    }
+    toggle.addEventListener('click', () => {
+      const next = currentTheme() === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', next);
+      document.documentElement.setAttribute('data-theme', next);
+      applyTheme(next);
+    });
+    applyTheme(currentTheme());
+  })();
+</script>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  const SUPABASE_URL = 'https://paycasfatsakidsriwqt.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const loginView = document.getElementById('login-view');
+  const dashView = document.getElementById('dash-view');
+  const googleSignInBtn = document.getElementById('admin-google-signin-btn');
+  const loginErr = document.getElementById('login-err');
+  const pageSpinner = document.getElementById('page-spinner');
+  const contentWrap = document.getElementById('content-wrap');
+  const statsRow = document.getElementById('stats-row');
+  const revenueTableEl = document.getElementById('revenue-table');
+  const budgetListEl = document.getElementById('budget-list');
+  const expenseListEl = document.getElementById('expense-list');
+  const expCategorySelect = document.getElementById('exp-category-select');
+  const expDateInput = document.getElementById('exp-date-input');
+
+  let orders = [];
+  let categories = [];
+  let expenses = [];
+  let totalStoreCredit = 0;
+
+  function escapeHtml(str){
+    return (str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function money(n){ return '$' + Number(n || 0).toFixed(2); }
+  function monthKey(dateStr){
+    const d = new Date(dateStr);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
+  function monthLabel(key){
+    const [y, m] = key.split('-').map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
+  }
+  function orderRevenue(o){ return Number(o.quote_amount ?? o.design_price ?? 0) || 0; }
+
+  async function isAdmin(userId){
+    const { data } = await supabase.from('admin_profiles').select('id').eq('id', userId).maybeSingle();
+    return !!data;
+  }
+
+  supabase.auth.onAuthStateChange(async (_event, session) => {
+    if (!session){ showLogin(); return; }
+    if (await isAdmin(session.user.id)){
+      showDashboard();
+    } else {
+      await supabase.auth.signOut();
+      loginErr.textContent = 'This account is not an approved admin.';
+      loginErr.classList.add('show');
+      showLogin();
+    }
+  });
+
+  googleSignInBtn.addEventListener('click', () => {
+    loginErr.classList.remove('show');
+    supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + window.location.pathname } });
+  });
+
+  function showLogin(){ loginView.style.display = 'flex'; dashView.style.display = 'none'; }
+  function showDashboard(){ loginView.style.display = 'none'; dashView.style.display = 'block'; loadAll(); }
+
+  async function loadAll(){
+    pageSpinner.style.display = 'flex';
+    contentWrap.style.display = 'none';
+
+    const loadStart = Date.now();
+    const minDisplayMs = 1200 + Math.random() * 800;
+
+    const [ordersRes, categoriesRes, expensesRes, profilesRes] = await Promise.all([
+      supabase.from('orders').select('id, status, quote_amount, design_price, created_at, deleted').eq('status', 'sold'),
+      supabase.from('budget_categories').select('*').order('created_at', { ascending: true }),
+      supabase.from('expenses').select('*').order('spent_at', { ascending: false }),
+      supabase.from('customer_profiles').select('store_credit')
+    ]);
+
+    const minDisplay = minDisplayMs - (Date.now() - loadStart);
+    if (minDisplay > 0) await new Promise(r => setTimeout(r, minDisplay));
+
+    if (ordersRes.error || categoriesRes.error || expensesRes.error){
+      contentWrap.innerHTML = `<div class="empty-note">Couldn't load budget data: ${escapeHtml((ordersRes.error || categoriesRes.error || expensesRes.error).message)}</div>`;
+      pageSpinner.style.display = 'none';
+      contentWrap.style.display = 'block';
+      return;
+    }
+
+    orders = (ordersRes.data || []).filter(o => !o.deleted);
+    categories = categoriesRes.data || [];
+    expenses = expensesRes.data || [];
+    totalStoreCredit = (profilesRes.data || []).reduce((sum, c) => sum + (Number(c.store_credit) || 0), 0);
+
+    expDateInput.value = new Date().toISOString().slice(0, 10);
+
+    pageSpinner.style.display = 'none';
+    contentWrap.style.display = 'block';
+    renderAll();
+  }
+
+  function renderAll(){
+    renderStats();
+    renderRevenueTable();
+    renderBudgetCategories();
+    renderExpenseCategorySelect();
+    renderExpenseList();
+  }
+
+  function renderStats(){
+    const now = new Date();
+    const thisMonth = monthKey(now.toISOString());
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const totalRevenue = orders.reduce((s, o) => s + orderRevenue(o), 0);
+    const thisMonthRevenue = orders.filter(o => monthKey(o.created_at) === thisMonth).reduce((s, o) => s + orderRevenue(o), 0);
+    const last30Revenue = orders.filter(o => new Date(o.created_at) >= thirtyDaysAgo).reduce((s, o) => s + orderRevenue(o), 0);
+    const totalExpenses = expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    const netAllTime = totalRevenue - totalExpenses;
+
+    const tiles = [
+      { label: 'Total revenue (sold orders)', value: money(totalRevenue) },
+      { label: 'This month’s revenue', value: money(thisMonthRevenue) },
+      { label: 'Last 30 days', value: money(last30Revenue) },
+      { label: 'Total logged expenses', value: money(totalExpenses) },
+      { label: 'Net (revenue − expenses)', value: money(netAllTime), cls: netAllTime >= 0 ? 'positive' : 'negative' },
+      { label: 'Outstanding store credit', value: money(totalStoreCredit) }
+    ];
+    statsRow.innerHTML = tiles.map((t, i) => `
+      <div class="stat-tile" style="animation-delay:${i * 0.04}s;">
+        <div class="num${t.cls ? ' ' + t.cls : ''}">${t.value}</div>
+        <div class="label">${t.label}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderRevenueTable(){
+    const byMonth = {};
+    orders.forEach(o => {
+      const key = monthKey(o.created_at);
+      if (!byMonth[key]) byMonth[key] = { count: 0, total: 0 };
+      byMonth[key].count++;
+      byMonth[key].total += orderRevenue(o);
+    });
+    const keys = Object.keys(byMonth).sort().reverse().slice(0, 6);
+    if (keys.length === 0){
+      revenueTableEl.innerHTML = '<div class="empty-note">No sold orders yet.</div>';
+      return;
+    }
+    revenueTableEl.innerHTML = keys.map(k => `
+      <div class="month-row">
+        <div>
+          <div class="m-label">${monthLabel(k)}</div>
+          <div class="m-count">${byMonth[k].count} order${byMonth[k].count === 1 ? '' : 's'}</div>
+        </div>
+        <div class="m-amount">${money(byMonth[k].total)}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderBudgetCategories(){
+    if (categories.length === 0){
+      budgetListEl.innerHTML = '<div class="empty-note">No budget categories yet — add one below (e.g. "Filament").</div>';
+      return;
+    }
+    const thisMonth = monthKey(new Date().toISOString());
+    budgetListEl.innerHTML = categories.map((c, i) => {
+      const spent = expenses
+        .filter(e => e.category_id === c.id && monthKey(e.spent_at) === thisMonth)
+        .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+      const target = Number(c.monthly_target) || 0;
+      const pct = target > 0 ? Math.min(100, (spent / target) * 100) : (spent > 0 ? 100 : 0);
+      const over = target > 0 && spent > target;
+      return `
+        <div class="budget-card" style="animation-delay:${i * 0.04}s;">
+          <div class="budget-card-head">
+            <div class="budget-card-name">${escapeHtml(c.name)}</div>
+            <div class="budget-card-nums${over ? ' over' : ''}">${money(spent)} / ${money(target)} this month</div>
+          </div>
+          <div class="progress-track"><div class="progress-bar${over ? ' over' : ''}" style="width:${pct}%;"></div></div>
+          <div class="budget-card-actions">
+            <button type="button" class="link-btn cat-edit-btn" data-id="${c.id}">Edit budget</button>
+            <button type="button" class="link-btn danger cat-del-btn" data-id="${c.id}">Delete category</button>
+          </div>
+          <div class="target-edit-row" id="cat-edit-row-${c.id}" style="display:none;">
+            <input type="number" step="1" min="0" id="cat-edit-input-${c.id}" value="${target}">
+            <button type="button" class="btn-primary cat-save-btn" data-id="${c.id}" style="padding:6px 12px; font-size:12.5px;">Save</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderExpenseCategorySelect(){
+    expCategorySelect.innerHTML = categories.length === 0
+      ? '<option value="">No categories yet</option>'
+      : categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+  }
+
+  function renderExpenseList(){
+    if (expenses.length === 0){
+      expenseListEl.innerHTML = '<div class="empty-note">No expenses logged yet.</div>';
+      return;
+    }
+    const catName = (id) => categories.find(c => c.id === id)?.name || 'Uncategorized';
+    expenseListEl.innerHTML = expenses.slice(0, 30).map(e => `
+      <div class="expense-row">
+        <div class="e-main">
+          <div class="e-desc">${escapeHtml(e.description || catName(e.category_id))}</div>
+          <div class="e-meta">${escapeHtml(catName(e.category_id))} · ${new Date(e.spent_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+        </div>
+        <div class="e-amount">${money(e.amount)}</div>
+        <button type="button" class="e-del" data-id="${e.id}" title="Delete expense">🗑</button>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('cat-add-btn').addEventListener('click', async () => {
+    const nameInput = document.getElementById('cat-name-input');
+    const targetInput = document.getElementById('cat-target-input');
+    const msg = document.getElementById('cat-form-msg');
+    const name = nameInput.value.trim();
+    const target = Number(targetInput.value);
+    msg.textContent = '';
+    if (!name){ msg.textContent = 'Enter a category name.'; return; }
+    if (targetInput.value.trim() === '' || isNaN(target) || target < 0){ msg.textContent = 'Enter a valid monthly budget.'; return; }
+
+    const { data, error } = await supabase.from('budget_categories').insert({ name, monthly_target: target }).select().single();
+    if (error){ msg.textContent = 'Error: ' + error.message; return; }
+    categories.push(data);
+    nameInput.value = '';
+    targetInput.value = '';
+    renderBudgetCategories();
+    renderExpenseCategorySelect();
+  });
+
+  budgetListEl.addEventListener('click', async (e) => {
+    const editBtn = e.target.closest('.cat-edit-btn');
+    if (editBtn){
+      const row = document.getElementById(`cat-edit-row-${editBtn.dataset.id}`);
+      row.style.display = row.style.display === 'none' ? 'flex' : 'none';
+      return;
+    }
+    const saveBtn = e.target.closest('.cat-save-btn');
+    if (saveBtn){
+      const id = saveBtn.dataset.id;
+      const input = document.getElementById(`cat-edit-input-${id}`);
+      const newTarget = Number(input.value);
+      if (input.value.trim() === '' || isNaN(newTarget) || newTarget < 0){ input.style.borderColor = 'var(--err)'; return; }
+      saveBtn.disabled = true;
+      const { error } = await supabase.from('budget_categories').update({ monthly_target: newTarget }).eq('id', id);
+      saveBtn.disabled = false;
+      if (error){ alert('Could not save: ' + error.message); return; }
+      const cat = categories.find(c => c.id === id);
+      if (cat) cat.monthly_target = newTarget;
+      renderBudgetCategories();
+      return;
+    }
+    const delBtn = e.target.closest('.cat-del-btn');
+    if (delBtn){
+      const id = delBtn.dataset.id;
+      const cat = categories.find(c => c.id === id);
+      if (!confirm(`Delete "${cat?.name || 'this category'}"? Its logged expenses stay, but become uncategorized.`)) return;
+      const { error } = await supabase.from('budget_categories').delete().eq('id', id);
+      if (error){ alert('Could not delete: ' + error.message); return; }
+      categories = categories.filter(c => c.id !== id);
+      renderBudgetCategories();
+      renderExpenseCategorySelect();
+      renderExpenseList();
+    }
+  });
+
+  document.getElementById('exp-add-btn').addEventListener('click', async () => {
+    const catId = expCategorySelect.value;
+    const descInput = document.getElementById('exp-desc-input');
+    const amountInput = document.getElementById('exp-amount-input');
+    const msg = document.getElementById('exp-form-msg');
+    const amount = Number(amountInput.value);
+    msg.textContent = '';
+    if (!catId){ msg.textContent = 'Add a budget category first.'; return; }
+    if (amountInput.value.trim() === '' || isNaN(amount) || amount <= 0){ msg.textContent = 'Enter a valid amount.'; return; }
+    const spentAt = expDateInput.value || new Date().toISOString().slice(0, 10);
+
+    const { data, error } = await supabase.from('expenses').insert({
+      category_id: catId, description: descInput.value.trim() || null, amount, spent_at: spentAt
+    }).select().single();
+    if (error){ msg.textContent = 'Error: ' + error.message; return; }
+    expenses.unshift(data);
+    descInput.value = '';
+    amountInput.value = '';
+    renderBudgetCategories();
+    renderExpenseList();
+    renderStats();
+  });
+
+  expenseListEl.addEventListener('click', async (e) => {
+    const delBtn = e.target.closest('.e-del');
+    if (!delBtn) return;
+    const id = delBtn.dataset.id;
+    if (!confirm('Delete this expense?')) return;
+    const { error } = await supabase.from('expenses').delete().eq('id', id);
+    if (error){ alert('Could not delete: ' + error.message); return; }
+    expenses = expenses.filter(e => e.id !== id);
+    renderBudgetCategories();
+    renderExpenseList();
+    renderStats();
+  });
+</script>
+
+</body>
+</html>
