@@ -1104,7 +1104,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
       const isNewest = idx === list.length - 1 && idx >= previousMessageCount;
       return `
       <div class="msg ${m.sender}${isNewest ? ' new-arrival' : ''}">
-        <div class="who">${m.sender === 'admin' ? 'Josh' : 'You'}</div>
+        <div class="who">${m.sender === 'admin' ? escapeHtml(m.sender_name || 'Josh') : 'You'}</div>
         ${m.body ? `<div>${escapeHtml(m.body)}</div>` : ''}
         ${fileLinks.map(f => renderAttachment(publicFileUrl(f.path), f.name)).join('')}
       </div>
