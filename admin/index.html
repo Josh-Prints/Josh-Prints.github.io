@@ -1439,6 +1439,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <button type="button" class="debug-tab" data-tab="filaments">Filaments</button>
       <button type="button" class="debug-tab" data-tab="banner">Banner</button>
       <button type="button" class="debug-tab" data-tab="credit">Store Credit</button>
+      <button type="button" class="debug-tab" data-tab="promo">Promo Codes</button>
     </div>
 
     <!-- Rates section -->
@@ -1575,6 +1576,33 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <div class="modal-foot">
         <span id="credit-msg"></span>
         <button class="save-btn" id="credit-save">Save store credit</button>
+      </div>
+    </div>
+
+    <!-- Promo codes section -->
+    <div class="debug-section" id="debug-section-promo">
+      <div class="modal-body">
+        <p class="modal-sub" style="margin:0 0 16px;">Codes customers can enter when placing an order. Entering one doesn't change any price automatically — like store credit and the signup discount, you see it on the order card and factor it into the quote you type in.</p>
+        <div class="fil-list" id="promo-list">
+          <div class="fil-empty">Loading…</div>
+        </div>
+        <div class="fil-add-form">
+          <div class="modal-divider" style="margin-top:0; padding-top:0; border-top:none;">Add a promo code</div>
+          <div class="fil-add-grid">
+            <label>Code<input type="text" id="promo-code-input" placeholder="e.g. SAVE15" style="text-transform:uppercase;"></label>
+            <label>Type
+              <select id="promo-type-input">
+                <option value="percent">% off</option>
+                <option value="fixed">$ off</option>
+              </select>
+            </label>
+            <label>Value<span class="unit" id="promo-value-unit">%</span><input type="number" id="promo-value-input" step="1" min="0" placeholder="15"></label>
+          </div>
+          <div class="fil-add-actions">
+            <button class="save-btn" id="promo-add-btn" type="button">Add code</button>
+          </div>
+          <div id="promo-msg"></div>
+        </div>
       </div>
     </div>
 
@@ -2267,6 +2295,10 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         <div class="discount-row">
           <span class="discount-badge">🎉 Signup discount available (35% off, prints under 4hrs)</span>
           <button type="button" class="discount-used-btn" data-discount-id="${order.id}" data-user-id="${order.user_id || ''}">Mark discount used</button>
+        </div>` : ''}
+        ${order.promo_code ? `
+        <div class="discount-row">
+          <span class="discount-badge">🏷️ Promo: ${escapeHtml(order.promo_code)} — ${escapeHtml(order.promo_description || '')}</span>
         </div>` : ''}
         ${order.user_id ? `
         <div class="credit-row">
@@ -2978,6 +3010,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
       <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/></svg>`;
     loadFilaments();
+    loadPromoCodes();
     const { data, error } = await supabase.from('settings').select('*').eq('id', 1).single();
     if (error || !data){
       ratesMsg.textContent = "Couldn't load rates: " + (error ? error.message : 'no data');
@@ -3147,6 +3180,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       tab.classList.add('active');
       document.getElementById(`debug-section-${tab.dataset.tab}`).classList.add('active');
       if (tab.dataset.tab === 'filaments') loadFilaments();
+      if (tab.dataset.tab === 'promo') loadPromoCodes();
     });
   });
 
@@ -3391,6 +3425,112 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     } finally {
       filAddBtn.disabled = false;
     }
+  });
+
+  /* ---- Promo codes ---- */
+  const promoListEl = document.getElementById('promo-list');
+  const promoMsgEl = document.getElementById('promo-msg');
+  const promoCodeInput = document.getElementById('promo-code-input');
+  const promoTypeInput = document.getElementById('promo-type-input');
+  const promoValueInput = document.getElementById('promo-value-input');
+  const promoValueUnit = document.getElementById('promo-value-unit');
+  const promoAddBtn = document.getElementById('promo-add-btn');
+  let currentPromoCodes = [];
+
+  promoTypeInput.addEventListener('change', () => {
+    promoValueUnit.textContent = promoTypeInput.value === 'percent' ? '%' : '$';
+  });
+
+  function formatPromoValue(p){
+    return p.discount_type === 'percent' ? `${Number(p.discount_value)}% off` : `$${Number(p.discount_value).toFixed(2)} off`;
+  }
+
+  async function loadPromoCodes(){
+    promoListEl.innerHTML = '<div class="fil-empty">Loading…</div>';
+    const { data, error } = await supabase.from('promo_codes').select('*').order('created_at', { ascending: false });
+    if (error){
+      promoListEl.innerHTML = `<div class="fil-empty">Couldn't load promo codes: ${escapeHtml(error.message)}</div>`;
+      return;
+    }
+    currentPromoCodes = data || [];
+    renderPromoCodes();
+  }
+
+  function renderPromoCodes(){
+    if (currentPromoCodes.length === 0){
+      promoListEl.innerHTML = '<div class="fil-empty">No promo codes yet — add one below.</div>';
+      return;
+    }
+    promoListEl.innerHTML = '';
+    currentPromoCodes.forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'fil-row';
+      row.innerHTML = `
+        <div class="fil-info">
+          <div class="fil-name">${escapeHtml(p.code)}</div>
+          <div class="fil-meta">${formatPromoValue(p)}</div>
+        </div>
+        <div class="fil-actions">
+          <button class="fil-toggle ${p.active ? 'is-active' : ''}" data-id="${p.id}">${p.active ? 'Active' : 'Disabled'}</button>
+          <button class="fil-del" data-id="${p.id}">🗑</button>
+        </div>
+      `;
+      promoListEl.appendChild(row);
+    });
+
+    promoListEl.querySelectorAll('.fil-toggle').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const p = currentPromoCodes.find(x => x.id === btn.dataset.id);
+        if (!p) return;
+        const { error } = await supabase.from('promo_codes').update({ active: !p.active }).eq('id', p.id);
+        if (error){ alert('Could not update: ' + error.message); return; }
+        p.active = !p.active;
+        renderPromoCodes();
+      });
+    });
+    promoListEl.querySelectorAll('.fil-del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this promo code? Orders that already used it keep showing it, but it will stop validating for new orders.')) return;
+        const { error } = await supabase.from('promo_codes').delete().eq('id', btn.dataset.id);
+        if (error){ alert('Could not delete: ' + error.message); return; }
+        currentPromoCodes = currentPromoCodes.filter(x => x.id !== btn.dataset.id);
+        renderPromoCodes();
+      });
+    });
+  }
+
+  promoAddBtn.addEventListener('click', async () => {
+    const code = promoCodeInput.value.trim().toUpperCase();
+    const discountType = promoTypeInput.value;
+    const valueRaw = promoValueInput.value;
+    const value = Number(valueRaw);
+
+    if (!code){ promoMsgEl.textContent = 'Enter a code.'; return; }
+    if (valueRaw === '' || isNaN(value) || value <= 0 || (discountType === 'percent' && value > 100)){
+      promoMsgEl.textContent = discountType === 'percent' ? 'Enter a percent between 0 and 100.' : 'Enter a valid dollar amount.';
+      return;
+    }
+
+    promoAddBtn.disabled = true;
+    promoAddBtn.textContent = 'Adding…';
+    promoMsgEl.textContent = '';
+
+    const { error } = await supabase.from('promo_codes').insert({
+      code, discount_type: discountType, discount_value: value, active: true
+    });
+
+    promoAddBtn.disabled = false;
+    promoAddBtn.textContent = 'Add code';
+
+    if (error){
+      promoMsgEl.textContent = error.message.includes('duplicate') ? 'That code already exists.' : 'Error: ' + error.message;
+      return;
+    }
+    promoCodeInput.value = '';
+    promoValueInput.value = '';
+    promoMsgEl.textContent = 'Added ✓';
+    setTimeout(() => { if (promoMsgEl.textContent === 'Added ✓') promoMsgEl.textContent = ''; }, 2500);
+    loadPromoCodes();
   });
 
   /* ---- Name modal ---- */

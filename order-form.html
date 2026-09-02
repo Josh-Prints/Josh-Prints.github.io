@@ -202,6 +202,9 @@
     border-radius: 8px; font-size: 13px; color: var(--ok);
   }
   .discount-banner.show{ display:flex; animation: fadeInUp 0.3s ease both; }
+  .promo-msg{ font-size:12.5px; margin-top:6px; min-height:16px; }
+  .promo-msg.ok{ color: var(--ok); }
+  .promo-msg.err{ color: var(--err); }
   .theme-row{
     display:flex; align-items:center; justify-content:space-between;
     padding: 9px 12px; font-size: 14px; font-weight: 500; color: var(--ink);
@@ -940,6 +943,12 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       <div class="hint">No file to hand? Leave this blank, it's only needed for Custom Print.</div>
     </div>
 
+    <div class="field">
+      <label for="promo-code">Promo code <span style="text-transform:none; letter-spacing:0;">(optional)</span></label>
+      <input type="text" id="promo-code" name="promo_code" placeholder="e.g. SAVE15" autocomplete="off" style="text-transform:uppercase;">
+      <div class="promo-msg" id="promo-msg"></div>
+    </div>
+
     <div class="discount-banner" id="discount-banner">🎉 You have 35% off your next order under 4 hours — I'll apply it to your quote.</div>
 
     <button type="submit" id="submit-btn">
@@ -991,6 +1000,31 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
   let currentProfileName = '';
   let currentDiscountAvailable = false;
   let selectedFilament = null;
+  let validatedPromo = null;
+
+  const promoInput = document.getElementById('promo-code');
+  const promoMsg = document.getElementById('promo-msg');
+
+  async function checkPromoCode(){
+    const raw = promoInput.value.trim();
+    if (!raw){
+      validatedPromo = null;
+      promoMsg.textContent = '';
+      promoMsg.className = 'promo-msg';
+      return;
+    }
+    const { data, error } = await supabase.rpc('validate_promo_code', { p_code: raw });
+    if (error || !data || data.length === 0){
+      validatedPromo = null;
+      promoMsg.textContent = "That code isn't valid.";
+      promoMsg.className = 'promo-msg err';
+      return;
+    }
+    validatedPromo = data[0];
+    promoMsg.textContent = `✓ ${validatedPromo.description} — I'll apply it to your quote.`;
+    promoMsg.className = 'promo-msg ok';
+  }
+  promoInput.addEventListener('blur', checkPromoCode);
 
   function escapeHtml(str){
     return (str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1188,6 +1222,10 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
 
     setBusy(true, 10);
 
+    // Re-check right before submitting — covers a code typed but never
+    // blurred (e.g. Enter-to-submit), so the snapshot below is never stale.
+    await checkPromoCode();
+
     try {
       // Generate the id client-side so we don't need to read the row back
       // (customers can't SELECT from orders, only INSERT)
@@ -1237,7 +1275,9 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
           filament_type: selectedFilament ? selectedFilament.type : null,
           filament_price_per_100g: selectedFilament ? selectedFilament.price_per_100g : null,
           user_id: currentUser ? currentUser.id : null,
-          signup_discount_snapshot: currentDiscountAvailable
+          signup_discount_snapshot: currentDiscountAvailable,
+          promo_code: validatedPromo ? validatedPromo.code : null,
+          promo_description: validatedPromo ? validatedPromo.description : null
         });
 
       if (insertError) throw insertError;
