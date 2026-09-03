@@ -3625,7 +3625,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
           <div class="name">${escapeHtml(a.display_name || 'Unnamed')} ${a.id === myUserId ? '<span class="you-badge">You</span>' : ''}</div>
           <div class="email">${escapeHtml(a.email || '')}</div>
         </div>
-        ${a.id === myUserId ? '' : `<button type="button" class="remove-admin-btn" data-remove="${a.id}" data-name="${escapeHtml(a.display_name || a.email || 'this admin')}">Remove</button>`}
+        ${(a.id === myUserId || data.length <= 1) ? '' : `<button type="button" class="remove-admin-btn" data-remove="${a.id}" data-name="${escapeHtml(a.display_name || a.email || 'this admin')}">Remove</button>`}
       </div>
     `).join('');
 
@@ -3636,9 +3636,17 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
   async function removeAdmin(id, name){
     if (!confirm(`Remove ${name} from admin access? They'll no longer be able to sign in to this dashboard.\n\n(Their login will still exist in Supabase Auth — delete it there too if you want it fully gone.)`)) return;
-    const { error } = await supabase.from('admin_profiles').delete().eq('id', id);
+    // .select() so we can tell a real removal apart from RLS quietly
+    // matching zero rows (blocked, or already gone) — a bare .delete()
+    // reports success either way even when nothing was actually deleted.
+    const { data, error } = await supabase.from('admin_profiles').delete().eq('id', id).select();
     if (error){
       adminMsg.textContent = 'Error: ' + error.message;
+      return;
+    }
+    if (!data || data.length === 0){
+      adminMsg.textContent = "Couldn't remove — nothing was deleted.";
+      loadAdmins();
       return;
     }
     adminMsg.textContent = 'Removed ✓';
