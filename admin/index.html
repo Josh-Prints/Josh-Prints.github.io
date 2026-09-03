@@ -1436,6 +1436,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
     <div class="debug-tabs">
       <button type="button" class="debug-tab active" data-tab="rates">Rates</button>
+      <button type="button" class="debug-tab" data-tab="site">Site</button>
       <button type="button" class="debug-tab" data-tab="filaments">Filaments</button>
       <button type="button" class="debug-tab" data-tab="banner">Banner</button>
       <button type="button" class="debug-tab" data-tab="credit">Store Credit</button>
@@ -1462,6 +1463,22 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <div class="modal-foot">
         <span id="rates-msg"></span>
         <button class="save-btn" id="rates-save">Save rates</button>
+      </div>
+    </div>
+
+    <!-- Site section -->
+    <div class="debug-section" id="debug-section-site">
+      <div class="modal-body">
+        <p class="modal-sub" style="margin:0 0 16px;">The blurb under the headline on the main page.</p>
+        <label style="display:block;">Site description
+          <textarea class="banner-textarea" id="site-desc-input" rows="4" placeholder="Founded by Joshua Paterson…"></textarea>
+        </label>
+        <div class="modal-divider">Preview</div>
+        <p id="site-desc-preview" style="font-size:14px; color:var(--ink-dim); line-height:1.5; margin:0;"></p>
+      </div>
+      <div class="modal-foot">
+        <span id="site-desc-msg"></span>
+        <button class="save-btn" id="site-desc-save">Save description</button>
       </div>
     </div>
 
@@ -3028,6 +3045,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
     creditEnabledToggle.setAttribute('aria-checked', String(!!data.store_credit_enabled));
     creditRateInput.value = Math.round((data.store_credit_rate ?? 0.10) * 100);
+
+    siteDescInput.value = data.site_description || '';
+    renderSiteDescPreview();
   }
 
   ratesSaveBtn.addEventListener('click', async () => {
@@ -3131,6 +3151,43 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     }
     bannerMsgEl.textContent = 'Saved ✓ — live everywhere now.';
     setTimeout(() => { if (bannerMsgEl.textContent.startsWith('Saved')) bannerMsgEl.textContent = ''; }, 3000);
+  });
+
+  /* ---- Site description ---- */
+  const siteDescInput = document.getElementById('site-desc-input');
+  const siteDescPreview = document.getElementById('site-desc-preview');
+  const siteDescSaveBtn = document.getElementById('site-desc-save');
+  const siteDescMsgEl = document.getElementById('site-desc-msg');
+
+  function renderSiteDescPreview(){
+    siteDescPreview.textContent = siteDescInput.value.trim() || '(nothing entered yet)';
+  }
+  siteDescInput.addEventListener('input', renderSiteDescPreview);
+
+  siteDescSaveBtn.addEventListener('click', async () => {
+    const description = siteDescInput.value.trim();
+    if (!description){
+      siteDescMsgEl.textContent = 'Enter a description first.';
+      return;
+    }
+    siteDescSaveBtn.disabled = true;
+    siteDescSaveBtn.textContent = 'Saving…';
+    siteDescMsgEl.textContent = '';
+
+    const { error } = await supabase.from('settings').update({
+      site_description: description,
+      updated_at: new Date().toISOString()
+    }).eq('id', 1);
+
+    siteDescSaveBtn.disabled = false;
+    siteDescSaveBtn.textContent = 'Save description';
+
+    if (error){
+      siteDescMsgEl.textContent = 'Error: ' + error.message;
+      return;
+    }
+    siteDescMsgEl.textContent = 'Saved ✓ — live everywhere now.';
+    setTimeout(() => { if (siteDescMsgEl.textContent.startsWith('Saved')) siteDescMsgEl.textContent = ''; }, 3000);
   });
 
   /* ---- Store credit ---- */

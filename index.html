@@ -566,7 +566,7 @@
   <div class="hero">
     <div class="hero-eyebrow">Now taking orders</div>
     <h1>Custom 3D printing,<br>made to order.</h1>
-    <p>Founded by Joshua Paterson and co-owned with Kaisyn Hazer, in partnership with Oliver Horsfoll. Send a model or describe what you need. Get a quote back, track progress, and message me directly, start to finish.</p>
+    <p id="hero-desc">Founded by Joshua Paterson and co-owned with Kaisyn Hazer. Send a model or describe what you need. Get a quote back, track progress, and message me directly, start to finish.</p>
     <div class="hero-actions">
       <a class="btn btn-primary btn-lg" href="order-form.html">Start an order</a>
       <a class="btn btn-lg" href="browse.html">Browse designs</a>
@@ -713,7 +713,13 @@
     const innerEl = document.getElementById('site-banner-inner');
     const textEl = document.getElementById('site-banner-text');
     const { data, error } = await supabase.from('settings')
-      .select('banner_enabled, banner_message, banner_force_scroll').eq('id', 1).single();
+      .select('banner_enabled, banner_message, banner_force_scroll, site_description').eq('id', 1).single();
+
+    const heroDescEl = document.getElementById('hero-desc');
+    if (heroDescEl && !error && data && data.site_description && data.site_description.trim()){
+      heroDescEl.textContent = data.site_description;
+    }
+
     if (error || !data || !data.banner_enabled || !data.banner_message || !data.banner_message.trim()) return;
     textEl.textContent = data.banner_message;
     bannerEl.classList.add('show');
