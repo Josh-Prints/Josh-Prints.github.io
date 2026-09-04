@@ -289,7 +289,7 @@
     gap: 6px;
     font-size: 12px;
     font-weight: 600;
-    color: var(--fg-muted);
+    color: var(--eyebrow-color, var(--fg-muted));
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-bottom: 16px;
@@ -300,7 +300,7 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--accent);
+    background: var(--eyebrow-color, var(--accent));
     animation: pulseDot 1.8s ease-in-out infinite;
   }
   h1{
@@ -713,12 +713,15 @@
     const innerEl = document.getElementById('site-banner-inner');
     const textEl = document.getElementById('site-banner-text');
     const { data, error } = await supabase.from('settings')
-      .select('banner_enabled, banner_message, banner_force_scroll, site_description, hero_eyebrow, hero_headline').eq('id', 1).single();
+      .select('banner_enabled, banner_message, banner_force_scroll, site_description, hero_eyebrow, hero_headline, hero_eyebrow_color').eq('id', 1).single();
 
     if (!error && data){
       const heroEyebrowEl = document.getElementById('hero-eyebrow');
       if (heroEyebrowEl && data.hero_eyebrow && data.hero_eyebrow.trim()){
         heroEyebrowEl.textContent = data.hero_eyebrow;
+      }
+      if (heroEyebrowEl && data.hero_eyebrow_color && /^#[0-9a-fA-F]{3,8}$/.test(data.hero_eyebrow_color)){
+        heroEyebrowEl.style.setProperty('--eyebrow-color', data.hero_eyebrow_color);
       }
       const heroHeadlineEl = document.getElementById('hero-headline');
       if (heroHeadlineEl && data.hero_headline && data.hero_headline.trim()){

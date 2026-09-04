@@ -1473,6 +1473,11 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         <label style="display:block; margin-bottom:14px;">Eyebrow tag
           <input type="text" class="banner-textarea" id="site-eyebrow-input" placeholder="Now taking orders">
         </label>
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+          <label for="site-eyebrow-color-input" style="margin:0;">Eyebrow colour</label>
+          <input type="color" id="site-eyebrow-color-input" value="#0969da" style="width:44px; height:32px; padding:2px; border:1px solid rgba(var(--border-tint),0.18); border-radius:6px; background:var(--bg); cursor:pointer;">
+          <button type="button" id="site-eyebrow-color-reset" style="background:none; border:none; padding:0; font-size:12px; color:var(--ink-dim); text-decoration:underline; cursor:pointer; font-family:inherit;">Use theme default</button>
+        </div>
         <label style="display:block; margin-bottom:14px;">Headline <span style="text-transform:none; letter-spacing:0;">(a line break splits it onto two lines)</span>
           <textarea class="banner-textarea" id="site-headline-input" rows="2" placeholder="Custom 3D printing,&#10;made to order."></textarea>
         </label>
@@ -1481,7 +1486,10 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         </label>
         <div class="modal-divider">Preview</div>
         <div style="text-align:center;">
-          <div id="site-eyebrow-preview" style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink-dim); margin-bottom:8px;"></div>
+          <div style="display:inline-flex; align-items:center; gap:6px; margin-bottom:8px;">
+            <span id="site-eyebrow-dot-preview" style="width:6px; height:6px; border-radius:50%; background:var(--ink-dim); flex-shrink:0;"></span>
+            <span id="site-eyebrow-preview" style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink-dim);"></span>
+          </div>
           <div id="site-headline-preview" style="font-size:24px; font-weight:600; line-height:1.2; margin-bottom:8px;"></div>
           <p id="site-desc-preview" style="font-size:13px; color:var(--ink-dim); line-height:1.5; margin:0;"></p>
         </div>
@@ -3057,6 +3065,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     creditRateInput.value = Math.round((data.store_credit_rate ?? 0.10) * 100);
 
     siteEyebrowInput.value = data.hero_eyebrow || '';
+    siteEyebrowColorInput.value = data.hero_eyebrow_color || '#0969da';
+    currentEyebrowColor = data.hero_eyebrow_color || null;
     siteHeadlineInput.value = data.hero_headline || '';
     siteDescInput.value = data.site_description || '';
     renderSiteDescPreview();
@@ -3167,16 +3177,23 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
   /* ---- Site hero content (eyebrow / headline / description) ---- */
   const siteEyebrowInput = document.getElementById('site-eyebrow-input');
+  const siteEyebrowColorInput = document.getElementById('site-eyebrow-color-input');
+  const siteEyebrowColorReset = document.getElementById('site-eyebrow-color-reset');
   const siteHeadlineInput = document.getElementById('site-headline-input');
   const siteDescInput = document.getElementById('site-desc-input');
   const siteEyebrowPreview = document.getElementById('site-eyebrow-preview');
+  const siteEyebrowDotPreview = document.getElementById('site-eyebrow-dot-preview');
   const siteHeadlinePreview = document.getElementById('site-headline-preview');
   const siteDescPreview = document.getElementById('site-desc-preview');
   const siteDescSaveBtn = document.getElementById('site-desc-save');
   const siteDescMsgEl = document.getElementById('site-desc-msg');
+  let currentEyebrowColor = null; // null = follow the site theme instead of a fixed colour
 
   function renderSiteDescPreview(){
     siteEyebrowPreview.textContent = siteEyebrowInput.value.trim() || '(nothing entered yet)';
+    const dotColor = currentEyebrowColor || 'var(--ink-dim)';
+    siteEyebrowDotPreview.style.background = dotColor;
+    siteEyebrowPreview.style.color = currentEyebrowColor || 'var(--ink-dim)';
     const headline = siteHeadlineInput.value.trim();
     siteHeadlinePreview.innerHTML = headline
       ? headline.split('\n').map(escapeHtml).join('<br>')
@@ -3186,6 +3203,14 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   siteEyebrowInput.addEventListener('input', renderSiteDescPreview);
   siteHeadlineInput.addEventListener('input', renderSiteDescPreview);
   siteDescInput.addEventListener('input', renderSiteDescPreview);
+  siteEyebrowColorInput.addEventListener('input', () => {
+    currentEyebrowColor = siteEyebrowColorInput.value;
+    renderSiteDescPreview();
+  });
+  siteEyebrowColorReset.addEventListener('click', () => {
+    currentEyebrowColor = null;
+    renderSiteDescPreview();
+  });
 
   siteDescSaveBtn.addEventListener('click', async () => {
     const eyebrow = siteEyebrowInput.value.trim();
@@ -3201,6 +3226,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
     const { error } = await supabase.from('settings').update({
       hero_eyebrow: eyebrow,
+      hero_eyebrow_color: currentEyebrowColor,
       hero_headline: headline,
       site_description: description,
       updated_at: new Date().toISOString()
