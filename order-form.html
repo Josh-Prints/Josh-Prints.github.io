@@ -397,6 +397,9 @@
     border-color: var(--accent);
     background: linear-gradient(180deg, var(--accent-dim), transparent 60%);
   }
+  .fil-opt.is-disabled{ pointer-events: none; }
+  .fil-opt.is-disabled .card{ opacity: 0.45; }
+  .fil-opt.is-disabled .meta{ font-style: italic; }
   .fil-empty-note{ font-size: 13px; color: var(--ink-dim); display:flex; align-items:center; gap:6px; }
 
   .dropzone{
@@ -1037,7 +1040,6 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
     const { data, error } = await supabase
       .from('filaments')
       .select('*')
-      .eq('active', true)
       .order('sort_order', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: true });
     filaments = (!error && data) ? data : [];
@@ -1050,15 +1052,19 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       el.innerHTML = '<div class="fil-empty-note">No filament options set up yet — I\'ll confirm colour with you directly.</div>';
       return;
     }
-    el.innerHTML = filaments.map(f => {
+    // Active colours first, disabled ones after — sort is stable so each
+    // group keeps its existing sort_order/created_at ordering.
+    const sorted = [...filaments].sort((a, b) => (b.active ? 1 : 0) - (a.active ? 1 : 0));
+    el.innerHTML = sorted.map(f => {
       const img = filPublicUrl(f.image_path);
+      const disabled = !f.active;
       return `
-        <label class="fil-opt">
-          <input type="radio" name="fil-choice" value="${f.id}">
+        <label class="fil-opt${disabled ? ' is-disabled' : ''}">
+          <input type="radio" name="fil-choice" value="${f.id}" ${disabled ? 'disabled' : ''}>
           <div class="card">
             <div class="swatch" style="${img ? `background-image:url(${img})` : ''}"></div>
             <div class="name">${escapeHtml(f.color_name)}</div>
-            <div class="meta">${escapeHtml(f.type)} · $${Number(f.price_per_100g).toFixed(2)}/100g</div>
+            <div class="meta">${disabled ? 'Currently unavailable' : `${escapeHtml(f.type)} · $${Number(f.price_per_100g).toFixed(2)}/100g`}</div>
           </div>
         </label>
       `;
