@@ -1469,16 +1469,26 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     <!-- Site section -->
     <div class="debug-section" id="debug-section-site">
       <div class="modal-body">
-        <p class="modal-sub" style="margin:0 0 16px;">The blurb under the headline on the main page.</p>
-        <label style="display:block;">Site description
+        <p class="modal-sub" style="margin:0 0 16px;">The eyebrow tag, headline, and blurb at the top of the main page.</p>
+        <label style="display:block; margin-bottom:14px;">Eyebrow tag
+          <input type="text" class="banner-textarea" id="site-eyebrow-input" placeholder="Now taking orders">
+        </label>
+        <label style="display:block; margin-bottom:14px;">Headline <span style="text-transform:none; letter-spacing:0;">(a line break splits it onto two lines)</span>
+          <textarea class="banner-textarea" id="site-headline-input" rows="2" placeholder="Custom 3D printing,&#10;made to order."></textarea>
+        </label>
+        <label style="display:block;">Description
           <textarea class="banner-textarea" id="site-desc-input" rows="4" placeholder="Founded by Joshua Paterson…"></textarea>
         </label>
         <div class="modal-divider">Preview</div>
-        <p id="site-desc-preview" style="font-size:14px; color:var(--ink-dim); line-height:1.5; margin:0;"></p>
+        <div style="text-align:center;">
+          <div id="site-eyebrow-preview" style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink-dim); margin-bottom:8px;"></div>
+          <div id="site-headline-preview" style="font-size:24px; font-weight:600; line-height:1.2; margin-bottom:8px;"></div>
+          <p id="site-desc-preview" style="font-size:13px; color:var(--ink-dim); line-height:1.5; margin:0;"></p>
+        </div>
       </div>
       <div class="modal-foot">
         <span id="site-desc-msg"></span>
-        <button class="save-btn" id="site-desc-save">Save description</button>
+        <button class="save-btn" id="site-desc-save">Save hero content</button>
       </div>
     </div>
 
@@ -3046,6 +3056,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     creditEnabledToggle.setAttribute('aria-checked', String(!!data.store_credit_enabled));
     creditRateInput.value = Math.round((data.store_credit_rate ?? 0.10) * 100);
 
+    siteEyebrowInput.value = data.hero_eyebrow || '';
+    siteHeadlineInput.value = data.hero_headline || '';
     siteDescInput.value = data.site_description || '';
     renderSiteDescPreview();
   }
@@ -3153,21 +3165,34 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     setTimeout(() => { if (bannerMsgEl.textContent.startsWith('Saved')) bannerMsgEl.textContent = ''; }, 3000);
   });
 
-  /* ---- Site description ---- */
+  /* ---- Site hero content (eyebrow / headline / description) ---- */
+  const siteEyebrowInput = document.getElementById('site-eyebrow-input');
+  const siteHeadlineInput = document.getElementById('site-headline-input');
   const siteDescInput = document.getElementById('site-desc-input');
+  const siteEyebrowPreview = document.getElementById('site-eyebrow-preview');
+  const siteHeadlinePreview = document.getElementById('site-headline-preview');
   const siteDescPreview = document.getElementById('site-desc-preview');
   const siteDescSaveBtn = document.getElementById('site-desc-save');
   const siteDescMsgEl = document.getElementById('site-desc-msg');
 
   function renderSiteDescPreview(){
+    siteEyebrowPreview.textContent = siteEyebrowInput.value.trim() || '(nothing entered yet)';
+    const headline = siteHeadlineInput.value.trim();
+    siteHeadlinePreview.innerHTML = headline
+      ? headline.split('\n').map(escapeHtml).join('<br>')
+      : '(nothing entered yet)';
     siteDescPreview.textContent = siteDescInput.value.trim() || '(nothing entered yet)';
   }
+  siteEyebrowInput.addEventListener('input', renderSiteDescPreview);
+  siteHeadlineInput.addEventListener('input', renderSiteDescPreview);
   siteDescInput.addEventListener('input', renderSiteDescPreview);
 
   siteDescSaveBtn.addEventListener('click', async () => {
+    const eyebrow = siteEyebrowInput.value.trim();
+    const headline = siteHeadlineInput.value.trim();
     const description = siteDescInput.value.trim();
-    if (!description){
-      siteDescMsgEl.textContent = 'Enter a description first.';
+    if (!eyebrow || !headline || !description){
+      siteDescMsgEl.textContent = 'Fill in the eyebrow tag, headline, and description.';
       return;
     }
     siteDescSaveBtn.disabled = true;
@@ -3175,12 +3200,14 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     siteDescMsgEl.textContent = '';
 
     const { error } = await supabase.from('settings').update({
+      hero_eyebrow: eyebrow,
+      hero_headline: headline,
       site_description: description,
       updated_at: new Date().toISOString()
     }).eq('id', 1);
 
     siteDescSaveBtn.disabled = false;
-    siteDescSaveBtn.textContent = 'Save description';
+    siteDescSaveBtn.textContent = 'Save hero content';
 
     if (error){
       siteDescMsgEl.textContent = 'Error: ' + error.message;
