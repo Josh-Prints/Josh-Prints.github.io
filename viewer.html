@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Model preview — Voxelabels</title>
+<title>Model preview — Voxprints</title>
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <style>
   :root{
@@ -221,7 +221,7 @@
   const name = params.get('name') || 'model';
   const ext = (name.split('.').pop() || '').toLowerCase();
 
-  document.title = `${name} — Voxelabels`;
+  document.title = `${name} — Voxprints`;
   document.getElementById('fname').textContent = name;
   if (url){
     document.getElementById('download-link').href = url;
