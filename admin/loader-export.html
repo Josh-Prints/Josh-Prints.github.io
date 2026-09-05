@@ -223,7 +223,7 @@
   </div>
 
   <div class="page">
-    <p class="page-note">The site's 27-facet loading mark, rendered frame-by-frame on canvas so the preview and the export match exactly. Adjust speed and size below — the download always renders on a transparent background, once the facets have grown in once.</p>
+    <p class="page-note">The site's 27-facet loading mark, rendered frame-by-frame on canvas so the preview and the export match exactly. Adjust speed and size below — the download always renders on a solid black background, once the facets have grown in once.</p>
 
     <div class="tool-grid">
       <div class="card stage-card">
@@ -260,7 +260,7 @@
           <button type="button" class="btn-primary" id="downloadBtn" disabled>Download video</button>
           <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
           <div class="export-status" id="exportStatus">waiting for first pass to finish&hellip;</div>
-          <p class="export-note">Records one full growth cycle at the current speed as a transparent WebM — the preview background above is for composing only and isn't baked into the file.</p>
+          <p class="export-note">Records one full growth cycle at the current speed as an MP4 (falls back to WebM if your browser can't record MP4), on a solid black background — the preview color above is for composing on screen only and isn't baked into the file.</p>
         </div>
       </div>
     </div>
@@ -407,12 +407,8 @@
 
     function drawFrame(ctx, size, t, bg){
       var scale = size / VIEWBOX;
-      if (bg === null){
-        ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
-      } else {
-        ctx.fillStyle = bg;
-        ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
-      }
+      ctx.fillStyle = bg;
+      ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
       ctx.save();
       ctx.scale(scale, scale);
       FACETS.forEach(function(f){
@@ -501,17 +497,38 @@
     }
     requestAnimationFrame(tick);
 
+    var MP4_CANDIDATES = [
+      'video/mp4;codecs=avc1.42E01E',
+      'video/mp4;codecs=h264',
+      'video/mp4'
+    ];
+    var WEBM_CANDIDATES = [
+      'video/webm;codecs=vp9',
+      'video/webm;codecs=vp8',
+      'video/webm'
+    ];
+    function pickMimeType(){
+      if (!window.MediaRecorder) return null;
+      var candidates = MP4_CANDIDATES.concat(WEBM_CANDIDATES);
+      for (var i=0;i<candidates.length;i++){
+        if (MediaRecorder.isTypeSupported(candidates[i])) return candidates[i];
+      }
+      return null;
+    }
+
     downloadBtn.addEventListener('click', function(){
       if (recording) return;
-      var mimeType = 'video/webm;codecs=vp9';
-      if (!window.MediaRecorder || !MediaRecorder.isTypeSupported(mimeType)){
-        mimeType = 'video/webm';
+      var mimeType = pickMimeType();
+      if (!mimeType){
+        exportStatus.textContent = 'export not supported in this browser';
+        return;
       }
+      var exportExt = mimeType.indexOf('video/mp4') === 0 ? 'mp4' : 'webm';
       var exportSize = canvas.width;
       var exportCanvas = document.createElement('canvas');
       exportCanvas.width = exportSize;
       exportCanvas.height = exportSize;
-      var exportCtx = exportCanvas.getContext('2d', { alpha: true });
+      var exportCtx = exportCanvas.getContext('2d');
 
       var stream = exportCanvas.captureStream(30);
       var recorder;
@@ -529,15 +546,16 @@
         downloadBtn.textContent = 'Download video';
         progressFill.style.width = '0%';
         var blob = new Blob(chunks, { type: mimeType });
+        var filename = 'facet-loader.' + exportExt;
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
         a.href = url;
-        a.download = 'facet-loader.webm';
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         a.remove();
         setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
-        exportStatus.textContent = 'saved facet-loader.webm';
+        exportStatus.textContent = 'saved ' + filename;
       };
 
       recording = true;
@@ -552,7 +570,7 @@
       function recordTick(now){
         var elapsedReal = now - recordStart;
         var t = (elapsedReal / 1000) * speed;
-        drawFrame(exportCtx, exportSize, t, null);
+        drawFrame(exportCtx, exportSize, t, '#000000');
         progressFill.style.width = Math.min(100, (elapsedReal/durationMs)*100) + '%';
         if (elapsedReal < durationMs){
           requestAnimationFrame(recordTick);
