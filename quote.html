@@ -1145,7 +1145,20 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
   (async () => {
     try {
       const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-      const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+      var cookieStorage = {
+    getItem: function(key){
+      var m = document.cookie.match(new RegExp('(?:^|; )' + key.replace(/([.$?*|{}()\[\]\\\/+^])/g,'\\$1') + '=([^;]*)'));
+      return m ? decodeURIComponent(m[1]) : null;
+    },
+    setItem: function(key, value){
+      var secure = location.protocol === 'https:' ? ';Secure' : '';
+      document.cookie = key + '=' + encodeURIComponent(value) + ';path=/;max-age=31536000;SameSite=Lax' + secure;
+    },
+    removeItem: function(key){
+      document.cookie = key + '=;path=/;max-age=0';
+    }
+  };
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { storage: cookieStorage } });
       const { data, error } = await supabase.from('settings').select('*').eq('id', 1).single();
       if (error || !data) return; // keep built-in defaults
       applyLiveRates(data);
