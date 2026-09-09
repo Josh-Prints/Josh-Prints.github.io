@@ -823,20 +823,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
   const BUCKET = 'order-files';
   const POLL_MS = 3000;
 
-  var cookieStorage = {
-    getItem: function(key){
-      var m = document.cookie.match(new RegExp('(?:^|; )' + key.replace(/([.$?*|{}()\[\]\\\/+^])/g,'\\$1') + '=([^;]*)'));
-      return m ? decodeURIComponent(m[1]) : null;
-    },
-    setItem: function(key, value){
-      var secure = location.protocol === 'https:' ? ';Secure' : '';
-      document.cookie = key + '=' + encodeURIComponent(value) + ';path=/;max-age=31536000;SameSite=Lax' + secure;
-    },
-    removeItem: function(key){
-      document.cookie = key + '=;path=/;max-age=0';
-    }
-  };
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { storage: cookieStorage } });
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // keep the loading logo on screen a moment even on a fast connection —
   // otherwise it can flash by too quickly to notice
