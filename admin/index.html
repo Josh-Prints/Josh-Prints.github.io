@@ -1792,20 +1792,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   const SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
   const BUCKET = 'order-files';
 
-  var cookieStorage = {
-    getItem: function(key){
-      var m = document.cookie.match(new RegExp('(?:^|; )' + key.replace(/([.$?*|{}()\[\]\\\/+^])/g,'\\$1') + '=([^;]*)'));
-      return m ? decodeURIComponent(m[1]) : null;
-    },
-    setItem: function(key, value){
-      var secure = location.protocol === 'https:' ? ';Secure' : '';
-      document.cookie = key + '=' + encodeURIComponent(value) + ';path=/;max-age=31536000;SameSite=Lax' + secure;
-    },
-    removeItem: function(key){
-      document.cookie = key + '=;path=/;max-age=0';
-    }
-  };
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { storage: cookieStorage } });
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
   const loginView = document.getElementById('login-view');
   const dashView = document.getElementById('dash-view');
@@ -2010,21 +1997,12 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   // session right now, and verifies that account is an approved admin.
   // Runs on every onAuthStateChange event (auto-detected session on load,
   // a fresh Google sign-in, or a token refresh).
-  async function fetchAdminProfileId(userId){
-    const { data } = await supabase.from('admin_profiles').select('id').eq('id', userId).maybeSingle();
-    return data;
-  }
-
   async function establishIdentity(session){
-    let profile = await fetchAdminProfileId(session.user.id);
-    if (!profile){
-      // A query fired the instant onAuthStateChange delivers a fresh OAuth
-      // sign-in can race ahead of the new session being attached to outgoing
-      // requests, so it runs as anon and RLS (admin-only read) blocks it.
-      // One short retry avoids treating that race as "not an admin".
-      await new Promise(r => setTimeout(r, 400));
-      profile = await fetchAdminProfileId(session.user.id);
-    }
+    const { data: profile } = await supabase
+      .from('admin_profiles')
+      .select('id')
+      .eq('id', session.user.id)
+      .maybeSingle();
 
     if (!profile){
       await supabase.auth.signOut();
