@@ -2010,12 +2010,21 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   // session right now, and verifies that account is an approved admin.
   // Runs on every onAuthStateChange event (auto-detected session on load,
   // a fresh Google sign-in, or a token refresh).
+  async function fetchAdminProfileId(userId){
+    const { data } = await supabase.from('admin_profiles').select('id').eq('id', userId).maybeSingle();
+    return data;
+  }
+
   async function establishIdentity(session){
-    const { data: profile } = await supabase
-      .from('admin_profiles')
-      .select('id')
-      .eq('id', session.user.id)
-      .maybeSingle();
+    let profile = await fetchAdminProfileId(session.user.id);
+    if (!profile){
+      // A query fired the instant onAuthStateChange delivers a fresh OAuth
+      // sign-in can race ahead of the new session being attached to outgoing
+      // requests, so it runs as anon and RLS (admin-only read) blocks it.
+      // One short retry avoids treating that race as "not an admin".
+      await new Promise(r => setTimeout(r, 400));
+      profile = await fetchAdminProfileId(session.user.id);
+    }
 
     if (!profile){
       await supabase.auth.signOut();
