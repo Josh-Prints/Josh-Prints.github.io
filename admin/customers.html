@@ -337,7 +337,20 @@
 
   const SUPABASE_URL = 'https://paycasfatsakidsriwqt.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  var cookieStorage = {
+    getItem: function(key){
+      var m = document.cookie.match(new RegExp('(?:^|; )' + key.replace(/([.$?*|{}()\[\]\\\/+^])/g,'\\$1') + '=([^;]*)'));
+      return m ? decodeURIComponent(m[1]) : null;
+    },
+    setItem: function(key, value){
+      var secure = location.protocol === 'https:' ? ';Secure' : '';
+      document.cookie = key + '=' + encodeURIComponent(value) + ';path=/;max-age=31536000;SameSite=Lax' + secure;
+    },
+    removeItem: function(key){
+      document.cookie = key + '=;path=/;max-age=0';
+    }
+  };
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { storage: cookieStorage } });
 
   const loginView = document.getElementById('login-view');
   const dashView = document.getElementById('dash-view');
