@@ -156,6 +156,7 @@
     display:flex; align-items:center; justify-content:center; color: var(--dim);
   }
   .bin-add:hover{ background: var(--accent); border-color: var(--accent); color:#fff; }
+  .bin-del:hover{ background: var(--danger); border-color: var(--danger); }
   .empty{ color: var(--dim2); font-size:12px; text-align:center; padding:16px 8px; line-height:1.5; }
   .bin-search{
     width:100%; margin-bottom:8px; padding:6px 9px; font-size:12px; border-radius:6px;
@@ -240,6 +241,10 @@
   .preset.on{ background: var(--accent); border-color: var(--accent); color:#fff; }
   .lbl-swatch{ height:22px; }
   .lbl-swatch.on{ box-shadow:0 0 0 2px var(--panel), 0 0 0 3px #fff; }
+  .src-info{
+    font-size:11px; color: var(--dim2); line-height:1.5; margin:-6px 0 12px;
+    font-family: ui-monospace, monospace; word-break:break-all;
+  }
   .clip-badge{
     display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:5px;
     font-size:11px; font-weight:700; margin-bottom:11px; text-transform:uppercase; letter-spacing:0.04em;
@@ -348,6 +353,11 @@
   .modal-b{ padding:16px 18px; }
   .kbd-row{ display:flex; justify-content:space-between; gap:16px; padding:5px 0; font-size:12.5px; border-bottom:1px solid var(--line); }
   .kbd-row:last-child{ border-bottom:none; }
+  .kbd-head{
+    font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;
+    color: var(--dim2); margin:14px 0 4px; padding-bottom:4px; border-bottom:1px solid var(--line2);
+  }
+  .kbd-head:first-child{ margin-top:0; }
   .kbd-row kbd{
     font-family: ui-monospace, monospace; font-size:11px; background: var(--panel3);
     border:1px solid var(--line2); border-radius:4px; padding:2px 6px; color: var(--dim);
@@ -541,6 +551,9 @@
         <div class="sep"></div>
         <button data-cmd="exportFile">Save project file…</button>
         <button data-cmd="importFile">Load project file…</button>
+        <div class="sep"></div>
+        <button data-cmd="matchSequence">Match sequence to first clip</button>
+        <button data-cmd="purgeUnused">Remove unused media</button>
         <div class="sep"></div>
         <button data-cmd="clearAll">Clear timeline</button>
       </div>
@@ -964,7 +977,7 @@
       pixelate:0, grain:0, rgbSplit:0,
       brightness:1, contrast:1, saturation:1, hue:0, blurPx:0, look:'none', blend:'source-over',
       volume:1, muted:false, fadeIn:0, fadeOut:0,
-      pan:0, eqLow:0, eqMid:0, eqHigh:0,
+      pan:0, eqLow:0, eqMid:0, eqHigh:0, keepPitch:true,
       tinType:'none', tinDur:0.5, toutType:'none', toutDur:0.5,
       text:'Your text here', font:'system', size:104, weight:700, color:'#ffffff',
       align:'center', boxOn:false, boxColor:'#000000',
@@ -2221,6 +2234,9 @@
           try { el.currentTime = Math.max(0, want); } catch(e){}
         }
         el.playbackRate = clamp(c.speed * (isPlaying ? state.rate : 1), 0.0625, 16);
+        const keep = c.keepPitch !== false;
+        if ('preservesPitch' in el) el.preservesPitch = keep;
+        else if ('mozPreservesPitch' in el) el.mozPreservesPitch = keep;
         if (isPlaying && el.paused){ const p = el.play(); if (p && p.catch) p.catch(()=>{}); }
         else if (!isPlaying && !el.paused){ el.pause(); }
       }
@@ -3089,8 +3105,18 @@
       inspector.innerHTML = `<div class="insp-empty">No clip selected.<br>Click a clip in the timeline to edit it.</div>`;
       return;
     }
-    const badgeColor = { video:'var(--v-clip2)', image:'var(--v-clip2)', audio:'var(--a-clip2)', text:'var(--t-clip2)', outro:'var(--o-clip2)' }[c.type];
+    const badgeColor = { video:'var(--v-clip2)', image:'var(--v-clip2)', audio:'var(--a-clip2)',
+                         text:'var(--t-clip2)', outro:'var(--o-clip2)', shape:'#158b95',
+                         adjust:'#a86f36' }[c.type] || 'var(--v-clip2)';
     let h = `<div class="clip-badge" style="background:${badgeColor}">${c.type}</div>`;
+    const srcA = assets.get(c.assetId);
+    if (srcA){
+      const src = sourceSize(c);
+      h += `<div class="src-info">
+              <div>${esc(srcA.name)}</div>
+              <div>${src ? src.w + '×' + src.h + ' · ' : ''}${srcA.duration ? tcFmt(srcA.duration) : 'still'}</div>
+            </div>`;
+    }
 
     h += sect('Label',
       `<div class="preset-row">` +
@@ -3104,7 +3130,9 @@
       fNum('Start (s)','start',0,99999,0.05) +
       fNum('Duration','duration',0.1,99999,0.05) +
       ((c.type === 'video' || c.type === 'audio')
-        ? fNum('In point','inPoint',0,99999,0.05) + fRange('Speed','speed',0.25,4,0.05, v => v.toFixed(2)+'×')
+        ? fNum('In point','inPoint',0,99999,0.05) +
+          fRange('Speed','speed',0.25,4,0.05, v => (+v).toFixed(2)+'×') +
+          fCheck('Keep pitch','keepPitch')
         : '')
     );
 
@@ -3453,6 +3481,7 @@
         <div class="bin-thumb" data-thumb="${a.id}">${a.kind === 'audio' ? '♪' : ''}</div>
         <div class="bin-meta"><div class="bin-name">${esc(a.name)}</div><div class="bin-sub">${sub}</div></div>
         <button class="bin-add" title="Add to timeline">＋</button>
+        <button class="bin-add bin-del" title="Remove from project">✕</button>
       </div>`;
     }
     binList.innerHTML = h;
@@ -3466,8 +3495,31 @@
   binList.addEventListener('click', e => {
     const item = e.target.closest('[data-asset]');
     if (!item) return;
+    if (e.target.classList.contains('bin-del')){ removeAsset(item.dataset.asset); return; }
     addAssetToTimeline(item.dataset.asset);
   });
+  function removeAsset(id){
+    const a = assets.get(id);
+    if (!a) return;
+    const used = allClips().filter(c => c.assetId === id);
+    if (used.length && !confirm(`"${a.name}" is used by ${used.length} clip(s). Remove it and those clips?`)) return;
+    pushUndo();
+    state.tracks.forEach(tr => { tr.clips = tr.clips.filter(c => c.assetId !== id); });
+    URL.revokeObjectURL(a.url);
+    assets.delete(id);
+    setSel(state.sel.filter(cid => findClip(cid)));
+    pruneRuntime();
+    rebuild();
+    toast('Removed ' + a.name);
+  }
+  function purgeUnused(){
+    const used = new Set(allClips().map(c => c.assetId).filter(Boolean));
+    const dead = [...assets.values()].filter(a => !used.has(a.id));
+    if (!dead.length) return toast('Nothing unused in the project');
+    dead.forEach(a => { URL.revokeObjectURL(a.url); assets.delete(a.id); });
+    renderBin();
+    toast(`Removed ${dead.length} unused item${dead.length>1?'s':''}`);
+  }
   $('importInput').addEventListener('change', e => {
     importFiles(Array.from(e.target.files));
     e.target.value = '';
@@ -3819,6 +3871,21 @@
       copy.clips.forEach(ensureRuntime);
       rebuild(); toast('Track duplicated');
     },
+    matchSequence: () => {
+      const c = allClips().find(x => x.type === 'video' || x.type === 'image');
+      if (!c) return toast('Add a video or photo first');
+      const src = sourceSize(c);
+      if (!src) return toast('That clip has not loaded yet');
+      pushUndo();
+      const long = 1920;
+      const k = long / Math.max(src.w, src.h);
+      state.width = Math.round(src.w * k / 2) * 2;
+      state.height = Math.round(src.h * k / 2) * 2;
+      $('resSelect').value = `${state.width}x${state.height}`;
+      resizeStage(); renderAt(state.playhead);
+      toast(`Sequence matched to ${state.width}×${state.height}`);
+    },
+    purgeUnused,
     zoomSelection: () => {
       const clips = selClips();
       if (!clips.length) return commands.zoomFit();
@@ -3941,26 +4008,42 @@
   });
 
   const SHORTCUTS = [
-    ['Space','Play / pause'], ['← →','Step one frame'], ['Shift ← →','Jump one second'],
-    ['Home / End','Go to start / end'], ['V','Selection tool'], ['C','Blade tool — also splits selected clip'],
-    ['Ctrl D','Duplicate clip'], ['Delete','Delete clip'], ['Shift Delete','Ripple delete'],
-    ['Ctrl Z','Undo'], ['Ctrl Shift Z','Redo'], ['+ / −','Zoom timeline'], ['Shift Z','Zoom to fit'],
-    ['S','Toggle snapping'], ['I','Import media'], ['T','New text clip'], ['O','New logo outro'],
-    ['Ctrl S','Save project'], ['Ctrl Shift S','Save project as…'],
-    ['Ctrl E','Export'], ['?','This list'],
-    ['K','Add / remove a keyframe at the playhead'],
+    ['— Playback —',''],
+    ['Space','Play / pause'], ['J / K / L','Shuttle slower / stop / faster'],
+    ['← →','Step one frame'], ['Shift ← →','Jump one second'],
+    ['Home / End','Go to start / end'], ['Ctrl L','Loop playback'],
+    ['Click the timecode','Type a time to jump there'],
+    ['— Selecting —',''],
+    ['V','Selection tool'], ['C','Blade tool — also splits the selected clip'],
     ['Shift click','Add a clip to the selection'], ['Ctrl A','Select all clips'],
-    ['Ctrl C / X / V','Copy / cut / paste clips'], ['Ctrl Shift K','Split every track'],
-    ['E','Enable / disable clip'], [', / .','Nudge one frame'],
+    ['Ctrl G / Ctrl Shift G','Group / ungroup clips'], ['Right click','Clip menu'],
+    ['— Editing —',''],
+    ['Ctrl C / X / V','Copy / cut / paste at the playhead'],
+    ['Ctrl D','Duplicate'], ['Delete','Delete'], ['Shift Delete','Ripple delete'],
+    ['Ctrl Shift K','Split every track'], ['E','Enable / disable clip'],
+    ['F','Freeze frame'], [', / .','Nudge one frame'],
+    ['Alt drag clip edge','Ripple trim'],
+    ['Ctrl Z / Ctrl Shift Z','Undo / redo'],
+    ['— Markers and range —',''],
     ['M','Add / remove marker'], ['Shift M / Alt M','Previous / next marker'],
-    ['I / O','Mark in / out'], ['Ctrl Shift X','Clear in and out'], ['Ctrl L','Loop playback'],
-    ['Right click','Clip menu'],
+    ['I / O','Mark in / out'], ['Ctrl Shift X','Clear in and out'],
+    ['— Animation —',''],
+    ['K','Add / remove a keyframe at the playhead'],
+    ['◆ button','Keyframe that single property'],
     ['Drag on canvas','Move the selected clip'], ['Corner handles','Scale it'],
-    ['Handle above box','Rotate (hold Shift to snap 15°)'],
-    ['Double-click text','Edit it on the canvas'], ['◆ button','Keyframe that property']
+    ['Round handle','Rotate (hold Shift to snap 15°)'],
+    ['Double-click text','Edit it on the canvas'],
+    ['— View —',''],
+    ['+ / −','Zoom the timeline'], ['Shift Z','Zoom to fit'], ['S','Toggle snapping'],
+    ['— Files —',''],
+    ['Shift I','Import media'], ['T','New text clip'], ['Shift O','New logo outro'],
+    ['Ctrl S / Ctrl Shift S','Save project / save as'], ['Ctrl E','Export video'],
+    ['?','This list']
   ];
+
   $('shortcutsBody').innerHTML = SHORTCUTS.map(([k,d]) =>
-    `<div class="kbd-row"><span>${d}</span><kbd>${k}</kbd></div>`).join('');
+    d === '' ? `<div class="kbd-head">${k.replace(/—/g,'').trim()}</div>`
+             : `<div class="kbd-row"><span>${d}</span><kbd>${k}</kbd></div>`).join('');
 
   document.addEventListener('keydown', e => {
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
