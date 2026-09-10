@@ -1628,12 +1628,22 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
             <input type="text" id="hook-role" placeholder="e.g. 123456789012345678" autocomplete="off" inputmode="numeric">
           </label>
         </div>
+        <p class="modal-sub" style="margin:22px 0 12px;"><strong>Two-way chat.</strong> With a bot added, every order gets its own Discord thread — customer messages appear there and anything you type back lands in their order chat. Create a bot at discord.com/developers → New Application → Bot → Reset Token, invite it to your server, then paste its token and the channel ID for the threads below.</p>
+        <div class="rates-form-grid">
+          <label style="grid-column:1 / -1;">Bot token<span class="unit">kept private — never sent to the public site</span>
+            <input type="password" id="hook-bot" placeholder="paste the bot token" autocomplete="off">
+          </label>
+          <label style="grid-column:1 / -1;">Channel for order threads<span class="unit">right-click the channel → Copy Channel ID</span>
+            <input type="text" id="hook-channel" placeholder="e.g. 123456789012345678" autocomplete="off" inputmode="numeric">
+          </label>
+        </div>
         <p class="modal-sub" id="hook-state" style="margin:12px 0 0;"></p>
       </div>
       <div class="modal-foot">
         <span id="hook-msg"></span>
+        <button class="save-btn" id="hook-relay" style="margin-right:8px;">Check relay</button>
         <button class="save-btn" id="hook-test" style="margin-right:8px;">Send test</button>
-        <button class="save-btn" id="hook-save">Save webhook</button>
+        <button class="save-btn" id="hook-save">Save</button>
       </div>
     </div>
 
@@ -3301,6 +3311,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   const hookUrlInput = document.getElementById('hook-url');
   const hookSaveBtn = document.getElementById('hook-save');
   const hookRoleInput = document.getElementById('hook-role');
+  const hookBotInput = document.getElementById('hook-bot');
+  const hookChannelInput = document.getElementById('hook-channel');
+  const hookRelayBtn = document.getElementById('hook-relay');
   const hookTestBtn = document.getElementById('hook-test');
   const hookMsgEl = document.getElementById('hook-msg');
   const hookStateEl = document.getElementById('hook-state');
@@ -3310,12 +3323,16 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   async function loadWebhookState(){
     const { data, error } = await supabase
       .from('private_config').select('key, value, updated_at')
-      .in('key', ['discord_webhook_url', 'discord_role_id']);
+      .in('key', ['discord_webhook_url', 'discord_role_id', 'discord_bot_token', 'discord_channel_id']);
     if (error){ hookStateEl.textContent = ''; return; }
     const rows = data || [];
+    const val = k => { const r = rows.find(x => x.key === k); return (r && r.value) || ''; };
     const hook = rows.find(r => r.key === 'discord_webhook_url');
-    const role = rows.find(r => r.key === 'discord_role_id');
-    hookRoleInput.value = (role && role.value) || '';
+    hookRoleInput.value = val('discord_role_id');
+    hookChannelInput.value = val('discord_channel_id');
+    hookBotInput.placeholder = val('discord_bot_token')
+      ? '•••••• saved — paste a new token to replace it'
+      : 'paste the bot token';
     hookSaved = !!(hook && hook.value);
     if (hookSaved){
       hookUrlInput.placeholder = '•••••• saved — paste a new URL to replace it';
@@ -3329,6 +3346,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   hookSaveBtn.addEventListener('click', async () => {
     const url = hookUrlInput.value.trim();
     const role = hookRoleInput.value.trim();
+    const bot = hookBotInput.value.trim();
+    const channel = hookChannelInput.value.trim();
     if (!url && !hookSaved){ hookMsgEl.textContent = 'Paste a webhook URL first.'; return; }
     if (url && !/^https:\/\/(discord|discordapp)\.com\/api\/webhooks\//.test(url)){
       hookMsgEl.textContent = 'That does not look like a Discord webhook URL.';
@@ -3338,19 +3357,44 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       hookMsgEl.textContent = 'A role ID is just digits — copy it with Developer Mode on.';
       return;
     }
+    if (channel && !/^[0-9]{5,25}$/.test(channel)){
+      hookMsgEl.textContent = 'A channel ID is just digits — copy it with Developer Mode on.';
+      return;
+    }
     hookSaveBtn.disabled = true;
     hookSaveBtn.textContent = 'Saving…';
     hookMsgEl.textContent = '';
     const now = new Date().toISOString();
-    const rows = [{ key: 'discord_role_id', value: role, updated_at: now }];
+    const rows = [
+      { key: 'discord_role_id', value: role, updated_at: now },
+      { key: 'discord_channel_id', value: channel, updated_at: now }
+    ];
     if (url) rows.push({ key: 'discord_webhook_url', value: url, updated_at: now });
+    if (bot) rows.push({ key: 'discord_bot_token', value: bot, updated_at: now });
     const { error } = await supabase.from('private_config').upsert(rows);
     hookSaveBtn.disabled = false;
     hookSaveBtn.textContent = 'Save webhook';
     if (error){ hookMsgEl.textContent = 'Error: ' + error.message; return; }
     hookUrlInput.value = '';
+    hookBotInput.value = '';
     hookMsgEl.textContent = 'Saved.';
     loadWebhookState();
+  });
+
+  hookRelayBtn.addEventListener('click', async () => {
+    hookRelayBtn.disabled = true;
+    hookRelayBtn.textContent = 'Checking…';
+    hookMsgEl.textContent = '';
+    const { data, error } = await supabase.rpc('discord_relay_status');
+    hookRelayBtn.disabled = false;
+    hookRelayBtn.textContent = 'Check relay';
+    if (error){ hookMsgEl.textContent = 'Error: ' + error.message; return; }
+    if (!data || !data.bot){
+      hookMsgEl.textContent = 'Bot not reachable — check the token.';
+      return;
+    }
+    hookMsgEl.textContent = 'Connected as ' + data.bot + ' — ' +
+      data.threads + ' thread(s), ' + data.sync + '.';
   });
 
   hookTestBtn.addEventListener('click', async () => {
