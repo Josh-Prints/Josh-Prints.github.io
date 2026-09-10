@@ -238,6 +238,8 @@
   }
   .preset:hover{ border-color: var(--accent); }
   .preset.on{ background: var(--accent); border-color: var(--accent); color:#fff; }
+  .lbl-swatch{ height:22px; }
+  .lbl-swatch.on{ box-shadow:0 0 0 2px var(--panel), 0 0 0 3px #fff; }
   .clip-badge{
     display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:5px;
     font-size:11px; font-weight:700; margin-bottom:11px; text-transform:uppercase; letter-spacing:0.04em;
@@ -404,6 +406,10 @@
   .master-vol::-webkit-slider-thumb{
     -webkit-appearance:none; width:11px; height:11px; border-radius:50%; background: var(--accent); cursor:pointer;
   }
+  .tc-input{
+    width:104px; background:transparent; border:none; outline:none; color: var(--accent);
+    font-family: ui-monospace, 'SF Mono', monospace; font-size:12px; padding:0;
+  }
   .master-vol::-moz-range-thumb{ width:11px;height:11px;border:none;border-radius:50%;background:var(--accent);cursor:pointer; }
   .text-edit{
     position:absolute; z-index:30; resize:none; min-width:150px; min-height:44px;
@@ -551,6 +557,9 @@
         <button data-cmd="duplicate">Duplicate<kbd>Ctrl D</kbd></button>
         <button data-cmd="toggleEnabled">Enable / disable<kbd>E</kbd></button>
         <div class="sep"></div>
+        <button data-cmd="freeze">Freeze frame<kbd>F</kbd></button>
+        <button data-cmd="closeGaps">Close gaps on track</button>
+        <div class="sep"></div>
         <button data-cmd="selectAll">Select all<kbd>Ctrl A</kbd></button>
         <button data-cmd="delete">Delete<kbd>Del</kbd></button>
         <button data-cmd="ripple">Ripple delete<kbd>⇧ Del</kbd></button>
@@ -562,6 +571,7 @@
         <button data-cmd="addVideoTrack">Add video track</button>
         <button data-cmd="addAudioTrack">Add audio track</button>
         <div class="sep"></div>
+        <button data-cmd="duplicateTrack">Duplicate active track</button>
         <button data-cmd="delTrack">Delete active track</button>
       </div>
     </div>
@@ -584,6 +594,7 @@
         <button data-cmd="zoomIn">Zoom in<kbd>+</kbd></button>
         <button data-cmd="zoomOut">Zoom out<kbd>−</kbd></button>
         <button data-cmd="zoomFit">Zoom to fit<kbd>⇧ Z</kbd></button>
+        <button data-cmd="zoomSelection">Zoom to selection</button>
         <div class="sep"></div>
         <button data-cmd="snapToggle">Toggle snapping<kbd>S</kbd></button>
       </div>
@@ -598,6 +609,16 @@
     <div class="mb-spacer"></div>
     <div class="mb-right">
       <span class="proj-label" id="projLabel">Unsaved project</span>
+      <select class="sel" id="fpsSelect" title="Frame rate">
+        <option value="24">24 fps</option>
+        <option value="30" selected>30 fps</option>
+        <option value="60">60 fps</option>
+      </select>
+      <select class="sel" id="qualitySelect" title="Export quality">
+        <option value="8000000">Standard</option>
+        <option value="14000000" selected>High</option>
+        <option value="24000000">Maximum</option>
+      </select>
       <select class="sel" id="resSelect" title="Sequence resolution">
         <option value="1080x1920">9:16 · 1080×1920</option>
         <option value="1080x1350">4:5 · 1080×1350</option>
@@ -2009,7 +2030,7 @@
         if (!isFinite(el.currentTime) || Math.abs(el.currentTime - want) > 0.3){
           try { el.currentTime = Math.max(0, want); } catch(e){}
         }
-        el.playbackRate = clamp(c.speed, 0.0625, 16);
+        el.playbackRate = clamp(c.speed * (isPlaying ? state.rate : 1), 0.0625, 16);
         if (isPlaying && el.paused){ const p = el.play(); if (p && p.catch) p.catch(()=>{}); }
         else if (!isPlaying && !el.paused){ el.pause(); }
       }
@@ -2034,7 +2055,7 @@
 
   function frame(now){
     if (!playing) return;
-    const t = headAtStart + (now - clockStart) / 1000;
+    const t = headAtStart + ((now - clockStart) / 1000) * state.rate;
     const total = totalDuration();
     const stopAt = exporting ? rangeEnd() : (hasRange() ? rangeEnd() : total);
     if (t >= stopAt){
@@ -2163,7 +2184,8 @@
           ? `<div class="kfstrip">` + kts.map(t =>
               `<div class="kfd" style="left:${(t*state.pxPerSec).toFixed(1)}px"></div>`).join('') + `</div>`
           : '';
-        html += `<div class="${cls}" data-clip="${c.id}" style="left:${left.toFixed(1)}px;width:${width.toFixed(1)}px">
+        const lblStyle = c.label ? `;--c1:${c.label};--c2:${c.label}` : '';
+        html += `<div class="${cls}" data-clip="${c.id}" style="left:${left.toFixed(1)}px;width:${width.toFixed(1)}px${lblStyle}">
           ${wf}${fi}${fo}${kstrip}
           <div class="lbl">${esc(clipLabel(c))}</div>
           <div class="hnd l" data-handle="l"></div>
@@ -2229,7 +2251,9 @@
   function snapTime(t, ignoreId){
     if (!state.snap) return t;
     const tol = 9 / state.pxPerSec;
-    const cands = [0, state.playhead];
+    const cands = [0, state.playhead].concat(state.markers);
+    if (state.inPoint !== null) cands.push(state.inPoint);
+    if (state.outPoint !== null) cands.push(state.outPoint);
     for (const tr of state.tracks) for (const c of tr.clips){
       if (c.id === ignoreId) continue;
       cands.push(c.start, c.start + c.duration);
@@ -2378,6 +2402,18 @@
   tlLanes.addEventListener('pointerup', endDrag);
   tlLanes.addEventListener('pointercancel', endDrag);
 
+  tlHeads.addEventListener('dblclick', e => {
+    const nm = e.target.closest('.nm');
+    if (!nm) return;
+    const head = e.target.closest('.trk-head');
+    const tr = state.tracks.find(t => t.id === head.dataset.track);
+    if (!tr) return;
+    const name = prompt('Track name', tr.name);
+    if (name === null) return;
+    pushUndo();
+    tr.name = name.trim() || tr.name;
+    rebuild();
+  });
   tlHeads.addEventListener('click', e => {
     const head = e.target.closest('.trk-head');
     if (!head) return;
@@ -2390,9 +2426,18 @@
       if (act === 'mute') tr.muted = !tr.muted;
       if (act === 'solo') tr.solo = !tr.solo;
       if (act === 'lock') tr.locked = !tr.locked;
+      state.activeTrack = tr.id;
+      rebuild();
+      return;
     }
+    // plain click only re-marks the active track: rebuilding here would replace the
+    // header node between the two clicks of a double-click and kill rename
+    const changed = state.activeTrack !== tr.id;
     state.activeTrack = tr.id;
-    rebuild();
+    if (changed){
+      tlHeads.querySelectorAll('.trk-head').forEach(el =>
+        el.classList.toggle('active', el.dataset.track === tr.id));
+    }
   });
 
   /* ---------- clip commands ---------- */
@@ -2514,6 +2559,50 @@
       set('x', pts);
     }
     renderInspector(); buildLanes(); renderAt(state.playhead); updateKfBtn();
+  }
+
+  /* ---------- freeze frame: snapshot a video clip into a still ---------- */
+  function cmdFreezeFrame(){
+    const c = selectedClip();
+    if (!c || c.type !== 'video') return toast('Select a video clip first');
+    if (state.playhead < c.start || state.playhead > c.start + c.duration)
+      return toast('Move the playhead over the clip');
+    const rt = runtime.get(c.id);
+    if (!rt || rt.el.readyState < 2) return toast('That frame is not ready yet');
+    const cv = document.createElement('canvas');
+    cv.width = rt.el.videoWidth; cv.height = rt.el.videoHeight;
+    cv.getContext('2d').drawImage(rt.el, 0, 0);
+    cv.toBlob(blob => {
+      if (!blob) return toast('Could not freeze that frame');
+      const a = { id: uid('a'), name: 'Freeze — ' + c.name, kind:'image', file: blob,
+                  url: URL.createObjectURL(blob), duration:0, width: cv.width, height: cv.height, peaks:null };
+      assets.set(a.id, a);
+      const img = new Image();
+      img.onload = () => { a.el = img; renderBin(); if (!playing) renderAt(state.playhead); };
+      img.src = a.url;
+      pushUndo();
+      const track = trackOfClip(c.id);
+      const still = makeClip('image', { assetId:a.id, name:a.name, start: state.playhead, duration: 2 });
+      // push the rest of the track along so the freeze slots in
+      track.clips.forEach(x => { if (x.id !== c.id && x.start >= state.playhead) x.start += 2; });
+      track.clips.push(still);
+      setSel([still.id]);
+      rebuild();
+      toast('Freeze frame added');
+    }, 'image/png');
+  }
+
+  /* ---------- gaps ---------- */
+  function cmdCloseGaps(){
+    const tr = state.tracks.find(t => t.id === state.activeTrack);
+    if (!tr || tr.locked) return toast('Pick an unlocked track first');
+    const ordered = tr.clips.slice().sort((a,b) => a.start - b.start);
+    if (!ordered.length) return toast('That track is empty');
+    pushUndo();
+    let cursor = 0;
+    ordered.forEach(c => { c.start = cursor; cursor += c.duration; });
+    rebuild();
+    toast('Gaps closed on ' + tr.name);
   }
 
   /* ---------- clipboard ---------- */
@@ -2709,6 +2798,14 @@
     const badgeColor = { video:'var(--v-clip2)', image:'var(--v-clip2)', audio:'var(--a-clip2)', text:'var(--t-clip2)', outro:'var(--o-clip2)' }[c.type];
     let h = `<div class="clip-badge" style="background:${badgeColor}">${c.type}</div>`;
 
+    h += sect('Label',
+      `<div class="preset-row">` +
+      ['', '#4493f8', '#3fb950', '#e3b341', '#f85149', '#a371f7'].map(col =>
+        `<button class="preset lbl-swatch${(c.label||'') === col ? ' on' : ''}" data-label="${col}"
+           style="${col ? `background:${col};border-color:${col}` : ''}">${col ? '' : '✕'}</button>`).join('') +
+      `</div>`
+    );
+
     h += sect('Timing',
       fNum('Start (s)','start',0,99999,0.05) +
       fNum('Duration','duration',0.1,99999,0.05) +
@@ -2743,6 +2840,23 @@
               border-radius:4px;background:#2b303a;border:1px solid #4a5261;color:#c6cedb;font-size:9px;
               vertical-align:middle">◆</span> beside a value to animate it with keyframes.
             </div>`;
+      h += sect('Fit &amp; align',
+        `<div class="preset-row">
+           <button class="preset" data-fit="fit">Fit</button>
+           <button class="preset" data-fit="fill">Fill</button>
+           <button class="preset" data-fit="reset">Reset</button>
+         </div>
+         <div class="preset-row">
+           <button class="preset" data-align="left">⇤</button>
+           <button class="preset" data-align="centreH">↔</button>
+           <button class="preset" data-align="right">⇥</button>
+         </div>
+         <div class="preset-row">
+           <button class="preset" data-align="top">⇡</button>
+           <button class="preset" data-align="centreV">↕</button>
+           <button class="preset" data-align="bottom">⇣</button>
+         </div>`
+      );
       h += sect('Transform',
         fRange('Scale','scale',0.1,4,0.01, v => Math.round(v*100)+'%') +
         fRange('Position X','x',-1500,1500,1) +
@@ -2934,8 +3048,34 @@
     const kfKey = e.target.dataset.kf;
     const kfClear = e.target.dataset.kfclear;
 
+    const label = e.target.dataset.label;
+    if (label !== undefined){
+      pushUndo();
+      selClips().forEach(x => { x.label = label; });
+      renderInspector(); buildLanes();
+      return;
+    }
+    const fit = e.target.dataset.fit;
+    const align = e.target.dataset.align;
     const motion = e.target.dataset.motion;
-    if (motion){
+    if (fit || align){
+      pushUndo();
+      const W = state.width, H = state.height;
+      const r = contentRect(c);
+      if (fit === 'reset'){ c.scale = 1; c.x = 0; c.y = 0; c.rotation = 0; }
+      else if (fit === 'fit') c.scale = Math.min(W / r.w, H / r.h);
+      else if (fit === 'fill') c.scale = Math.max(W / r.w, H / r.h);
+      else {
+        const sc = c.scale || 1;
+        const hw = (r.w * sc) / 2, hh = (r.h * sc) / 2;
+        if (align === 'left') c.x = -(W/2 - hw);
+        if (align === 'right') c.x = (W/2 - hw);
+        if (align === 'centreH') c.x = 0;
+        if (align === 'top') c.y = -(H/2 - hh);
+        if (align === 'bottom') c.y = (H/2 - hh);
+        if (align === 'centreV') c.y = 0;
+      }
+    } else if (motion){
       pushUndo();
       applyMotionPreset(c, motion);
       toast('Applied ' + motion.replace(/([A-Z])/g, ' $1').toLowerCase());
@@ -3054,7 +3194,10 @@
     if (recordDest) recordDest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
 
     try {
-      recorder = new MediaRecorder(stream, { mimeType: recMime, videoBitsPerSecond: 14000000 });
+      recorder = new MediaRecorder(stream, {
+        mimeType: recMime,
+        videoBitsPerSecond: parseInt($('qualitySelect').value, 10) || 14000000
+      });
     } catch(e){ return toast('This browser cannot record video'); }
 
     chunks = [];
@@ -3327,6 +3470,29 @@
       toast('Project file saved — media stays in this browser');
     },
     importFile: () => $('projFileInput').click(),
+    freeze: cmdFreezeFrame,
+    closeGaps: cmdCloseGaps,
+    duplicateTrack: () => {
+      const tr = state.tracks.find(t => t.id === state.activeTrack);
+      if (!tr) return toast('Pick a track first');
+      pushUndo();
+      const copy = JSON.parse(JSON.stringify(tr));
+      copy.id = uid('t'); copy.name = tr.name + ' copy'; copy.solo = false;
+      copy.clips.forEach(c => { c.id = uid('c'); });
+      state.tracks.splice(state.tracks.indexOf(tr), 0, copy);
+      copy.clips.forEach(ensureRuntime);
+      rebuild(); toast('Track duplicated');
+    },
+    zoomSelection: () => {
+      const clips = selClips();
+      if (!clips.length) return commands.zoomFit();
+      const a = Math.min(...clips.map(c => c.start));
+      const b = Math.max(...clips.map(c => c.start + c.duration));
+      const span = Math.max(0.2, b - a);
+      state.pxPerSec = clamp((tlScroll.clientWidth - 60) / span, 8, 600);
+      rebuild();
+      tlScroll.scrollLeft = Math.max(0, a * state.pxPerSec - 30);
+    },
     zoomIn: () => { state.pxPerSec = clamp(state.pxPerSec * 1.3, 8, 600); rebuild(); },
     zoomOut: () => { state.pxPerSec = clamp(state.pxPerSec / 1.3, 8, 600); rebuild(); },
     zoomFit: () => {
@@ -3365,6 +3531,33 @@
     });
   });
 
+  tcNow.style.cursor = 'text';
+  tcNow.title = 'Click to type a timecode';
+  tcNow.addEventListener('click', () => {
+    if (tcNow.querySelector('input')) return;
+    stopPlayback();
+    const cur = tcFmt(state.playhead);
+    tcNow.innerHTML = `<input class="tc-input" value="${cur}" spellcheck="false">`;
+    const inp = tcNow.querySelector('input');
+    inp.focus(); inp.select();
+    const commit = () => {
+      const v = inp.value.trim();
+      let secs = null;
+      const m = v.match(/^(?:(\d+):)?(\d{1,2}):(\d{1,2})(?:[.:](\d{1,2}))?$/);
+      if (m) secs = (+(m[1]||0))*3600 + (+m[2])*60 + (+m[3]) + (m[4] ? (+m[4])/state.fps : 0);
+      else if (/^\d+(\.\d+)?$/.test(v)) secs = parseFloat(v);
+      tcNow.textContent = tcFmt(state.playhead);
+      if (secs !== null) setPlayhead(secs);
+      else if (v) toast('Type a time like 0:05.10 or 5.4');
+    };
+    inp.addEventListener('keydown', ev => {
+      ev.stopPropagation();
+      if (ev.key === 'Enter'){ ev.preventDefault(); commit(); }
+      if (ev.key === 'Escape'){ ev.preventDefault(); tcNow.textContent = tcFmt(state.playhead); }
+    });
+    inp.addEventListener('blur', commit);
+  });
+
   $('masterVol').addEventListener('input', e => {
     const v = parseFloat(e.target.value);
     ensureAudio();
@@ -3386,13 +3579,18 @@
   }
   requestAnimationFrame(pumpMeter);
 
-  playBtn.addEventListener('click', togglePlay);
+  playBtn.addEventListener('click', () => { state.rate = 1; togglePlay(); });
   $('goStart').addEventListener('click', () => { stopPlayback(); setPlayhead(0); });
   $('goEnd').addEventListener('click', () => { stopPlayback(); setPlayhead(totalDuration()); });
   $('stepBack').addEventListener('click', () => { stopPlayback(); setPlayhead(state.playhead - 1/state.fps); });
   $('stepFwd').addEventListener('click', () => { stopPlayback(); setPlayhead(state.playhead + 1/state.fps); });
 
   $('exportBtn').addEventListener('click', doExport);
+  $('fpsSelect').addEventListener('change', e => {
+    state.fps = parseInt(e.target.value, 10) || 30;
+    updatePlayheadUI();
+    toast(state.fps + ' fps');
+  });
   $('resSelect').addEventListener('change', e => {
     const [w,h] = e.target.value.split('x').map(Number);
     pushUndo();
@@ -3465,7 +3663,21 @@
           if (selectedClip()) cmdSplit();
           document.querySelector('[data-tool="blade"]').click();
         }
-        else if (k === 'k'){ toggleKeyframeHere(); }
+        else if (k === 'f'){ cmdFreezeFrame(); }
+        else if (k === 'j'){
+          state.rate = state.rate > 0 ? Math.max(0.25, state.rate / 2) : state.rate;
+          if (!playing) startPlayback();
+          toast('Rate ' + state.rate.toFixed(2) + '×');
+        }
+        else if (k === 'l' && !e.ctrlKey && !e.metaKey){
+          state.rate = Math.min(8, state.rate * 2);
+          if (!playing) startPlayback();
+          toast('Rate ' + state.rate.toFixed(2) + '×');
+        }
+        else if (k === 'k'){
+          if (playing){ stopPlayback(); state.rate = 1; toast('Paused'); }
+          else toggleKeyframeHere();
+        }
         else if (k === 's'){ commands.snapToggle(); }
         else if (k === 't'){ commands.addText(); }
         else if (k === 'z' && e.shiftKey){ commands.zoomFit(); }
