@@ -297,6 +297,8 @@
   .clip.audio{ --c1:var(--a-clip); --c2:var(--a-clip2); }
   .clip.text{ --c1:var(--t-clip); --c2:var(--t-clip2); }
   .clip.outro{ --c1:var(--o-clip); --c2:var(--o-clip2); }
+  .clip.shape{ --c1:#116b73; --c2:#158b95; }
+  .clip.adjust{ --c1:#8a5a2b; --c2:#a86f36; }
   .clip.sel{ border-color:#fff; box-shadow:0 0 0 1px var(--accent), 0 3px 12px rgba(0,0,0,0.45); z-index:3; }
   .clip.dragging{ opacity:0.85; cursor:grabbing; z-index:6; }
   .clip .lbl{
@@ -412,6 +414,31 @@
     background:#ffd479; transform:rotate(45deg); border-radius:1px;
   }
 
+  /* ---------- markers, range, disabled clips ---------- */
+  .rmarker{
+    position:absolute; top:2px; width:9px; height:9px; margin-left:-4.5px; z-index:6;
+    background:#4ad6a0; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); pointer-events:none;
+  }
+  .rrange{ position:absolute; top:0; height:100%; background: rgba(68,147,248,0.16); pointer-events:none; }
+  .rmark{ position:absolute; top:0; width:2px; height:100%; pointer-events:none; }
+  .rmark.in{ background:#4493f8; box-shadow:2px 0 0 rgba(68,147,248,0.4); }
+  .rmark.out{ background:#4493f8; box-shadow:-2px 0 0 rgba(68,147,248,0.4); }
+  .clip.off{ opacity:0.38; }
+  .clip.off .lbl::before{ content:'⦸ '; }
+  .ctx-menu{
+    display:none; position:fixed; z-index:200; min-width:172px; padding:5px;
+    background: var(--panel2); border:1px solid var(--line2); border-radius:7px;
+    box-shadow:0 14px 40px rgba(0,0,0,0.55);
+  }
+  .ctx-menu.on{ display:block; }
+  .ctx-menu button{
+    display:block; width:100%; text-align:left; background:none; border:none;
+    padding:7px 10px; border-radius:5px; cursor:pointer; font-size:12.5px; color: var(--text);
+  }
+  .ctx-menu button:hover{ background: var(--accent); color:#fff; }
+  .ctx-sep{ height:1px; background: var(--line); margin:4px; }
+  .tool.on.loop{ background:#4ad6a0; border-color:#4ad6a0; color:#12241c; }
+
   /* ---------- project browser ---------- */
   .proj-row{
     display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:6px;
@@ -472,7 +499,10 @@
         <div class="sep"></div>
         <button data-cmd="import">Import media…<kbd>I</kbd></button>
         <button data-cmd="addText">New text clip<kbd>T</kbd></button>
-        <button data-cmd="addOutro">New logo outro<kbd>O</kbd></button>
+        <button data-cmd="addOutro">New logo outro<kbd>⇧ O</kbd></button>
+        <button data-cmd="addRect">New rectangle</button>
+        <button data-cmd="addEllipse">New ellipse</button>
+        <button data-cmd="addAdjust">New adjustment layer</button>
         <div class="sep"></div>
         <button data-cmd="export">Export video…<kbd>Ctrl E</kbd></button>
         <div class="sep"></div>
@@ -485,8 +515,16 @@
         <button data-cmd="undo">Undo<kbd>Ctrl Z</kbd></button>
         <button data-cmd="redo">Redo<kbd>Ctrl ⇧ Z</kbd></button>
         <div class="sep"></div>
+        <button data-cmd="cut">Cut<kbd>Ctrl X</kbd></button>
+        <button data-cmd="copy">Copy<kbd>Ctrl C</kbd></button>
+        <button data-cmd="paste">Paste at playhead<kbd>Ctrl V</kbd></button>
+        <div class="sep"></div>
         <button data-cmd="split">Split at playhead<kbd>C</kbd></button>
+        <button data-cmd="splitAll">Split all tracks<kbd>Ctrl ⇧ K</kbd></button>
         <button data-cmd="duplicate">Duplicate<kbd>Ctrl D</kbd></button>
+        <button data-cmd="toggleEnabled">Enable / disable<kbd>E</kbd></button>
+        <div class="sep"></div>
+        <button data-cmd="selectAll">Select all<kbd>Ctrl A</kbd></button>
         <button data-cmd="delete">Delete<kbd>Del</kbd></button>
         <button data-cmd="ripple">Ripple delete<kbd>⇧ Del</kbd></button>
       </div>
@@ -498,6 +536,19 @@
         <button data-cmd="addAudioTrack">Add audio track</button>
         <div class="sep"></div>
         <button data-cmd="delTrack">Delete active track</button>
+      </div>
+    </div>
+    <div class="mb-item" data-menu>
+      <button class="mb-btn">Markers</button>
+      <div class="mb-drop">
+        <button data-cmd="addMarker">Add / remove marker<kbd>M</kbd></button>
+        <button data-cmd="prevMarker">Previous marker<kbd>⇧ M</kbd></button>
+        <button data-cmd="nextMarker">Next marker<kbd>Alt M</kbd></button>
+        <button data-cmd="clearMarkers">Clear all markers</button>
+        <div class="sep"></div>
+        <button data-cmd="setIn">Mark in<kbd>I</kbd></button>
+        <button data-cmd="setOut">Mark out<kbd>O</kbd></button>
+        <button data-cmd="clearInOut">Clear in / out<kbd>Ctrl ⇧ X</kbd></button>
       </div>
     </div>
     <div class="mb-item" data-menu>
@@ -542,6 +593,8 @@
         <div class="quick-row">
           <button class="btn" data-cmd="addText">＋ Text</button>
           <button class="btn" data-cmd="addOutro">＋ Outro</button>
+          <button class="btn" data-cmd="addRect">＋ Shape</button>
+          <button class="btn" data-cmd="addAdjust">＋ Adjust</button>
         </div>
         <div id="binList"></div>
       </div>
@@ -580,11 +633,17 @@
       <button class="tool on" data-tool="select" title="Selection tool (V)">➤</button>
       <button class="tool" data-tool="blade" title="Blade tool (C)">✂</button>
       <div class="tl-sep"></div>
-      <button class="tool" data-cmd="split" title="Split at playhead">⧦</button>
+      <button class="tool" data-cmd="split" title="Split at playhead (C)">⧦</button>
+      <button class="tool" data-cmd="splitAll" title="Split all tracks (Ctrl+Shift+K)">⧨</button>
       <button class="tool" data-cmd="duplicate" title="Duplicate (Ctrl+D)">⧉</button>
       <button class="tool" data-cmd="delete" title="Delete (Del)">🗑</button>
       <div class="tl-sep"></div>
       <button class="tool on" id="snapBtn" data-cmd="snapToggle" title="Snapping (S)">🧲</button>
+      <button class="tool" id="loopBtn" data-cmd="loopToggle" title="Loop playback (Ctrl+L)">🔁</button>
+      <div class="tl-sep"></div>
+      <button class="tool" data-cmd="addMarker" title="Add marker (M)">🔖</button>
+      <button class="tool" data-cmd="setIn" title="Mark in (I)">[</button>
+      <button class="tool" data-cmd="setOut" title="Mark out (O)">]</button>
       <div class="tl-spacer"></div>
       <span class="tl-hint" id="tlHint">no clip selected</span>
       <div class="tl-sep"></div>
@@ -748,7 +807,8 @@
     width:1080, height:1920, fps:30,
     tracks:[], selected:null, activeTrack:null,
     playhead:0, pxPerSec:80, tool:'select', snap:true,
-    projectId:null, projectName:''
+    projectId:null, projectName:'',
+    sel:[], markers:[], inPoint:null, outPoint:null, loop:false, rate:1, kfEase:'smooth'
   };
   const assets = new Map();
   const runtime = new Map();
@@ -802,8 +862,11 @@
     return Object.assign({
       id: uid('c'), type, assetId:null, name:'Clip',
       start:0, duration:3, inPoint:0, srcDuration:0, speed:1,
-      kf:{}, cropL:0, cropR:0, cropT:0, cropB:0,
-      x:0, y:0, scale:1, rotation:0, opacity:1,
+      kf:{}, cropL:0, cropR:0, cropT:0, cropB:0, enabled:true, label:'',
+      x:0, y:0, scale:1, rotation:0, opacity:1, flipH:false, flipV:false,
+      keyOn:false, keyColor:'#00b140', keySim:0.32, keySoft:0.12, keySpill:0.5,
+      vignette:0, tintOn:false, tintColor:'#ff8a3d', tintAmt:0.5,
+      shape:'rect', shapeW:0.6, shapeH:0.35, fill:'#4493f8', radius:0.06,
       brightness:1, contrast:1, saturation:1, hue:0, blurPx:0, look:'none', blend:'source-over',
       volume:1, muted:false, fadeIn:0, fadeOut:0,
       tinType:'none', tinDur:0.5, toutType:'none', toutDur:0.5,
@@ -843,7 +906,9 @@
       if (local >= a.t && local <= b.t){
         const span = b.t - a.t;
         const p = span > 0 ? (local - a.t) / span : 1;
-        return a.v + (b.v - a.v) * kfEase(p);
+        if (a.ez === 'hold') return a.v;
+        const e = a.ez === 'linear' ? p : kfEase(p);
+        return a.v + (b.v - a.v) * e;
       }
     }
     return last.v;
@@ -859,7 +924,7 @@
     const arr = c.kf[key];
     const hit = arr.find(k => Math.abs(k.t - t) < 0.02);
     if (hit) hit.v = v;
-    else { arr.push({ t, v }); arr.sort((a,b) => a.t - b.t); }
+    else { arr.push({ t, v, ez: state.kfEase || 'smooth' }); arr.sort((a,b) => a.t - b.t); }
   }
   // single write path: updates the keyframe at the playhead if animated, else the static value
   function setProp(c, key, v){
@@ -887,6 +952,17 @@
   function findClip(id){ for (const t of state.tracks) { const c = t.clips.find(c=>c.id===id); if (c) return c; } return null; }
   function trackOfClip(id){ return state.tracks.find(t => t.clips.some(c => c.id === id)) || null; }
   function selectedClip(){ return state.selected ? findClip(state.selected) : null; }
+  function selClips(){ return (state.sel || []).map(findClip).filter(Boolean); }
+  function isSel(id){ return (state.sel || []).includes(id); }
+  function setSel(ids, primary){
+    state.sel = Array.from(new Set(ids.filter(Boolean)));
+    state.selected = primary !== undefined ? primary
+                   : (state.sel.length ? state.sel[state.sel.length - 1] : null);
+  }
+  function toggleSel(id){
+    if (isSel(id)) setSel(state.sel.filter(x => x !== id));
+    else setSel(state.sel.concat([id]), id);
+  }
   function totalDuration(){
     let m = 0;
     for (const t of state.tracks) for (const c of t.clips) m = Math.max(m, c.start + c.duration);
@@ -898,7 +974,8 @@
   const undoStack = [], redoStack = [];
   const snap = () => JSON.stringify({
     tracks: state.tracks, width: state.width, height: state.height, fps: state.fps, uidN,
-    selected: state.selected, activeTrack: state.activeTrack
+    selected: state.selected, sel: state.sel, activeTrack: state.activeTrack,
+    markers: state.markers, inPoint: state.inPoint, outPoint: state.outPoint
   });
   function pushUndo(){
     undoStack.push(snap());
@@ -910,8 +987,12 @@
     state.tracks = d.tracks; state.width = d.width; state.height = d.height; state.fps = d.fps;
     uidN = Math.max(uidN, d.uidN || 1);
     state.selected = d.selected || null;
+    state.sel = (d.sel || []).filter(id => findClip(id));
+    state.markers = d.markers || [];
+    state.inPoint = d.inPoint ?? null;
+    state.outPoint = d.outPoint ?? null;
     state.activeTrack = d.activeTrack || state.activeTrack;
-    if (!findClip(state.selected)) state.selected = null;
+    if (!findClip(state.selected)) state.selected = state.sel[0] || null;
     if (!state.tracks.some(t => t.id === state.activeTrack)) state.activeTrack = state.tracks[0]?.id || null;
     pruneRuntime(); allClips().forEach(ensureRuntime);
     resizeStage(); rebuild();
@@ -1019,7 +1100,7 @@
     if (a.kind === 'image') clip.anim = 'none';
     track.clips.push(clip);
     ensureRuntime(clip);
-    state.selected = clip.id;
+    setSel([clip.id]);
     state.activeTrack = track.id;
     rebuild();
     toast('Added ' + a.name);
@@ -1034,8 +1115,30 @@
     pushUndo();
     const clip = makeClip('text', { name:'Text', start: nextFreeStart(track), duration: 2.5 });
     track.clips.push(clip);
-    state.selected = clip.id; state.activeTrack = track.id;
+    setSel([clip.id]); state.activeTrack = track.id;
     rebuild(); toast('Text clip added');
+  }
+  function addShapeClip(kind){
+    let track = state.tracks.find(t => t.id === state.activeTrack && t.kind === 'video' && !t.locked)
+             || state.tracks.find(t => t.kind === 'video' && !t.locked);
+    if (!track) return toast('No video track available');
+    pushUndo();
+    const clip = makeClip('shape', { name: kind[0].toUpperCase()+kind.slice(1),
+      shape: kind, start: nextFreeStart(track), duration: 3 });
+    track.clips.push(clip);
+    setSel([clip.id]); state.activeTrack = track.id;
+    rebuild(); toast(clip.name + ' added');
+  }
+  function addAdjustClip(){
+    let track = state.tracks.find(t => t.id === state.activeTrack && t.kind === 'video' && !t.locked)
+             || state.tracks.find(t => t.kind === 'video' && !t.locked);
+    if (!track) return toast('No video track available');
+    pushUndo();
+    const clip = makeClip('adjust', { name:'Adjustment', start: nextFreeStart(track), duration: 4,
+      saturation: 1.2, contrast: 1.08 });
+    track.clips.push(clip);
+    setSel([clip.id]); state.activeTrack = track.id;
+    rebuild(); toast('Adjustment layer added');
   }
   function addOutroClip(){
     let track = state.tracks.find(t => t.id === state.activeTrack && t.kind === 'video' && !t.locked)
@@ -1046,7 +1149,7 @@
     const start = Math.max(nextFreeStart(track), totalDuration());
     const clip = makeClip('outro', { name:'Logo outro', start, duration: 3.5, tinType:'fade', tinDur:0.45 });
     track.clips.push(clip);
-    state.selected = clip.id; state.activeTrack = track.id;
+    setSel([clip.id]); state.activeTrack = track.id;
     rebuild(); toast('Logo outro added');
   }
 
@@ -1088,6 +1191,10 @@
       return { x:(W-w)/2, y:(H-h)/2, w, h };
     }
     if (c.type === 'text') return textBounds(c);
+    if (c.type === 'shape'){
+      const w = clamp(c.shapeW, 0.02, 4) * W, h = clamp(c.shapeH, 0.02, 4) * H;
+      return { x:(W-w)/2, y:(H-h)/2, w, h };
+    }
     return { x:0, y:0, w:W, h:H };
   }
 
@@ -1124,9 +1231,139 @@
            propAt(c,'cropT',local) > 0 || propAt(c,'cropB',local) > 0;
   }
 
-  function drawFit(src, c){
+  /* ---------- chroma key (WebGL: per-pixel keying at full frame rate) ---------- */
+  let glCv = null, gl = null, glProg = null, glTex = null, glU = {};
+  function ensureGL(){
+    if (gl !== null) return gl;
+    glCv = document.createElement('canvas');
+    gl = glCv.getContext('webgl', { premultipliedAlpha:false, alpha:true });
+    if (!gl) return null;
+    const vsrc = 'attribute vec2 p; varying vec2 uv;' +
+      'void main(){ uv = vec2(p.x*0.5+0.5, 0.5 - p.y*0.5); gl_Position = vec4(p,0.0,1.0); }';
+    const fsrc = 'precision mediump float; varying vec2 uv; uniform sampler2D tex;' +
+      'uniform vec3 keyc; uniform float sim; uniform float soft; uniform float spill;' +
+      'void main(){' +
+      '  vec4 c = texture2D(tex, uv);' +
+      '  float d = distance(c.rgb, keyc);' +
+      '  float a = smoothstep(sim, sim + max(soft, 0.001), d);' +
+      '  vec3 rgb = c.rgb;' +
+      '  float other = max(rgb.r, rgb.b);' +
+      '  if (rgb.g > other) rgb.g = mix(rgb.g, other, spill);' +
+      '  gl_FragColor = vec4(rgb, c.a * a);' +
+      '}';
+    const mk = (type, src) => {
+      const sh = gl.createShader(type);
+      gl.shaderSource(sh, src); gl.compileShader(sh);
+      return gl.getShaderParameter(sh, gl.COMPILE_STATUS) ? sh : null;
+    };
+    const vs = mk(gl.VERTEX_SHADER, vsrc), fs = mk(gl.FRAGMENT_SHADER, fsrc);
+    if (!vs || !fs){ gl = null; return null; }
+    glProg = gl.createProgram();
+    gl.attachShader(glProg, vs); gl.attachShader(glProg, fs); gl.linkProgram(glProg);
+    if (!gl.getProgramParameter(glProg, gl.LINK_STATUS)){ gl = null; return null; }
+    gl.useProgram(glProg);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(glProg, 'p');
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    glTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, glTex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    ['keyc','sim','soft','spill'].forEach(n => { glU[n] = gl.getUniformLocation(glProg, n); });
+    return gl;
+  }
+  const hexRGB = h => {
+    const v = h.replace('#','');
+    const n = parseInt(v.length === 3 ? v.split('').map(x=>x+x).join('') : v, 16);
+    return [((n>>16)&255)/255, ((n>>8)&255)/255, (n&255)/255];
+  };
+  function keyedFrame(src, sw, sh, c, local){
+    if (!ensureGL() || !sw || !sh) return null;
+    const maxDim = 1280;
+    const k = Math.min(1, maxDim / Math.max(sw, sh));
+    const w = Math.max(2, Math.round(sw*k)), h = Math.max(2, Math.round(sh*k));
+    if (glCv.width !== w || glCv.height !== h){ glCv.width = w; glCv.height = h; }
+    gl.viewport(0, 0, w, h);
+    gl.bindTexture(gl.TEXTURE_2D, glTex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src); }
+    catch(e){ return null; }
+    const rgb = hexRGB(c.keyColor);
+    gl.uniform3f(glU.keyc, rgb[0], rgb[1], rgb[2]);
+    gl.uniform1f(glU.sim, clamp(propAt(c,'keySim',local), 0.01, 1.2));
+    gl.uniform1f(glU.soft, clamp(propAt(c,'keySoft',local), 0.001, 1));
+    gl.uniform1f(glU.spill, clamp(c.keySpill, 0, 1));
+    gl.clearColor(0,0,0,0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    return glCv;
+  }
+
+  function drawFit(src, c, sw, sh, local){
     const r = contentRect(c);
+    if (c.keyOn){
+      const keyed = keyedFrame(src, sw, sh, c, local);
+      if (keyed){ ctx.drawImage(keyed, r.x, r.y, r.w, r.h); return; }
+    }
     ctx.drawImage(src, r.x, r.y, r.w, r.h);
+  }
+
+  function drawShape(c, local){
+    const r = contentRect(c);
+    ctx.fillStyle = c.fill;
+    const rad = Math.min(r.w, r.h) * clamp(c.radius, 0, 0.5);
+    ctx.beginPath();
+    if (c.shape === 'ellipse'){
+      ctx.ellipse(r.x + r.w/2, r.y + r.h/2, r.w/2, r.h/2, 0, 0, Math.PI*2);
+    } else if (c.shape === 'triangle'){
+      ctx.moveTo(r.x + r.w/2, r.y); ctx.lineTo(r.x + r.w, r.y + r.h);
+      ctx.lineTo(r.x, r.y + r.h); ctx.closePath();
+    } else if (c.shape === 'line'){
+      const th = Math.max(2, r.h);
+      ctx.rect(r.x, r.y + r.h/2 - th/2, r.w, th);
+    } else if (ctx.roundRect && rad > 0){
+      ctx.roundRect(r.x, r.y, r.w, r.h, rad);
+    } else {
+      ctx.rect(r.x, r.y, r.w, r.h);
+    }
+    ctx.fill();
+    if (c.strokeOn){
+      ctx.lineWidth = c.strokeW;
+      ctx.strokeStyle = c.strokeColor;
+      ctx.stroke();
+    }
+  }
+
+  // vignette + tint are painted over the clip's own content rect
+  function drawClipOverlays(c, local){
+    const r = contentRect(c);
+    const vig = propAt(c, 'vignette', local);
+    if (vig > 0){
+      const cx = r.x + r.w/2, cy = r.y + r.h/2;
+      const rad = Math.hypot(r.w, r.h) / 2;
+      const g = ctx.createRadialGradient(cx, cy, rad*0.35, cx, cy, rad);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      g.addColorStop(1, `rgba(0,0,0,${clamp(vig,0,1).toFixed(3)})`);
+      ctx.save();
+      ctx.filter = 'none';
+      ctx.fillStyle = g;
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.restore();
+    }
+    if (c.tintOn && c.tintAmt > 0){
+      ctx.save();
+      ctx.filter = 'none';
+      ctx.globalCompositeOperation = 'color';
+      ctx.globalAlpha = clamp(c.tintAmt, 0, 1);
+      ctx.fillStyle = c.tintColor;
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.restore();
+    }
   }
 
   function wrap(text, maxW){
@@ -1296,7 +1533,7 @@
     const sc = propAt(c,'scale',local);
     ctx.translate(W/2 + propAt(c,'x',local), H/2 + propAt(c,'y',local));
     ctx.rotate(propAt(c,'rotation',local) * Math.PI/180);
-    ctx.scale(sc, sc);
+    ctx.scale(sc * (c.flipH ? -1 : 1), sc * (c.flipV ? -1 : 1));
     ctx.translate(-W/2, -H/2);
 
     if (isCropped(c, local)){
@@ -1308,15 +1545,46 @@
 
     if (c.type === 'video'){
       const rt = runtime.get(c.id);
-      if (rt && rt.el.readyState >= 2) drawFit(rt.el, c);
+      if (rt && rt.el.readyState >= 2) drawFit(rt.el, c, rt.el.videoWidth, rt.el.videoHeight, local);
     } else if (c.type === 'image'){
       const a = assets.get(c.assetId);
-      if (a && a.el && a.el.complete) drawFit(a.el, c);
+      if (a && a.el && a.el.complete) drawFit(a.el, c, a.el.naturalWidth, a.el.naturalHeight, local);
     } else if (c.type === 'text'){
       drawTextClip(c, local);
+    } else if (c.type === 'shape'){
+      drawShape(c, local);
     } else if (c.type === 'outro'){
       drawOutroClip(c, local);
     }
+    drawClipOverlays(c, local);
+    ctx.restore();
+  }
+
+  let scratchCv = null;
+  function applyAdjustment(c, t){
+    const W = state.width, H = state.height;
+    const local = t - c.start;
+    if (!scratchCv) scratchCv = document.createElement('canvas');
+    if (scratchCv.width !== W || scratchCv.height !== H){ scratchCv.width = W; scratchCv.height = H; }
+    const sctx = scratchCv.getContext('2d');
+    sctx.clearRect(0,0,W,H);
+    sctx.drawImage(stage, 0, 0);
+    ctx.save();
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.filter = 'none';
+    ctx.globalAlpha = 1;
+    ctx.clearRect(0,0,W,H);
+    ctx.drawImage(scratchCv, 0, 0);
+    ctx.filter = buildFilter(c, local);
+    ctx.globalAlpha = clamp(propAt(c,'opacity',local), 0, 1);
+    ctx.drawImage(scratchCv, 0, 0);
+    ctx.restore();
+    ctx.save();
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.filter = 'none';
+    ctx.globalAlpha = 1;
+    drawClipOverlays(c, local);
     ctx.restore();
   }
 
@@ -1333,7 +1601,7 @@
       const track = state.tracks[i];
       if (track.kind !== 'video' || track.hidden) continue;
       const active = track.clips
-        .filter(c => t >= c.start && t < c.start + c.duration)
+        .filter(c => c.enabled !== false && t >= c.start && t < c.start + c.duration)
         .sort((a,b) => a.start - b.start);
       active.forEach((c, idx) => {
         let alpha = 1;
@@ -1343,7 +1611,8 @@
           const ov = ovEnd - c.start;
           if (ov > 0.02) alpha = clamp((t - c.start) / ov, 0, 1);
         }
-        drawClip(c, t, alpha);
+        if (c.type === 'adjust') applyAdjustment(c, t);
+        else drawClip(c, t, alpha);
       });
     }
     updateOverlay();
@@ -1605,7 +1874,7 @@
   function handleStageDblClick(){
     const c = textClipAtPlayhead();
     if (!c) return;
-    state.selected = c.id;
+    setSel([c.id]);
     state.activeTrack = (trackOfClip(c.id) || {}).id || state.activeTrack;
     renderInspector();
     openTextEditor(c);
@@ -1627,7 +1896,7 @@
       for (const c of track.clips){
         const rt = runtime.get(c.id);
         if (!rt || !rt.gain) continue;
-        const active = isPlaying && t >= c.start && t < c.start + c.duration;
+        const active = isPlaying && c.enabled !== false && t >= c.start && t < c.start + c.duration;
         let v = 0;
         if (active && !c.muted && !track.muted){
           const local = t - c.start;
@@ -1679,10 +1948,18 @@
     if (!playing) return;
     const t = headAtStart + (now - clockStart) / 1000;
     const total = totalDuration();
-    if (t >= total){
-      state.playhead = total;
+    const stopAt = exporting ? rangeEnd() : (hasRange() ? rangeEnd() : total);
+    if (t >= stopAt){
+      if (state.loop && !exporting){
+        state.playhead = rangeStart();
+        clockStart = now; headAtStart = state.playhead;
+        syncMedia(state.playhead, true);
+        rafId = requestAnimationFrame(frame);
+        return;
+      }
+      state.playhead = stopAt;
       updatePlayheadUI();
-      renderAt(Math.max(0, total - 0.001));
+      renderAt(Math.max(0, stopAt - 0.001));
       stopPlayback(true);
       return;
     }
@@ -1691,7 +1968,10 @@
     syncMedia(t, true);
     updateAudio(t, true);
     renderAt(t);
-    if (exporting) $('expFill').style.width = ((t/total)*100).toFixed(1) + '%';
+    if (exporting){
+      const a = rangeStart(), span = Math.max(0.001, rangeEnd() - a);
+      $('expFill').style.width = (((t - a)/span)*100).toFixed(1) + '%';
+    }
     keepPlayheadVisible();
     rafId = requestAnimationFrame(frame);
   }
@@ -1701,7 +1981,9 @@
     if (totalDuration() <= 0) return toast('Timeline is empty');
     const ac = ensureAudio();
     if (ac && ac.state === 'suspended') ac.resume();
-    if (state.playhead >= totalDuration() - 0.01) state.playhead = 0;
+    if (hasRange() && (state.playhead < rangeStart() || state.playhead >= rangeEnd() - 0.01))
+      state.playhead = rangeStart();
+    else if (state.playhead >= totalDuration() - 0.01) state.playhead = 0;
     playing = true;
     clockStart = performance.now();
     headAtStart = state.playhead;
@@ -1741,6 +2023,16 @@
       const half = t + step/2;
       if (half * state.pxPerSec <= w) html += `<div class="rtick minor" style="left:${(half*state.pxPerSec).toFixed(1)}px"></div>`;
     }
+    if (state.inPoint !== null || state.outPoint !== null){
+      const a = rangeStart() * state.pxPerSec;
+      const b = rangeEnd() * state.pxPerSec;
+      html += `<div class="rrange" style="left:${a.toFixed(1)}px;width:${Math.max(0,b-a).toFixed(1)}px"></div>`;
+      if (state.inPoint !== null) html += `<div class="rmark in" style="left:${a.toFixed(1)}px"></div>`;
+      if (state.outPoint !== null) html += `<div class="rmark out" style="left:${b.toFixed(1)}px"></div>`;
+    }
+    state.markers.forEach(m => {
+      html += `<div class="rmarker" style="left:${(m*state.pxPerSec).toFixed(1)}px" title="${tcFmt(m)}"></div>`;
+    });
     tlRuler.style.width = w + 'px';
     tlRuler.innerHTML = html;
   }
@@ -1773,7 +2065,7 @@
       tr.clips.forEach(c => {
         const left = c.start * state.pxPerSec;
         const width = Math.max(6, c.duration * state.pxPerSec);
-        const cls = `clip ${c.type}${c.id === state.selected ? ' sel' : ''}`;
+        const cls = `clip ${c.type}${isSel(c.id) ? ' sel' : ''}${c.enabled === false ? ' off' : ''}`;
         const fi = c.fadeIn > 0 ? `<div class="fadeMark" style="width:${(c.fadeIn*state.pxPerSec).toFixed(1)}px"></div>` : '';
         const fo = c.fadeOut > 0 ? `<div class="fadeMark out" style="right:0;width:${(c.fadeOut*state.pxPerSec).toFixed(1)}px"></div>` : '';
         const wf = (c.type === 'audio' || c.type === 'video') ? `<canvas class="wf" data-wf="${c.id}"></canvas>` : '';
@@ -1797,6 +2089,8 @@
   function clipLabel(c){
     if (c.type === 'text') return '🅣 ' + (c.text || 'Text').slice(0, 40);
     if (c.type === 'outro') return '✦ Logo outro';
+    if (c.type === 'shape') return '◼ ' + c.name;
+    if (c.type === 'adjust') return '◐ Adjustment';
     return c.name;
   }
 
@@ -1877,7 +2171,7 @@
     const clipEl = e.target.closest('.clip');
     if (!clipEl){
       const lane = e.target.closest('.lane');
-      if (lane){ state.activeTrack = lane.dataset.track; state.selected = null; rebuild(); }
+      if (lane){ state.activeTrack = lane.dataset.track; setSel([]); rebuild(); }
       return;
     }
     const clip = findClip(clipEl.dataset.clip);
@@ -1885,7 +2179,13 @@
     const track = trackOfClip(clip.id);
     if (track.locked){ toast('Track is locked'); return; }
 
-    state.selected = clip.id;
+    const additive = e.shiftKey || e.ctrlKey || e.metaKey;
+    // clicking a clip that's already part of a multi-selection keeps the group so it can be
+    // dragged as one; if the click turns out to be a plain click, endDrag collapses it
+    const collapseOnClick = !additive && isSel(clip.id) && state.sel.length > 1;
+    if (additive) toggleSel(clip.id);
+    else if (!isSel(clip.id)) setSel([clip.id]);
+    else state.selected = clip.id;
     state.activeTrack = track.id;
 
     if (state.tool === 'blade'){
@@ -1896,11 +2196,14 @@
 
     const handle = e.target.dataset.handle || null;
     if (playing) stopPlayback();
+    // dragging the body moves every selected clip together; trimming only touches this one
+    const group = handle ? [clip] : selClips().filter(c => !(trackOfClip(c.id) || {}).locked);
     drag = {
       id: clip.id, handle, moved: false,
       startX: e.clientX, startY: e.clientY,
       origStart: clip.start, origDur: clip.duration, origIn: clip.inPoint,
-      origTrack: track.id, pushed: false
+      origTrack: track.id, pushed: false, collapseOnClick,
+      group: group.map(c => ({ id: c.id, start: c.start }))
     };
     clipEl.classList.add('dragging');
     try { clipEl.setPointerCapture(e.pointerId); } catch(err){}
@@ -1908,7 +2211,7 @@
   });
 
   function rebuildSelectionOnly(){
-    tlLanes.querySelectorAll('.clip').forEach(el => el.classList.toggle('sel', el.dataset.clip === state.selected));
+    tlLanes.querySelectorAll('.clip').forEach(el => el.classList.toggle('sel', isSel(el.dataset.clip)));
     tlHeads.querySelectorAll('.trk-head').forEach(el => el.classList.toggle('active', el.dataset.track === state.activeTrack));
     renderInspector();
     $('tlHint').textContent = state.selected
@@ -1945,10 +2248,19 @@
       }
       clip.duration = dur;
     } else {
-      clip.start = Math.max(0, snapTime(drag.origStart + dx, clip.id));
-      // vertical track change
+      const newStart = Math.max(0, snapTime(drag.origStart + dx, clip.id));
+      const shift = newStart - drag.origStart;
+      // move the whole selection by the same amount, never past zero
+      let applied = shift;
+      drag.group.forEach(g => { applied = Math.max(applied, -g.start); });
+      drag.group.forEach(g => {
+        const gc = findClip(g.id);
+        if (gc) gc.start = Math.max(0, g.start + applied);
+      });
+      if (!drag.group.length) clip.start = newStart;
+      // vertical track change (primary clip only)
       const lane = document.elementsFromPoint(e.clientX, e.clientY).find(el => el.classList && el.classList.contains('lane'));
-      if (lane && lane.dataset.track !== trackOfClip(clip.id).id){
+      if (drag.group.length <= 1 && lane && lane.dataset.track !== trackOfClip(clip.id).id){
         const target = state.tracks.find(t => t.id === lane.dataset.track);
         const kindOK = target && !target.locked &&
           ((clip.type === 'audio' && target.kind === 'audio') || (clip.type !== 'audio' && target.kind === 'video'));
@@ -1968,7 +2280,10 @@
     if (!drag) return;
     const el = tlLanes.querySelector(`.clip[data-clip="${drag.id}"]`);
     if (el) el.classList.remove('dragging');
+    const wasClick = !drag.moved && drag.collapseOnClick;
+    const id = drag.id;
     drag = null;
+    if (wasClick) setSel([id]);
     rebuild();
   }
   tlLanes.addEventListener('pointerup', endDrag);
@@ -2006,7 +2321,7 @@
     clip.toutType = 'none';
     track.clips.push(right);
     ensureRuntime(right);
-    state.selected = right.id;
+    setSel([right.id]);
     rebuild();
     toast('Split');
   }
@@ -2015,34 +2330,226 @@
     if (!c) return toast('Select a clip first');
     splitClipAt(c, state.playhead);
   }
-  function cmdDelete(ripple){
-    const c = selectedClip();
-    if (!c) return toast('Select a clip first');
-    const track = trackOfClip(c.id);
-    if (track.locked) return toast('Track is locked');
+  // blade every unlocked track at the playhead, like Premiere's add-edit
+  function cmdSplitAll(){
+    const t = state.playhead;
+    const hits = [];
+    state.tracks.forEach(tr => {
+      if (tr.locked) return;
+      tr.clips.slice().forEach(c => {
+        if (t > c.start + 0.05 && t < c.start + c.duration - 0.05) hits.push(c);
+      });
+    });
+    if (!hits.length) return toast('Nothing under the playhead');
     pushUndo();
-    const gap = c.duration, from = c.start;
-    track.clips = track.clips.filter(x => x.id !== c.id);
-    if (ripple){
-      track.clips.forEach(x => { if (x.start >= from) x.start = Math.max(0, x.start - gap); });
-    }
-    state.selected = null;
+    hits.forEach(c => {
+      const track = trackOfClip(c.id);
+      const right = cloneClip(c, {
+        id: uid('c'), start: t,
+        duration: c.start + c.duration - t,
+        inPoint: c.inPoint + (t - c.start) * c.speed,
+        tinType: 'none'
+      });
+      c.duration = t - c.start;
+      c.toutType = 'none';
+      track.clips.push(right);
+      ensureRuntime(right);
+    });
+    rebuild();
+    toast(`Split ${hits.length} clip${hits.length > 1 ? 's' : ''}`);
+  }
+  function cmdDelete(ripple){
+    const clips = selClips();
+    if (!clips.length) return toast('Select a clip first');
+    const movable = clips.filter(c => !(trackOfClip(c.id) || {}).locked);
+    if (!movable.length) return toast('Track is locked');
+    pushUndo();
+    movable.forEach(c => {
+      const track = trackOfClip(c.id);
+      const gap = c.duration, from = c.start;
+      track.clips = track.clips.filter(x => x.id !== c.id);
+      if (ripple) track.clips.forEach(x => { if (x.start >= from) x.start = Math.max(0, x.start - gap); });
+    });
+    setSel([]);
     pruneRuntime();
     rebuild();
-    toast(ripple ? 'Ripple deleted' : 'Deleted');
+    toast(`${ripple ? 'Ripple deleted' : 'Deleted'} ${movable.length} clip${movable.length > 1 ? 's' : ''}`);
   }
   function cmdDuplicate(){
-    const c = selectedClip();
-    if (!c) return toast('Select a clip first');
+    const clips = selClips();
+    if (!clips.length) return toast('Select a clip first');
     pushUndo();
-    const track = trackOfClip(c.id);
-    const copy = cloneClip(c, { id: uid('c'), start: c.start + c.duration });
-    track.clips.push(copy);
-    ensureRuntime(copy);
-    state.selected = copy.id;
+    const made = [];
+    clips.forEach(c => {
+      const track = trackOfClip(c.id);
+      const copy = cloneClip(c, { id: uid('c'), start: c.start + c.duration });
+      track.clips.push(copy);
+      ensureRuntime(copy);
+      made.push(copy.id);
+    });
+    setSel(made);
     rebuild();
     toast('Duplicated');
   }
+
+  /* ---------- motion presets: write keyframes across the clip ---------- */
+  function applyMotionPreset(c, kind){
+    const d = c.duration;
+    if (!c.kf) c.kf = {};
+    const set = (key, points) => {
+      c.kf[key] = points.map(p => ({ t: clamp(p[0], 0, d), v: p[1], ez: p[2] || 'smooth' }))
+                        .sort((a,b) => a.t - b.t);
+    };
+    const s0 = c.scale || 1;
+    if (kind === 'kenburnsIn')       set('scale', [[0, s0], [d, s0 * 1.25]]);
+    else if (kind === 'kenburnsOut') set('scale', [[0, s0 * 1.25], [d, s0]]);
+    else if (kind === 'fade'){
+      const f = Math.min(0.6, d/3);
+      set('opacity', [[0, 0], [f, 1], [Math.max(f, d - f), 1], [d, 0]]);
+    }
+    else if (kind === 'slideIn'){
+      const f = Math.min(0.6, d/2);
+      set('x', [[0, -state.width * 0.6], [f, c.x || 0]]);
+    }
+    else if (kind === 'popIn'){
+      const f = Math.min(0.45, d/2);
+      set('scale', [[0, s0 * 0.4], [f * 0.7, s0 * 1.08], [f, s0]]);
+      set('opacity', [[0, 0], [f * 0.6, 1]]);
+    }
+    else if (kind === 'shake'){
+      const pts = [], n = Math.max(4, Math.round(d * 8));
+      for (let i = 0; i <= n; i++){
+        pts.push([ (i/n) * d, (c.x || 0) + (i === 0 || i === n ? 0 : (i % 2 ? 1 : -1) * state.width * 0.012), 'linear' ]);
+      }
+      set('x', pts);
+    }
+    renderInspector(); buildLanes(); renderAt(state.playhead); updateKfBtn();
+  }
+
+  /* ---------- clipboard ---------- */
+  let clipboard = [];
+  function cmdCopy(cut){
+    const clips = selClips();
+    if (!clips.length) return toast('Select a clip first');
+    const base = Math.min(...clips.map(c => c.start));
+    clipboard = clips.map(c => ({
+      data: cloneClip(c, {}), offset: c.start - base,
+      trackIdx: state.tracks.findIndex(t => t.id === (trackOfClip(c.id) || {}).id)
+    }));
+    toast(`${cut ? 'Cut' : 'Copied'} ${clips.length} clip${clips.length > 1 ? 's' : ''}`);
+    if (cut) cmdDelete(false);
+  }
+  function cmdPaste(){
+    if (!clipboard.length) return toast('Clipboard is empty');
+    pushUndo();
+    const made = [];
+    clipboard.forEach(entry => {
+      const track = state.tracks[entry.trackIdx] && !state.tracks[entry.trackIdx].locked
+        ? state.tracks[entry.trackIdx]
+        : state.tracks.find(t => t.kind === (entry.data.type === 'audio' ? 'audio' : 'video') && !t.locked);
+      if (!track) return;
+      const copy = cloneClip(entry.data, { id: uid('c'), start: state.playhead + entry.offset });
+      track.clips.push(copy);
+      ensureRuntime(copy);
+      made.push(copy.id);
+    });
+    setSel(made);
+    rebuild();
+    toast('Pasted');
+  }
+  function cmdSelectAll(){
+    const ids = state.tracks.filter(t => !t.locked).flatMap(t => t.clips.map(c => c.id));
+    if (!ids.length) return;
+    setSel(ids);
+    rebuild();
+    toast(`Selected ${ids.length} clips`);
+  }
+  function cmdToggleEnabled(){
+    const clips = selClips();
+    if (!clips.length) return toast('Select a clip first');
+    pushUndo();
+    const turningOff = clips[0].enabled !== false;
+    clips.forEach(c => { c.enabled = !turningOff; });
+    rebuild();
+    toast(turningOff ? 'Clip disabled' : 'Clip enabled');
+  }
+  function cmdNudge(dir){
+    const clips = selClips().filter(c => !(trackOfClip(c.id) || {}).locked);
+    if (!clips.length) return;
+    pushUndo();
+    const step = dir / state.fps;
+    let d = step;
+    clips.forEach(c => { d = Math.max(d, -c.start); });
+    clips.forEach(c => { c.start = Math.max(0, c.start + d); });
+    rebuild();
+  }
+
+  /* ---------- markers & in/out range ---------- */
+  function addMarker(){
+    const t = Math.round(state.playhead * 1000) / 1000;
+    if (state.markers.some(m => Math.abs(m - t) < 0.02)){
+      state.markers = state.markers.filter(m => Math.abs(m - t) >= 0.02);
+      buildRuler(); return toast('Marker removed');
+    }
+    pushUndo();
+    state.markers = state.markers.concat([t]).sort((a,b) => a-b);
+    buildRuler();
+    toast('Marker at ' + tcFmt(t));
+  }
+  function gotoMarker(dir){
+    const ms = state.markers.slice().sort((a,b) => a-b);
+    if (!ms.length) return toast('No markers');
+    const next = dir > 0 ? ms.find(m => m > state.playhead + 0.01)
+                         : ms.slice().reverse().find(m => m < state.playhead - 0.01);
+    if (next === undefined) return toast(dir > 0 ? 'No later marker' : 'No earlier marker');
+    stopPlayback(); setPlayhead(next);
+  }
+  function clearMarkers(){
+    if (!state.markers.length) return toast('No markers');
+    pushUndo();
+    state.markers = [];
+    buildRuler(); toast('Markers cleared');
+  }
+  function setIn(){ state.inPoint = state.playhead;
+    if (state.outPoint !== null && state.outPoint <= state.inPoint) state.outPoint = null;
+    buildRuler(); toast('In point ' + tcFmt(state.playhead)); }
+  function setOut(){ state.outPoint = state.playhead;
+    if (state.inPoint !== null && state.inPoint >= state.outPoint) state.inPoint = null;
+    buildRuler(); toast('Out point ' + tcFmt(state.playhead)); }
+  function clearInOut(){ state.inPoint = state.outPoint = null; buildRuler(); toast('Range cleared'); }
+  function rangeStart(){ return state.inPoint !== null ? state.inPoint : 0; }
+  function rangeEnd(){ return state.outPoint !== null ? state.outPoint : totalDuration(); }
+  function hasRange(){ return state.inPoint !== null || state.outPoint !== null; }
+
+  /* ---------- context menu ---------- */
+  const ctxMenu = document.createElement('div');
+  ctxMenu.className = 'ctx-menu';
+  document.body.appendChild(ctxMenu);
+  const CTX_ITEMS = [
+    ['Cut', 'cut'], ['Copy', 'copy'], ['Paste', 'paste'], ['-'],
+    ['Split at playhead', 'split'], ['Duplicate', 'duplicate'], ['-'],
+    ['Enable / disable', 'toggleEnabled'], ['-'],
+    ['Delete', 'delete'], ['Ripple delete', 'ripple']
+  ];
+  function openCtx(x, y){
+    ctxMenu.innerHTML = CTX_ITEMS.map(it =>
+      it[0] === '-' ? '<div class="ctx-sep"></div>'
+        : `<button data-cmd="${it[1]}">${it[0]}</button>`).join('');
+    ctxMenu.style.left = Math.min(x, innerWidth - 180) + 'px';
+    ctxMenu.style.top = Math.min(y, innerHeight - 260) + 'px';
+    ctxMenu.classList.add('on');
+  }
+  const closeCtx = () => ctxMenu.classList.remove('on');
+  tlLanes.addEventListener('contextmenu', e => {
+    const clipEl = e.target.closest('.clip');
+    if (!clipEl) return;
+    e.preventDefault();
+    if (!isSel(clipEl.dataset.clip)) setSel([clipEl.dataset.clip]);
+    rebuildSelectionOnly();
+    openCtx(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerdown', e => { if (!e.target.closest('.ctx-menu')) closeCtx(); }, true);
+  ctxMenu.addEventListener('click', () => closeCtx());
 
   /* ================= INSPECTOR ================= */
   const FMT = {
@@ -2112,7 +2619,27 @@
         : '')
     );
 
-    if (c.type !== 'audio'){
+    if (c.type === 'adjust'){
+      h += `<div style="font-size:11px;color:var(--dim2);line-height:1.55;margin:-2px 0 12px">
+              Grades everything on the tracks beneath it, for as long as it runs.
+            </div>`;
+      h += sect('Strength', fRange('Amount','opacity',0,1,0.01, v => Math.round(v*100)+'%'));
+      const presetBtns = Object.keys(LOOKS).map(k =>
+        `<button class="preset${c.look === k ? ' on' : ''}" data-look="${k}">${k}</button>`).join('');
+      h += sect('Colour',
+        `<div class="preset-row">${presetBtns}</div>` +
+        fRange('Brightness','brightness',0.2,2,0.01, v => (+v).toFixed(2)) +
+        fRange('Contrast','contrast',0.2,2,0.01, v => (+v).toFixed(2)) +
+        fRange('Saturation','saturation',0,3,0.01, v => (+v).toFixed(2)) +
+        fRange('Hue','hue',-180,180,1, v => Math.round(v)+'°') +
+        fRange('Blur','blurPx',0,30,0.5, v => (+v)+'px')
+      );
+      h += sect('Effects',
+        fRange('Vignette','vignette',0,1,0.01, v => Math.round(v*100)+'%') +
+        fCheck('Tint','tintOn') + fColor('Tint colour','tintColor') +
+        fRange('Tint amount','tintAmt',0,1,0.01, v => Math.round(v*100)+'%')
+      );
+    } else if (c.type !== 'audio'){
       h += `<div style="font-size:11px;color:var(--dim2);line-height:1.5;margin:-2px 0 12px">
               Click <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;
               border-radius:4px;background:#2b303a;border:1px solid #4a5261;color:#c6cedb;font-size:9px;
@@ -2145,6 +2672,47 @@
           fRange('Blur','blurPx',0,30,0.5, v => v+'px')
         );
       }
+      if (c.type === 'video' || c.type === 'image'){
+        h += sect('Chroma key (green screen)',
+          fCheck('Enable','keyOn') + fColor('Key colour','keyColor') +
+          fRange('Tolerance','keySim',0.02,1,0.01, v => (+v).toFixed(2)) +
+          fRange('Softness','keySoft',0.001,0.6,0.005, v => (+v).toFixed(3)) +
+          fRange('Spill removal','keySpill',0,1,0.01, v => Math.round(v*100)+'%')
+        );
+      }
+
+      if (c.type === 'shape'){
+        h += sect('Shape',
+          fSel('Kind','shape',[['rect','Rectangle'],['ellipse','Ellipse'],['triangle','Triangle'],['line','Line']]) +
+          fColor('Fill','fill') +
+          fRange('Width','shapeW',0.02,2,0.01, v => Math.round(v*100)+'%') +
+          fRange('Height','shapeH',0.02,2,0.01, v => Math.round(v*100)+'%') +
+          fRange('Corner radius','radius',0,0.5,0.01, v => Math.round(v*100)+'%') +
+          fCheck('Outline','strokeOn') + fColor('Outline col','strokeColor') + fNum('Outline w','strokeW',0,60,1)
+        );
+      }
+
+      h += sect('Effects',
+        fCheck('Flip horizontal','flipH') + fCheck('Flip vertical','flipV') +
+        fRange('Vignette','vignette',0,1,0.01, v => Math.round(v*100)+'%') +
+        fCheck('Tint','tintOn') + fColor('Tint colour','tintColor') +
+        fRange('Tint amount','tintAmt',0,1,0.01, v => Math.round(v*100)+'%')
+      );
+
+      h += sect('Motion presets',
+        `<div class="preset-row">
+           <button class="preset" data-motion="kenburnsIn">Zoom in</button>
+           <button class="preset" data-motion="kenburnsOut">Zoom out</button>
+           <button class="preset" data-motion="fade">Fade in/out</button>
+           <button class="preset" data-motion="slideIn">Slide in</button>
+           <button class="preset" data-motion="popIn">Pop in</button>
+           <button class="preset" data-motion="shake">Shake</button>
+         </div>
+         <div style="font-size:11px;color:var(--dim2);line-height:1.5">
+           Presets write keyframes across the clip — tweak or clear them afterwards.
+         </div>`
+      );
+
       h += sect('Compositing', fSel('Blend mode','blend', BLENDS));
       h += sect('Transitions',
         fSel('In','tinType', TRANSITIONS) + fNum('In length','tinDur',0,10,0.05) +
@@ -2259,7 +2827,12 @@
     const kfKey = e.target.dataset.kf;
     const kfClear = e.target.dataset.kfclear;
 
-    if (look){
+    const motion = e.target.dataset.motion;
+    if (motion){
+      pushUndo();
+      applyMotionPreset(c, motion);
+      toast('Applied ' + motion.replace(/([A-Z])/g, ' $1').toLowerCase());
+    } else if (look){
       pushUndo();
       Object.assign(c, LOOKS[look], { look });
     } else if (kfKey){
@@ -2362,8 +2935,10 @@
 
     exporting = true;
     $('exportOverlay').classList.add('on');
-    $('exportMsg').textContent = `Recording ${tcFmt(totalDuration())} in real time. Keep this tab visible.`;
-    setPlayhead(0);
+    const span = rangeEnd() - rangeStart();
+    $('exportMsg').textContent =
+      `Recording ${tcFmt(span)}${hasRange() ? ' (in/out range)' : ''} in real time. Keep this tab visible.`;
+    setPlayhead(rangeStart());
     recorder.start();
     startPlayback();
   }
@@ -2490,7 +3065,7 @@
     state.pxPerSec = proj.data.pxPerSec || 80;
     uidN = Math.max(uidN, proj.data.uidN || 1);
     state.projectId = proj.id; state.projectName = proj.name;
-    state.selected = null;
+    setSel([]);
     state.activeTrack = (state.tracks.find(t => t.kind === 'video') || state.tracks[0] || {}).id || null;
     undoStack.length = 0; redoStack.length = 0;
     allClips().forEach(ensureRuntime);
@@ -2509,7 +3084,7 @@
     runtime.clear();
     state.tracks = [ makeTrack('video','V2'), makeTrack('video','V1'), makeTrack('audio','A1') ];
     state.activeTrack = state.tracks[1].id;
-    state.selected = null;
+    setSel([]); state.markers = []; state.inPoint = state.outPoint = null;
     state.projectId = null; state.projectName = '';
     undoStack.length = 0; redoStack.length = 0;
     setPlayhead(0); rebuild(); updateProjectLabel();
@@ -2525,17 +3100,36 @@
     import: () => $('importInput').click(),
     addText: addTextClip,
     addOutro: addOutroClip,
+    addRect: () => addShapeClip('rect'),
+    addEllipse: () => addShapeClip('ellipse'),
+    addAdjust: addAdjustClip,
     export: doExport,
     clearAll: () => {
       if (!totalDuration()) return;
       pushUndo();
       state.tracks.forEach(t => t.clips = []);
-      state.selected = null;
+      setSel([]);
       pruneRuntime(); setPlayhead(0); rebuild(); toast('Timeline cleared');
     },
     undo, redo,
     split: cmdSplit,
+    splitAll: cmdSplitAll,
     duplicate: cmdDuplicate,
+    copy: () => cmdCopy(false),
+    cut: () => cmdCopy(true),
+    paste: cmdPaste,
+    selectAll: cmdSelectAll,
+    toggleEnabled: cmdToggleEnabled,
+    addMarker, clearMarkers,
+    nextMarker: () => gotoMarker(1),
+    prevMarker: () => gotoMarker(-1),
+    setIn, setOut, clearInOut,
+    loopToggle: () => {
+      state.loop = !state.loop;
+      $('loopBtn').classList.toggle('on', state.loop);
+      $('loopBtn').classList.toggle('loop', state.loop);
+      toast('Loop ' + (state.loop ? 'on' : 'off'));
+    },
     delete: () => cmdDelete(false),
     ripple: () => cmdDelete(true),
     addVideoTrack: () => {
@@ -2557,7 +3151,7 @@
       pushUndo();
       state.tracks = state.tracks.filter(t => t.id !== tr.id);
       state.activeTrack = state.tracks[0].id;
-      state.selected = null;
+      setSel([]);
       pruneRuntime(); rebuild(); toast('Track deleted');
     },
     zoomIn: () => { state.pxPerSec = clamp(state.pxPerSec * 1.3, 8, 600); rebuild(); },
@@ -2622,6 +3216,12 @@
     ['Ctrl S','Save project'], ['Ctrl Shift S','Save project as…'],
     ['Ctrl E','Export'], ['?','This list'],
     ['K','Add / remove a keyframe at the playhead'],
+    ['Shift click','Add a clip to the selection'], ['Ctrl A','Select all clips'],
+    ['Ctrl C / X / V','Copy / cut / paste clips'], ['Ctrl Shift K','Split every track'],
+    ['E','Enable / disable clip'], [', / .','Nudge one frame'],
+    ['M','Add / remove marker'], ['Shift M / Alt M','Previous / next marker'],
+    ['I / O','Mark in / out'], ['Ctrl Shift X','Clear in and out'], ['Ctrl L','Loop playback'],
+    ['Right click','Clip menu'],
     ['Drag on canvas','Move the selected clip'], ['Corner handles','Scale it'],
     ['Handle above box','Rotate (hold Shift to snap 15°)'],
     ['Double-click text','Edit it on the canvas'], ['◆ button','Keyframe that property']
@@ -2634,10 +3234,18 @@
     if (typing) return;
     const mod = e.ctrlKey || e.metaKey;
 
-    if (mod && e.key.toLowerCase() === 's'){ e.preventDefault(); saveProject(e.shiftKey); return; }
-    if (mod && e.key.toLowerCase() === 'z'){ e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
-    if (mod && e.key.toLowerCase() === 'd'){ e.preventDefault(); cmdDuplicate(); return; }
-    if (mod && e.key.toLowerCase() === 'e'){ e.preventDefault(); doExport(); return; }
+    const key = e.key.toLowerCase();
+    if (mod && key === 's'){ e.preventDefault(); saveProject(e.shiftKey); return; }
+    if (mod && key === 'z'){ e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+    if (mod && key === 'd'){ e.preventDefault(); cmdDuplicate(); return; }
+    if (mod && key === 'e'){ e.preventDefault(); doExport(); return; }
+    if (mod && key === 'c'){ e.preventDefault(); cmdCopy(false); return; }
+    if (mod && key === 'x' && e.shiftKey){ e.preventDefault(); clearInOut(); return; }
+    if (mod && key === 'x'){ e.preventDefault(); cmdCopy(true); return; }
+    if (mod && key === 'v'){ e.preventDefault(); cmdPaste(); return; }
+    if (mod && key === 'a'){ e.preventDefault(); cmdSelectAll(); return; }
+    if (mod && key === 'k' && e.shiftKey){ e.preventDefault(); cmdSplitAll(); return; }
+    if (mod && key === 'l'){ e.preventDefault(); commands.loopToggle(); return; }
     if (mod) return;
 
     switch (e.key){
@@ -2650,18 +3258,22 @@
       case '+': case '=': commands.zoomIn(); break;
       case '-': case '_': commands.zoomOut(); break;
       case '?': commands.shortcuts(); break;
+      case ',': e.preventDefault(); cmdNudge(-1); break;
+      case '.': e.preventDefault(); cmdNudge(1); break;
       default: {
         const k = e.key.toLowerCase();
-        if (k === 'v'){ document.querySelector('[data-tool="select"]').click(); }
+        if (k === 'm'){ e.altKey ? gotoMarker(1) : e.shiftKey ? gotoMarker(-1) : addMarker(); }
+        else if (k === 'i'){ e.shiftKey ? commands.import() : setIn(); }
+        else if (k === 'o'){ e.shiftKey ? commands.addOutro() : setOut(); }
+        else if (k === 'e'){ cmdToggleEnabled(); }
+        else if (k === 'v'){ document.querySelector('[data-tool="select"]').click(); }
         else if (k === 'c'){
           if (selectedClip()) cmdSplit();
           document.querySelector('[data-tool="blade"]').click();
         }
         else if (k === 'k'){ toggleKeyframeHere(); }
         else if (k === 's'){ commands.snapToggle(); }
-        else if (k === 'i'){ commands.import(); }
         else if (k === 't'){ commands.addText(); }
-        else if (k === 'o'){ commands.addOutro(); }
         else if (k === 'z' && e.shiftKey){ commands.zoomFit(); }
       }
     }
