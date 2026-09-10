@@ -453,6 +453,9 @@
   .rmark.in{ background:#4493f8; box-shadow:2px 0 0 rgba(68,147,248,0.4); }
   .rmark.out{ background:#4493f8; box-shadow:-2px 0 0 rgba(68,147,248,0.4); }
   .clip.off{ opacity:0.38; }
+  .clip.grouped::after{
+    content:'⛓'; position:absolute; right:5px; top:3px; font-size:9px; opacity:0.75; pointer-events:none;
+  }
   .clip.off .lbl::before{ content:'⦸ '; }
   .ctx-menu{
     display:none; position:fixed; z-index:200; min-width:172px; padding:5px;
@@ -557,6 +560,10 @@
         <button data-cmd="duplicate">Duplicate<kbd>Ctrl D</kbd></button>
         <button data-cmd="toggleEnabled">Enable / disable<kbd>E</kbd></button>
         <div class="sep"></div>
+        <button data-cmd="group">Group clips<kbd>Ctrl G</kbd></button>
+        <button data-cmd="ungroup">Ungroup<kbd>Ctrl ⇧ G</kbd></button>
+        <div class="sep"></div>
+        <button data-cmd="quickFade">Add fades to selection</button>
         <button data-cmd="freeze">Freeze frame<kbd>F</kbd></button>
         <button data-cmd="closeGaps">Close gaps on track</button>
         <div class="sep"></div>
@@ -573,6 +580,14 @@
         <div class="sep"></div>
         <button data-cmd="duplicateTrack">Duplicate active track</button>
         <button data-cmd="delTrack">Delete active track</button>
+      </div>
+    </div>
+    <div class="mb-item" data-menu>
+      <button class="mb-btn">Audio</button>
+      <div class="mb-drop">
+        <button data-cmd="normalize">Normalise selected clip</button>
+        <button data-cmd="duck">Duck music under other tracks</button>
+        <button data-cmd="quickFade">Add fades to selection</button>
       </div>
     </div>
     <div class="mb-item" data-menu>
@@ -609,6 +624,10 @@
     <div class="mb-spacer"></div>
     <div class="mb-right">
       <span class="proj-label" id="projLabel">Unsaved project</span>
+      <select class="sel" id="previewQ" title="Preview quality — draft skips the heavy effects while editing">
+        <option value="full" selected>Full preview</option>
+        <option value="draft">Draft preview</option>
+      </select>
       <select class="sel" id="fpsSelect" title="Frame rate">
         <option value="24">24 fps</option>
         <option value="30" selected>30 fps</option>
@@ -870,7 +889,7 @@
     tracks:[], selected:null, activeTrack:null,
     playhead:0, pxPerSec:80, tool:'select', snap:true,
     projectId:null, projectName:'',
-    sel:[], markers:[], inPoint:null, outPoint:null, loop:false, rate:1, kfEase:'smooth'
+    sel:[], markers:[], inPoint:null, outPoint:null, loop:false, rate:1, kfEase:'smooth', draft:false
   };
   const assets = new Map();
   const runtime = new Map();
@@ -1257,7 +1276,7 @@
     if (ct !== 1) parts.push(`contrast(${ct})`);
     if (s !== 1) parts.push(`saturate(${s})`);
     if (h) parts.push(`hue-rotate(${h}deg)`);
-    if (bl) parts.push(`blur(${bl}px)`);
+    if (bl && !draftNow()) parts.push(`blur(${bl}px)`);
     return parts.length ? parts.join(' ') : 'none';
   }
   function sourceSize(c){
@@ -1625,8 +1644,9 @@
   }
 
   let fxCv = null, fxCtx = null;
-  const needsFx = c =>
-    (c.maskOn && c.maskFeather > 0) || c.pixelate > 0 || c.grain > 0 || c.rgbSplit > 0;
+  const draftNow = () => state.draft && !exporting;
+  const needsFx = c => !draftNow() &&
+    ((c.maskOn && c.maskFeather > 0) || c.pixelate > 0 || c.grain > 0 || c.rgbSplit > 0);
 
   function drawClip(c, t, baseAlpha){
     if (!needsFx(c)) return drawClipInner(c, t, baseAlpha, false);
@@ -1776,7 +1796,7 @@
       ctx.rect(r.x, r.y, r.w, r.h);
       ctx.clip();
     }
-    if (c.maskOn && !(c.maskFeather > 0)){
+    if (c.maskOn && (draftNow() || !(c.maskFeather > 0))){
       maskPath(ctx, c, local);
       ctx.clip();
     }
@@ -2345,7 +2365,7 @@
       tr.clips.forEach(c => {
         const left = c.start * state.pxPerSec;
         const width = Math.max(6, c.duration * state.pxPerSec);
-        const cls = `clip ${c.type}${isSel(c.id) ? ' sel' : ''}${c.enabled === false ? ' off' : ''}`;
+        const cls = `clip ${c.type}${isSel(c.id) ? ' sel' : ''}${c.enabled === false ? ' off' : ''}${c.groupId ? ' grouped' : ''}`;
         const fi = c.fadeIn > 0 ? `<div class="fadeMark" style="width:${(c.fadeIn*state.pxPerSec).toFixed(1)}px"></div>` : '';
         const fo = c.fadeOut > 0 ? `<div class="fadeMark out" style="right:0;width:${(c.fadeOut*state.pxPerSec).toFixed(1)}px"></div>` : '';
         const wf = (c.type === 'audio' || c.type === 'video') ? `<canvas class="wf" data-wf="${c.id}"></canvas>` : '';
@@ -2355,6 +2375,7 @@
               `<div class="kfd" style="left:${(t*state.pxPerSec).toFixed(1)}px"></div>`).join('') + `</div>`
           : '';
         const lblStyle = c.label ? `;--c1:${c.label};--c2:${c.label}` : '';
+        const grouped = c.groupId ? ' grouped' : '';
         html += `<div class="${cls}" data-clip="${c.id}" style="left:${left.toFixed(1)}px;width:${width.toFixed(1)}px${lblStyle}">
           ${wf}${fi}${fo}${kstrip}
           <div class="lbl">${esc(clipLabel(c))}</div>
@@ -2462,12 +2483,16 @@
     const track = trackOfClip(clip.id);
     if (track.locked){ toast('Track is locked'); return; }
 
+    // a grouped clip brings its whole group along
+    const groupIds = clip.groupId
+      ? allClips().filter(x => x.groupId === clip.groupId).map(x => x.id)
+      : [clip.id];
     const additive = e.shiftKey || e.ctrlKey || e.metaKey;
     // clicking a clip that's already part of a multi-selection keeps the group so it can be
     // dragged as one; if the click turns out to be a plain click, endDrag collapses it
-    const collapseOnClick = !additive && isSel(clip.id) && state.sel.length > 1;
-    if (additive) toggleSel(clip.id);
-    else if (!isSel(clip.id)) setSel([clip.id]);
+    const collapseOnClick = !additive && isSel(clip.id) && state.sel.length > 1 && !clip.groupId;
+    if (additive) groupIds.forEach(id => { if (!isSel(id)) setSel(state.sel.concat([id]), clip.id); });
+    else if (!isSel(clip.id)) setSel(groupIds, clip.id);
     else state.selected = clip.id;
     state.activeTrack = track.id;
 
@@ -2486,6 +2511,9 @@
       startX: e.clientX, startY: e.clientY,
       origStart: clip.start, origDur: clip.duration, origIn: clip.inPoint,
       origTrack: track.id, pushed: false, collapseOnClick,
+      ripple: !!(handle && e.altKey),
+      after: (handle ? track.clips.filter(x => x.id !== clip.id && x.start >= clip.start + clip.duration - 0.001)
+                              .map(x => ({ id: x.id, start: x.start })) : []),
       group: group.map(c => ({ id: c.id, start: c.start }))
     };
     clipEl.classList.add('dragging');
@@ -2530,6 +2558,13 @@
         dur = Math.min(dur, maxDur);
       }
       clip.duration = dur;
+      if (drag.ripple){
+        const shift = (clip.start + clip.duration) - (drag.origStart + drag.origDur);
+        drag.after.forEach(a => {
+          const ac = findClip(a.id);
+          if (ac) ac.start = Math.max(0, a.start + shift);
+        });
+      }
     } else {
       const newStart = Math.max(0, snapTime(drag.origStart + dx, clip.id));
       const shift = newStart - drag.origStart;
@@ -2729,6 +2764,91 @@
       set('x', pts);
     }
     renderInspector(); buildLanes(); renderAt(state.playhead); updateKfBtn();
+  }
+
+  /* ---------- grouping ---------- */
+  function cmdGroup(){
+    const clips = selClips();
+    if (clips.length < 2) return toast('Select at least two clips');
+    pushUndo();
+    const gid = uid('g');
+    clips.forEach(c => { c.groupId = gid; });
+    rebuild();
+    toast(`Grouped ${clips.length} clips`);
+  }
+  function cmdUngroup(){
+    const clips = selClips().filter(c => c.groupId);
+    if (!clips.length) return toast('No group selected');
+    pushUndo();
+    const ids = new Set(clips.map(c => c.groupId));
+    allClips().forEach(c => { if (ids.has(c.groupId)) delete c.groupId; });
+    rebuild();
+    toast('Ungrouped');
+  }
+
+  /* ---------- audio helpers ---------- */
+  function cmdNormalize(){
+    const clips = selClips().filter(c => c.type === 'audio' || c.type === 'video');
+    if (!clips.length) return toast('Select an audio or video clip');
+    pushUndo();
+    let done = 0;
+    clips.forEach(c => {
+      const a = assets.get(c.assetId);
+      if (!a || !a.peaks || !a.duration) return;
+      const from = Math.floor((c.inPoint / a.duration) * a.peaks.length);
+      const to = Math.ceil(((c.inPoint + c.duration * c.speed) / a.duration) * a.peaks.length);
+      let peak = 0;
+      for (let i = Math.max(0, from); i < Math.min(a.peaks.length, to); i++)
+        if (a.peaks[i] > peak) peak = a.peaks[i];
+      if (peak > 0.001){ c.volume = clamp(0.89 / peak, 0.1, 2); done++; }
+    });
+    rebuild();
+    toast(done ? `Normalised ${done} clip${done>1?'s':''}` : 'No decodable audio in the selection');
+  }
+  // dip the selected music clip wherever another track has sound
+  function cmdDuck(){
+    const music = selectedClip();
+    if (!music || (music.type !== 'audio' && music.type !== 'video'))
+      return toast('Select the music clip first');
+    const musicTrack = trackOfClip(music.id);
+    const others = state.tracks
+      .filter(tr => tr.id !== musicTrack.id)
+      .flatMap(tr => tr.clips)
+      .filter(c => (c.type === 'audio' || c.type === 'video') && c.enabled !== false && !c.muted);
+    if (!others.length) return toast('Nothing on other tracks to duck under');
+    pushUndo();
+    const base = music.volume || 1, low = base * 0.25, ramp = 0.35;
+    const pts = [{ t: 0, v: base, ez: 'smooth' }];
+    others
+      .map(c => [Math.max(music.start, c.start), Math.min(music.start + music.duration, c.start + c.duration)])
+      .filter(([a,b]) => b > a)
+      .sort((p,q) => p[0] - q[0])
+      .forEach(([a,b]) => {
+        const s0 = a - music.start, s1 = b - music.start;
+        pts.push({ t: Math.max(0, s0 - ramp), v: base, ez:'smooth' });
+        pts.push({ t: s0, v: low, ez:'smooth' });
+        pts.push({ t: s1, v: low, ez:'smooth' });
+        pts.push({ t: Math.min(music.duration, s1 + ramp), v: base, ez:'smooth' });
+      });
+    pts.push({ t: music.duration, v: base, ez:'smooth' });
+    if (!music.kf) music.kf = {};
+    music.kf.volume = pts
+      .filter(p => p.t >= 0 && p.t <= music.duration)
+      .sort((a,b) => a.t - b.t);
+    rebuild();
+    toast('Ducked under ' + others.length + ' clip(s)');
+  }
+  function cmdQuickFade(){
+    const clips = selClips();
+    if (!clips.length) return toast('Select a clip first');
+    pushUndo();
+    clips.forEach(c => {
+      const f = Math.min(0.5, c.duration / 4);
+      if (c.type === 'audio' || c.type === 'video'){ c.fadeIn = f; c.fadeOut = f; }
+      if (c.type !== 'audio'){ c.tinType = 'fade'; c.tinDur = f; c.toutType = 'fade'; c.toutDur = f; }
+    });
+    rebuild();
+    toast('Fades added');
   }
 
   /* ---------- freeze frame: snapshot a video clip into a still ---------- */
@@ -3682,6 +3802,11 @@
     },
     importFile: () => $('projFileInput').click(),
     freeze: cmdFreezeFrame,
+    group: cmdGroup,
+    ungroup: cmdUngroup,
+    normalize: cmdNormalize,
+    duck: cmdDuck,
+    quickFade: cmdQuickFade,
     closeGaps: cmdCloseGaps,
     duplicateTrack: () => {
       const tr = state.tracks.find(t => t.id === state.activeTrack);
@@ -3797,6 +3922,11 @@
   $('stepFwd').addEventListener('click', () => { stopPlayback(); setPlayhead(state.playhead + 1/state.fps); });
 
   $('exportBtn').addEventListener('click', doExport);
+  $('previewQ').addEventListener('change', e => {
+    state.draft = e.target.value === 'draft';
+    renderAt(state.playhead);
+    toast(state.draft ? 'Draft preview — export stays full quality' : 'Full preview');
+  });
   $('fpsSelect').addEventListener('change', e => {
     state.fps = parseInt(e.target.value, 10) || 30;
     updatePlayheadUI();
@@ -3849,6 +3979,7 @@
     if (mod && key === 'a'){ e.preventDefault(); cmdSelectAll(); return; }
     if (mod && key === 'k' && e.shiftKey){ e.preventDefault(); cmdSplitAll(); return; }
     if (mod && key === 'l'){ e.preventDefault(); commands.loopToggle(); return; }
+    if (mod && key === 'g'){ e.preventDefault(); e.shiftKey ? cmdUngroup() : cmdGroup(); return; }
     if (mod) return;
 
     switch (e.key){
