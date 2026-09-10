@@ -3284,6 +3284,22 @@
     ['Add to timeline', 'binAdd'], ['-'], ['Remove from project', 'binRemove']
   ];
   const CTX_BIN = [['Import media…', 'import', 'I'], ['-'], ['Remove unused media', 'purgeUnused']];
+  const CTX_TRANSPORT = [
+    ['Toggle loop', 'loopToggle'], ['-'],
+    ['Mark in', 'setIn', 'I'], ['Mark out', 'setOut', 'O'],
+    ['Clear in / out', 'clearInOut', 'Ctrl ⇧ X'], ['-'],
+    ['Add / remove marker', 'addMarker', 'M'], ['-'],
+    ['Export current frame (PNG)', 'snapshot'], ['Export video…', 'export', 'Ctrl E']
+  ];
+  // anywhere with nothing more specific to offer
+  const CTX_GLOBAL = [
+    ['Undo', 'undo', 'Ctrl Z'], ['Redo', 'redo', 'Ctrl ⇧ Z'], ['-'],
+    ['Paste at playhead', 'paste', 'Ctrl V'], ['Select all', 'selectAll', 'Ctrl A'], ['-'],
+    ['Import media…', 'import', 'I'], ['New text clip', 'addText', 'T'], ['-'],
+    ['Zoom to fit', 'zoomFit', '⇧ Z'], ['Toggle snapping', 'snapToggle', 'S'], ['-'],
+    ['Save project', 'saveProject', 'Ctrl S'], ['Export video…', 'export', 'Ctrl E'], ['-'],
+    ['Keyboard shortcuts', 'shortcuts', '?']
+  ];
 
   function openCtx(x, y, items){
     ctxMenu.innerHTML = items.map(it =>
@@ -3348,7 +3364,14 @@
       rebuildSelectionOnly();
       return CTX_LANE;
     }
-    return null;
+
+    if (t.closest('.mon-bar')) return CTX_TRANSPORT;
+    // the inspector is already showing the selected clip, so offer its commands
+    if (t.closest('#inspector') && selClips().length) return CTX_CLIP;
+
+    // an overlay owns the screen while it is up; leave it to the browser
+    if (t.closest('.overlay')) return null;
+    return CTX_GLOBAL;
   }
 
   document.addEventListener('contextmenu', e => {
