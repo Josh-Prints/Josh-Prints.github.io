@@ -1619,10 +1619,13 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     <!-- Order alerts section -->
     <div class="debug-section" id="debug-section-alerts">
       <div class="modal-body">
-        <p class="modal-sub" style="margin:0 0 16px;">Get pinged on your phone the moment an order comes in. In Discord: open a channel → Edit Channel → Integrations → Webhooks → New Webhook → Copy Webhook URL, then paste it here. Turn on notifications for that channel and it'll buzz your phone.</p>
+        <p class="modal-sub" style="margin:0 0 16px;">Get pinged on your phone the moment an order comes in. In Discord: open a channel → Edit Channel → Integrations → Webhooks → New Webhook → Copy Webhook URL, then paste it here. To have it ping a role, turn on Developer Mode (User Settings → Advanced), then Server Settings → Roles → right-click the role → Copy Role ID.</p>
         <div class="rates-form-grid">
           <label style="grid-column:1 / -1;">Discord webhook URL<span class="unit">kept private — never sent to the public site</span>
             <input type="password" id="hook-url" placeholder="https://discord.com/api/webhooks/…" autocomplete="off">
+          </label>
+          <label style="grid-column:1 / -1;">Role to ping<span class="unit">Discord role ID — leave blank for a silent alert</span>
+            <input type="text" id="hook-role" placeholder="e.g. 123456789012345678" autocomplete="off" inputmode="numeric">
           </label>
         </div>
         <p class="modal-sub" id="hook-state" style="margin:12px 0 0;"></p>
@@ -3297,19 +3300,27 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   /* ---------- order alerts (Discord webhook) ---------- */
   const hookUrlInput = document.getElementById('hook-url');
   const hookSaveBtn = document.getElementById('hook-save');
+  const hookRoleInput = document.getElementById('hook-role');
   const hookTestBtn = document.getElementById('hook-test');
   const hookMsgEl = document.getElementById('hook-msg');
   const hookStateEl = document.getElementById('hook-state');
 
+  let hookSaved = false;
+
   async function loadWebhookState(){
     const { data, error } = await supabase
-      .from('private_config').select('value, updated_at')
-      .eq('key', 'discord_webhook_url').maybeSingle();
+      .from('private_config').select('key, value, updated_at')
+      .in('key', ['discord_webhook_url', 'discord_role_id']);
     if (error){ hookStateEl.textContent = ''; return; }
-    if (data && data.value){
+    const rows = data || [];
+    const hook = rows.find(r => r.key === 'discord_webhook_url');
+    const role = rows.find(r => r.key === 'discord_role_id');
+    hookRoleInput.value = (role && role.value) || '';
+    hookSaved = !!(hook && hook.value);
+    if (hookSaved){
       hookUrlInput.placeholder = '•••••• saved — paste a new URL to replace it';
       hookStateEl.textContent = 'Alerts are on. Saved ' +
-        new Date(data.updated_at).toLocaleString() + '.';
+        new Date(hook.updated_at).toLocaleString() + '.';
     } else {
       hookStateEl.textContent = 'No webhook saved yet — orders will not notify you.';
     }
@@ -3317,16 +3328,23 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
   hookSaveBtn.addEventListener('click', async () => {
     const url = hookUrlInput.value.trim();
-    if (!url){ hookMsgEl.textContent = 'Paste a webhook URL first.'; return; }
-    if (!/^https:\/\/(discord|discordapp)\.com\/api\/webhooks\//.test(url)){
+    const role = hookRoleInput.value.trim();
+    if (!url && !hookSaved){ hookMsgEl.textContent = 'Paste a webhook URL first.'; return; }
+    if (url && !/^https:\/\/(discord|discordapp)\.com\/api\/webhooks\//.test(url)){
       hookMsgEl.textContent = 'That does not look like a Discord webhook URL.';
+      return;
+    }
+    if (role && !/^[0-9]{5,25}$/.test(role)){
+      hookMsgEl.textContent = 'A role ID is just digits — copy it with Developer Mode on.';
       return;
     }
     hookSaveBtn.disabled = true;
     hookSaveBtn.textContent = 'Saving…';
     hookMsgEl.textContent = '';
-    const { error } = await supabase.from('private_config')
-      .upsert({ key: 'discord_webhook_url', value: url, updated_at: new Date().toISOString() });
+    const now = new Date().toISOString();
+    const rows = [{ key: 'discord_role_id', value: role, updated_at: now }];
+    if (url) rows.push({ key: 'discord_webhook_url', value: url, updated_at: now });
+    const { error } = await supabase.from('private_config').upsert(rows);
     hookSaveBtn.disabled = false;
     hookSaveBtn.textContent = 'Save webhook';
     if (error){ hookMsgEl.textContent = 'Error: ' + error.message; return; }
