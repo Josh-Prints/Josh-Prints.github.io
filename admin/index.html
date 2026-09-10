@@ -804,7 +804,9 @@
   /* ---- Debug modal tabs ---- */
   .debug-tabs{
     display:flex;
-    gap: 6px;
+    flex-wrap: wrap;
+    row-gap: 0;
+    column-gap: 6px;
     margin-bottom: 18px;
     border-bottom: 1px solid rgba(var(--border-tint),0.10);
   }
@@ -818,7 +820,9 @@
     letter-spacing: 0.03em;
     padding: 8px 4px 10px;
     cursor: pointer;
-    margin-right: 14px;
+    margin-right: 10px;
+    flex: none;
+    white-space: nowrap;
   }
   .debug-tab.active{
     color: var(--accent);
@@ -1231,9 +1235,6 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
   .admin-row{ flex-wrap: wrap; }
   .admin-row .info{ flex-basis: 100%; }
-
-  .debug-tabs{ overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
-  .debug-tab{ white-space: nowrap; }
 
   .toast-stack{ left: 12px; right: 12px; bottom: 12px; max-width: none; }
 }
