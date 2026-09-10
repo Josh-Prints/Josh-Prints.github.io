@@ -1441,6 +1441,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <button type="button" class="debug-tab" data-tab="banner">Banner</button>
       <button type="button" class="debug-tab" data-tab="credit">Store Credit</button>
       <button type="button" class="debug-tab" data-tab="promo">Promo Codes</button>
+      <button type="button" class="debug-tab" data-tab="alerts">Alerts</button>
       <button type="button" class="debug-tab" data-tab="tools">Tools</button>
     </div>
 
@@ -1612,6 +1613,24 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <div class="modal-foot">
         <span id="credit-msg"></span>
         <button class="save-btn" id="credit-save">Save store credit</button>
+      </div>
+    </div>
+
+    <!-- Order alerts section -->
+    <div class="debug-section" id="debug-section-alerts">
+      <div class="modal-body">
+        <p class="modal-sub" style="margin:0 0 16px;">Get pinged on your phone the moment an order comes in. In Discord: open a channel → Edit Channel → Integrations → Webhooks → New Webhook → Copy Webhook URL, then paste it here. Turn on notifications for that channel and it'll buzz your phone.</p>
+        <div class="rates-form-grid">
+          <label style="grid-column:1 / -1;">Discord webhook URL<span class="unit">kept private — never sent to the public site</span>
+            <input type="password" id="hook-url" placeholder="https://discord.com/api/webhooks/…" autocomplete="off">
+          </label>
+        </div>
+        <p class="modal-sub" id="hook-state" style="margin:12px 0 0;"></p>
+      </div>
+      <div class="modal-foot">
+        <span id="hook-msg"></span>
+        <button class="save-btn" id="hook-test" style="margin-right:8px;">Send test</button>
+        <button class="save-btn" id="hook-save">Save webhook</button>
       </div>
     </div>
 
@@ -3275,6 +3294,59 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   const creditSaveBtn = document.getElementById('credit-save');
   const creditMsgEl = document.getElementById('credit-msg');
 
+  /* ---------- order alerts (Discord webhook) ---------- */
+  const hookUrlInput = document.getElementById('hook-url');
+  const hookSaveBtn = document.getElementById('hook-save');
+  const hookTestBtn = document.getElementById('hook-test');
+  const hookMsgEl = document.getElementById('hook-msg');
+  const hookStateEl = document.getElementById('hook-state');
+
+  async function loadWebhookState(){
+    const { data, error } = await supabase
+      .from('private_config').select('value, updated_at')
+      .eq('key', 'discord_webhook_url').maybeSingle();
+    if (error){ hookStateEl.textContent = ''; return; }
+    if (data && data.value){
+      hookUrlInput.placeholder = '•••••• saved — paste a new URL to replace it';
+      hookStateEl.textContent = 'Alerts are on. Saved ' +
+        new Date(data.updated_at).toLocaleString() + '.';
+    } else {
+      hookStateEl.textContent = 'No webhook saved yet — orders will not notify you.';
+    }
+  }
+
+  hookSaveBtn.addEventListener('click', async () => {
+    const url = hookUrlInput.value.trim();
+    if (!url){ hookMsgEl.textContent = 'Paste a webhook URL first.'; return; }
+    if (!/^https:\/\/(discord|discordapp)\.com\/api\/webhooks\//.test(url)){
+      hookMsgEl.textContent = 'That does not look like a Discord webhook URL.';
+      return;
+    }
+    hookSaveBtn.disabled = true;
+    hookSaveBtn.textContent = 'Saving…';
+    hookMsgEl.textContent = '';
+    const { error } = await supabase.from('private_config')
+      .upsert({ key: 'discord_webhook_url', value: url, updated_at: new Date().toISOString() });
+    hookSaveBtn.disabled = false;
+    hookSaveBtn.textContent = 'Save webhook';
+    if (error){ hookMsgEl.textContent = 'Error: ' + error.message; return; }
+    hookUrlInput.value = '';
+    hookMsgEl.textContent = 'Saved.';
+    loadWebhookState();
+  });
+
+  hookTestBtn.addEventListener('click', async () => {
+    hookTestBtn.disabled = true;
+    hookTestBtn.textContent = 'Sending…';
+    hookMsgEl.textContent = '';
+    const { data, error } = await supabase.rpc('test_order_webhook');
+    hookTestBtn.disabled = false;
+    hookTestBtn.textContent = 'Send test';
+    if (error) hookMsgEl.textContent = 'Error: ' + error.message;
+    else if (data === 'no webhook configured') hookMsgEl.textContent = 'Save a webhook URL first.';
+    else hookMsgEl.textContent = 'Test sent — check Discord.';
+  });
+
   creditEnabledToggle.addEventListener('click', () => toggleSwitch(creditEnabledToggle));
 
   creditSaveBtn.addEventListener('click', async () => {
@@ -3317,6 +3389,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       document.getElementById(`debug-section-${tab.dataset.tab}`).classList.add('active');
       if (tab.dataset.tab === 'filaments') loadFilaments();
       if (tab.dataset.tab === 'promo') loadPromoCodes();
+      if (tab.dataset.tab === 'alerts') loadWebhookState();
     });
   });
 
