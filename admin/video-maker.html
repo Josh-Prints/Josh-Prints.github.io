@@ -157,6 +157,11 @@
   }
   .bin-add:hover{ background: var(--accent); border-color: var(--accent); color:#fff; }
   .empty{ color: var(--dim2); font-size:12px; text-align:center; padding:16px 8px; line-height:1.5; }
+  .bin-search{
+    width:100%; margin-bottom:8px; padding:6px 9px; font-size:12px; border-radius:6px;
+    background: var(--bg, var(--panel2)); border:1px solid var(--line2); color: var(--text);
+  }
+  .bin-search:focus{ outline:1px solid var(--accent); outline-offset:-1px; }
 
   /* ---------- monitor ---------- */
   .monitor{ display:flex; flex-direction:column; min-width:0; min-height:0; background:#0c0e12; }
@@ -272,6 +277,7 @@
   }
   .tbtn-sm:hover{ background: var(--panel3); color: var(--text); }
   .tbtn-sm.off{ background: var(--danger); border-color: var(--danger); color:#fff; }
+  .tbtn-sm.solo{ background:#e3b341; border-color:#e3b341; color:#1a1d23; font-weight:700; }
 
   .tl-scroll{ flex:1; min-width:0; overflow-x:auto; overflow-y:hidden; position:relative; }
   .tl-inner{ position:relative; min-width:100%; height:100%; }
@@ -382,6 +388,23 @@
   .kf-add:hover:not(:disabled){ background: var(--accent); border-color: var(--accent); color:#fff; }
   .kf-add.on{ background:#ffd479; border-color:#ffd479; color:#1a1d23; }
   .kf-add:disabled{ opacity:0.35; cursor:default; }
+  .meter{
+    width:66px; height:8px; border-radius:4px; background:#20242c;
+    border:1px solid var(--line2); overflow:hidden; flex:none;
+  }
+  .meter-fill{
+    height:100%; width:0%;
+    background:linear-gradient(90deg,#3fb950 0%,#3fb950 62%,#e3b341 82%,#f85149 100%);
+    transition: width 0.06s linear;
+  }
+  .master-vol{
+    -webkit-appearance:none; appearance:none; width:74px; height:3px; border-radius:2px;
+    background: var(--line2); outline:none; cursor:pointer; flex:none;
+  }
+  .master-vol::-webkit-slider-thumb{
+    -webkit-appearance:none; width:11px; height:11px; border-radius:50%; background: var(--accent); cursor:pointer;
+  }
+  .master-vol::-moz-range-thumb{ width:11px;height:11px;border:none;border-radius:50%;background:var(--accent);cursor:pointer; }
   .text-edit{
     position:absolute; z-index:30; resize:none; min-width:150px; min-height:44px;
     background: rgba(9,11,15,0.9); color:#fff; border:2px solid var(--accent); border-radius:7px;
@@ -505,6 +528,10 @@
         <button data-cmd="addAdjust">New adjustment layer</button>
         <div class="sep"></div>
         <button data-cmd="export">Export video…<kbd>Ctrl E</kbd></button>
+        <button data-cmd="snapshot">Export current frame (PNG)</button>
+        <div class="sep"></div>
+        <button data-cmd="exportFile">Save project file…</button>
+        <button data-cmd="importFile">Load project file…</button>
         <div class="sep"></div>
         <button data-cmd="clearAll">Clear timeline</button>
       </div>
@@ -590,6 +617,8 @@
           ⬆ Import media
           <input type="file" id="importInput" accept="video/*,image/*,audio/*" multiple>
         </label>
+        <input type="file" id="projFileInput" accept=".json,application/json" style="display:none">
+        <input type="search" class="text-input bin-search" id="binSearch" placeholder="Search media…">
         <div class="quick-row">
           <button class="btn" data-cmd="addText">＋ Text</button>
           <button class="btn" data-cmd="addOutro">＋ Outro</button>
@@ -608,6 +637,7 @@
       <div class="mon-bar">
         <button class="mode-btn on" id="modeTransform" title="Move, scale and rotate on screen">Transform</button>
         <button class="mode-btn" id="modeCrop" title="Crop edges on screen">Crop</button>
+        <button class="mode-btn" id="guidesBtn" title="Safe margins and rule-of-thirds guides">Guides</button>
         <span class="mon-gap"></span>
         <button class="tbtn" id="goStart" title="Go to start (Home)">⏮</button>
         <button class="tbtn" id="stepBack" title="Previous frame (←)">◀</button>
@@ -619,6 +649,9 @@
         <span class="tc dim" id="tcTotal">/ 00:00:00.00</span>
         <span class="mon-gap"></span>
         <button class="kf-add" id="kfAddBtn" title="Add or remove a keyframe here (K)">◆</button>
+        <span class="mon-gap"></span>
+        <div class="meter" title="Master output level"><div class="meter-fill" id="meterFill"></div></div>
+        <input type="range" id="masterVol" class="master-vol" min="0" max="1.5" step="0.01" value="1" title="Master volume">
       </div>
     </section>
 
@@ -815,7 +848,7 @@
   let uidN = 1;
   const uid = p => p + (uidN++);
 
-  let audioCtx=null, masterGain=null, recordDest=null;
+  let audioCtx=null, masterGain=null, recordDest=null, masterComp=null, analyser=null, meterBuf=null;
   function ensureAudio(){
     if (audioCtx) return audioCtx;
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -823,9 +856,17 @@
     audioCtx = new AC();
     masterGain = audioCtx.createGain();
     masterGain.gain.value = 1;
-    masterGain.connect(audioCtx.destination);
+    masterComp = audioCtx.createDynamicsCompressor();
+    masterComp.threshold.value = 0;      // inert until the user enables limiting
+    masterComp.ratio.value = 1;
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 1024;
+    meterBuf = new Uint8Array(analyser.fftSize);
+    masterGain.connect(masterComp);
+    masterComp.connect(analyser);
+    masterComp.connect(audioCtx.destination);
     recordDest = audioCtx.createMediaStreamDestination();
-    masterGain.connect(recordDest);
+    masterComp.connect(recordDest);
     return audioCtx;
   }
 
@@ -869,6 +910,7 @@
       shape:'rect', shapeW:0.6, shapeH:0.35, fill:'#4493f8', radius:0.06,
       brightness:1, contrast:1, saturation:1, hue:0, blurPx:0, look:'none', blend:'source-over',
       volume:1, muted:false, fadeIn:0, fadeOut:0,
+      pan:0, eqLow:0, eqMid:0, eqHigh:0,
       tinType:'none', tinDur:0.5, toutType:'none', toutDur:0.5,
       text:'Your text here', font:'system', size:104, weight:700, color:'#ffffff',
       align:'center', boxOn:false, boxColor:'#000000',
@@ -1009,16 +1051,27 @@
     const el = document.createElement(clip.type === 'video' ? 'video' : 'audio');
     el.src = a.url; el.preload = 'auto'; el.playsInline = true;
     const ac = ensureAudio();
-    let gain = null, src = null;
+    let gain = null, src = null, pan = null, eq = null;
     if (ac){
       try {
         src = ac.createMediaElementSource(el);
+        const mk = (type, freq) => {
+          const f = ac.createBiquadFilter();
+          f.type = type; f.frequency.value = freq; f.gain.value = 0;
+          return f;
+        };
+        eq = { low: mk('lowshelf', 250), mid: mk('peaking', 1400), high: mk('highshelf', 5000) };
+        eq.mid.Q.value = 0.8;
+        pan = ac.createStereoPanner ? ac.createStereoPanner() : null;
         gain = ac.createGain();
         gain.gain.value = 0;
-        src.connect(gain); gain.connect(masterGain);
+        src.connect(eq.low); eq.low.connect(eq.mid); eq.mid.connect(eq.high);
+        if (pan){ eq.high.connect(pan); pan.connect(gain); }
+        else eq.high.connect(gain);
+        gain.connect(masterGain);
       } catch (e){ gain = null; }
     }
-    runtime.set(clip.id, { el, src, gain });
+    runtime.set(clip.id, { el, src, gain, pan, eq });
   }
   function pruneRuntime(){
     const live = new Set(allClips().map(c => c.id));
@@ -1588,6 +1641,28 @@
     ctx.restore();
   }
 
+  let showGuides = false;
+  function drawGuides(){
+    if (!showGuides) return;
+    const W = state.width, H = state.height;
+    ctx.save();
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.filter = 'none';
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = Math.max(1.5, W/700);
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+    for (let i = 1; i < 3; i++){
+      ctx.beginPath(); ctx.moveTo(W*i/3, 0); ctx.lineTo(W*i/3, H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, H*i/3); ctx.lineTo(W, H*i/3); ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(255,214,102,0.55)';
+    ctx.strokeRect(W*0.05, H*0.05, W*0.90, H*0.90);   // action safe
+    ctx.strokeStyle = 'rgba(255,120,120,0.55)';
+    ctx.strokeRect(W*0.10, H*0.10, W*0.80, H*0.80);   // title safe
+    ctx.restore();
+  }
+
   function renderAt(t){
     const W = state.width, H = state.height;
     ctx.save();
@@ -1615,6 +1690,7 @@
         else drawClip(c, t, alpha);
       });
     }
+    drawGuides();
     updateOverlay();
   }
 
@@ -1882,6 +1958,11 @@
   // bound to the stable container: the overlay's own nodes are replaced on redraw
   stage.parentElement.addEventListener('dblclick', handleStageDblClick);
 
+  $('guidesBtn').addEventListener('click', () => {
+    showGuides = !showGuides;
+    $('guidesBtn').classList.toggle('on', showGuides);
+    renderAt(state.playhead);
+  });
   $('modeTransform').addEventListener('click', () => setXformMode('transform'));
   $('modeCrop').addEventListener('click', () => setXformMode('crop'));
   function setXformMode(m){
@@ -1892,17 +1973,24 @@
   }
 
   function updateAudio(t, isPlaying){
+    const soloed = state.tracks.some(tr => tr.solo);
     for (const track of state.tracks){
       for (const c of track.clips){
         const rt = runtime.get(c.id);
         if (!rt || !rt.gain) continue;
         const active = isPlaying && c.enabled !== false && t >= c.start && t < c.start + c.duration;
         let v = 0;
-        if (active && !c.muted && !track.muted){
+        if (active && !c.muted && !track.muted && (!soloed || track.solo)){
           const local = t - c.start;
           v = propAt(c, 'volume', local);
           if (c.fadeIn > 0) v *= clamp(local / c.fadeIn, 0, 1);
           if (c.fadeOut > 0) v *= clamp((c.duration - local) / c.fadeOut, 0, 1);
+          if (rt.pan) rt.pan.pan.value = clamp(propAt(c,'pan',local), -1, 1);
+          if (rt.eq){
+            rt.eq.low.gain.value = clamp(c.eqLow, -24, 24);
+            rt.eq.mid.gain.value = clamp(c.eqMid, -24, 24);
+            rt.eq.high.gain.value = clamp(c.eqHigh, -24, 24);
+          }
         }
         rt.gain.gain.value = clamp(v, 0, 2);
       }
@@ -2051,6 +2139,7 @@
           ? `<button class="tbtn-sm${tr.hidden ? ' off' : ''}" data-t-act="hide" title="Hide track">${tr.hidden ? '🚫' : '👁'}</button>`
           : ''}
         <button class="tbtn-sm${tr.muted ? ' off' : ''}" data-t-act="mute" title="Mute track">${tr.muted ? '🔇' : '🔊'}</button>
+        <button class="tbtn-sm${tr.solo ? ' solo' : ''}" data-t-act="solo" title="Solo track">S</button>
         <button class="tbtn-sm${tr.locked ? ' off' : ''}" data-t-act="lock" title="Lock track">${tr.locked ? '🔒' : '🔓'}</button>
       </div>`;
     });
@@ -2299,6 +2388,7 @@
       pushUndo();
       if (act === 'hide') tr.hidden = !tr.hidden;
       if (act === 'mute') tr.muted = !tr.muted;
+      if (act === 'solo') tr.solo = !tr.solo;
       if (act === 'lock') tr.locked = !tr.locked;
     }
     state.activeTrack = tr.id;
@@ -2558,7 +2648,15 @@
     rotation: v => Math.round(v)+'°', hue: v => Math.round(v)+'°', blurPx: v => (+v)+'px',
     brightness: v => (+v).toFixed(2), contrast: v => (+v).toFixed(2), saturation: v => (+v).toFixed(2),
     cropL: v => Math.round(v*100)+'%', cropR: v => Math.round(v*100)+'%',
-    cropT: v => Math.round(v*100)+'%', cropB: v => Math.round(v*100)+'%'
+    cropT: v => Math.round(v*100)+'%', cropB: v => Math.round(v*100)+'%',
+    pan: v => Math.abs(+v) < 0.02 ? 'centre' : ((+v < 0 ? 'L' : 'R') + Math.round(Math.abs(+v)*100)),
+    eqLow: v => (+v > 0 ? '+' : '') + (+v).toFixed(1) + ' dB',
+    eqMid: v => (+v > 0 ? '+' : '') + (+v).toFixed(1) + ' dB',
+    eqHigh: v => (+v > 0 ? '+' : '') + (+v).toFixed(1) + ' dB',
+    keySim: v => (+v).toFixed(2), keySoft: v => (+v).toFixed(3),
+    keySpill: v => Math.round(v*100)+'%', vignette: v => Math.round(v*100)+'%',
+    tintAmt: v => Math.round(v*100)+'%', shapeW: v => Math.round(v*100)+'%',
+    shapeH: v => Math.round(v*100)+'%', radius: v => Math.round(v*100)+'%'
   };
   const fmtVal = (key, v) => FMT[key] ? FMT[key](v) : (Math.round(v*100)/100);
   const kfBtn = key => ANIM_KEYS.includes(key)
@@ -2748,9 +2846,18 @@
     if (c.type === 'video' || c.type === 'audio'){
       h += sect('Audio',
         fRange('Volume','volume',0,2,0.01, v => Math.round(v*100)+'%') +
+        fRange('Pan','pan',-1,1,0.01, v => {
+          const n = +v;
+          return Math.abs(n) < 0.02 ? 'centre' : (n < 0 ? 'L' : 'R') + Math.round(Math.abs(n)*100);
+        }) +
         fCheck('Mute','muted') +
         fNum('Fade in','fadeIn',0,10,0.05) +
         fNum('Fade out','fadeOut',0,10,0.05)
+      );
+      h += sect('Equaliser',
+        fRange('Low','eqLow',-18,18,0.5, v => (+v>0?'+':'')+(+v).toFixed(1)+' dB') +
+        fRange('Mid','eqMid',-18,18,0.5, v => (+v>0?'+':'')+(+v).toFixed(1)+' dB') +
+        fRange('High','eqHigh',-18,18,0.5, v => (+v>0?'+':'')+(+v).toFixed(1)+' dB')
       );
     }
 
@@ -2860,8 +2967,14 @@
       binList.innerHTML = `<div class="empty">No media yet.<br>Import clips, photos or audio to begin.</div>`;
       return;
     }
+    const q = ($('binSearch').value || '').trim().toLowerCase();
+    const shown = [...assets.values()].filter(a => !q || a.name.toLowerCase().includes(q));
+    if (!shown.length){
+      binList.innerHTML = `<div class="empty">Nothing matches “${esc(q)}”.</div>`;
+      return;
+    }
     let h = '';
-    for (const a of assets.values()){
+    for (const a of shown){
       const sub = a.kind === 'image'
         ? (a.width ? `${a.width}×${a.height}` : 'image')
         : (a.duration ? tcFmt(a.duration) : '…');
@@ -2872,7 +2985,7 @@
       </div>`;
     }
     binList.innerHTML = h;
-    for (const a of assets.values()){
+    for (const a of shown){
       const holder = binList.querySelector(`[data-thumb="${a.id}"]`);
       if (!holder || a.kind === 'audio') continue;
       if (a.kind === 'image'){ const im = new Image(); im.src = a.url; holder.appendChild(im); }
@@ -2887,6 +3000,34 @@
   $('importInput').addEventListener('change', e => {
     importFiles(Array.from(e.target.files));
     e.target.value = '';
+  });
+  $('binSearch').addEventListener('input', renderBin);
+  $('projFileInput').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    let data;
+    try { data = JSON.parse(await file.text()); }
+    catch(err){ return toast('That is not a readable project file'); }
+    if (!data || !Array.isArray(data.tracks)) return toast('That file has no timeline in it');
+    stopPlayback();
+    pushUndo();
+    state.tracks = data.tracks;
+    state.width = data.width || state.width;
+    state.height = data.height || state.height;
+    state.fps = data.fps || 30;
+    state.pxPerSec = data.pxPerSec || 80;
+    state.markers = data.markers || [];
+    state.projectName = data.name || 'Imported project';
+    state.projectId = null;
+    uidN = Math.max(uidN, data.uidN || 1);
+    setSel([]);
+    pruneRuntime();
+    allClips().forEach(ensureRuntime);
+    $('resSelect').value = `${state.width}x${state.height}`;
+    resizeStage(); setPlayhead(0); rebuild(); updateProjectLabel();
+    const missing = allClips().filter(c => c.assetId && !assets.get(c.assetId)).length;
+    toast(missing ? `Loaded — ${missing} clip(s) need their media re-imported` : 'Project file loaded');
   });
 
   /* ================= EXPORT ================= */
@@ -2966,8 +3107,9 @@
       : 'Unsaved project';
   }
 
-  async function saveProject(asNew){
+  async function saveProject(asNew, quiet){
     if (!state.projectId || asNew){
+      if (quiet) return;
       const name = prompt('Project name', state.projectName || 'Untitled project');
       if (!name) return;
       state.projectId = uid('p');
@@ -2991,7 +3133,7 @@
       });
       await txDone(t);
       updateProjectLabel();
-      toast(`Saved "${state.projectName}"`);
+      if (!quiet) toast(`Saved "${state.projectName}"`);
     } catch (err){
       toast('Save failed: ' + (err && err.name === 'QuotaExceededError' ? 'not enough storage' : 'storage error'));
     }
@@ -3154,6 +3296,37 @@
       setSel([]);
       pruneRuntime(); rebuild(); toast('Track deleted');
     },
+    snapshot: () => {
+      const wasGuides = showGuides;
+      showGuides = false;
+      renderAt(state.playhead);
+      stage.toBlob(blob => {
+        showGuides = wasGuides;
+        renderAt(state.playhead);
+        if (!blob) return toast('Could not capture the frame');
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `frame-${tcFmt(state.playhead).replace(/[:.]/g,'-')}.png`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        toast('Frame saved');
+      }, 'image/png');
+    },
+    exportFile: () => {
+      const data = { v:1, name: state.projectName || 'Untitled', width: state.width, height: state.height,
+                     fps: state.fps, pxPerSec: state.pxPerSec, tracks: state.tracks,
+                     markers: state.markers, uidN,
+                     assets: [...assets.values()].map(a => ({ id:a.id, name:a.name, kind:a.kind,
+                       duration:a.duration, width:a.width, height:a.height })) };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = (state.projectName || 'project') + '.voxproj.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      toast('Project file saved — media stays in this browser');
+    },
+    importFile: () => $('projFileInput').click(),
     zoomIn: () => { state.pxPerSec = clamp(state.pxPerSec * 1.3, 8, 600); rebuild(); },
     zoomOut: () => { state.pxPerSec = clamp(state.pxPerSec / 1.3, 8, 600); rebuild(); },
     zoomFit: () => {
@@ -3191,6 +3364,27 @@
       document.body.classList.toggle('blade', state.tool === 'blade');
     });
   });
+
+  $('masterVol').addEventListener('input', e => {
+    const v = parseFloat(e.target.value);
+    ensureAudio();
+    if (masterGain) masterGain.gain.value = v;
+  });
+  function pumpMeter(){
+    if (analyser && meterBuf && (playing || exporting)){
+      analyser.getByteTimeDomainData(meterBuf);
+      let peak = 0;
+      for (let i = 0; i < meterBuf.length; i += 4){
+        const d = Math.abs(meterBuf[i] - 128) / 128;
+        if (d > peak) peak = d;
+      }
+      $('meterFill').style.width = Math.min(100, peak * 130).toFixed(0) + '%';
+    } else {
+      $('meterFill').style.width = '0%';
+    }
+    requestAnimationFrame(pumpMeter);
+  }
+  requestAnimationFrame(pumpMeter);
 
   playBtn.addEventListener('click', togglePlay);
   $('goStart').addEventListener('click', () => { stopPlayback(); setPlayhead(0); });
@@ -3280,6 +3474,19 @@
   });
 
   window.addEventListener('resize', () => { buildRuler(); buildLanes(); updatePlayheadUI(); updateOverlay(); });
+
+  // autosave: only ever overwrites a project the user already named and saved
+  let autosaveTimer = null;
+  function scheduleAutosave(){
+    if (!state.projectId) return;
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(() => {
+      if (!state.projectId || playing || exporting) return;
+      saveProject(false, true);
+    }, 20000);
+  }
+  const _pushUndo = pushUndo;
+  pushUndo = function(){ _pushUndo(); scheduleAutosave(); };
 
   /* ---------- boot ---------- */
   state.tracks = [ makeTrack('video','V2'), makeTrack('video','V1'), makeTrack('audio','A1') ];
