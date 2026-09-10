@@ -478,10 +478,13 @@
   }
   .ctx-menu.on{ display:block; }
   .ctx-menu button{
-    display:block; width:100%; text-align:left; background:none; border:none;
+    display:flex; justify-content:space-between; gap:22px; width:100%; text-align:left;
+    background:none; border:none;
     padding:7px 10px; border-radius:5px; cursor:pointer; font-size:12.5px; color: var(--text);
   }
   .ctx-menu button:hover{ background: var(--accent); color:#fff; }
+  .ctx-menu button kbd{ color: var(--dim2); font-family: ui-monospace, monospace; font-size:11px; }
+  .ctx-menu button:hover kbd{ color:#dbe8fb; }
   .ctx-sep{ height:1px; background: var(--line); margin:4px; }
   .tool.on.loop{ background:#4ad6a0; border-color:#4ad6a0; color:#12241c; }
 
@@ -2188,6 +2191,7 @@
   }
 
   xform.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
     const h = e.target.dataset && e.target.dataset.h;
     const c = overlayClip();
     if (!h || !c) return;
@@ -2395,6 +2399,7 @@
     return null;
   }
   stage.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
     const p = toCanvasPt(e);
     const hit = clipAtPoint(p.x, p.y);
     if (!hit){ setSel([]); rebuild(); return; }
@@ -2701,6 +2706,7 @@
 
   let scrubbing = false;
   tlRuler.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
     scrubbing = true;
     try { tlRuler.setPointerCapture(e.pointerId); } catch(err){}
     if (playing) stopPlayback();
@@ -2714,6 +2720,7 @@
 
   let drag = null;
   tlLanes.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
     const clipEl = e.target.closest('.clip');
     if (!clipEl){
       const lane = e.target.closest('.lane');
@@ -3236,30 +3243,124 @@
   const ctxMenu = document.createElement('div');
   ctxMenu.className = 'ctx-menu';
   document.body.appendChild(ctxMenu);
-  const CTX_ITEMS = [
-    ['Cut', 'cut'], ['Copy', 'copy'], ['Paste', 'paste'], ['-'],
-    ['Split at playhead', 'split'], ['Duplicate', 'duplicate'], ['-'],
-    ['Enable / disable', 'toggleEnabled'], ['-'],
-    ['Delete', 'delete'], ['Ripple delete', 'ripple']
+  let ctxAsset = null;   // bin item the menu was opened on
+
+  const CTX_CLIP = [
+    ['Cut', 'cut', 'Ctrl X'], ['Copy', 'copy', 'Ctrl C'], ['Paste', 'paste', 'Ctrl V'], ['-'],
+    ['Split at playhead', 'split', 'C'], ['Duplicate', 'duplicate', 'Ctrl D'],
+    ['Freeze frame', 'freeze', 'F'], ['-'],
+    ['Add fades', 'quickFade'], ['Enable / disable', 'toggleEnabled', 'E'], ['-'],
+    ['Group clips', 'group', 'Ctrl G'], ['Ungroup', 'ungroup', 'Ctrl ⇧ G'], ['-'],
+    ['Zoom to selection', 'zoomSelection'], ['-'],
+    ['Delete', 'delete', 'Del'], ['Ripple delete', 'ripple', '⇧ Del']
   ];
-  function openCtx(x, y){
-    ctxMenu.innerHTML = CTX_ITEMS.map(it =>
+  const CTX_TRACK = [
+    ['Add video track', 'addVideoTrack'], ['Add audio track', 'addAudioTrack'], ['-'],
+    ['Duplicate track', 'duplicateTrack'], ['Close gaps on track', 'closeGaps'], ['-'],
+    ['Delete track', 'delTrack']
+  ];
+  const CTX_RULER = [
+    ['Add / remove marker', 'addMarker', 'M'],
+    ['Previous marker', 'prevMarker', '⇧ M'], ['Next marker', 'nextMarker', 'Alt M'],
+    ['Clear all markers', 'clearMarkers'], ['-'],
+    ['Mark in', 'setIn', 'I'], ['Mark out', 'setOut', 'O'],
+    ['Clear in / out', 'clearInOut', 'Ctrl ⇧ X']
+  ];
+  const CTX_LANE = [
+    ['Paste at playhead', 'paste', 'Ctrl V'], ['-'],
+    ['New text clip', 'addText', 'T'], ['New logo outro', 'addOutro', '⇧ O'],
+    ['New rectangle', 'addRect'], ['New ellipse', 'addEllipse'],
+    ['New adjustment layer', 'addAdjust'], ['-'],
+    ['Import media…', 'import', 'I'], ['Select all', 'selectAll', 'Ctrl A'], ['-'],
+    ['Close gaps on track', 'closeGaps']
+  ];
+  const CTX_CANVAS = [
+    ['New text clip', 'addText', 'T'], ['New rectangle', 'addRect'],
+    ['New ellipse', 'addEllipse'], ['New adjustment layer', 'addAdjust'], ['-'],
+    ['Paste at playhead', 'paste', 'Ctrl V'], ['-'],
+    ['Export current frame (PNG)', 'snapshot']
+  ];
+  const CTX_BIN_ITEM = [
+    ['Add to timeline', 'binAdd'], ['-'], ['Remove from project', 'binRemove']
+  ];
+  const CTX_BIN = [['Import media…', 'import', 'I'], ['-'], ['Remove unused media', 'purgeUnused']];
+
+  function openCtx(x, y, items){
+    ctxMenu.innerHTML = items.map(it =>
       it[0] === '-' ? '<div class="ctx-sep"></div>'
-        : `<button data-cmd="${it[1]}">${it[0]}</button>`).join('');
-    ctxMenu.style.left = Math.min(x, innerWidth - 180) + 'px';
-    ctxMenu.style.top = Math.min(y, innerHeight - 260) + 'px';
+        : `<button data-cmd="${it[1]}">${esc(it[0])}${it[2] ? `<kbd>${esc(it[2])}</kbd>` : ''}</button>`).join('');
+    // show first so it can be measured, then keep it inside the window
+    ctxMenu.style.left = '0px';
+    ctxMenu.style.top = '0px';
     ctxMenu.classList.add('on');
+    const r = ctxMenu.getBoundingClientRect();
+    ctxMenu.style.left = Math.max(4, Math.min(x, innerWidth - r.width - 6)) + 'px';
+    ctxMenu.style.top = Math.max(4, Math.min(y, innerHeight - r.height - 6)) + 'px';
   }
   const closeCtx = () => ctxMenu.classList.remove('on');
-  tlLanes.addEventListener('contextmenu', e => {
-    const clipEl = e.target.closest('.clip');
-    if (!clipEl) return;
-    e.preventDefault();
-    if (!isSel(clipEl.dataset.clip)) setSel([clipEl.dataset.clip]);
+
+  // right-clicking a clip works on that clip, so pull it into the selection first
+  function ctxSelect(id){
+    if (!isSel(id)){
+      const c = findClip(id);
+      const ids = c && c.groupId
+        ? allClips().filter(x => x.groupId === c.groupId).map(x => x.id)
+        : [id];
+      setSel(ids, id);
+    } else {
+      state.selected = id;
+    }
+    const tr = trackOfClip(id);
+    if (tr) state.activeTrack = tr.id;
     rebuildSelectionOnly();
-    openCtx(e.clientX, e.clientY);
+  }
+
+  function ctxItemsFor(e){
+    const t = e.target;
+    if (t.closest('input, textarea, select, [contenteditable="true"]')) return null;
+
+    const binItem = t.closest('#binList [data-asset]');
+    if (binItem){ ctxAsset = binItem.dataset.asset; return CTX_BIN_ITEM; }
+    if (t.closest('#binList')) return CTX_BIN;
+
+    const head = t.closest('.trk-head');
+    if (head){
+      state.activeTrack = head.dataset.track;
+      rebuildSelectionOnly();
+      return CTX_TRACK;
+    }
+
+    if (t.closest('#tlRuler')) return CTX_RULER;
+
+    const clipEl = t.closest('.clip');
+    if (clipEl){ ctxSelect(clipEl.dataset.clip); return CTX_CLIP; }
+
+    if (t.closest('.mon-stage')){
+      const p = toCanvasPt(e);
+      const hit = clipAtPoint(p.x, p.y);
+      if (hit){ ctxSelect(hit.id); return CTX_CLIP; }
+      return CTX_CANVAS;
+    }
+
+    const lane = t.closest('.lane');
+    if (lane){
+      state.activeTrack = lane.dataset.track;
+      rebuildSelectionOnly();
+      return CTX_LANE;
+    }
+    return null;
+  }
+
+  document.addEventListener('contextmenu', e => {
+    if (e.shiftKey) return;            // shift+right-click falls through to the browser menu
+    const items = ctxItemsFor(e);
+    if (!items) return;
+    e.preventDefault();
+    openCtx(e.clientX, e.clientY, items);
   });
   document.addEventListener('pointerdown', e => { if (!e.target.closest('.ctx-menu')) closeCtx(); }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCtx(); }, true);
+  window.addEventListener('blur', closeCtx);
   ctxMenu.addEventListener('click', () => closeCtx());
 
   /* ================= INSPECTOR ================= */
@@ -4090,6 +4191,8 @@
       pruneRuntime(); setPlayhead(0); rebuild(); toast('Timeline cleared');
     },
     undo, redo,
+    binAdd: () => { if (ctxAsset) addAssetToTimeline(ctxAsset); },
+    binRemove: () => { if (ctxAsset) removeAsset(ctxAsset); },
     split: cmdSplit,
     splitAll: cmdSplitAll,
     duplicate: cmdDuplicate,
