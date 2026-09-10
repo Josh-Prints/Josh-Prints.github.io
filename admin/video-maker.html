@@ -846,6 +846,14 @@
     serif:  'Georgia, "Times New Roman", serif',
     mono:   'ui-monospace, "SF Mono", "Courier New", monospace'
   };
+  const TEXT_STYLES = {
+    clean:   { weight:700, color:'#ffffff', shadowOn:true,  strokeOn:false, boxOn:false },
+    outline: { weight:900, color:'#ffffff', shadowOn:false, strokeOn:true,  strokeColor:'#000000', strokeW:14, boxOn:false },
+    boxed:   { weight:700, color:'#ffffff', shadowOn:false, strokeOn:false, boxOn:true, boxColor:'#000000' },
+    pop:     { weight:900, color:'#ffe14d', shadowOn:true,  strokeOn:true,  strokeColor:'#161616', strokeW:12, boxOn:false },
+    subtle:  { weight:600, color:'#e8e8e8', shadowOn:true,  strokeOn:false, boxOn:false },
+    banner:  { weight:900, color:'#161616', shadowOn:false, strokeOn:false, boxOn:true, boxColor:'#ffe14d' }
+  };
   const LOOKS = {
     none:    { brightness:1, contrast:1, saturation:1, hue:0 },
     vivid:   { brightness:1.04, contrast:1.15, saturation:1.35, hue:0 },
@@ -893,7 +901,8 @@
 
   /* ---------- dom refs ---------- */
   const $ = id => document.getElementById(id);
-  const stage = $('stage'), ctx = stage.getContext('2d');
+  const stage = $('stage');
+  let ctx = stage.getContext('2d');   // swapped to an offscreen buffer for pixel effects
   const tlHeads = $('tlHeads'), tlLanes = $('tlLanes'), tlRuler = $('tlRuler');
   const tlInner = $('tlInner'), tlScroll = $('tlScroll'), playheadEl = $('playhead');
   const inspector = $('inspector'), binList = $('binList');
@@ -929,6 +938,11 @@
       keyOn:false, keyColor:'#00b140', keySim:0.32, keySoft:0.12, keySpill:0.5,
       vignette:0, tintOn:false, tintColor:'#ff8a3d', tintAmt:0.5,
       shape:'rect', shapeW:0.6, shapeH:0.35, fill:'#4493f8', radius:0.06,
+      gradOn:false, fill2:'#a371f7', gradAngle:90,
+      maskOn:false, maskShape:'ellipse', maskW:0.6, maskH:0.6, maskX:0, maskY:0,
+      maskFeather:0.12, maskInvert:false,
+      shadowClip:false, shColor:'#000000', shBlur:24, shX:0, shY:14,
+      pixelate:0, grain:0, rgbSplit:0,
       brightness:1, contrast:1, saturation:1, hue:0, blurPx:0, look:'none', blend:'source-over',
       volume:1, muted:false, fadeIn:0, fadeOut:0,
       pan:0, eqLow:0, eqMid:0, eqHigh:0,
@@ -946,12 +960,17 @@
 
   /* ---------- keyframes ---------- */
   const ANIM_KEYS = ['x','y','scale','rotation','opacity','brightness','contrast','saturation',
-                     'hue','blurPx','volume','cropL','cropR','cropT','cropB'];
+                     'hue','blurPx','volume','cropL','cropR','cropT','cropB',
+                     'maskW','maskH','maskX','maskY','maskFeather',
+                     'pixelate','grain','rgbSplit','vignette','keySim','keySoft','pan'];
   const ANIM_LABEL = {
     x:'Position X', y:'Position Y', scale:'Scale', rotation:'Rotation', opacity:'Opacity',
     brightness:'Brightness', contrast:'Contrast', saturation:'Saturation', hue:'Hue',
     blurPx:'Blur', volume:'Volume', cropL:'Crop left', cropR:'Crop right',
-    cropT:'Crop top', cropB:'Crop bottom'
+    cropT:'Crop top', cropB:'Crop bottom',
+    maskW:'Mask width', maskH:'Mask height', maskX:'Mask X', maskY:'Mask Y',
+    maskFeather:'Mask feather', pixelate:'Pixelate', grain:'Grain', rgbSplit:'RGB split',
+    vignette:'Vignette', keySim:'Key tolerance', keySoft:'Key softness', pan:'Pan'
   };
   const kfEase = p => p*p*(3 - 2*p);   // smoothstep between keyframes
 
@@ -1387,9 +1406,19 @@
     ctx.drawImage(src, r.x, r.y, r.w, r.h);
   }
 
+  function shapeFill(c, r){
+    if (!c.gradOn) return c.fill;
+    const a = (c.gradAngle || 0) * Math.PI / 180;
+    const dx = Math.cos(a) * r.w / 2, dy = Math.sin(a) * r.h / 2;
+    const cx = r.x + r.w/2, cy = r.y + r.h/2;
+    const g = ctx.createLinearGradient(cx - dx, cy - dy, cx + dx, cy + dy);
+    g.addColorStop(0, c.fill);
+    g.addColorStop(1, c.fill2);
+    return g;
+  }
   function drawShape(c, local){
     const r = contentRect(c);
-    ctx.fillStyle = c.fill;
+    ctx.fillStyle = shapeFill(c, r);
     const rad = Math.min(r.w, r.h) * clamp(c.radius, 0, 0.5);
     ctx.beginPath();
     if (c.shape === 'ellipse'){
@@ -1595,13 +1624,144 @@
     return alpha;
   }
 
+  let fxCv = null, fxCtx = null;
+  const needsFx = c =>
+    (c.maskOn && c.maskFeather > 0) || c.pixelate > 0 || c.grain > 0 || c.rgbSplit > 0;
+
   function drawClip(c, t, baseAlpha){
+    if (!needsFx(c)) return drawClipInner(c, t, baseAlpha, false);
+
+    const W = state.width, H = state.height;
+    const local = t - c.start;
+    if (!fxCv){ fxCv = document.createElement('canvas'); fxCtx = fxCv.getContext('2d'); }
+    if (fxCv.width !== W || fxCv.height !== H){ fxCv.width = W; fxCv.height = H; }
+    fxCtx.setTransform(1,0,0,1,0,0);
+    fxCtx.globalAlpha = 1; fxCtx.filter = 'none'; fxCtx.globalCompositeOperation = 'source-over';
+    fxCtx.clearRect(0,0,W,H);
+
+    const prev = ctx;
+    ctx = fxCtx;
+    try { drawClipInner(c, t, baseAlpha, true); }
+    finally { ctx = prev; }
+
+    applyPixelEffects(c, local);
+
+    ctx.save();
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.globalAlpha = 1;
+    ctx.filter = 'none';
+    ctx.globalCompositeOperation = c.blend || 'source-over';
+    ctx.drawImage(fxCv, 0, 0);
+    ctx.restore();
+  }
+
+  // pixel passes that need the clip on its own buffer
+  function applyPixelEffects(c, local){
+    const W = state.width, H = state.height;
+    if (c.maskOn && c.maskFeather > 0) featherMask(c, local);
+    if (c.pixelate > 0){
+      const f = clamp(c.pixelate, 0, 1);
+      const sw = Math.max(2, Math.round(W * (1 - f*0.97)));
+      const sh = Math.max(2, Math.round(H * (1 - f*0.97)));
+      const tmp = document.createElement('canvas');
+      tmp.width = sw; tmp.height = sh;
+      const tc = tmp.getContext('2d');
+      tc.imageSmoothingEnabled = true;
+      tc.drawImage(fxCv, 0, 0, sw, sh);
+      fxCtx.save();
+      fxCtx.setTransform(1,0,0,1,0,0);
+      fxCtx.clearRect(0,0,W,H);
+      fxCtx.imageSmoothingEnabled = false;
+      fxCtx.drawImage(tmp, 0, 0, W, H);
+      fxCtx.restore();
+    }
+    if (c.rgbSplit > 0){
+      const d = c.rgbSplit * W * 0.03;
+      const copy = document.createElement('canvas');
+      copy.width = W; copy.height = H;
+      copy.getContext('2d').drawImage(fxCv, 0, 0);
+      fxCtx.save();
+      fxCtx.setTransform(1,0,0,1,0,0);
+      fxCtx.globalCompositeOperation = 'lighter';
+      fxCtx.globalAlpha = 0.55;
+      fxCtx.filter = 'url(#none)';
+      fxCtx.filter = 'none';
+      fxCtx.drawImage(copy, -d, 0);
+      fxCtx.drawImage(copy, d, 0);
+      fxCtx.restore();
+    }
+    if (c.grain > 0){
+      fxCtx.save();
+      fxCtx.setTransform(1,0,0,1,0,0);
+      fxCtx.globalCompositeOperation = 'source-atop';
+      fxCtx.globalAlpha = clamp(c.grain, 0, 1) * 0.5;
+      fxCtx.drawImage(grainTile(), 0, 0, W, H);
+      fxCtx.restore();
+    }
+  }
+
+  let grainCv = null;
+  function grainTile(){
+    if (grainCv) return grainCv;
+    grainCv = document.createElement('canvas');
+    grainCv.width = grainCv.height = 128;
+    const g = grainCv.getContext('2d');
+    const img = g.createImageData(128, 128);
+    for (let i = 0; i < img.data.length; i += 4){
+      const v = 90 + Math.random() * 165;
+      img.data[i] = img.data[i+1] = img.data[i+2] = v;
+      img.data[i+3] = 255;
+    }
+    g.putImageData(img, 0, 0);
+    return grainCv;
+  }
+
+  function maskPath(target, c, local){
+    const W = state.width, H = state.height;
+    const w = clamp(propAt(c,'maskW',local), 0.02, 3) * W;
+    const h = clamp(propAt(c,'maskH',local), 0.02, 3) * H;
+    const cx = W/2 + propAt(c,'maskX',local), cy = H/2 + propAt(c,'maskY',local);
+    target.beginPath();
+    if (c.maskShape === 'rect') target.rect(cx - w/2, cy - h/2, w, h);
+    else target.ellipse(cx, cy, w/2, h/2, 0, 0, Math.PI*2);
+    return { cx, cy, w, h };
+  }
+
+  function featherMask(c, local){
+    const W = state.width, H = state.height;
+    const m = document.createElement('canvas');
+    m.width = W; m.height = H;
+    const mc = m.getContext('2d');
+    const g = maskPath(mc, c, local);
+    const soft = clamp(c.maskFeather, 0, 1);
+    const rad = Math.max(g.w, g.h) / 2;
+    const grad = mc.createRadialGradient(g.cx, g.cy, Math.max(1, rad * (1 - soft)), g.cx, g.cy, rad);
+    grad.addColorStop(0, '#fff');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    mc.save();
+    mc.clip();
+    mc.fillStyle = c.maskShape === 'rect' ? '#fff' : grad;
+    if (c.maskShape === 'rect'){
+      mc.filter = `blur(${Math.max(0, soft * Math.min(g.w, g.h) * 0.25).toFixed(1)}px)`;
+    }
+    mc.fillRect(0, 0, W, H);
+    mc.restore();
+    fxCtx.save();
+    fxCtx.setTransform(1,0,0,1,0,0);
+    fxCtx.globalCompositeOperation = c.maskInvert ? 'destination-out' : 'destination-in';
+    fxCtx.globalAlpha = 1;
+    fxCtx.filter = 'none';
+    fxCtx.drawImage(m, 0, 0);
+    fxCtx.restore();
+  }
+
+  function drawClipInner(c, t, baseAlpha, inFx){
     const W = state.width, H = state.height;
     const local = t - c.start;
     ctx.save();
     const transAlpha = applyTransition(c, local);
     ctx.globalAlpha = clamp(baseAlpha * propAt(c,'opacity',local) * transAlpha, 0, 1);
-    ctx.globalCompositeOperation = c.blend || 'source-over';
+    if (!inFx) ctx.globalCompositeOperation = c.blend || 'source-over';
     ctx.filter = buildFilter(c, local);
 
     const sc = propAt(c,'scale',local);
@@ -1615,6 +1775,16 @@
       ctx.beginPath();
       ctx.rect(r.x, r.y, r.w, r.h);
       ctx.clip();
+    }
+    if (c.maskOn && !(c.maskFeather > 0)){
+      maskPath(ctx, c, local);
+      ctx.clip();
+    }
+    if (c.shadowClip){
+      ctx.shadowColor = c.shColor;
+      ctx.shadowBlur = c.shBlur;
+      ctx.shadowOffsetX = c.shX;
+      ctx.shadowOffsetY = c.shY;
     }
 
     if (c.type === 'video'){
@@ -2745,7 +2915,11 @@
     keySim: v => (+v).toFixed(2), keySoft: v => (+v).toFixed(3),
     keySpill: v => Math.round(v*100)+'%', vignette: v => Math.round(v*100)+'%',
     tintAmt: v => Math.round(v*100)+'%', shapeW: v => Math.round(v*100)+'%',
-    shapeH: v => Math.round(v*100)+'%', radius: v => Math.round(v*100)+'%'
+    shapeH: v => Math.round(v*100)+'%', radius: v => Math.round(v*100)+'%',
+    maskW: v => Math.round(v*100)+'%', maskH: v => Math.round(v*100)+'%',
+    maskFeather: v => Math.round(v*100)+'%', pixelate: v => Math.round(v*100)+'%',
+    grain: v => Math.round(v*100)+'%', rgbSplit: v => Math.round(v*100)+'%',
+    gradAngle: v => Math.round(v)+'°'
   };
   const fmtVal = (key, v) => FMT[key] ? FMT[key](v) : (Math.round(v*100)/100);
   const kfBtn = key => ANIM_KEYS.includes(key)
@@ -2897,6 +3071,8 @@
         h += sect('Shape',
           fSel('Kind','shape',[['rect','Rectangle'],['ellipse','Ellipse'],['triangle','Triangle'],['line','Line']]) +
           fColor('Fill','fill') +
+          fCheck('Gradient','gradOn') + fColor('Fill 2','fill2') +
+          fRange('Gradient angle','gradAngle',0,360,1, v => Math.round(v)+'°') +
           fRange('Width','shapeW',0.02,2,0.01, v => Math.round(v*100)+'%') +
           fRange('Height','shapeH',0.02,2,0.01, v => Math.round(v*100)+'%') +
           fRange('Corner radius','radius',0,0.5,0.01, v => Math.round(v*100)+'%') +
@@ -2925,6 +3101,28 @@
          </div>`
       );
 
+      h += sect('Mask',
+        fCheck('Enable','maskOn') +
+        fSel('Shape','maskShape',[['ellipse','Ellipse'],['rect','Rectangle']]) +
+        fRange('Width','maskW',0.02,2,0.01, v => Math.round(v*100)+'%') +
+        fRange('Height','maskH',0.02,2,0.01, v => Math.round(v*100)+'%') +
+        fRange('Offset X','maskX',-1200,1200,1) +
+        fRange('Offset Y','maskY',-1200,1200,1) +
+        fRange('Feather','maskFeather',0,1,0.01, v => Math.round(v*100)+'%') +
+        fCheck('Invert','maskInvert')
+      );
+
+      h += sect('Drop shadow',
+        fCheck('Enable','shadowClip') + fColor('Colour','shColor') +
+        fNum('Blur','shBlur',0,120,1) + fNum('Offset X','shX',-200,200,1) + fNum('Offset Y','shY',-200,200,1)
+      );
+
+      h += sect('Stylise',
+        fRange('Pixelate','pixelate',0,1,0.01, v => Math.round(v*100)+'%') +
+        fRange('Grain','grain',0,1,0.01, v => Math.round(v*100)+'%') +
+        fRange('RGB split','rgbSplit',0,1,0.01, v => Math.round(v*100)+'%')
+      );
+
       h += sect('Compositing', fSel('Blend mode','blend', BLENDS));
       h += sect('Transitions',
         fSel('In','tinType', TRANSITIONS) + fNum('In length','tinDur',0,10,0.05) +
@@ -2933,6 +3131,11 @@
     }
 
     if (c.type === 'text'){
+      h += sect('Text style',
+        `<div class="preset-row">` +
+        Object.keys(TEXT_STYLES).map(k => `<button class="preset" data-tstyle="${k}">${k}</button>`).join('') +
+        `</div>`
+      );
       h += sect('Text',
         fTextArea('Content','text') +
         fSel('Font','font', [['system','System'],['black','Arial Black'],['impact','Impact'],['serif','Serif'],['mono','Mono']]) +
@@ -3048,6 +3251,14 @@
     const kfKey = e.target.dataset.kf;
     const kfClear = e.target.dataset.kfclear;
 
+    const tstyle = e.target.dataset.tstyle;
+    if (tstyle){
+      pushUndo();
+      Object.assign(c, TEXT_STYLES[tstyle]);
+      renderInspector(); buildLanes(); renderAt(state.playhead);
+      toast(tstyle + ' style');
+      return;
+    }
     const label = e.target.dataset.label;
     if (label !== undefined){
       pushUndo();
