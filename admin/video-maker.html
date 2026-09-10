@@ -442,6 +442,10 @@
   }
   .kf-row .kf-name{ color: var(--dim); }
   .kf-row .kf-n{ font-family: ui-monospace, monospace; color: var(--accent); font-size:11px; }
+  .kf-ez{
+    background: var(--panel3); border:1px solid var(--line2); border-radius:4px;
+    color: var(--text); font-size:11px; padding:2px 4px; max-width:104px;
+  }
   .kf-row button{
     width:18px; height:18px; border-radius:4px; border:1px solid var(--line2);
     background: var(--panel3); color: var(--dim2); cursor:pointer; font-size:10px; line-height:1;
@@ -966,6 +970,10 @@
       id: uid('c'), type, assetId:null, name:'Clip',
       start:0, duration:3, inPoint:0, srcDuration:0, speed:1,
       kf:{}, cropL:0, cropR:0, cropT:0, cropB:0, enabled:true, label:'',
+      vFadeIn:0, vFadeOut:0,
+      invert:0, sepia:0, gray:0, posterize:0, threshold:0, glitch:0,
+      scanlines:0, bloom:0, zoomBlur:0, mirrorMode:'none',
+      borderW:0, borderColor:'#ffffff', cornerR:0,
       x:0, y:0, scale:1, rotation:0, opacity:1, flipH:false, flipV:false,
       keyOn:false, keyColor:'#00b140', keySim:0.32, keySoft:0.12, keySpill:0.5,
       vignette:0, tintOn:false, tintColor:'#ff8a3d', tintAmt:0.5,
@@ -981,7 +989,7 @@
       tinType:'none', tinDur:0.5, toutType:'none', toutDur:0.5,
       text:'Your text here', font:'system', size:104, weight:700, color:'#ffffff',
       align:'center', boxOn:false, boxColor:'#000000',
-      strokeOn:false, strokeColor:'#000000', strokeW:8, shadowOn:true, anim:'fade',
+      strokeOn:false, strokeColor:'#000000', strokeW:8, shadowOn:true, anim:'none',
       outroText:'voxprints.com', outroBg:'#0d1117', outroFg:'#ffffff'
     }, o || {});
   }
@@ -994,7 +1002,8 @@
   const ANIM_KEYS = ['x','y','scale','rotation','opacity','brightness','contrast','saturation',
                      'hue','blurPx','volume','cropL','cropR','cropT','cropB',
                      'maskW','maskH','maskX','maskY','maskFeather',
-                     'pixelate','grain','rgbSplit','vignette','keySim','keySoft','pan'];
+                     'pixelate','grain','rgbSplit','vignette','keySim','keySoft','pan',
+                     'invert','sepia','gray','glitch','scanlines','bloom','zoomBlur','cornerR'];
   const ANIM_LABEL = {
     x:'Position X', y:'Position Y', scale:'Scale', rotation:'Rotation', opacity:'Opacity',
     brightness:'Brightness', contrast:'Contrast', saturation:'Saturation', hue:'Hue',
@@ -1002,9 +1011,44 @@
     cropT:'Crop top', cropB:'Crop bottom',
     maskW:'Mask width', maskH:'Mask height', maskX:'Mask X', maskY:'Mask Y',
     maskFeather:'Mask feather', pixelate:'Pixelate', grain:'Grain', rgbSplit:'RGB split',
-    vignette:'Vignette', keySim:'Key tolerance', keySoft:'Key softness', pan:'Pan'
+    vignette:'Vignette', keySim:'Key tolerance', keySoft:'Key softness', pan:'Pan',
+    invert:'Invert', sepia:'Sepia', gray:'Black & white', glitch:'Glitch',
+    scanlines:'Scanlines', bloom:'Bloom', zoomBlur:'Zoom blur', cornerR:'Rounded corners'
   };
-  const kfEase = p => p*p*(3 - 2*p);   // smoothstep between keyframes
+  const EASINGS = {
+    linear:    p => p,
+    smooth:    p => p*p*(3 - 2*p),
+    easeIn:    p => p*p,
+    easeOut:   p => 1 - (1-p)*(1-p),
+    easeInOut: p => p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p+2, 2)/2,
+    sineIn:    p => 1 - Math.cos((p*Math.PI)/2),
+    sineOut:   p => Math.sin((p*Math.PI)/2),
+    sine:      p => -(Math.cos(Math.PI*p) - 1)/2,
+    cubic:     p => p < 0.5 ? 4*p*p*p : 1 - Math.pow(-2*p+2, 3)/2,
+    expo:      p => p === 0 ? 0 : p === 1 ? 1
+                    : p < 0.5 ? Math.pow(2, 20*p - 10)/2 : (2 - Math.pow(2, -20*p + 10))/2,
+    circ:      p => p < 0.5 ? (1 - Math.sqrt(1 - Math.pow(2*p, 2)))/2
+                            : (Math.sqrt(1 - Math.pow(-2*p + 2, 2)) + 1)/2,
+    back:      p => { const c1 = 1.70158, c2 = c1*1.525;
+                      return p < 0.5 ? (Math.pow(2*p,2)*((c2+1)*2*p - c2))/2
+                                     : (Math.pow(2*p-2,2)*((c2+1)*(p*2-2) + c2) + 2)/2; },
+    elastic:   p => { const c = (2*Math.PI)/4.5;
+                      return p === 0 ? 0 : p === 1 ? 1
+                        : p < 0.5 ? -(Math.pow(2, 20*p - 10)*Math.sin((20*p - 11.125)*c))/2
+                                  :  (Math.pow(2, -20*p + 10)*Math.sin((20*p - 11.125)*c))/2 + 1; },
+    bounce:    p => { const n1 = 7.5625, d1 = 2.75;
+                      if (p < 1/d1) return n1*p*p;
+                      if (p < 2/d1) return n1*(p -= 1.5/d1)*p + 0.75;
+                      if (p < 2.5/d1) return n1*(p -= 2.25/d1)*p + 0.9375;
+                      return n1*(p -= 2.625/d1)*p + 0.984375; }
+  };
+  const EASE_NAMES = [
+    ['smooth','Smooth'], ['linear','Linear'], ['easeIn','Ease in'], ['easeOut','Ease out'],
+    ['easeInOut','Ease in-out'], ['sine','Sine'], ['sineIn','Sine in'], ['sineOut','Sine out'],
+    ['cubic','Cubic'], ['expo','Exponential'], ['circ','Circular'], ['back','Back (overshoot)'],
+    ['elastic','Elastic'], ['bounce','Bounce'], ['hold','Hold (step)']
+  ];
+  const kfEase = p => p*p*(3 - 2*p);
 
   function isAnimated(c, key){ return !!(c && c.kf && c.kf[key] && c.kf[key].length); }
 
@@ -1021,8 +1065,8 @@
         const span = b.t - a.t;
         const p = span > 0 ? (local - a.t) / span : 1;
         if (a.ez === 'hold') return a.v;
-        const e = a.ez === 'linear' ? p : kfEase(p);
-        return a.v + (b.v - a.v) * e;
+        const fn = EASINGS[a.ez] || EASINGS.smooth;
+        return a.v + (b.v - a.v) * fn(p);
       }
     }
     return last.v;
@@ -1290,6 +1334,10 @@
     if (s !== 1) parts.push(`saturate(${s})`);
     if (h) parts.push(`hue-rotate(${h}deg)`);
     if (bl && !draftNow()) parts.push(`blur(${bl}px)`);
+    const iv = propAt(c,'invert',local), sp = propAt(c,'sepia',local), gr = propAt(c,'gray',local);
+    if (iv) parts.push(`invert(${clamp(iv,0,1)})`);
+    if (sp) parts.push(`sepia(${clamp(sp,0,1)})`);
+    if (gr) parts.push(`grayscale(${clamp(gr,0,1)})`);
     return parts.length ? parts.join(' ') : 'none';
   }
   function sourceSize(c){
@@ -1490,6 +1538,25 @@
       ctx.fillRect(r.x, r.y, r.w, r.h);
       ctx.restore();
     }
+    const sl = propAt(c, 'scanlines', local);
+    if (sl > 0){
+      ctx.save();
+      ctx.filter = 'none';
+      ctx.globalAlpha = clamp(sl, 0, 1) * 0.55;
+      ctx.fillStyle = '#000';
+      const gap = Math.max(3, Math.round(state.height / 320));
+      for (let y = r.y; y < r.y + r.h; y += gap * 2) ctx.fillRect(r.x, y, r.w, gap);
+      ctx.restore();
+    }
+    if (c.borderW > 0){
+      ctx.save();
+      ctx.filter = 'none';
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = c.borderColor;
+      ctx.lineWidth = c.borderW;
+      ctx.strokeRect(r.x + c.borderW/2, r.y + c.borderW/2, r.w - c.borderW, r.h - c.borderW);
+      ctx.restore();
+    }
     if (c.tintOn && c.tintAmt > 0){
       ctx.save();
       ctx.filter = 'none';
@@ -1659,7 +1726,9 @@
   let fxCv = null, fxCtx = null;
   const draftNow = () => state.draft && !exporting;
   const needsFx = c => !draftNow() &&
-    ((c.maskOn && c.maskFeather > 0) || c.pixelate > 0 || c.grain > 0 || c.rgbSplit > 0);
+    ((c.maskOn && c.maskFeather > 0) || c.pixelate > 0 || c.grain > 0 || c.rgbSplit > 0 ||
+     c.posterize > 0 || c.threshold > 0 || c.glitch > 0 || c.bloom > 0 || c.zoomBlur > 0 ||
+     (c.mirrorMode && c.mirrorMode !== 'none'));
 
   function drawClip(c, t, baseAlpha){
     if (!needsFx(c)) return drawClipInner(c, t, baseAlpha, false);
@@ -1731,6 +1800,119 @@
       fxCtx.drawImage(grainTile(), 0, 0, W, H);
       fxCtx.restore();
     }
+
+    if (c.mirrorMode && c.mirrorMode !== 'none'){
+      const half = document.createElement('canvas');
+      half.width = W; half.height = H;
+      half.getContext('2d').drawImage(fxCv, 0, 0);
+      fxCtx.save();
+      fxCtx.setTransform(1,0,0,1,0,0);
+      const m = c.mirrorMode;
+      if (m === 'left' || m === 'right' || m === 'quad'){
+        if (m === 'right'){ fxCtx.translate(W, 0); fxCtx.scale(-1, 1); }
+        fxCtx.drawImage(half, 0, 0, W/2, H, 0, 0, W/2, H);
+        fxCtx.save();
+        fxCtx.translate(W, 0); fxCtx.scale(-1, 1);
+        fxCtx.drawImage(half, 0, 0, W/2, H, 0, 0, W/2, H);
+        fxCtx.restore();
+      }
+      if (m === 'top' || m === 'bottom' || m === 'quad'){
+        const src2 = document.createElement('canvas');
+        src2.width = W; src2.height = H;
+        src2.getContext('2d').drawImage(fxCv, 0, 0);
+        if (m === 'bottom'){ fxCtx.translate(0, H); fxCtx.scale(1, -1); }
+        fxCtx.drawImage(src2, 0, 0, W, H/2, 0, 0, W, H/2);
+        fxCtx.save();
+        fxCtx.translate(0, H); fxCtx.scale(1, -1);
+        fxCtx.drawImage(src2, 0, 0, W, H/2, 0, 0, W, H/2);
+        fxCtx.restore();
+      }
+      fxCtx.restore();
+    }
+
+    if (c.zoomBlur > 0){
+      const amt = clamp(c.zoomBlur, 0, 1);
+      const copy = document.createElement('canvas');
+      copy.width = W; copy.height = H;
+      copy.getContext('2d').drawImage(fxCv, 0, 0);
+      fxCtx.save();
+      fxCtx.setTransform(1,0,0,1,0,0);
+      fxCtx.globalAlpha = 0.32;
+      for (let i = 1; i <= 5; i++){
+        const k = 1 + (i/5) * amt * 0.22;
+        fxCtx.drawImage(copy, W/2 - (W*k)/2, H/2 - (H*k)/2, W*k, H*k);
+      }
+      fxCtx.restore();
+    }
+
+    if (c.bloom > 0){
+      const amt = clamp(c.bloom, 0, 1);
+      const copy = document.createElement('canvas');
+      copy.width = W; copy.height = H;
+      const cc = copy.getContext('2d');
+      cc.filter = `brightness(${1 + amt}) blur(${(amt*W*0.02).toFixed(1)}px)`;
+      cc.drawImage(fxCv, 0, 0);
+      fxCtx.save();
+      fxCtx.setTransform(1,0,0,1,0,0);
+      fxCtx.globalCompositeOperation = 'lighter';
+      fxCtx.globalAlpha = amt * 0.6;
+      fxCtx.drawImage(copy, 0, 0);
+      fxCtx.restore();
+    }
+
+    if (c.glitch > 0) applyGlitch(c, local);
+    if (c.posterize > 0 || c.threshold > 0) applyLevels(c);
+  }
+
+  // horizontal band displacement plus a channel shift, reseeded a few times a second
+  function applyGlitch(c, local){
+    const W = state.width, H = state.height;
+    const amt = clamp(c.glitch, 0, 1);
+    let seed = Math.floor(local * 12) * 2654435761 % 2147483647;
+    const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+    const copy = document.createElement('canvas');
+    copy.width = W; copy.height = H;
+    copy.getContext('2d').drawImage(fxCv, 0, 0);
+    fxCtx.save();
+    fxCtx.setTransform(1,0,0,1,0,0);
+    const bands = Math.round(3 + amt * 14);
+    for (let i = 0; i < bands; i++){
+      const y = Math.floor(rnd() * H);
+      const h = Math.max(4, Math.floor(rnd() * H * 0.06 * (0.4 + amt)));
+      const dx = (rnd() - 0.5) * W * 0.16 * amt;
+      fxCtx.clearRect(0, y, W, h);
+      fxCtx.drawImage(copy, 0, y, W, h, dx, y, W, h);
+    }
+    fxCtx.globalCompositeOperation = 'lighter';
+    fxCtx.globalAlpha = 0.4 * amt;
+    fxCtx.drawImage(copy, -W * 0.012 * amt, 0);
+    fxCtx.drawImage(copy, W * 0.012 * amt, 0);
+    fxCtx.restore();
+  }
+
+  // posterise / threshold both work on the raw pixels
+  function applyLevels(c){
+    const W = state.width, H = state.height;
+    let img;
+    try { img = fxCtx.getImageData(0, 0, W, H); } catch(e){ return; }
+    const d = img.data;
+    const levels = c.posterize > 0 ? Math.max(2, Math.round(c.posterize)) : 0;
+    const thr = c.threshold > 0 ? clamp(c.threshold, 0, 1) * 255 : 0;
+    const step = levels ? 255 / (levels - 1) : 0;
+    for (let i = 0; i < d.length; i += 4){
+      if (!d[i+3]) continue;
+      if (levels){
+        d[i]   = Math.round(d[i]   / step) * step;
+        d[i+1] = Math.round(d[i+1] / step) * step;
+        d[i+2] = Math.round(d[i+2] / step) * step;
+      }
+      if (thr){
+        const lum = d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114;
+        const v = lum >= thr ? 255 : 0;
+        d[i] = d[i+1] = d[i+2] = v;
+      }
+    }
+    fxCtx.putImageData(img, 0, 0);
   }
 
   let grainCv = null;
@@ -1793,7 +1975,10 @@
     const local = t - c.start;
     ctx.save();
     const transAlpha = applyTransition(c, local);
-    ctx.globalAlpha = clamp(baseAlpha * propAt(c,'opacity',local) * transAlpha, 0, 1);
+    let fadeA = 1;
+    if (c.vFadeIn > 0) fadeA *= clamp(local / c.vFadeIn, 0, 1);
+    if (c.vFadeOut > 0) fadeA *= clamp((c.duration - local) / c.vFadeOut, 0, 1);
+    ctx.globalAlpha = clamp(baseAlpha * propAt(c,'opacity',local) * transAlpha * fadeA, 0, 1);
     if (!inFx) ctx.globalCompositeOperation = c.blend || 'source-over';
     ctx.filter = buildFilter(c, local);
 
@@ -1807,6 +1992,12 @@
       const r = cropRect(c, local);
       ctx.beginPath();
       ctx.rect(r.x, r.y, r.w, r.h);
+      ctx.clip();
+    }
+    if (c.cornerR > 0 && ctx.roundRect){
+      const rr = contentRect(c);
+      ctx.beginPath();
+      ctx.roundRect(rr.x, rr.y, rr.w, rr.h, Math.min(rr.w, rr.h) * clamp(c.cornerR, 0, 0.5));
       ctx.clip();
     }
     if (c.maskOn && (draftNow() || !(c.maskFeather > 0))){
@@ -2181,6 +2372,41 @@
   }
   // bound to the stable container: the overlay's own nodes are replaced on redraw
   stage.parentElement.addEventListener('dblclick', handleStageDblClick);
+
+  // hit-test the frame so clips can be picked straight from the preview
+  function clipAtPoint(px, py){
+    for (let ti = 0; ti < state.tracks.length; ti++){
+      const tr = state.tracks[ti];
+      if (tr.kind !== 'video' || tr.hidden) continue;
+      const active = tr.clips
+        .filter(c => c.enabled !== false && c.type !== 'adjust' &&
+                     state.playhead >= c.start && state.playhead < c.start + c.duration)
+        .sort((a,b) => a.start - b.start);
+      for (let i = active.length - 1; i >= 0; i--){
+        const c = active[i];
+        const local = clamp(state.playhead - c.start, 0, c.duration);
+        let p;
+        try { p = clipMatrix(c, local).inverse().transformPoint(new DOMPoint(px, py)); }
+        catch(e){ continue; }
+        const r = cropRect(c, local);
+        if (p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h) return c;
+      }
+    }
+    return null;
+  }
+  stage.addEventListener('pointerdown', e => {
+    const p = toCanvasPt(e);
+    const hit = clipAtPoint(p.x, p.y);
+    if (!hit){ setSel([]); rebuild(); return; }
+    const groupIds = hit.groupId
+      ? allClips().filter(x => x.groupId === hit.groupId).map(x => x.id)
+      : [hit.id];
+    if (e.shiftKey) setSel(state.sel.concat(groupIds), hit.id);
+    else setSel(groupIds, hit.id);
+    state.activeTrack = (trackOfClip(hit.id) || {}).id || state.activeTrack;
+    rebuild();
+  });
+  stage.style.cursor = 'pointer';
 
   $('guidesBtn').addEventListener('click', () => {
     showGuides = !showGuides;
@@ -3055,7 +3281,12 @@
     maskW: v => Math.round(v*100)+'%', maskH: v => Math.round(v*100)+'%',
     maskFeather: v => Math.round(v*100)+'%', pixelate: v => Math.round(v*100)+'%',
     grain: v => Math.round(v*100)+'%', rgbSplit: v => Math.round(v*100)+'%',
-    gradAngle: v => Math.round(v)+'°'
+    gradAngle: v => Math.round(v)+'°',
+    invert: v => Math.round(v*100)+'%', sepia: v => Math.round(v*100)+'%',
+    gray: v => Math.round(v*100)+'%', glitch: v => Math.round(v*100)+'%',
+    scanlines: v => Math.round(v*100)+'%', bloom: v => Math.round(v*100)+'%',
+    zoomBlur: v => Math.round(v*100)+'%', cornerR: v => Math.round(v*100)+'%',
+    threshold: v => (+v) > 0 ? Math.round(v*100)+'%' : 'off'
   };
   const fmtVal = (key, v) => FMT[key] ? FMT[key](v) : (Math.round(v*100)/100);
   const kfBtn = key => ANIM_KEYS.includes(key)
@@ -3179,6 +3410,13 @@
            <button class="preset" data-align="bottom">⇣</button>
          </div>`
       );
+      h += sect('Fade',
+        fNum('Fade in (s)','vFadeIn',0,20,0.05) +
+        fNum('Fade out (s)','vFadeOut',0,20,0.05) +
+        `<div style="font-size:11px;color:var(--dim2);line-height:1.5">
+           Plain opacity ramps. Transitions below add movement on top.
+         </div>`
+      );
       h += sect('Transform',
         fRange('Scale','scale',0.1,4,0.01, v => Math.round(v*100)+'%') +
         fRange('Position X','x',-1500,1500,1) +
@@ -3265,10 +3503,40 @@
         fNum('Blur','shBlur',0,120,1) + fNum('Offset X','shX',-200,200,1) + fNum('Offset Y','shY',-200,200,1)
       );
 
+      h += sect('Colour effects',
+        fRange('Invert','invert',0,1,0.01, v => Math.round(v*100)+'%') +
+        fRange('Sepia','sepia',0,1,0.01, v => Math.round(v*100)+'%') +
+        fRange('Black &amp; white','gray',0,1,0.01, v => Math.round(v*100)+'%') +
+        fNum('Posterise levels','posterize',0,16,1) +
+        fRange('Threshold','threshold',0,1,0.01, v => v > 0 ? Math.round(v*100)+'%' : 'off')
+      );
+
       h += sect('Stylise',
         fRange('Pixelate','pixelate',0,1,0.01, v => Math.round(v*100)+'%') +
         fRange('Grain','grain',0,1,0.01, v => Math.round(v*100)+'%') +
-        fRange('RGB split','rgbSplit',0,1,0.01, v => Math.round(v*100)+'%')
+        fRange('RGB split','rgbSplit',0,1,0.01, v => Math.round(v*100)+'%') +
+        fRange('Glitch','glitch',0,1,0.01, v => Math.round(v*100)+'%') +
+        fRange('Scanlines','scanlines',0,1,0.01, v => Math.round(v*100)+'%') +
+        fRange('Bloom / glow','bloom',0,1,0.01, v => Math.round(v*100)+'%') +
+        fRange('Zoom blur','zoomBlur',0,1,0.01, v => Math.round(v*100)+'%')
+      );
+
+      h += sect('Framing',
+        fSel('Mirror','mirrorMode',[['none','None'],['left','Left → right'],['right','Right → left'],
+                                    ['top','Top → bottom'],['bottom','Bottom → top'],['quad','Quad']]) +
+        fRange('Rounded corners','cornerR',0,0.5,0.01, v => Math.round(v*100)+'%') +
+        fNum('Border width','borderW',0,80,1) + fColor('Border colour','borderColor')
+      );
+
+      h += sect('Effect presets',
+        `<div class="preset-row">
+           <button class="preset" data-fx="vhs">VHS</button>
+           <button class="preset" data-fx="glitchy">Glitch</button>
+           <button class="preset" data-fx="oldFilm">Old film</button>
+           <button class="preset" data-fx="dream">Dream</button>
+           <button class="preset" data-fx="comic">Comic</button>
+           <button class="preset" data-fx="clearFx">Clear</button>
+         </div>`
       );
 
       h += sect('Compositing', fSel('Blend mode','blend', BLENDS));
@@ -3328,15 +3596,21 @@
 
     const animated = ANIM_KEYS.filter(k => isAnimated(c, k));
     if (animated.length){
+      const easeOpts = ez => EASE_NAMES.map(([v,t]) =>
+        `<option value="${v}"${ez === v ? ' selected' : ''}>${t}</option>`).join('');
       h += sect(`Keyframes · ${keyframeTimes(c).length} points`,
+        `<div class="fld"><label>New points</label><div class="ctl">
+           <select data-kfdefault>${easeOpts(state.kfEase)}</select></div></div>` +
         animated.map(k =>
           `<div class="kf-row">
              <span class="kf-name">${ANIM_LABEL[k] || k}</span>
              <span class="kf-n">${c.kf[k].length}◆</span>
+             <select class="kf-ez" data-kfez="${k}">${easeOpts(c.kf[k][0] && c.kf[k][0].ez)}</select>
              <button data-kfclear="${k}" title="Remove these keyframes">✕</button>
            </div>`).join('') +
         `<div style="font-size:11px;color:var(--dim2);line-height:1.5;margin-top:7px">
            Move the playhead, then change a value — a keyframe is added there automatically.
+           The dropdown sets how that property eases between its points.
          </div>`
       );
     }
@@ -3391,7 +3665,24 @@
     syncMedia(state.playhead, false);
     renderAt(state.playhead);
   });
-  inspector.addEventListener('change', e => { if (e.target.dataset.k) pushUndo(); });
+  inspector.addEventListener('change', e => {
+    const c = selectedClip();
+    if (e.target.dataset.kfdefault !== undefined){
+      state.kfEase = e.target.value;
+      toast('New keyframes will use ' + e.target.value);
+      return;
+    }
+    const ezKey = e.target.dataset.kfez;
+    if (ezKey && c && c.kf && c.kf[ezKey]){
+      pushUndo();
+      c.kf[ezKey].forEach(pt => { pt.ez = e.target.value; });
+      renderAt(state.playhead);
+      syncInspectorValues();      // the curve changes the value shown at the playhead
+      toast(`${ANIM_LABEL[ezKey] || ezKey}: ${e.target.value}`);
+      return;
+    }
+    if (e.target.dataset.k) pushUndo();
+  });
   inspector.addEventListener('click', e => {
     const c = selectedClip();
     if (!c) return;
@@ -3399,6 +3690,25 @@
     const kfKey = e.target.dataset.kf;
     const kfClear = e.target.dataset.kfclear;
 
+    const fx = e.target.dataset.fx;
+    if (fx){
+      pushUndo();
+      const FX = {
+        vhs:     { rgbSplit:0.35, scanlines:0.45, grain:0.35, saturation:1.2, contrast:1.08, glitch:0.12 },
+        glitchy: { glitch:0.6, rgbSplit:0.5, contrast:1.12, scanlines:0.2 },
+        oldFilm: { gray:0.85, grain:0.6, vignette:0.55, contrast:1.15, sepia:0.35 },
+        dream:   { bloom:0.6, blurPx:1.5, saturation:1.25, brightness:1.06 },
+        comic:   { posterize:5, contrast:1.35, saturation:1.5 },
+        clearFx: { invert:0, sepia:0, gray:0, posterize:0, threshold:0, glitch:0, scanlines:0,
+                   bloom:0, zoomBlur:0, rgbSplit:0, grain:0, pixelate:0, vignette:0,
+                   mirrorMode:'none', cornerR:0, borderW:0, blurPx:0,
+                   brightness:1, contrast:1, saturation:1, hue:0, look:'none' }
+      };
+      Object.assign(c, FX[fx]);
+      renderInspector(); renderAt(state.playhead);
+      toast(fx === 'clearFx' ? 'Effects cleared' : fx + ' preset');
+      return;
+    }
     const tstyle = e.target.dataset.tstyle;
     if (tstyle){
       pushUndo();
