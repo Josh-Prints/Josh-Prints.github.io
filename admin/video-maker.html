@@ -602,7 +602,13 @@
       ctx.fillStyle = '#000';
       ctx.fillRect(0,0,W,H);
 
-      if (clip.type === 'outro'){ drawOutro(clip, t); return; }
+      if (clip.type === 'outro'){
+        ctx.save();
+        ctx.globalAlpha = easeOut(Math.min(1, t / ENTER));
+        drawOutro(clip, t);
+        ctx.restore();
+        return;
+      }
 
       var e = easeOut(Math.min(1, t / ENTER));
       ctx.save();
