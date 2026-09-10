@@ -1628,7 +1628,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
             <input type="text" id="hook-role" placeholder="e.g. 123456789012345678" autocomplete="off" inputmode="numeric">
           </label>
         </div>
-        <p class="modal-sub" style="margin:22px 0 12px;"><strong>Two-way chat.</strong> With a bot added, every order gets its own Discord thread — customer messages appear there and anything you type back lands in their order chat. Create a bot at discord.com/developers → New Application → Bot → Reset Token, invite it to your server, then paste its token and the channel ID for the threads below.</p>
+        <p class="modal-sub" style="margin:22px 0 12px;"><strong>Two-way chat.</strong> With a bot added, every order gets its own Discord thread — customer messages appear there and anything you type back lands in their order chat. Create a bot at discord.com/developers → New Application → Bot → Reset Token, and turn on <strong>Message Content Intent</strong> on that same Bot page or your replies will arrive blank. Invite it to your server, and if the channel is private add the bot under Edit Channel → Permissions → Add members or roles.</p>
         <div class="rates-form-grid">
           <label style="grid-column:1 / -1;">Bot token<span class="unit">kept private — never sent to the public site</span>
             <input type="password" id="hook-bot" placeholder="paste the bot token" autocomplete="off">
@@ -3389,12 +3389,14 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     hookRelayBtn.disabled = false;
     hookRelayBtn.textContent = 'Check relay';
     if (error){ hookMsgEl.textContent = 'Error: ' + error.message; return; }
-    if (!data || !data.bot){
-      hookMsgEl.textContent = 'Bot not reachable — check the token.';
+    if (!data){ hookMsgEl.textContent = 'No answer from the relay.'; return; }
+    if (!data.ok){
+      hookMsgEl.textContent = (data.bot ? data.bot + ': ' : '') +
+        (data.problem || 'not reachable — check the token.');
       return;
     }
-    hookMsgEl.textContent = 'Connected as ' + data.bot + ' — ' +
-      data.threads + ' thread(s), ' + data.sync + '.';
+    hookMsgEl.textContent = data.bot + ' is live in #' + data.channel + ' — ' +
+      data.threads + ' thread(s), ' + data.pending + ' queued, ' + data.sync + '.';
   });
 
   hookTestBtn.addEventListener('click', async () => {
