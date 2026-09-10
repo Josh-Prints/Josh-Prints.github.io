@@ -372,6 +372,20 @@
   }
   .mode-btn:hover{ background: var(--panel3); color: var(--text); }
   .mode-btn.on{ background: var(--accent); border-color: var(--accent); color:#fff; }
+  .kf-add{
+    width:30px; height:26px; border-radius:6px; cursor:pointer; font-size:14px; line-height:1;
+    border:1px solid #4a5261; background:#2b303a; color:#c6cedb;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .kf-add:hover:not(:disabled){ background: var(--accent); border-color: var(--accent); color:#fff; }
+  .kf-add.on{ background:#ffd479; border-color:#ffd479; color:#1a1d23; }
+  .kf-add:disabled{ opacity:0.35; cursor:default; }
+  .text-edit{
+    position:absolute; z-index:30; resize:none; min-width:150px; min-height:44px;
+    background: rgba(9,11,15,0.9); color:#fff; border:2px solid var(--accent); border-radius:7px;
+    padding:8px 10px; font-family:inherit; font-size:15px; line-height:1.35; outline:none;
+    box-shadow:0 10px 34px rgba(0,0,0,0.55);
+  }
 
   /* ---------- keyframes ---------- */
   .kf{
@@ -550,6 +564,8 @@
         <span class="mon-gap"></span>
         <span class="tc" id="tcNow">00:00:00.00</span>
         <span class="tc dim" id="tcTotal">/ 00:00:00.00</span>
+        <span class="mon-gap"></span>
+        <button class="kf-add" id="kfAddBtn" title="Add or remove a keyframe here (K)">◆</button>
       </div>
     </section>
 
@@ -1048,26 +1064,69 @@
     if (bl) parts.push(`blur(${bl}px)`);
     return parts.length ? parts.join(' ') : 'none';
   }
-  // visible content rectangle in frame space after cropping
-  function cropRect(c, local){
+  function sourceSize(c){
+    const a = assets.get(c.assetId);
+    if (c.type === 'video'){
+      const rt = runtime.get(c.id);
+      if (rt && rt.el.videoWidth) return { w: rt.el.videoWidth, h: rt.el.videoHeight };
+      if (a && a.width) return { w: a.width, h: a.height };
+    } else if (c.type === 'image'){
+      if (a && a.el && a.el.naturalWidth) return { w: a.el.naturalWidth, h: a.el.naturalHeight };
+      if (a && a.width) return { w: a.width, h: a.height };
+    }
+    return null;
+  }
+
+  // bounds of the actual drawn object in frame space (media is fitted, never cropped to fill)
+  function contentRect(c){
     const W = state.width, H = state.height;
-    const l = clamp(propAt(c,'cropL',local), 0, 0.95) * W;
-    const t = clamp(propAt(c,'cropT',local), 0, 0.95) * H;
-    const r = W - clamp(propAt(c,'cropR',local), 0, 0.95) * W;
-    const b = H - clamp(propAt(c,'cropB',local), 0, 0.95) * H;
-    return { x:l, y:t, w:Math.max(2, r-l), h:Math.max(2, b-t) };
+    if (c.type === 'image' || c.type === 'video'){
+      const src = sourceSize(c);
+      if (!src) return { x:0, y:0, w:W, h:H };
+      const s = Math.min(W/src.w, H/src.h);
+      const w = src.w*s, h = src.h*s;
+      return { x:(W-w)/2, y:(H-h)/2, w, h };
+    }
+    if (c.type === 'text') return textBounds(c);
+    return { x:0, y:0, w:W, h:H };
+  }
+
+  function textBounds(c){
+    const W = state.width, H = state.height;
+    ctx.save();
+    ctx.font = `${c.weight} ${c.size}px ${FONTS[c.font] || FONTS.system}`;
+    const lines = wrap(c.text || ' ', W * 0.84);
+    let maxW = 0;
+    lines.forEach(l => { maxW = Math.max(maxW, ctx.measureText(l || ' ').width); });
+    ctx.restore();
+    const lh = c.size * 1.22;
+    const h = Math.max(c.size, lines.length * lh);
+    const w = Math.max(c.size * 0.6, maxW);
+    const pad = c.size * 0.2;
+    const x = c.align === 'left' ? W*0.08 : c.align === 'right' ? W*0.92 - w : (W - w)/2;
+    return { x:x-pad, y:H/2 - h/2 - pad, w:w+pad*2, h:h+pad*2 };
+  }
+
+  // visible rectangle after cropping — crop insets are fractions of the content, not the frame
+  function cropRect(c, local){
+    const b = contentRect(c);
+    const l = clamp(propAt(c,'cropL',local), 0, 0.95);
+    const r = clamp(propAt(c,'cropR',local), 0, 0.95);
+    const t = clamp(propAt(c,'cropT',local), 0, 0.95);
+    const bo = clamp(propAt(c,'cropB',local), 0, 0.95);
+    return {
+      x: b.x + b.w*l, y: b.y + b.h*t,
+      w: Math.max(2, b.w*(1-l-r)), h: Math.max(2, b.h*(1-t-bo))
+    };
   }
   function isCropped(c, local){
     return propAt(c,'cropL',local) > 0 || propAt(c,'cropR',local) > 0 ||
            propAt(c,'cropT',local) > 0 || propAt(c,'cropB',local) > 0;
   }
 
-  function drawCover(src, sw, sh){
-    const W = state.width, H = state.height;
-    if (!sw || !sh) return;
-    const s = Math.max(W/sw, H/sh);
-    const w = sw*s, h = sh*s;
-    ctx.drawImage(src, (W-w)/2, (H-h)/2, w, h);
+  function drawFit(src, c){
+    const r = contentRect(c);
+    ctx.drawImage(src, r.x, r.y, r.w, r.h);
   }
 
   function wrap(text, maxW){
@@ -1249,10 +1308,10 @@
 
     if (c.type === 'video'){
       const rt = runtime.get(c.id);
-      if (rt && rt.el.readyState >= 2) drawCover(rt.el, rt.el.videoWidth, rt.el.videoHeight);
+      if (rt && rt.el.readyState >= 2) drawFit(rt.el, c);
     } else if (c.type === 'image'){
       const a = assets.get(c.assetId);
-      if (a && a.el && a.el.complete) drawCover(a.el, a.el.naturalWidth, a.el.naturalHeight);
+      if (a && a.el && a.el.complete) drawFit(a.el, c);
     } else if (c.type === 'text'){
       drawTextClip(c, local);
     } else if (c.type === 'outro'){
@@ -1425,13 +1484,134 @@
 
   function endXDrag(){
     if (!xdrag) return;
+    const moved = xdrag.pushed;
     xdrag = null;
+    // a click that moved nothing must not rebuild the overlay: replacing the node
+    // between the two clicks of a double-click stops dblclick from ever firing
+    if (!moved) return;
     buildLanes();
     renderInspector();
     renderAt(state.playhead);
   }
   xform.addEventListener('pointerup', endXDrag);
   xform.addEventListener('pointercancel', endXDrag);
+
+  /* ---- one-click keyframe: change things, then stamp a keyframe here ---- */
+  const KF_SET = ['x','y','scale','rotation','opacity'];
+  function kfKeysFor(c){
+    return KF_SET.concat(['cropL','cropR','cropT','cropB']
+      .filter(k => c[k] > 0 || isAnimated(c, k)));
+  }
+  function keyframeHere(c){
+    const local = clamp(state.playhead - c.start, 0, c.duration);
+    return kfKeysFor(c).some(k => ((c.kf && c.kf[k]) || []).some(p => Math.abs(p.t - local) < 0.03));
+  }
+  function toggleKeyframeHere(){
+    const c = selectedClip();
+    if (!c) return toast('Select a clip first');
+    if (state.playhead < c.start || state.playhead > c.start + c.duration)
+      return toast('Move the playhead over the clip first');
+    pushUndo();
+    const local = clamp(state.playhead - c.start, 0, c.duration);
+    const keys = kfKeysFor(c);
+    if (keyframeHere(c)){
+      keys.forEach(k => {
+        if (!c.kf || !c.kf[k]) return;
+        const keep = c.kf[k].filter(p => Math.abs(p.t - local) >= 0.03);
+        if (keep.length) c.kf[k] = keep;
+        else { const v = curVal(c, k); delete c.kf[k]; c[k] = v; }
+      });
+      toast('Keyframe removed');
+    } else {
+      if (!c.kf) c.kf = {};
+      keys.forEach(k => setKeyframe(c, k, local, curVal(c, k)));
+      toast('Keyframe added at ' + tcFmt(state.playhead));
+    }
+    renderInspector(); buildLanes(); renderAt(state.playhead); updateKfBtn();
+  }
+  function updateKfBtn(){
+    const c = selectedClip();
+    const btn = $('kfAddBtn');
+    const usable = !!c && state.playhead >= c.start && state.playhead <= c.start + c.duration;
+    btn.disabled = !usable;
+    btn.classList.toggle('on', usable && keyframeHere(c));
+  }
+  $('kfAddBtn').addEventListener('click', toggleKeyframeHere);
+
+  /* ---- double-click a text clip on the canvas to edit it in place ---- */
+  let textEditEl = null;
+  function closeTextEditor(){
+    if (!textEditEl) return;
+    const el = textEditEl;
+    textEditEl = null;
+    el.remove();
+    rebuild();
+  }
+  function screenBoxOf(c){
+    const sr = stage.getBoundingClientRect();
+    const hr = stage.parentElement.getBoundingClientRect();
+    const local = clamp(state.playhead - c.start, 0, c.duration);
+    const m = clipMatrix(c, local);
+    const r = cropRect(c, local);
+    const pts = [[r.x,r.y],[r.x+r.w,r.y],[r.x+r.w,r.y+r.h],[r.x,r.y+r.h]]
+      .map(p => m.transformPoint(new DOMPoint(p[0], p[1])));
+    const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+    const kx = sr.width / state.width, ky = sr.height / state.height;
+    return {
+      left: (sr.left - hr.left) + Math.min(...xs) * kx,
+      top: (sr.top - hr.top) + Math.min(...ys) * ky,
+      width: (Math.max(...xs) - Math.min(...xs)) * kx,
+      height: (Math.max(...ys) - Math.min(...ys)) * ky
+    };
+  }
+  function openTextEditor(c){
+    closeTextEditor();
+    if (playing) stopPlayback();
+    pushUndo();
+    const b = screenBoxOf(c);
+    const ta = document.createElement('textarea');
+    ta.className = 'text-edit';
+    ta.value = c.text;
+    ta.style.left = b.left + 'px';
+    ta.style.top = b.top + 'px';
+    ta.style.width = Math.max(150, b.width) + 'px';
+    ta.style.height = Math.max(44, b.height) + 'px';
+    stage.parentElement.appendChild(ta);
+    textEditEl = ta;
+    ta.focus(); ta.select();
+    ta.addEventListener('input', () => {
+      c.text = ta.value;
+      buildLanes();
+      renderAt(state.playhead);
+    });
+    ta.addEventListener('keydown', e => {
+      e.stopPropagation();
+      if (e.key === 'Escape'){ e.preventDefault(); closeTextEditor(); }
+    });
+    ta.addEventListener('blur', closeTextEditor);
+  }
+  function textClipAtPlayhead(){
+    const sel = selectedClip();
+    if (sel && sel.type === 'text' &&
+        state.playhead >= sel.start && state.playhead <= sel.start + sel.duration) return sel;
+    for (const track of state.tracks){
+      if (track.kind !== 'video' || track.hidden) continue;
+      const hit = track.clips.find(c => c.type === 'text' &&
+        state.playhead >= c.start && state.playhead < c.start + c.duration);
+      if (hit) return hit;
+    }
+    return null;
+  }
+  function handleStageDblClick(){
+    const c = textClipAtPlayhead();
+    if (!c) return;
+    state.selected = c.id;
+    state.activeTrack = (trackOfClip(c.id) || {}).id || state.activeTrack;
+    renderInspector();
+    openTextEditor(c);
+  }
+  // bound to the stable container: the overlay's own nodes are replaced on redraw
+  stage.parentElement.addEventListener('dblclick', handleStageDblClick);
 
   $('modeTransform').addEventListener('click', () => setXformMode('transform'));
   $('modeCrop').addEventListener('click', () => setXformMode('crop'));
@@ -1487,7 +1667,7 @@
     updatePlayheadUI();
     if (sync){ syncMedia(state.playhead, playing); updateAudio(state.playhead, playing); }
     renderAt(state.playhead);
-    if (!playing) syncInspectorValues();
+    if (!playing){ syncInspectorValues(); updateKfBtn(); }
   }
   function updatePlayheadUI(){
     playheadEl.style.left = (state.playhead * state.pxPerSec) + 'px';
@@ -1645,8 +1825,10 @@
   }
 
   function rebuild(){
+    if (state.playhead > totalDuration()) state.playhead = totalDuration();
     buildRuler(); buildHeads(); buildLanes();
     updatePlayheadUI();
+    updateKfBtn();
     renderInspector();
     renderBin();
     $('tlHint').textContent = state.selected
@@ -2064,7 +2246,7 @@
 
     const out = inspector.querySelector(`[data-out="${key}"]`);
     if (out) out.textContent = fmtVal(key, v);
-    buildRuler(); buildLanes(); updatePlayheadUI();
+    buildRuler(); buildLanes(); updatePlayheadUI(); updateKfBtn();
     $('tlHint').textContent = `${clipLabel(c)} · ${c.duration.toFixed(2)}s`;
     syncMedia(state.playhead, false);
     renderAt(state.playhead);
@@ -2439,8 +2621,10 @@
     ['S','Toggle snapping'], ['I','Import media'], ['T','New text clip'], ['O','New logo outro'],
     ['Ctrl S','Save project'], ['Ctrl Shift S','Save project as…'],
     ['Ctrl E','Export'], ['?','This list'],
+    ['K','Add / remove a keyframe at the playhead'],
     ['Drag on canvas','Move the selected clip'], ['Corner handles','Scale it'],
-    ['Handle above box','Rotate (hold Shift to snap 15°)'], ['◆ button','Keyframe that property']
+    ['Handle above box','Rotate (hold Shift to snap 15°)'],
+    ['Double-click text','Edit it on the canvas'], ['◆ button','Keyframe that property']
   ];
   $('shortcutsBody').innerHTML = SHORTCUTS.map(([k,d]) =>
     `<div class="kbd-row"><span>${d}</span><kbd>${k}</kbd></div>`).join('');
@@ -2473,6 +2657,7 @@
           if (selectedClip()) cmdSplit();
           document.querySelector('[data-tool="blade"]').click();
         }
+        else if (k === 'k'){ toggleKeyframeHere(); }
         else if (k === 's'){ commands.snapToggle(); }
         else if (k === 'i'){ commands.import(); }
         else if (k === 't'){ commands.addText(); }
