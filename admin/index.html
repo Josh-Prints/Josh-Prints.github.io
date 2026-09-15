@@ -1370,7 +1370,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   <div class="toolbar" id="filter-bar">
     <button class="chip active" data-filter="all">All</button>
     <button class="chip" data-filter="new">New</button>
-    <button class="chip" data-filter="aknowleged">Acknowledged</button>
+    <button class="chip" data-filter="acknowledged">Acknowledged</button>
     <button class="chip" data-filter="quoted">Quoted</button>
     <button class="chip" data-filter="printing">Printing</button>
     <button class="chip" data-filter="completed">Completed</button>
@@ -1850,9 +1850,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   let chatPollTimer = null;
   const chatRenderCache = {}; // orderId -> last rendered signature, to avoid needless re-renders
 
-  const STATUS_OPTIONS = ['new', 'aknowleged', 'quoted', 'printing', 'completed', 'sold'];
+  const STATUS_OPTIONS = ['new', 'acknowledged', 'quoted', 'printing', 'completed', 'sold', 'cancelled'];
   const STATUS_LABEL = {
-    new: 'New', aknowleged: 'Acknowledged', quoted: 'Quoted', printing: 'Printing',
+    new: 'New', acknowledged: 'Acknowledged', quoted: 'Quoted', printing: 'Printing',
     completed: 'Completed', sold: 'Sold', cancelled: 'Cancelled'
   };
   let myUserId = null;
@@ -1860,7 +1860,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   let onlyMine = false;
   let sortMode = 'newest';
   let lastUpdatedOrderId = null;
-  const STATUS_ORDER = ['new', 'aknowleged', 'quoted', 'printing', 'completed', 'sold', 'cancelled'];
+  const STATUS_ORDER = ['new', 'acknowledged', 'quoted', 'printing', 'completed', 'sold', 'cancelled'];
 
   function escapeHtml(str){
     return (str || '').replace(/[&<>"']/g, c => ({
