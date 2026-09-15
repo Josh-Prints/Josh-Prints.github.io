@@ -253,8 +253,8 @@
   .status-pill .dot{ width: 7px; height: 7px; border-radius: 50%; }
   .status-new{ background: var(--accent-dim); color: var(--accent); }
   .status-new .dot{ background: var(--accent); }
-  .status-aknowleged{ background: rgba(154,103,0,0.10); color: var(--warn); }
-  .status-aknowleged .dot{ background: var(--warn); }
+  .status-acknowledged{ background: rgba(154,103,0,0.10); color: var(--warn); }
+  .status-acknowledged .dot{ background: var(--warn); }
   .status-quoted{ background: rgba(154,103,0,0.14); color: var(--warn); }
   .status-quoted .dot{ background: var(--warn); }
   .status-printing{ background: rgba(9,105,218,0.14); color: var(--accent); }
@@ -847,7 +847,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
   const messagesEl = document.getElementById('messages');
 
   const STATUS_LABEL = {
-    new: 'New', aknowleged: 'Acknowledged', quoted: 'Quoted', printing: 'Printing',
+    new: 'New', acknowledged: 'Acknowledged', quoted: 'Quoted', printing: 'Printing',
     completed: 'Completed', sold: 'Sold', cancelled: 'Cancelled'
   };
 
