@@ -1383,15 +1383,12 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     <div class="debug-section active" id="debug-section-admin">
     <div class="founder-card">
       <h2>Admins</h2>
-      <p class="hint">Suspending an admin leaves them able to open everything and read it, but every save, edit and delete is refused by the database until the suspension runs out.</p>
       <div id="adm-list"></div>
       <p id="adm-msg" class="hint" style="margin:14px 0 0;"></p>
-      <p class="founder-note">Founders can't be suspended or removed here, and founder status can't be granted from this page at all &mdash; it can only be set with direct database access.</p>
     </div>
 
     <div class="founder-card">
       <h2>Add an admin</h2>
-      <p class="hint">They must have signed in to the main site with Google at least once, so an account exists to promote.</p>
       <div class="rates-form-grid">
         <label style="grid-column:1 / -1;">Their email
           <input type="email" id="adm-new-email" placeholder="name@example.com" autocomplete="off">
@@ -1425,7 +1422,6 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
     <div class="debug-section" id="debug-section-site">
       <div class="modal-body">
-        <p class="modal-sub" style="margin:0 0 16px;">The eyebrow tag, headline, and blurb at the top of the main page.</p>
         <label style="display:block; margin-bottom:14px;">Eyebrow tag
           <input type="text" class="banner-textarea" id="site-eyebrow-input" placeholder="Now taking orders">
         </label>
@@ -1485,7 +1481,6 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <div class="site-divider"></div>
 
       <div class="modal-body">
-        <p class="modal-sub" style="margin:0 0 16px;">Close the shop when you can't take work on. The order form stops accepting anything and shows your message instead. Orders already placed carry on as normal, and you can still add one by hand from the admin side.</p>
         <div class="theme-row">
           <span>🛒 Accepting new orders</span>
           <button type="button" class="theme-switch" id="orders-enabled-toggle" role="switch" aria-checked="true" aria-label="Accepting new orders"><span class="thumb"></span></button>
@@ -1502,7 +1497,6 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
     <div class="debug-section" id="debug-section-credit">
       <div class="modal-body">
-        <p class="modal-sub" style="margin:0 0 16px;">Customers earn store credit automatically when a signed-in customer's order is marked "Sold" — a percentage of the quoted price, added to their balance. They can use it toward future orders (you apply it per-order on the order card).</p>
         <div class="theme-row">
           <span>💳 Store credit enabled</span>
           <button type="button" class="theme-switch" id="credit-enabled-toggle" role="switch" aria-checked="false" aria-label="Store credit enabled"><span class="thumb"></span></button>
@@ -1519,7 +1513,6 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
     <div class="debug-section" id="debug-section-promo">
       <div class="modal-body">
-        <p class="modal-sub" style="margin:0 0 16px;">Codes customers can enter when placing an order. Entering one doesn't change any price automatically — like store credit and the signup discount, you see it on the order card and factor it into the quote you type in.</p>
         <div class="fil-list" id="promo-list">
           <div class="fil-empty">Loading…</div>
         </div>
@@ -1545,21 +1538,19 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
     <div class="debug-section" id="debug-section-alerts">
       <div class="modal-body">
-        <p class="modal-sub" style="margin:0 0 16px;">Get pinged on your phone the moment an order comes in. In Discord: open a channel → Edit Channel → Integrations → Webhooks → New Webhook → Copy Webhook URL, then paste it here. To have it ping a role, turn on Developer Mode (User Settings → Advanced), then Server Settings → Roles → right-click the role → Copy Role ID.</p>
         <div class="rates-form-grid">
-          <label style="grid-column:1 / -1;">Discord webhook URL<span class="unit">kept private — never sent to the public site</span>
+          <label style="grid-column:1 / -1;">Discord webhook URL
             <input type="password" id="hook-url" placeholder="https://discord.com/api/webhooks/…" autocomplete="off">
           </label>
-          <label style="grid-column:1 / -1;">Role to ping<span class="unit">Discord role ID — leave blank for a silent alert</span>
+          <label style="grid-column:1 / -1;">Role to ping
             <input type="text" id="hook-role" placeholder="e.g. 123456789012345678" autocomplete="off" inputmode="numeric">
           </label>
         </div>
-        <p class="modal-sub" style="margin:22px 0 12px;"><strong>Two-way chat.</strong> With a bot added, every order gets its own Discord thread — customer messages appear there and anything you type back lands in their order chat. Create a bot at discord.com/developers → New Application → Bot → Reset Token, and turn on <strong>Message Content Intent</strong> on that same Bot page or your replies will arrive blank. Invite it to your server, and if the channel is private add the bot under Edit Channel → Permissions → Add members or roles.</p>
         <div class="rates-form-grid">
-          <label style="grid-column:1 / -1;">Bot token<span class="unit">kept private — never sent to the public site</span>
+          <label style="grid-column:1 / -1;">Bot token
             <input type="password" id="hook-bot" placeholder="paste the bot token" autocomplete="off">
           </label>
-          <label style="grid-column:1 / -1;">Channel for order threads<span class="unit">right-click the channel → Copy Channel ID</span>
+          <label style="grid-column:1 / -1;">Channel for order threads
             <input type="text" id="hook-channel" placeholder="e.g. 123456789012345678" autocomplete="off" inputmode="numeric">
           </label>
         </div>
