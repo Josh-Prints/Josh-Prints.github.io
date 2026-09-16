@@ -761,6 +761,18 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
   .progress-fill.indeterminate{ animation: none !important; }
   .spinner{ animation-duration: 0.7s !important; }
 }
+
+  .orders-closed{
+    background: rgba(214,77,77,0.10);
+    border: 1px solid rgba(214,77,77,0.35);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin: 0 0 22px;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.45;
+  }
+  #order-form.closed{ opacity: 0.5; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -862,6 +874,8 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
     <h1>Vox<span>prints</span></h1>
     <p class="lede">Send over your project and I'll turn it into a quote. Custom models built from scratch, or your own file printed to spec.</p>
   </header>
+
+  <div class="orders-closed" id="orders-closed" hidden></div>
 
   <form id="order-form" novalidate>
     <div class="field" id="field-full_name">
@@ -1193,8 +1207,39 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
     });
   }
 
+  // The database refuses new orders while the shop is closed; this just makes
+  // that visible instead of letting someone fill the form in for nothing.
+  let ordersOpen = true;
+  const ordersClosedEl = document.getElementById('orders-closed');
+
+  async function checkOrdersOpen(){
+    const { data } = await supabase.from('settings')
+      .select('orders_enabled, orders_closed_message').eq('id', 1).maybeSingle();
+    if (!data) return true;
+    ordersOpen = data.orders_enabled !== false;
+    if (!ordersOpen){
+      ordersClosedEl.textContent = data.orders_closed_message
+        || 'We are not taking new orders right now — check back soon.';
+      ordersClosedEl.hidden = false;
+      form.classList.add('closed');
+      submitBtn.disabled = true;
+    } else {
+      ordersClosedEl.hidden = true;
+      form.classList.remove('closed');
+      submitBtn.disabled = false;
+    }
+    return ordersOpen;
+  }
+  checkOrdersOpen();
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (!(await checkOrdersOpen())){
+      statusEl.textContent = ordersClosedEl.textContent;
+      statusEl.className = 'status error show';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     statusEl.classList.remove('show');
     clearFieldErrors();
 

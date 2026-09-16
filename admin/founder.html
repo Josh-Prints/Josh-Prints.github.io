@@ -1481,6 +1481,23 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         <span id="banner-msg"></span>
         <button class="save-btn" id="banner-save">Save banner</button>
       </div>
+
+      <div class="site-divider"></div>
+
+      <div class="modal-body">
+        <p class="modal-sub" style="margin:0 0 16px;">Close the shop when you can't take work on. The order form stops accepting anything and shows your message instead. Orders already placed carry on as normal, and you can still add one by hand from the admin side.</p>
+        <div class="theme-row">
+          <span>🛒 Accepting new orders</span>
+          <button type="button" class="theme-switch" id="orders-enabled-toggle" role="switch" aria-checked="true" aria-label="Accepting new orders"><span class="thumb"></span></button>
+        </div>
+        <label style="display:block;margin-top:14px;">What customers see while closed
+          <textarea class="banner-textarea" id="orders-closed-input" rows="2" placeholder="e.g. Away until the 20th — orders reopen then."></textarea>
+        </label>
+      </div>
+      <div class="modal-foot">
+        <span id="orders-msg"></span>
+        <button class="save-btn" id="orders-save">Save ordering</button>
+      </div>
     </div>
 
     <div class="debug-section" id="debug-section-credit">
@@ -1770,6 +1787,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     bannerForceToggle.setAttribute('aria-checked', String(!!data.banner_force_scroll));
     renderBannerPreview();
 
+    ordersEnabledToggle.setAttribute('aria-checked', String(data.orders_enabled !== false));
+    ordersClosedInput.value = data.orders_closed_message || '';
     creditEnabledToggle.setAttribute('aria-checked', String(!!data.store_credit_enabled));
     creditRateInput.value = Math.round((data.store_credit_rate ?? 0.10) * 100);
 
@@ -1813,6 +1832,32 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     }
     ratesMsg.textContent = 'Saved ✓ — live everywhere now.';
     setTimeout(() => { if (ratesMsg.textContent.startsWith('Saved')) ratesMsg.textContent = ''; }, 3000);
+  });
+
+  /* ---- Ordering open / closed ---- */
+  const ordersEnabledToggle = document.getElementById('orders-enabled-toggle');
+  const ordersClosedInput = document.getElementById('orders-closed-input');
+  const ordersMsgEl = document.getElementById('orders-msg');
+  const ordersSaveBtn = document.getElementById('orders-save');
+
+  ordersEnabledToggle.addEventListener('click', () => toggleSwitch(ordersEnabledToggle));
+
+  ordersSaveBtn.addEventListener('click', async () => {
+    const open = ordersEnabledToggle.getAttribute('aria-checked') === 'true';
+    ordersSaveBtn.disabled = true;
+    ordersSaveBtn.textContent = 'Saving…';
+    ordersMsgEl.textContent = '';
+    const { error } = await supabase.from('settings').update({
+      orders_enabled: open,
+      orders_closed_message: ordersClosedInput.value.trim()
+        || 'We are not taking new orders right now — check back soon.',
+      updated_at: new Date().toISOString()
+    }).eq('id', 1);
+    ordersSaveBtn.disabled = false;
+    ordersSaveBtn.textContent = 'Save ordering';
+    if (error){ ordersMsgEl.textContent = 'Error: ' + error.message; return; }
+    ordersMsgEl.textContent = open ? 'Open for orders ✓' : 'Closed — the order form is off ✓';
+    setTimeout(() => { ordersMsgEl.textContent = ''; }, 4000);
   });
 
   /* ---- Banner ---- */
