@@ -1,0 +1,2540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<title>Voxprints — Founder</title>
+<style>
+  :root{
+    --bg: #f6f8fa;
+    --bg-raised: #ffffff;
+    --bg-raised-2: #f6f8fa;
+    --grid-line: rgba(0,0,0,0);
+    --ink: #1f2328;
+    --ink-dim: #656d76;
+    --accent: #0969da;
+    --accent-dim: #0969da1f;
+    --ok: #1a7f37;
+    --ok-dim: #1a7f3722;
+    --err: #cf222e;
+    --warn: #9a6700;
+    --warn-dim: #9a670022;
+    --btn-hover-bg: #eef1f4;
+    --border-tint: 31,35,40;
+    --radius: 6px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg: #0d1117;
+      --bg-raised: #161b22;
+      --bg-raised-2: #1c2128;
+      --ink: #e6edf3;
+      --ink-dim: #8b949e;
+      --accent: #4493f8;
+      --accent-dim: #4493f826;
+      --ok: #3fb950;
+      --ok-dim: #3fb95026;
+      --err: #f85149;
+      --warn: #d29922;
+      --warn-dim: #d2992226;
+      --btn-hover-bg: #21262d;
+      --border-tint: 255,255,255;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: #0d1117;
+    --bg-raised: #161b22;
+    --bg-raised-2: #1c2128;
+    --ink: #e6edf3;
+    --ink-dim: #8b949e;
+    --accent: #4493f8;
+    --accent-dim: #4493f826;
+    --ok: #3fb950;
+    --ok-dim: #3fb95026;
+    --err: #f85149;
+    --warn: #d29922;
+    --warn-dim: #d2992226;
+    --btn-hover-bg: #21262d;
+    --border-tint: 255,255,255;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0 / 34px 34px,
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0 / 34px 34px,
+      var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ---- Login screen ---- */
+  #login-view{
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .login-card{
+    width: 100%;
+    max-width: 360px;
+    background: var(--bg-raised);
+    border: 1px solid rgba(var(--border-tint),0.10);
+    border-radius: var(--radius);
+    padding: 32px;
+  }
+  .login-card h1{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 24px;
+    margin: 0 0 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .login-card h1 .brand-text span{ color: var(--accent); }
+  .logo-mark{ flex-shrink: 0; display:block; }
+  .logo-loading{ flex-shrink: 0; display:block; }
+  .logo-loading-lg{ margin: 6px 0; }
+  .logo-loading polygon{
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: facetGrow 2s ease-in-out infinite backwards;
+  }
+  @keyframes facetGrow{
+    0%   { transform: scale(0.3); }
+    30%  { transform: scale(1.15); }
+    80%  { transform: scale(1.15); }
+    100% { transform: scale(0.3); }
+  }
+  .login-card p.sub{ color: var(--ink-dim); font-size: 13px; margin: 0 0 24px; }
+  .login-card label{
+    display:block;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-bottom: 6px;
+  }
+  .login-card input{
+    width:100%;
+    background: var(--bg);
+    border: 1px solid rgba(var(--border-tint),0.15);
+    border-radius: 6px;
+    color: var(--ink);
+    padding: 11px 12px;
+    font-size: 16px;
+    margin-bottom: 16px;
+    outline: none;
+  }
+  .login-card input:focus{ border-color: var(--accent); }
+  .login-card button{
+    width: 100%;
+    background: var(--accent);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .login-card button:disabled{ opacity: .6; cursor: default; }
+  .google-btn{
+    display:flex; align-items:center; justify-content:center; gap:10px; width:100%; box-sizing:border-box;
+    background: var(--bg); color: var(--ink); border: 1px solid rgba(var(--border-tint),0.15);
+    border-radius: 8px; padding: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 600; font-size: 14px; cursor: pointer; transition: background 0.15s, border-color 0.15s;
+  }
+  .google-btn:hover{ background: var(--bg-raised); border-color: rgba(var(--border-tint),0.3); }
+  .google-btn svg{ flex-shrink:0; }
+  .login-err{
+    color: var(--err);
+    font-size: 12.5px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    margin-top: 14px;
+    display: none;
+  }
+  .login-err.show{ display: block; }
+
+  /* ---- Dashboard ---- */
+  #dash-view{ display:none; }
+  #topbar-spacer{ display:block; }
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    padding: 20px 28px;
+    border-bottom: 1px solid rgba(var(--border-tint),0.10);
+    flex-wrap: wrap;
+    gap: 12px;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    background: var(--bg-raised);
+    transform: translateY(0);
+    opacity: 1;
+    transition: transform 0.28s ease, opacity 0.28s ease;
+    will-change: transform, opacity;
+  }
+  .topbar.hide{
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  .header-wrap{
+    position: sticky;
+    top: var(--topbar-h, 0px);
+    z-index: 40;
+    background: var(--bg-raised);
+    transition: top 0.28s ease;
+  }
+  .topbar h1{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 19px;
+    margin: 0;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .topbar h1 .brand-text span{ color: var(--accent); }
+  .topbar .right{ display:flex; align-items:center; gap:12px; }
+  .icon-btn{
+    background: var(--bg-raised);
+    border: 1px solid rgba(var(--border-tint),0.15);
+    color: var(--ink-dim);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .icon-btn:hover{ color: var(--ink); border-color: rgba(var(--border-tint),0.3); }
+
+  .menu-wrap{ position: relative; }
+  .hamburger-btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    width: 34px; height: 34px; border-radius: 6px;
+    border: 1px solid rgba(var(--border-tint),0.15);
+    background: var(--bg-raised); color: var(--ink);
+    font-size: 16px; cursor:pointer; line-height:1;
+    position: relative;
+  }
+  .hamburger-btn:hover{ background: var(--bg); }
+  .notif-dot{
+    position: absolute;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--bg-raised);
+    display: none;
+  }
+  .notif-dot.show{ display: block; }
+  .notif-dot.admin{ background: #d1242f; top: -3px; right: -3px; }
+  .notif-dot.job{ background: #bf5b04; top: -3px; left: -3px; }
+  .notif-dot.inline{
+    position: static;
+    display: none;
+    width: 8px; height: 8px;
+    margin-left: auto;
+    border: none;
+    flex-shrink: 0;
+  }
+  .notif-dot.inline.show{ display: inline-block; }
+  .chat-toggle{ position: relative; }
+  .chat-toggle .notif-dot.job{ top: -4px; left: auto; right: -4px; border-color: var(--bg-raised); }
+
+  .toast-stack{
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 320px;
+  }
+  .toast{
+    background: var(--bg-raised);
+    border: 1px solid rgba(var(--border-tint),0.12);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(31,35,40,0.16);
+    padding: 12px 14px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    animation: toastIn 0.3s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .toast.leaving{ animation: toastOut 0.25s ease both; }
+  .toast.admin{ border-left-color: #d1242f; }
+  .toast.job{ border-left-color: #bf5b04; }
+  .toast .toast-title{ font-weight: 600; margin-bottom: 2px; }
+  .toast.admin .toast-title{ color: #d1242f; }
+  .toast.job .toast-title{ color: #bf5b04; }
+  .toast .toast-body{ color: var(--ink-dim); font-size: 12.5px; line-height:1.4; }
+  @keyframes toastIn{ from{ opacity:0; transform: translateY(10px); } to{ opacity:1; transform: translateY(0); } }
+  @keyframes toastOut{ from{ opacity:1; transform: translateY(0); } to{ opacity:0; transform: translateY(6px); } }
+
+  .sidebar-overlay{
+    position: fixed; inset: 0; background: rgba(31,35,40,0.35);
+    z-index: 90; opacity: 0; visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s;
+  }
+  .sidebar-overlay.open{ opacity:1; visibility:visible; }
+  .sidebar{
+    position: fixed; top:0; right:0; bottom:0;
+    width: 280px; max-width: 82vw;
+    background: var(--bg-raised);
+    border-left: 1px solid rgba(var(--border-tint),0.12);
+    box-shadow: -12px 0 30px rgba(31,35,40,0.16);
+    z-index: 95;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.22,1,0.36,1);
+    display:flex; flex-direction:column; padding: 20px;
+  }
+  .sidebar.open{ transform: translateX(0); }
+  .sidebar-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 18px; }
+  .sidebar-head span{ font-weight:600; font-size:15px; }
+  .sidebar-close{
+    background:none; border:none; font-size:18px; cursor:pointer;
+    color: var(--ink-dim); width:30px; height:30px; border-radius:6px;
+  }
+  .sidebar-close:hover{ background: var(--bg); }
+  .sidebar nav{ display:flex; flex-direction:column; gap:4px; }
+  .sidebar nav a, .sidebar nav button{
+    display:flex; align-items:center; gap:10px; text-align:left;
+    padding: 11px 12px; border-radius:8px; width:100%; box-sizing:border-box;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size:14.5px; font-weight:500; color: var(--ink); text-decoration:none;
+    border:none; background:none; cursor:pointer;
+    transition: background 0.15s, padding-left 0.15s;
+  }
+  .sidebar nav a:hover, .sidebar nav button:hover{ background: var(--bg); padding-left:16px; }
+  .sidebar nav .icon{ font-size:15px; width:18px; text-align:center; }
+  .theme-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 11px 12px; margin-top: 8px; border-top: 1px solid rgba(var(--border-tint),0.10);
+    font-size: 14.5px; font-weight: 500; color: var(--ink);
+  }
+  .theme-switch{
+    position:relative; width:38px; height:22px; border-radius:11px; flex-shrink:0;
+    background: rgba(var(--border-tint),0.15); border:1px solid rgba(var(--border-tint),0.18);
+    cursor:pointer; padding:0; transition: background 0.2s ease, border-color 0.2s ease;
+  }
+  .theme-switch .thumb{
+    position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%;
+    background:#fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .theme-switch[aria-checked="true"]{ background: var(--accent); border-color: var(--accent); }
+  .theme-switch[aria-checked="true"] .thumb{ transform: translateX(16px); }
+
+  .toolbar{
+    display:flex;
+    gap: 10px;
+    padding: 18px 28px 0;
+    flex-wrap: wrap;
+    background: var(--bg-raised);
+    position: relative;
+    z-index: 1;
+  }
+  .toolbar-fade{
+    height: 22px;
+    margin-top: 14px;
+    background: linear-gradient(to bottom, var(--bg-raised) 0%, rgba(255,255,255,0) 100%);
+    pointer-events: none;
+  }
+  .chip{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    padding: 7px 13px;
+    border-radius: 20px;
+    border: 1px solid rgba(var(--border-tint),0.18);
+    color: var(--ink-dim);
+    cursor: pointer;
+    background: transparent;
+  }
+  .chip.active{
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  main{ padding: 20px 28px 60px; max-width: 1100px; margin: 0 auto; }
+
+  .order-card{
+    background: var(--bg-raised);
+    border: 1px solid rgba(var(--border-tint),0.10);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 14px;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .order-card.is-new{
+    background: rgba(9,105,218,0.06);
+    border-color: rgba(9,105,218,0.35);
+    box-shadow: 0 0 0 1px rgba(9,105,218,0.12);
+  }
+
+  .sort-select{
+    margin-left: auto;
+    padding: 5px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    border-radius: 6px;
+    border: 1px solid var(--border, #d1d9e0);
+    background: var(--bg-raised, #fff);
+    color: inherit;
+    cursor: pointer;
+  }
+  .order-top{
+    display:flex;
+    justify-content: space-between;
+    align-items:flex-start;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .order-name{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+  }
+  .order-meta{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11.5px;
+    color: var(--ink-dim);
+    margin-top: 4px;
+  }
+  .order-type-badge{
+    display:inline-block;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    margin-right: 8px;
+  }
+  .order-notes{
+    margin-top: 10px;
+    font-size: 13.5px;
+    color: var(--ink);
+    background: var(--bg);
+    border-radius: 6px;
+    padding: 10px 12px;
+    white-space: pre-wrap;
+  }
+  .order-file{
+    margin-top: 10px;
+  }
+  .order-file a{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12.5px;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .order-file a:hover{ text-decoration: underline; }
+  .order-bottom{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  select.status-select{
+    background: var(--bg);
+    border: 1px solid rgba(var(--border-tint),0.18);
+    color: var(--ink);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 16px;
+  }
+  .quote-input{
+    background: var(--bg);
+    border: 1px solid rgba(var(--border-tint),0.18);
+    color: var(--ink);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 16px;
+    width: 110px;
+  }
+  .save-btn{
+    background: var(--ok-dim);
+    border: 1px solid var(--ok);
+    color: var(--ok);
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .save-btn:hover{ filter: brightness(1.1); }
+  .row-status{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-dim);
+  }
+
+  .chat-toggle{
+    background: none;
+    border: 1px solid rgba(var(--border-tint),0.18);
+    color: var(--ink-dim);
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .chat-toggle:hover{ color: var(--ink); }
+
+  .chat-panel{
+    display: none;
+    margin-top: 14px;
+    border-top: 1px solid rgba(var(--border-tint),0.10);
+    padding-top: 14px;
+  }
+  .chat-panel.open{ display: block; animation: fadeInUp 0.25s ease both; }
+  .chat-messages{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 280px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+  }
+  .chat-msg{
+    max-width: 80%;
+    padding: 9px 12px;
+    border-radius: 9px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .chat-msg.admin{
+    align-self: flex-end;
+    background: var(--accent-dim);
+    border: 1px solid rgba(9,105,218,0.3);
+  }
+  .chat-msg.customer{
+    align-self: flex-start;
+    background: var(--bg);
+    border: 1px solid rgba(var(--border-tint),0.12);
+  }
+  .chat-msg .who{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+  .chat-msg .file-link{
+    display: inline-block;
+    margin-top: 6px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11.5px;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .file-attachment{ display:inline-flex; align-items:center; gap:8px; flex-wrap: wrap; }
+  .view3d-btn{
+    display:inline-flex; align-items:center; gap:4px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    text-decoration: none;
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 2px 9px;
+    white-space: nowrap;
+  }
+  .view3d-btn:hover{ background: var(--accent-dim); }
+  .pdf-preview{
+    display: block;
+    width: 108px;
+    height: 136px;
+    margin-top: 6px;
+    border: 1px solid rgba(var(--border-tint),0.15);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    background: var(--bg-raised);
+  }
+  .pdf-preview embed{ width: 100%; height: 100%; pointer-events: none; }
+  .pdf-preview .pdf-preview-label{
+    position: absolute; left:0; right:0; bottom:0;
+    background: rgba(31,35,40,0.78);
+    color: #fff;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 10px;
+    padding: 3px 6px;
+    white-space: nowrap; overflow:hidden; text-overflow: ellipsis;
+  }
+  .img-preview{
+    display: block;
+    width: 108px;
+    height: 108px;
+    margin-top: 6px;
+    border: 1px solid rgba(var(--border-tint),0.15);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    background: var(--bg-raised);
+  }
+  .img-preview img{ width: 100%; height: 100%; object-fit: cover; display:block; }
+  .img-preview .pdf-preview-label{
+    position: absolute; left:0; right:0; bottom:0;
+    background: rgba(31,35,40,0.78);
+    color: #fff;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 10px;
+    padding: 3px 6px;
+    white-space: nowrap; overflow:hidden; text-overflow: ellipsis;
+  }
+  .pdf-modal{
+    display:none;
+    position: fixed; inset: 0;
+    background: rgba(15,17,20,0.78);
+    z-index: 1000;
+    align-items: center; justify-content: center;
+    padding: 28px;
+  }
+  .pdf-modal.open{ display:flex; }
+  .pdf-modal-inner{
+    background: var(--bg-raised);
+    width: 100%; height: 100%; max-width: 880px;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    display:flex;
+  }
+  .pdf-modal-frame{ flex:1; border:none; width:100%; height:100%; }
+  .pdf-modal-img{ flex:1; width:100%; height:100%; object-fit:contain; display:none; }
+  .pdf-modal-close{
+    position:absolute; top:10px; right:10px; z-index:2;
+    background: rgba(31,35,40,0.75); color:#fff; border:none; border-radius:50%;
+    width:30px; height:30px; cursor:pointer; font-size:15px; line-height:1;
+  }
+  .chat-empty{
+    color: var(--ink-dim);
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    text-align: center;
+    padding: 14px 0;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .chat-retry{ color: var(--accent); }
+  .chat-composer{ display: flex; flex-direction: column; gap: 8px; }
+  .chat-composer textarea{
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid rgba(var(--border-tint),0.18);
+    border-radius: 6px;
+    color: var(--ink);
+    padding: 9px 11px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    resize: vertical;
+    min-height: 46px;
+  }
+  .chat-composer-row{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .chat-attach{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11.5px;
+    color: var(--ink-dim);
+    border: 1px dashed rgba(var(--border-tint),0.25);
+    border-radius: 6px;
+    padding: 6px 10px;
+    position: relative;
+    cursor: pointer;
+  }
+  .chat-attach input{ position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .admin-chat-card{ max-width: 560px; display:flex; flex-direction:column; }
+  .admin-chat-messages{ max-height: 50vh; min-height: 200px; }
+  .chat-msg.mine{
+    align-self: flex-end;
+    background: var(--accent-dim);
+    border: 1px solid rgba(9,105,218,0.3);
+  }
+  .chat-msg.theirs{
+    align-self: flex-start;
+    background: var(--bg);
+    border: 1px solid rgba(var(--border-tint),0.12);
+  }
+  .chat-send{
+    background: var(--accent);
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 700;
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+
+  .status-dot{
+    display:inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+  .status-new .status-dot{ background: var(--accent); }
+  .status-quoted .status-dot{ background: var(--warn); }
+  .status-in_progress .status-dot{ background: var(--accent); }
+  .status-completed .status-dot{ background: var(--ok); }
+  .status-cancelled .status-dot{ background: var(--ink-dim); }
+
+  .empty{
+    text-align: center;
+    color: var(--ink-dim);
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 13px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 50vh;
+  }
+
+  /* ---- Rates modal ---- */
+  .modal-overlay{
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(31,35,40,0.45);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    /* Above the sidebar (95) and its overlay (90) — these popups (Set your
+       name, Manage admins, Debug, Admin chat) are all opened from inside the
+       sidebar menu, which stays open underneath them, so they must render
+       above it or they end up partially hidden behind the sidebar panel. */
+    z-index: 250;
+  }
+  .modal-overlay.open{ display: flex; }
+  .modal-card{
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: var(--bg-raised);
+    border-radius: var(--radius);
+    border: 1px solid rgba(var(--border-tint),0.10);
+    padding: 24px;
+  }
+  .modal-head{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .modal-head h2{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 18px;
+    margin: 0;
+  }
+  .modal-sub{
+    color: var(--ink-dim);
+    font-size: 12.5px;
+    margin: 0 0 20px;
+    line-height: 1.5;
+  }
+  .modal-divider{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin: 20px 0 12px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(var(--border-tint),0.10);
+  }
+  .rates-form-grid{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .rates-form-grid label{
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .rates-form-grid label .unit{
+    text-transform: none;
+    font-weight: 400;
+    color: var(--ink-dim);
+    opacity: 0.7;
+    letter-spacing: 0;
+  }
+  .rates-form-grid input{
+    background: var(--bg);
+    border: 1px solid rgba(var(--border-tint),0.18);
+    border-radius: 6px;
+    color: var(--ink);
+    padding: 9px 10px;
+    font-size: 14px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    outline: none;
+  }
+  .rates-form-grid input:focus{ border-color: var(--accent); }
+  .modal-foot{
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 22px;
+  }
+  #rates-msg{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-dim);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+
+  /* ---- Debug modal tabs ---- */
+  .debug-tabs{
+    display:flex;
+    flex-wrap: wrap;
+    row-gap: 0;
+    column-gap: 6px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid rgba(var(--border-tint),0.10);
+  }
+  .debug-tab{
+    background:none;
+    border:none;
+    border-bottom: 2px solid transparent;
+    color: var(--ink-dim);
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.03em;
+    padding: 8px 4px 10px;
+    cursor: pointer;
+    margin-right: 10px;
+    flex: none;
+    white-space: nowrap;
+  }
+  .debug-tab.active{
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .debug-section{ display:none; }
+  .debug-section.active{ display:block; }
+
+  /* ---- Banner section ---- */
+  .banner-textarea{
+    width:100%; box-sizing:border-box; margin-top:6px; padding:9px 12px;
+    border:1px solid rgba(var(--border-tint),0.18); border-radius:6px;
+    font-family:inherit; font-size:14px; resize:vertical; background:var(--bg); color:var(--ink);
+  }
+  .banner-textarea:focus{ outline:none; border-color:var(--accent); }
+  .banner-preview-frame{
+    border:1px solid rgba(var(--border-tint),0.15); border-radius:8px; overflow:hidden;
+  }
+  .site-banner{ display:none; overflow:hidden; background: linear-gradient(90deg,#ffb300,#ff7d1a); border-bottom:1px solid rgba(0,0,0,0.12); }
+  .site-banner.show{ display:block; }
+  .site-banner-inner{ padding: 9px 20px; white-space:nowrap; display:flex; justify-content:center; }
+  .site-banner-inner.scrolling{
+    justify-content:flex-start;
+    animation: bannerBounce var(--banner-duration, 10s) ease-in-out infinite alternate;
+  }
+  .site-banner-text{ font-size:13.5px; font-weight:600; color:#241300; letter-spacing:0.1px; }
+  @keyframes bannerBounce{
+    from{ transform: translateX(0); }
+    to{ transform: translateX(calc(-1 * var(--banner-distance, 0px))); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .site-banner-inner.scrolling{ animation:none; justify-content:flex-start; }
+  }
+
+  /* ---- Filaments section ---- */
+  .fil-list{
+    display:flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .fil-row{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    border: 1px solid rgba(var(--border-tint),0.10);
+    border-radius: 8px;
+    padding: 9px 10px;
+  }
+  .fil-swatch{
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--bg);
+    border: 1px solid rgba(var(--border-tint),0.12);
+  }
+  .fil-info{ flex: 1; min-width: 0; }
+  .fil-name{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 600;
+    font-size: 13.5px;
+    white-space: nowrap; overflow:hidden; text-overflow: ellipsis;
+  }
+  .fil-meta{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-dim);
+    margin-top: 2px;
+  }
+  .fil-actions{ display:flex; align-items:center; gap: 8px; flex-shrink:0; }
+  .fil-toggle{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(var(--border-tint),0.18);
+    background: transparent;
+    color: var(--ink-dim);
+    cursor: pointer;
+  }
+  .fil-toggle.is-active{
+    background: var(--ok-dim);
+    border-color: var(--ok);
+    color: var(--ok);
+  }
+  .fil-del{
+    background: none;
+    border: 1px solid rgba(var(--border-tint),0.18);
+    color: var(--err);
+    border-radius: 6px;
+    padding: 5px 9px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .fil-edit{
+    background: none;
+    border: 1px solid rgba(var(--border-tint),0.18);
+    color: var(--ink);
+    border-radius: 6px;
+    padding: 5px 9px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .fil-reorder{ display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
+  .fil-reorder button{
+    background: none;
+    border: 1px solid rgba(var(--border-tint),0.18);
+    color: var(--ink-dim);
+    border-radius: 5px;
+    width: 22px;
+    height: 18px;
+    line-height: 1;
+    font-size: 11px;
+    cursor: pointer;
+    padding: 0;
+  }
+  .fil-reorder button:hover{ color: var(--ink); border-color: rgba(var(--border-tint),0.35); }
+  .fil-reorder button:disabled{ opacity: 0.3; cursor: default; }
+  .fil-row.editing{ outline: 2px solid var(--accent); outline-offset: -1px; border-radius: 8px; }
+  .fil-add-actions{ display:flex; align-items:center; gap: 10px; }
+  .fil-cancel-edit{
+    background: none;
+    border: 1px solid rgba(var(--border-tint),0.18);
+    color: var(--ink-dim);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .fil-empty{
+    color: var(--ink-dim);
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    padding: 10px 0;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .fil-add-form{
+    border-top: 1px solid rgba(var(--border-tint),0.10);
+    padding-top: 16px;
+  }
+  .fil-add-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .fil-add-grid label{
+    display:flex; flex-direction:column; gap:6px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .fil-add-grid input, .fil-add-grid select{
+    background: var(--bg);
+    border: 1px solid rgba(var(--border-tint),0.18);
+    border-radius: 6px;
+    color: var(--ink);
+    padding: 9px 10px;
+    font-size: 13.5px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    outline: none;
+  }
+  .fil-add-grid input:focus, .fil-add-grid select:focus{ border-color: var(--accent); }
+  .fil-add-full{ grid-column: 1 / -1; }
+  .fil-img-preview{
+    width: 52px; height: 52px;
+    border-radius: 8px;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--bg);
+    border: 1px dashed rgba(var(--border-tint),0.25);
+    flex-shrink: 0;
+  }
+  .fil-img-row{ display:flex; align-items:center; gap: 12px; }
+  .fil-img-row input[type="file"]{ font-size: 12px; }
+  #fil-msg{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-dim);
+    margin-top: 10px;
+  }
+
+  #only-mine-chip.active{
+    background: var(--ok-dim);
+    border-color: var(--ok);
+    color: var(--ok);
+  }
+  .claim-row{
+    display:flex; align-items:center; gap:8px; margin-top:8px;
+  }
+  .claim-badge{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--bg);
+    border: 1px solid rgba(var(--border-tint),0.15);
+    color: var(--ink-dim);
+  }
+  .claim-badge.mine{
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .discount-row{
+    display:flex; align-items:center; gap: 8px; margin-top: 8px;
+  }
+  .discount-badge{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px; padding: 4px 10px; border-radius: 20px;
+    background: rgba(154,103,0,0.1); border: 1px solid rgba(154,103,0,0.35);
+    color: var(--warn);
+  }
+  .discount-used-btn{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px; padding: 4px 10px; border-radius: 20px;
+    border: 1px solid rgba(var(--border-tint),0.18); background: var(--bg-raised);
+    color: var(--ink-dim); cursor:pointer;
+  }
+  .discount-used-btn:hover{ color: var(--ink); border-color: rgba(var(--border-tint),0.3); }
+  .credit-row{
+    display:flex; align-items:center; flex-wrap:wrap; gap: 8px; margin-top: 8px;
+  }
+  .credit-badge{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px; padding: 4px 10px; border-radius: 20px;
+    background: rgba(var(--border-tint),0.08); border: 1px solid rgba(var(--border-tint),0.18);
+    color: var(--ink-dim);
+  }
+  .credit-use-label{
+    display:flex; align-items:center; gap: 6px;
+    font-size: 12.5px; color: var(--ink-dim); cursor:pointer;
+  }
+  .credit-use-amount{
+    width: 72px; padding: 3px 6px; font-size: 12.5px;
+    border: 1px solid rgba(var(--border-tint),0.18); border-radius: 5px;
+    font-family: inherit; background: var(--bg); color: var(--ink);
+  }
+  .claim-btn, .unclaim-btn, .cancel-order-btn{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11.5px;
+    padding: 5px 11px;
+    border-radius: 20px;
+    border: 1px solid rgba(var(--border-tint),0.18);
+    background: transparent;
+    color: var(--ink-dim);
+    cursor: pointer;
+  }
+  .claim-btn:hover{ color: var(--accent); border-color: var(--accent); }
+  .unclaim-btn:hover, .cancel-order-btn:hover{ color: var(--err); border-color: var(--err); }
+  .admin-row{
+    display:flex; align-items:center; gap:12px;
+    border: 1px solid rgba(var(--border-tint),0.10); border-radius:8px; padding:9px 10px;
+  }
+  .admin-row .info{ flex:1; min-width:0; }
+  .admin-row .name{ font-weight:600; font-size:13.5px; }
+  .admin-row .email{ font-family: ui-monospace, monospace; font-size:11px; color: var(--ink-dim); margin-top:2px; }
+  .admin-row .you-badge{
+    font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+    color: var(--accent); background: var(--accent-dim); border-radius:20px; padding:2px 8px;
+  }
+  .admin-row .remove-admin-btn{
+    border:1px solid var(--border, #d1d9e0); background:none; color: var(--ink-dim);
+    font-size:12px; padding:5px 10px; border-radius:6px; cursor:pointer; white-space:nowrap;
+  }
+  .admin-row .remove-admin-btn:hover{ color: var(--err); border-color: var(--err); background: rgba(207,34,46,0.06); }
+
+/* ================= animation kit ================= */
+@keyframes fadeInDown{ from{ opacity:0; transform: translateY(-10px); } to{ opacity:1; transform: translateY(0); } }
+@keyframes fadeInUp{ from{ opacity:0; transform: translateY(16px); } to{ opacity:1; transform: translateY(0); } }
+@keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
+@keyframes popIn{ from{ opacity:0; transform: scale(0.92); } to{ opacity:1; transform: scale(1); } }
+@keyframes pulseDot{ 0%,100%{ transform: scale(1); opacity:1; } 50%{ transform: scale(1.4); opacity:0.55; } }
+@keyframes bump{ 0%{ transform: scale(1); } 35%{ transform: scale(1.06); } 100%{ transform: scale(1); } }
+@keyframes shimmer{ 0%{ background-position: -200px 0; } 100%{ background-position: 200px 0; } }
+@keyframes notifPop{ 0%{ transform: scale(0); opacity:0; } 60%{ transform: scale(1.35); opacity:1; } 100%{ transform: scale(1); opacity:1; } }
+@keyframes spin{ to{ transform: rotate(360deg); } }
+@keyframes cardGlowIn{ 0%{ box-shadow: 0 0 0 4px rgba(9,105,218,0.22); } 100%{ box-shadow: 0 0 0 1px rgba(9,105,218,0.12); } }
+@keyframes pulseSoft{ 0%,100%{ opacity:0.65; } 50%{ opacity:1; } }
+@keyframes slideInRight{ from{ opacity:0; transform: translateX(10px); } to{ opacity:1; transform: translateX(0); } }
+@keyframes shakeX{ 10%,90%{ transform: translateX(-1px); } 20%,80%{ transform: translateX(2px); } 30%,50%,70%{ transform: translateX(-3px); } 40%,60%{ transform: translateX(3px); } }
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+}
+html{ scroll-behavior: smooth; }
+.topbar{ animation: fadeInDown 0.45s ease both; }
+.hamburger-btn{ transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), background 0.2s, border-color 0.2s; }
+.hamburger-btn:hover{ transform: rotate(90deg); }
+.hamburger-btn[aria-expanded="true"]{ transform: rotate(90deg); }
+a, button, .btn, .btn-plain, .btn-download, .chip, .icon-btn, .chat-toggle, .colour-btn, .preset-btn, .attach-btn, .send-btn, .view3d-btn, .view-order-btn,
+.claim-btn, .unclaim-btn, .cancel-order-btn, .save-btn, .delete-btn, .restore-btn, .copy-link-btn, .status-select, .quote-input, .sidebar-close, .remove-admin-btn{
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.12s ease, box-shadow 0.15s, opacity 0.15s;
+}
+.btn:hover, .btn-plain:hover, .btn-download:hover, .send-btn:hover, .view3d-btn:hover, .view-order-btn:hover, .attach-btn:hover,
+.claim-btn:hover, .unclaim-btn:hover, .save-btn:hover, .delete-btn:hover, .restore-btn:hover, .copy-link-btn:hover, .cancel-order-btn:hover, .icon-btn:hover{
+  transform: translateY(-1px);
+}
+.btn:active, .btn-plain:active, .btn-download:active, .send-btn:active, .attach-btn:active, .icon-btn:active, .chip:active,
+.claim-btn:active, .unclaim-btn:active, .save-btn:active, .delete-btn:active, .restore-btn:active, .copy-link-btn:active, .cancel-order-btn:active{
+  transform: translateY(0) scale(0.96);
+}
+button:disabled, .btn:disabled, .save-btn:disabled, .chat-send:disabled{
+  opacity: 0.6; cursor: default; transform: none !important; filter: none !important;
+  animation: pulseSoft 1.1s ease-in-out infinite;
+}
+.card{ animation: fadeInUp 0.5s ease both; transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s; }
+.card:hover{ box-shadow: 0 4px 16px rgba(31,35,40,0.08); }
+.order-card{ animation: fadeInUp 0.32s cubic-bezier(0.22,1,0.36,1) both; transition: box-shadow 0.18s ease, border-color 0.18s ease, background 0.25s ease, transform 0.15s ease; }
+.order-card:hover{ box-shadow: 0 3px 14px rgba(31,35,40,0.07); transform: translateY(-1px); }
+.order-card.is-new{ animation: fadeInUp 0.32s cubic-bezier(0.22,1,0.36,1) both, cardGlowIn 1.1s ease-out 0.32s both; }
+.order-card.just-updated{ animation: bump 0.35s ease both; }
+.status-dot{ transition: background 0.25s ease; }
+.row-status{ transition: color 0.2s ease; }
+.dot{ transition: transform 0.2s; }
+.dot.pulse, .status-pill.active .dot{ animation: pulseDot 1.6s ease-in-out infinite; }
+.notif-dot.show{ animation: notifPop 0.4s cubic-bezier(0.34,1.56,0.64,1) both; }
+.notif-dot.job, .notif-dot.admin{ animation: pulseDot 1.8s ease-in-out infinite; }
+.chip{ transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.12s ease; }
+.chip:hover{ transform: translateY(-1px); border-color: var(--accent); }
+.sidebar nav a, .sidebar nav button{ transition: background 0.15s, padding-left 0.18s ease; }
+.sidebar.open nav a, .sidebar.open nav button{ animation: fadeInUp 0.3s ease both; }
+.sidebar.open nav a:nth-child(1), .sidebar.open nav button:nth-child(1){ animation-delay: 0.02s; }
+.sidebar.open nav a:nth-child(2), .sidebar.open nav button:nth-child(2){ animation-delay: 0.06s; }
+.sidebar.open nav a:nth-child(3), .sidebar.open nav button:nth-child(3){ animation-delay: 0.10s; }
+.sidebar.open nav a:nth-child(4), .sidebar.open nav button:nth-child(4){ animation-delay: 0.14s; }
+.sidebar.open nav a:nth-child(5), .sidebar.open nav button:nth-child(5){ animation-delay: 0.18s; }
+.sidebar.open nav a:nth-child(6), .sidebar.open nav button:nth-child(6){ animation-delay: 0.22s; }
+.sidebar-close{ transition: transform 0.15s ease, background 0.15s; }
+.sidebar-close:hover{ transform: rotate(90deg); }
+.toast{ transition: transform 0.15s ease, box-shadow 0.15s ease; }
+.toast:hover{ transform: translateY(-2px); box-shadow: 0 10px 28px rgba(31,35,40,0.2); }
+.spinner{
+  display:inline-block; width:14px; height:14px; border-radius:50%;
+  border: 2px solid rgba(var(--border-tint),0.18); border-top-color: var(--accent);
+  animation: spin 0.7s linear infinite; vertical-align: -2px; margin-right: 6px;
+}
+.shake{ animation: shakeX 0.4s ease both; }
+input[type="text"], input[type="number"], input[type="email"], input[type="tel"], textarea, select{
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,0.12); }
+.modal-overlay{ animation: fadeIn 0.2s ease both; transition: opacity 0.18s ease; }
+.modal-card{ animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1) both; }
+.modal-overlay.closing{ animation: fadeIn 0.16s ease reverse both; }
+.modal-overlay.closing .modal-card{ animation: popIn 0.16s ease reverse both; }
+.msg, .chat-msg{ animation: fadeInUp 0.3s ease both; }
+.chat-msg.mine{ animation: slideInRight 0.3s ease both; }
+.in-view{ opacity: 1 !important; transform: none !important; }
+[data-reveal]{ opacity: 0; transform: translateY(14px); transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.22,1,0.36,1); }
+/* ================= end animation kit ================= */
+
+/* ================= responsive (mobile) ================= */
+@media (max-width: 768px){
+  .login-card{ padding: 22px; }
+
+  .topbar{ padding: 14px 16px; }
+  .topbar h1{ font-size: 16px; }
+  .topbar .right{ gap: 8px; }
+  main{ padding: 16px 14px 48px; }
+
+  .toolbar{ padding: 14px 14px 0; gap: 8px; }
+  .chip{ padding: 6px 11px; font-size: 11.5px; }
+
+  .icon-btn{ padding: 8px 10px; font-size: 11.5px; }
+  .hamburger-btn{ width: 40px; height: 40px; }
+  .sidebar{ width: 260px; }
+  .sidebar nav a, .sidebar nav button{ padding: 13px 12px; }
+
+  .order-card{ padding: 14px 14px; }
+  .order-top{ gap: 8px; }
+  .order-name{ font-size: 14.5px; }
+  .order-bottom{ gap: 8px; }
+  .order-bottom > *{ flex: 1 1 auto; }
+  select.status-select, .quote-input, .save-btn, .chat-toggle,
+  .claim-btn, .unclaim-btn, .cancel-order-btn{
+    padding: 9px 12px;
+  }
+  .save-btn, .chat-toggle, .claim-btn, .unclaim-btn, .cancel-order-btn{
+    font-size: 12.5px;
+  }
+  select.status-select, .quote-input{
+    font-size: 16px;
+  }
+  .quote-input{ width: 90px; }
+  .sort-select{ margin-left: 0; width: 100%; }
+
+  .chat-messages{ max-height: 220px; }
+  .chat-msg{ max-width: 92%; }
+  .admin-chat-card{ max-width: 100%; }
+  .chat-composer-row{ flex-wrap: wrap; }
+  .chat-attach{ flex: 1 1 auto; text-align:center; }
+  .chat-send{ flex: 1 1 auto; padding: 10px 16px; }
+
+  .pdf-preview{ width: 88px; height: 112px; }
+  .img-preview{ width: 88px; height: 88px; }
+  .pdf-modal{ padding: 10px; }
+
+  .modal-card{ padding: 18px; max-width: 100%; }
+  .rates-form-grid, .fil-add-grid{ grid-template-columns: 1fr; }
+  .modal-foot{ flex-wrap: wrap; }
+  .modal-foot button{ flex: 1 1 auto; padding: 11px 14px; }
+
+  .fil-row{ flex-wrap: wrap; }
+  .fil-info{ flex-basis: 100%; order: 1; }
+  .fil-actions{ order: 2; margin-left: auto; }
+  .fil-add-actions{ flex-wrap: wrap; }
+  .fil-add-actions button{ flex: 1 1 auto; }
+
+  .admin-row{ flex-wrap: wrap; }
+  .admin-row .info{ flex-basis: 100%; }
+
+  .toast-stack{ left: 12px; right: 12px; bottom: 12px; max-width: none; }
+}
+
+@media (max-width: 480px){
+  .login-card{ padding: 18px; }
+  .login-card h1{ font-size: 20px; }
+
+  .topbar h1{ font-size: 14.5px; }
+  .topbar h1 svg{ width: 18px; height: 18px; }
+
+  .order-bottom{ flex-direction: column; align-items: stretch; }
+  .order-bottom > *{ width: 100%; }
+  .quote-input{ width: 100%; }
+
+  .fil-swatch{ width: 30px; height: 30px; }
+  .pdf-preview{ width: 76px; height: 96px; }
+  .img-preview{ width: 76px; height: 76px; }
+}
+/* ================= end responsive ================= */
+
+  /* ---- Founder page ---- */
+  .founder-wrap{ max-width: 860px; margin: 0 auto; padding: 24px 18px 80px; }
+  .founder-card{
+    background: var(--card); border:1px solid rgba(var(--border-tint),0.10);
+    border-radius: 14px; padding: 20px; margin-bottom: 18px;
+  }
+  .founder-card h2{ margin:0 0 4px; font-size:16px; }
+  .founder-card .hint{ margin:0 0 16px; font-size:13px; color: var(--ink-dim); }
+  .adm-row{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    padding:12px 0; border-top:1px solid rgba(var(--border-tint),0.08);
+  }
+  .adm-row:first-of-type{ border-top:none; }
+  .adm-id{ flex:1 1 220px; min-width:0; }
+  .adm-name{ font-weight:600; font-size:14px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .adm-mail{ font-size:12px; color: var(--ink-dim); word-break:break-all; }
+  .adm-acts{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .tag{
+    font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase;
+    padding:3px 7px; border-radius:999px;
+  }
+  .tag.founder{ background: rgba(95,168,255,0.16); color: var(--accent); }
+  .tag.susp{ background: rgba(214,77,77,0.16); color: var(--danger, #d64d4d); }
+  .adm-susp-note{ flex-basis:100%; font-size:12px; color: var(--danger, #d64d4d); }
+  .susp-pick{
+    background: var(--bg); border:1px solid rgba(var(--border-tint),0.16);
+    border-radius:7px; padding:6px 8px; font-size:12.5px; color: var(--ink);
+  }
+  .founder-note{
+    font-size:12.5px; color: var(--ink-dim); border-left:2px solid rgba(var(--border-tint),0.25);
+    padding-left:12px; margin-top:14px;
+  }
+  .suspended-banner{
+    background: rgba(214,77,77,0.12); border:1px solid rgba(214,77,77,0.3);
+    color: var(--danger, #d64d4d); border-radius:10px; padding:12px 14px;
+    margin:0 0 16px; font-size:13.5px; font-weight:600;
+  }
+</style>
+</head>
+<body>
+
+<div id="login-view">
+  <div class="login-card">
+    <h1><svg class="logo-mark" width="22" height="22" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="200,40.2 231.4,58.3 200,76.5 168.6,58.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.00s"/>
+      <polygon points="150.9,68.5 182.3,86.7 150.9,104.8 119.5,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
+      <polygon points="101.9,96.9 133.3,115 101.9,133.1 70.4,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="249.1,68.5 280.5,86.7 249.1,104.8 217.7,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
+      <polygon points="200,96.9 231.4,115 200,133.1 168.6,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="150.9,125.2 182.3,143.3 150.9,161.5 119.5,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="298.1,96.9 329.6,115 298.1,133.1 266.7,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="249.1,125.2 280.5,143.3 249.1,161.5 217.7,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="200,153.5 231.4,171.7 200,189.8 168.6,171.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="61.6,130.3 93,148.4 93,184.7 61.6,166.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="61.6,187 93,205.1 93,241.4 61.6,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="61.6,243.6 93,261.8 93,298 61.6,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="110.7,158.6 142.1,176.8 142.1,213 110.7,194.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="110.7,215.3 142.1,233.4 142.1,269.7 110.7,251.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="110.7,272 142.1,290.1 142.1,326.4 110.7,308.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="159.8,187 191.2,205.1 191.2,241.4 159.8,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="159.8,243.6 191.2,261.8 191.2,298 159.8,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="159.8,300.3 191.2,318.4 191.2,354.7 159.8,336.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
+      <polygon points="338.4,130.3 307,148.4 307,184.7 338.4,166.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="338.4,187 307,205.1 307,241.4 338.4,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="338.4,243.6 307,261.8 307,298 338.4,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="289.3,158.6 257.9,176.8 257.9,213 289.3,194.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="289.3,215.3 257.9,233.4 257.9,269.7 289.3,251.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="289.3,272 257.9,290.1 257.9,326.4 289.3,308.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="240.2,187 208.8,205.1 208.8,241.4 240.2,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
+    </svg><span class="brand-text">Vox<span>prints</span></span></h1>
+    <p class="sub">Admin: sign in with your approved Google account</p>
+    <button type="button" class="google-btn" id="admin-google-signin-btn">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
+      Sign in with Google
+    </button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<div id="dash-view" style="display:none;">
+  <div class="topbar" id="topbar">
+    <h1><span class="brand-text">Vox<span>prints</span></span>: Founder</h1>
+    <div class="right">
+      <a class="icon-btn" href="index.html">← Orders</a>
+      <button class="icon-btn" id="logout-btn">Sign out</button>
+    </div>
+  </div>
+  <div id="topbar-spacer"></div>
+
+  <div class="founder-wrap">
+    <div class="founder-card">
+      <h2>Admins</h2>
+      <p class="hint">Suspending an admin leaves them able to open everything and read it, but every save, edit and delete is refused by the database until the suspension runs out.</p>
+      <div id="adm-list"></div>
+      <p id="adm-msg" class="hint" style="margin:14px 0 0;"></p>
+      <p class="founder-note">Founders can't be suspended or removed here, and founder status can't be granted from this page at all &mdash; it can only be set with direct database access.</p>
+    </div>
+
+    <div class="founder-card">
+      <h2>Add an admin</h2>
+      <p class="hint">They must have signed in to the main site with Google at least once, so an account exists to promote.</p>
+      <div class="rates-form-grid">
+        <label style="grid-column:1 / -1;">Their email
+          <input type="email" id="adm-new-email" placeholder="name@example.com" autocomplete="off">
+        </label>
+      </div>
+      <div style="margin-top:12px;"><button class="save-btn" id="adm-add">Add admin</button></div>
+    </div>
+
+    <div class="founder-card">
+      <h2>Debug</h2>
+      <p class="hint">Pricing, filaments, site content, promo codes and order alerts. Founders only.</p>
+      <button class="save-btn" id="rates-btn">Open debug</button>
+    </div>
+  </div>
+</div>
+
+<div id="rates-overlay" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2>Debug</h2>
+      <button class="icon-btn" id="rates-close">Close</button>
+    </div>
+    <p class="modal-sub">Pricing rates and filament inventory. Changes apply everywhere instantly.</p>
+
+    <div class="debug-tabs">
+      <button type="button" class="debug-tab active" data-tab="rates">Rates</button>
+      <button type="button" class="debug-tab" data-tab="site">Site</button>
+      <button type="button" class="debug-tab" data-tab="filaments">Filaments</button>
+      <button type="button" class="debug-tab" data-tab="banner">Banner</button>
+      <button type="button" class="debug-tab" data-tab="credit">Store Credit</button>
+      <button type="button" class="debug-tab" data-tab="promo">Promo Codes</button>
+      <button type="button" class="debug-tab" data-tab="alerts">Alerts</button>
+    </div>
+
+    <!-- Rates section -->
+    <div class="debug-section active" id="debug-section-rates">
+      <div class="modal-body">
+        <div class="rates-form-grid">
+          <label>Labor rate<span class="unit">$/hr</span><input type="number" id="r-labor" step="0.5" min="0"></label>
+          <label>Base handling fee<span class="unit">$</span><input type="number" id="r-base" step="0.25" min="0"></label>
+          <label>Print rate (curve)<span class="unit">$/hr^1.4</span><input type="number" id="r-printrate" step="0.01" min="0"></label>
+          <label>Surcharge amount<span class="unit">$</span><input type="number" id="r-suramt" step="0.5" min="0"></label>
+          <label>Surcharge threshold<span class="unit">hrs</span><input type="number" id="r-surthresh" step="0.5" min="0"></label>
+        </div>
+        <div class="modal-divider">Filament cost / kg (legacy defaults)</div>
+        <div class="rates-form-grid">
+          <label>PLA<span class="unit">$/kg</span><input type="number" id="r-pla" step="0.5" min="0"></label>
+          <label>ABS<span class="unit">$/kg</span><input type="number" id="r-abs" step="0.5" min="0"></label>
+          <label>TPU<span class="unit">$/kg</span><input type="number" id="r-tpu" step="0.5" min="0"></label>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <span id="rates-msg"></span>
+        <button class="save-btn" id="rates-save">Save rates</button>
+      </div>
+    </div>
+
+    <!-- Site section -->
+    <div class="debug-section" id="debug-section-site">
+      <div class="modal-body">
+        <p class="modal-sub" style="margin:0 0 16px;">The eyebrow tag, headline, and blurb at the top of the main page.</p>
+        <label style="display:block; margin-bottom:14px;">Eyebrow tag
+          <input type="text" class="banner-textarea" id="site-eyebrow-input" placeholder="Now taking orders">
+        </label>
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+          <label for="site-eyebrow-color-input" style="margin:0;">Eyebrow colour</label>
+          <input type="color" id="site-eyebrow-color-input" value="#0969da" style="width:44px; height:32px; padding:2px; border:1px solid rgba(var(--border-tint),0.18); border-radius:6px; background:var(--bg); cursor:pointer;">
+          <button type="button" id="site-eyebrow-color-reset" style="background:none; border:none; padding:0; font-size:12px; color:var(--ink-dim); text-decoration:underline; cursor:pointer; font-family:inherit;">Use theme default</button>
+        </div>
+        <label style="display:block; margin-bottom:14px;">Headline <span style="text-transform:none; letter-spacing:0;">(a line break splits it onto two lines)</span>
+          <textarea class="banner-textarea" id="site-headline-input" rows="2" placeholder="Custom 3D printing,&#10;made to order."></textarea>
+        </label>
+        <label style="display:block;">Description
+          <textarea class="banner-textarea" id="site-desc-input" rows="4" placeholder="Founded by Joshua Paterson…"></textarea>
+        </label>
+        <div class="modal-divider">Preview</div>
+        <div style="text-align:center;">
+          <div style="display:inline-flex; align-items:center; gap:6px; margin-bottom:8px;">
+            <span id="site-eyebrow-dot-preview" style="width:6px; height:6px; border-radius:50%; background:var(--ink-dim); flex-shrink:0;"></span>
+            <span id="site-eyebrow-preview" style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink-dim);"></span>
+          </div>
+          <div id="site-headline-preview" style="font-size:24px; font-weight:600; line-height:1.2; margin-bottom:8px;"></div>
+          <p id="site-desc-preview" style="font-size:13px; color:var(--ink-dim); line-height:1.5; margin:0;"></p>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <span id="site-desc-msg"></span>
+        <button class="save-btn" id="site-desc-save">Save hero content</button>
+      </div>
+    </div>
+
+    <!-- Filaments section -->
+    <div class="debug-section" id="debug-section-filaments">
+      <div class="modal-body">
+        <div class="fil-list" id="fil-list">
+          <div class="fil-empty"><svg class="logo-loading logo-loading-lg" width="28" height="28" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg"><polygon points="200,40.2 231.4,58.3 200,76.5 168.6,58.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.00s"/>
+      <polygon points="150.9,68.5 182.3,86.7 150.9,104.8 119.5,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
+      <polygon points="101.9,96.9 133.3,115 101.9,133.1 70.4,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="249.1,68.5 280.5,86.7 249.1,104.8 217.7,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
+      <polygon points="200,96.9 231.4,115 200,133.1 168.6,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="150.9,125.2 182.3,143.3 150.9,161.5 119.5,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="298.1,96.9 329.6,115 298.1,133.1 266.7,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="249.1,125.2 280.5,143.3 249.1,161.5 217.7,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="200,153.5 231.4,171.7 200,189.8 168.6,171.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="61.6,130.3 93,148.4 93,184.7 61.6,166.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="61.6,187 93,205.1 93,241.4 61.6,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="61.6,243.6 93,261.8 93,298 61.6,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="110.7,158.6 142.1,176.8 142.1,213 110.7,194.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="110.7,215.3 142.1,233.4 142.1,269.7 110.7,251.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="110.7,272 142.1,290.1 142.1,326.4 110.7,308.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="159.8,187 191.2,205.1 191.2,241.4 159.8,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="159.8,243.6 191.2,261.8 191.2,298 159.8,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="159.8,300.3 191.2,318.4 191.2,354.7 159.8,336.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
+      <polygon points="338.4,130.3 307,148.4 307,184.7 338.4,166.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="338.4,187 307,205.1 307,241.4 338.4,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="338.4,243.6 307,261.8 307,298 338.4,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="289.3,158.6 257.9,176.8 257.9,213 289.3,194.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="289.3,215.3 257.9,233.4 257.9,269.7 289.3,251.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="289.3,272 257.9,290.1 257.9,326.4 289.3,308.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="240.2,187 208.8,205.1 208.8,241.4 240.2,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/></svg></div>
+        </div>
+
+        <div class="fil-add-form">
+          <div class="modal-divider" style="margin-top:0; padding-top:0; border-top:none;">Add a filament</div>
+          <div class="fil-add-grid">
+            <label class="fil-add-full">Colour<input type="text" id="fil-color" placeholder="e.g. Galaxy Black"></label>
+            <label>Type
+              <select id="fil-type">
+                <option value="PLA">PLA</option>
+                <option value="PLA+">PLA+</option>
+                <option value="Silk PLA">Silk PLA</option>
+                <option value="ABS">ABS</option>
+                <option value="PETG">PETG</option>
+                <option value="TPU">TPU</option>
+                <option value="Resin">Resin</option>
+                <option value="Nylon">Nylon</option>
+                <option value="Other">Other</option>
+              </select>
+            </label>
+            <label>Price<span class="unit">$ / 100g</span><input type="number" id="fil-price" step="0.05" min="0" placeholder="e.g. 3.50"></label>
+            <label class="fil-add-full">Picture <span style="text-transform:none; letter-spacing:0;">(optional)</span>
+              <div class="fil-img-row">
+                <div class="fil-img-preview" id="fil-img-preview"></div>
+                <input type="file" id="fil-image" accept="image/*">
+              </div>
+            </label>
+          </div>
+          <div class="fil-add-actions">
+            <button class="save-btn" id="fil-add-btn" type="button">Add filament</button>
+            <button class="fil-cancel-edit" id="fil-cancel-btn" type="button" style="display:none;">Cancel</button>
+          </div>
+          <div id="fil-msg"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Banner section -->
+    <div class="debug-section" id="debug-section-banner">
+      <div class="modal-body">
+        <label style="display:block;">Announcement message
+          <textarea class="banner-textarea" id="banner-msg-input" rows="2" placeholder="e.g. 🎄 Holiday orders close Dec 18 — order now to get it in time!"></textarea>
+        </label>
+        <div class="theme-row" style="margin-top:14px;">
+          <span>📢 Show banner</span>
+          <button type="button" class="theme-switch" id="banner-enabled-toggle" role="switch" aria-checked="false" aria-label="Show banner"><span class="thumb"></span></button>
+        </div>
+        <div class="theme-row">
+          <span>↔ Force scroll (even if it fits)</span>
+          <button type="button" class="theme-switch" id="banner-force-toggle" role="switch" aria-checked="false" aria-label="Force scroll"><span class="thumb"></span></button>
+        </div>
+        <div class="modal-divider">Preview</div>
+        <div class="banner-preview-frame">
+          <div class="site-banner" id="banner-preview">
+            <div class="site-banner-inner" id="banner-preview-inner">
+              <span class="site-banner-text" id="banner-preview-text"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <span id="banner-msg"></span>
+        <button class="save-btn" id="banner-save">Save banner</button>
+      </div>
+    </div>
+
+    <!-- Store credit section -->
+    <div class="debug-section" id="debug-section-credit">
+      <div class="modal-body">
+        <p class="modal-sub" style="margin:0 0 16px;">Customers earn store credit automatically when a signed-in customer's order is marked "Sold" — a percentage of the quoted price, added to their balance. They can use it toward future orders (you apply it per-order on the order card).</p>
+        <div class="theme-row">
+          <span>💳 Store credit enabled</span>
+          <button type="button" class="theme-switch" id="credit-enabled-toggle" role="switch" aria-checked="false" aria-label="Store credit enabled"><span class="thumb"></span></button>
+        </div>
+        <div class="rates-form-grid" style="margin-top:14px;">
+          <label>Credit rate<span class="unit">% of quoted price</span><input type="number" id="credit-rate" step="1" min="0" max="100" value="10"></label>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <span id="credit-msg"></span>
+        <button class="save-btn" id="credit-save">Save store credit</button>
+      </div>
+    </div>
+
+    <!-- Order alerts section -->
+    <div class="debug-section" id="debug-section-alerts">
+      <div class="modal-body">
+        <p class="modal-sub" style="margin:0 0 16px;">Get pinged on your phone the moment an order comes in. In Discord: open a channel → Edit Channel → Integrations → Webhooks → New Webhook → Copy Webhook URL, then paste it here. To have it ping a role, turn on Developer Mode (User Settings → Advanced), then Server Settings → Roles → right-click the role → Copy Role ID.</p>
+        <div class="rates-form-grid">
+          <label style="grid-column:1 / -1;">Discord webhook URL<span class="unit">kept private — never sent to the public site</span>
+            <input type="password" id="hook-url" placeholder="https://discord.com/api/webhooks/…" autocomplete="off">
+          </label>
+          <label style="grid-column:1 / -1;">Role to ping<span class="unit">Discord role ID — leave blank for a silent alert</span>
+            <input type="text" id="hook-role" placeholder="e.g. 123456789012345678" autocomplete="off" inputmode="numeric">
+          </label>
+        </div>
+        <p class="modal-sub" style="margin:22px 0 12px;"><strong>Two-way chat.</strong> With a bot added, every order gets its own Discord thread — customer messages appear there and anything you type back lands in their order chat. Create a bot at discord.com/developers → New Application → Bot → Reset Token, and turn on <strong>Message Content Intent</strong> on that same Bot page or your replies will arrive blank. Invite it to your server, and if the channel is private add the bot under Edit Channel → Permissions → Add members or roles.</p>
+        <div class="rates-form-grid">
+          <label style="grid-column:1 / -1;">Bot token<span class="unit">kept private — never sent to the public site</span>
+            <input type="password" id="hook-bot" placeholder="paste the bot token" autocomplete="off">
+          </label>
+          <label style="grid-column:1 / -1;">Channel for order threads<span class="unit">right-click the channel → Copy Channel ID</span>
+            <input type="text" id="hook-channel" placeholder="e.g. 123456789012345678" autocomplete="off" inputmode="numeric">
+          </label>
+        </div>
+        <p class="modal-sub" id="hook-state" style="margin:12px 0 0;"></p>
+      </div>
+      <div class="modal-foot">
+        <span id="hook-msg"></span>
+        <button class="save-btn" id="hook-relay" style="margin-right:8px;">Check relay</button>
+        <button class="save-btn" id="hook-test" style="margin-right:8px;">Send test</button>
+        <button class="save-btn" id="hook-save">Save</button>
+      </div>
+    </div>
+
+    <!-- Promo codes section -->
+    <div class="debug-section" id="debug-section-promo">
+      <div class="modal-body">
+        <p class="modal-sub" style="margin:0 0 16px;">Codes customers can enter when placing an order. Entering one doesn't change any price automatically — like store credit and the signup discount, you see it on the order card and factor it into the quote you type in.</p>
+        <div class="fil-list" id="promo-list">
+          <div class="fil-empty">Loading…</div>
+        </div>
+        <div class="fil-add-form">
+          <div class="modal-divider" style="margin-top:0; padding-top:0; border-top:none;">Add a promo code</div>
+          <div class="fil-add-grid">
+            <label>Code<input type="text" id="promo-code-input" placeholder="e.g. SAVE15" style="text-transform:uppercase;"></label>
+            <label>Type
+              <select id="promo-type-input">
+                <option value="percent">% off</option>
+                <option value="fixed">$ off</option>
+              </select>
+            </label>
+            <label>Value<span class="unit" id="promo-value-unit">%</span><input type="number" id="promo-value-input" step="1" min="0" placeholder="15"></label>
+          </div>
+          <div class="fil-add-actions">
+            <button class="save-btn" id="promo-add-btn" type="button">Add code</button>
+          </div>
+          <div id="promo-msg"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tools section -->
+
+  </div>
+</div>
+
+<!-- NAME MODAL -->
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  const SUPABASE_URL = 'https://paycasfatsakidsriwqt.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
+  const BUCKET = 'order-files';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const loginView = document.getElementById('login-view');
+  const dashView = document.getElementById('dash-view');
+  const loginErr = document.getElementById('login-err');
+  let myUserId = null;
+
+  function escapeHtml(str){
+    return (str || '').replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+
+  function sanitizeFileName(name){
+    return name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  }
+
+
+  function publicUrl(path){
+    return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+  }
+  // the Debug code below was written against the orders page, where several
+  // modals share the screen; here it is the only one
+  function closeAllAdminModals(){}
+
+  /* ---------- auth: founders only ---------- */
+  function showLogin(msg){
+    if (msg){ loginErr.textContent = msg; loginErr.classList.add('show'); }
+    loginView.style.display = 'flex';
+    dashView.style.display = 'none';
+  }
+
+  document.getElementById('admin-google-signin-btn').addEventListener('click', async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.href }
+    });
+    if (error) showLogin(error.message);
+  });
+
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    window.location.href = 'index.html';
+  });
+
+  supabase.auth.onAuthStateChange(async (_event, session) => {
+    if (!session){ showLogin(); return; }
+    const { data: state } = await supabase.rpc('my_admin_state');
+    if (!state || !state.is_admin){
+      await supabase.auth.signOut();
+      showLogin('This account is not an approved admin.');
+      return;
+    }
+    if (!state.is_founder){
+      showLogin('This page is for founders only.');
+      return;
+    }
+    myUserId = session.user.id;
+    loginView.style.display = 'none';
+    dashView.style.display = 'block';
+    loadAdmins();
+  });
+
+  /* ---------- admin roster ---------- */
+  const admListEl = document.getElementById('adm-list');
+  const admMsgEl = document.getElementById('adm-msg');
+
+  const SUSPEND_CHOICES = [
+    ['1 hour', 1], ['12 hours', 12], ['1 day', 24],
+    ['3 days', 72], ['1 week', 168], ['1 month', 720]
+  ];
+
+  function leftToRun(until){
+    const ms = new Date(until) - Date.now();
+    if (ms <= 0) return null;
+    const h = Math.floor(ms / 3600000), m = Math.round((ms % 3600000) / 60000);
+    if (h >= 48) return Math.round(h / 24) + ' days left';
+    if (h >= 1) return h + 'h ' + m + 'm left';
+    return m + 'm left';
+  }
+
+  async function loadAdmins(){
+    admMsgEl.textContent = '';
+    const { data, error } = await supabase
+      .from('admin_profiles').select('*').order('created_at', { ascending: true });
+    if (error){ admListEl.innerHTML = '<p class="hint">Could not load admins: ' + escapeHtml(error.message) + '</p>'; return; }
+
+    admListEl.innerHTML = (data || []).map(a => {
+      const left = a.suspended_until ? leftToRun(a.suspended_until) : null;
+      const isMe = a.id === myUserId;
+      return `<div class="adm-row" data-id="${a.id}">
+        <div class="adm-id">
+          <div class="adm-name">${escapeHtml(a.display_name || 'Admin')}
+            ${a.is_founder ? '<span class="tag founder">Founder</span>' : ''}
+            ${left ? '<span class="tag susp">Suspended</span>' : ''}
+          </div>
+          <div class="adm-mail">${escapeHtml(a.email || '')}</div>
+        </div>
+        <div class="adm-acts">
+          ${a.is_founder || isMe ? '<span class="hint">&mdash;</span>' : (left
+            ? `<button class="save-btn" data-act="restore" data-id="${a.id}">Restore now</button>`
+            : `<select class="susp-pick" data-id="${a.id}">
+                 ${SUSPEND_CHOICES.map(c => `<option value="${c[1]}">${c[0]}</option>`).join('')}
+               </select>
+               <button class="save-btn" data-act="suspend" data-id="${a.id}">Suspend</button>`)}
+          ${a.is_founder || isMe ? '' : `<button class="delete-btn" data-act="remove" data-id="${a.id}">Remove</button>`}
+        </div>
+        ${left ? `<div class="adm-susp-note">Cannot edit anything &mdash; ${escapeHtml(left)}${a.suspended_reason ? ' &middot; ' + escapeHtml(a.suspended_reason) : ''}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  admListEl.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const act = btn.dataset.act;
+    btn.disabled = true;
+    admMsgEl.textContent = '';
+
+    if (act === 'remove'){
+      if (!confirm('Remove this admin? They lose all access immediately.')){ btn.disabled = false; return; }
+      const { data, error } = await supabase.from('admin_profiles').delete().eq('id', id).select();
+      btn.disabled = false;
+      if (error) admMsgEl.textContent = 'Error: ' + error.message;
+      else if (!data || !data.length) admMsgEl.textContent = 'That admin could not be removed.';
+      loadAdmins();
+      return;
+    }
+
+    const hours = act === 'restore' ? 0
+      : Number(admListEl.querySelector(`.susp-pick[data-id="${id}"]`)?.value || 24);
+    const reason = act === 'restore' ? null : (prompt('Reason (optional, shown to them):') || null);
+    const { error } = await supabase.rpc('set_admin_suspension',
+      { p_id: id, p_hours: hours, p_reason: reason });
+    btn.disabled = false;
+    if (error) admMsgEl.textContent = 'Error: ' + error.message;
+    loadAdmins();
+  });
+
+  document.getElementById('adm-add').addEventListener('click', async () => {
+    const email = document.getElementById('adm-new-email').value.trim().toLowerCase();
+    if (!email){ admMsgEl.textContent = 'Enter an email first.'; return; }
+    const { data, error } = await supabase.rpc('add_admin_by_email', { p_email: email });
+    if (error){ admMsgEl.textContent = 'Error: ' + error.message; return; }
+    document.getElementById('adm-new-email').value = '';
+    admMsgEl.textContent = data || 'Added.';
+    loadAdmins();
+  });
+
+  const ratesOverlay = document.getElementById('rates-overlay');
+  const ratesMsg = document.getElementById('rates-msg');
+  const ratesSaveBtn = document.getElementById('rates-save');
+  const RATE_FIELDS = {
+    labor_rate: 'r-labor', base_fee: 'r-base', print_rate: 'r-printrate',
+    surcharge_amt: 'r-suramt', surcharge_threshold: 'r-surthresh',
+    fil_pla: 'r-pla', fil_abs: 'r-abs', fil_tpu: 'r-tpu'
+  };
+
+  document.getElementById('rates-btn').addEventListener('click', openRatesModal);
+  document.getElementById('rates-close').addEventListener('click', closeRatesModal);
+  ratesOverlay.addEventListener('click', (e) => { if (e.target === ratesOverlay) closeRatesModal(); });
+
+  function closeRatesModal(){
+    ratesOverlay.classList.remove('open');
+  }
+
+  async function openRatesModal(){
+    closeAllAdminModals();
+    ratesOverlay.classList.add('open');
+    ratesMsg.innerHTML = `<svg class="logo-loading logo-loading-lg" width="28" height="28" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg"><polygon points="200,40.2 231.4,58.3 200,76.5 168.6,58.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.00s"/>
+      <polygon points="150.9,68.5 182.3,86.7 150.9,104.8 119.5,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
+      <polygon points="101.9,96.9 133.3,115 101.9,133.1 70.4,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="249.1,68.5 280.5,86.7 249.1,104.8 217.7,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
+      <polygon points="200,96.9 231.4,115 200,133.1 168.6,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="150.9,125.2 182.3,143.3 150.9,161.5 119.5,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="298.1,96.9 329.6,115 298.1,133.1 266.7,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="249.1,125.2 280.5,143.3 249.1,161.5 217.7,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="200,153.5 231.4,171.7 200,189.8 168.6,171.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="61.6,130.3 93,148.4 93,184.7 61.6,166.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="61.6,187 93,205.1 93,241.4 61.6,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="61.6,243.6 93,261.8 93,298 61.6,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="110.7,158.6 142.1,176.8 142.1,213 110.7,194.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="110.7,215.3 142.1,233.4 142.1,269.7 110.7,251.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="110.7,272 142.1,290.1 142.1,326.4 110.7,308.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="159.8,187 191.2,205.1 191.2,241.4 159.8,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="159.8,243.6 191.2,261.8 191.2,298 159.8,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="159.8,300.3 191.2,318.4 191.2,354.7 159.8,336.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
+      <polygon points="338.4,130.3 307,148.4 307,184.7 338.4,166.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="338.4,187 307,205.1 307,241.4 338.4,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="338.4,243.6 307,261.8 307,298 338.4,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="289.3,158.6 257.9,176.8 257.9,213 289.3,194.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="289.3,215.3 257.9,233.4 257.9,269.7 289.3,251.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="289.3,272 257.9,290.1 257.9,326.4 289.3,308.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="240.2,187 208.8,205.1 208.8,241.4 240.2,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/></svg>`;
+    loadFilaments();
+    loadPromoCodes();
+    const { data, error } = await supabase.from('settings').select('*').eq('id', 1).single();
+    if (error || !data){
+      ratesMsg.textContent = "Couldn't load rates: " + (error ? error.message : 'no data');
+      return;
+    }
+    Object.entries(RATE_FIELDS).forEach(([col, id]) => {
+      document.getElementById(id).value = data[col];
+    });
+    ratesMsg.textContent = '';
+
+    bannerMsgInput.value = data.banner_message || '';
+    bannerEnabledToggle.setAttribute('aria-checked', String(!!data.banner_enabled));
+    bannerForceToggle.setAttribute('aria-checked', String(!!data.banner_force_scroll));
+    renderBannerPreview();
+
+    creditEnabledToggle.setAttribute('aria-checked', String(!!data.store_credit_enabled));
+    creditRateInput.value = Math.round((data.store_credit_rate ?? 0.10) * 100);
+
+    siteEyebrowInput.value = data.hero_eyebrow || '';
+    siteEyebrowColorInput.value = data.hero_eyebrow_color || '#0969da';
+    currentEyebrowColor = data.hero_eyebrow_color || null;
+    siteHeadlineInput.value = data.hero_headline || '';
+    siteDescInput.value = data.site_description || '';
+    renderSiteDescPreview();
+  }
+
+  ratesSaveBtn.addEventListener('click', async () => {
+    ratesSaveBtn.disabled = true;
+    ratesSaveBtn.textContent = 'Saving…';
+    ratesMsg.textContent = '';
+
+    const payload = { updated_at: new Date().toISOString() };
+    let valid = true;
+    Object.entries(RATE_FIELDS).forEach(([col, id]) => {
+      const raw = document.getElementById(id).value;
+      const num = Number(raw);
+      if (raw === '' || isNaN(num) || num < 0) valid = false;
+      payload[col] = num;
+    });
+
+    if (!valid){
+      ratesSaveBtn.disabled = false;
+      ratesSaveBtn.textContent = 'Save rates';
+      ratesMsg.textContent = 'Please enter valid, non-negative numbers.';
+      return;
+    }
+
+    const { error } = await supabase.from('settings').update(payload).eq('id', 1);
+
+    ratesSaveBtn.disabled = false;
+    ratesSaveBtn.textContent = 'Save rates';
+
+    if (error){
+      ratesMsg.textContent = 'Error: ' + error.message;
+      return;
+    }
+    ratesMsg.textContent = 'Saved ✓ — live everywhere now.';
+    setTimeout(() => { if (ratesMsg.textContent.startsWith('Saved')) ratesMsg.textContent = ''; }, 3000);
+  });
+
+  /* ---- Banner ---- */
+  const bannerMsgInput = document.getElementById('banner-msg-input');
+  const bannerEnabledToggle = document.getElementById('banner-enabled-toggle');
+  const bannerForceToggle = document.getElementById('banner-force-toggle');
+  const bannerSaveBtn = document.getElementById('banner-save');
+  const bannerMsgEl = document.getElementById('banner-msg');
+  const bannerPreviewEl = document.getElementById('banner-preview');
+  const bannerPreviewInnerEl = document.getElementById('banner-preview-inner');
+  const bannerPreviewTextEl = document.getElementById('banner-preview-text');
+
+  function toggleSwitch(el){
+    el.setAttribute('aria-checked', String(el.getAttribute('aria-checked') !== 'true'));
+  }
+  bannerEnabledToggle.addEventListener('click', () => { toggleSwitch(bannerEnabledToggle); renderBannerPreview(); });
+  bannerForceToggle.addEventListener('click', () => { toggleSwitch(bannerForceToggle); renderBannerPreview(); });
+  bannerMsgInput.addEventListener('input', renderBannerPreview);
+
+  function renderBannerPreview(){
+    const message = bannerMsgInput.value.trim();
+    const enabled = bannerEnabledToggle.getAttribute('aria-checked') === 'true';
+    const forceScroll = bannerForceToggle.getAttribute('aria-checked') === 'true';
+
+    bannerPreviewInnerEl.classList.remove('scrolling');
+    bannerPreviewInnerEl.style.removeProperty('--banner-distance');
+    bannerPreviewInnerEl.style.removeProperty('--banner-duration');
+
+    if (!enabled || !message){
+      bannerPreviewEl.classList.remove('show');
+      return;
+    }
+    bannerPreviewTextEl.textContent = message;
+    bannerPreviewEl.classList.add('show');
+    requestAnimationFrame(() => {
+      const overflow = bannerPreviewTextEl.scrollWidth - bannerPreviewInnerEl.clientWidth;
+      if (overflow > 0 || forceScroll){
+        const distance = overflow > 0 ? overflow : 60;
+        const duration = Math.min(24, Math.max(5, distance / 45));
+        bannerPreviewInnerEl.style.setProperty('--banner-distance', distance + 'px');
+        bannerPreviewInnerEl.style.setProperty('--banner-duration', duration + 's');
+        bannerPreviewInnerEl.classList.add('scrolling');
+      }
+    });
+  }
+
+  bannerSaveBtn.addEventListener('click', async () => {
+    bannerSaveBtn.disabled = true;
+    bannerSaveBtn.textContent = 'Saving…';
+    bannerMsgEl.textContent = '';
+
+    const payload = {
+      banner_message: bannerMsgInput.value.trim(),
+      banner_enabled: bannerEnabledToggle.getAttribute('aria-checked') === 'true',
+      banner_force_scroll: bannerForceToggle.getAttribute('aria-checked') === 'true',
+      updated_at: new Date().toISOString()
+    };
+
+    const { error } = await supabase.from('settings').update(payload).eq('id', 1);
+
+    bannerSaveBtn.disabled = false;
+    bannerSaveBtn.textContent = 'Save banner';
+
+    if (error){
+      bannerMsgEl.textContent = 'Error: ' + error.message;
+      return;
+    }
+    bannerMsgEl.textContent = 'Saved ✓ — live everywhere now.';
+    setTimeout(() => { if (bannerMsgEl.textContent.startsWith('Saved')) bannerMsgEl.textContent = ''; }, 3000);
+  });
+
+  /* ---- Site hero content (eyebrow / headline / description) ---- */
+  const siteEyebrowInput = document.getElementById('site-eyebrow-input');
+  const siteEyebrowColorInput = document.getElementById('site-eyebrow-color-input');
+  const siteEyebrowColorReset = document.getElementById('site-eyebrow-color-reset');
+  const siteHeadlineInput = document.getElementById('site-headline-input');
+  const siteDescInput = document.getElementById('site-desc-input');
+  const siteEyebrowPreview = document.getElementById('site-eyebrow-preview');
+  const siteEyebrowDotPreview = document.getElementById('site-eyebrow-dot-preview');
+  const siteHeadlinePreview = document.getElementById('site-headline-preview');
+  const siteDescPreview = document.getElementById('site-desc-preview');
+  const siteDescSaveBtn = document.getElementById('site-desc-save');
+  const siteDescMsgEl = document.getElementById('site-desc-msg');
+  let currentEyebrowColor = null; // null = follow the site theme instead of a fixed colour
+
+  function renderSiteDescPreview(){
+    siteEyebrowPreview.textContent = siteEyebrowInput.value.trim() || '(nothing entered yet)';
+    const dotColor = currentEyebrowColor || 'var(--ink-dim)';
+    siteEyebrowDotPreview.style.background = dotColor;
+    siteEyebrowPreview.style.color = currentEyebrowColor || 'var(--ink-dim)';
+    const headline = siteHeadlineInput.value.trim();
+    siteHeadlinePreview.innerHTML = headline
+      ? headline.split('\n').map(escapeHtml).join('<br>')
+      : '(nothing entered yet)';
+    siteDescPreview.textContent = siteDescInput.value.trim() || '(nothing entered yet)';
+  }
+  siteEyebrowInput.addEventListener('input', renderSiteDescPreview);
+  siteHeadlineInput.addEventListener('input', renderSiteDescPreview);
+  siteDescInput.addEventListener('input', renderSiteDescPreview);
+  siteEyebrowColorInput.addEventListener('input', () => {
+    currentEyebrowColor = siteEyebrowColorInput.value;
+    renderSiteDescPreview();
+  });
+  siteEyebrowColorReset.addEventListener('click', () => {
+    currentEyebrowColor = null;
+    renderSiteDescPreview();
+  });
+
+  siteDescSaveBtn.addEventListener('click', async () => {
+    const eyebrow = siteEyebrowInput.value.trim();
+    const headline = siteHeadlineInput.value.trim();
+    const description = siteDescInput.value.trim();
+    if (!eyebrow || !headline || !description){
+      siteDescMsgEl.textContent = 'Fill in the eyebrow tag, headline, and description.';
+      return;
+    }
+    siteDescSaveBtn.disabled = true;
+    siteDescSaveBtn.textContent = 'Saving…';
+    siteDescMsgEl.textContent = '';
+
+    const { error } = await supabase.from('settings').update({
+      hero_eyebrow: eyebrow,
+      hero_eyebrow_color: currentEyebrowColor,
+      hero_headline: headline,
+      site_description: description,
+      updated_at: new Date().toISOString()
+    }).eq('id', 1);
+
+    siteDescSaveBtn.disabled = false;
+    siteDescSaveBtn.textContent = 'Save hero content';
+
+    if (error){
+      siteDescMsgEl.textContent = 'Error: ' + error.message;
+      return;
+    }
+    siteDescMsgEl.textContent = 'Saved ✓ — live everywhere now.';
+    setTimeout(() => { if (siteDescMsgEl.textContent.startsWith('Saved')) siteDescMsgEl.textContent = ''; }, 3000);
+  });
+
+  /* ---- Store credit ---- */
+  const creditEnabledToggle = document.getElementById('credit-enabled-toggle');
+  const creditRateInput = document.getElementById('credit-rate');
+  const creditSaveBtn = document.getElementById('credit-save');
+  const creditMsgEl = document.getElementById('credit-msg');
+
+  /* ---------- order alerts (Discord webhook) ---------- */
+  const hookUrlInput = document.getElementById('hook-url');
+  const hookSaveBtn = document.getElementById('hook-save');
+  const hookRoleInput = document.getElementById('hook-role');
+  const hookBotInput = document.getElementById('hook-bot');
+  const hookChannelInput = document.getElementById('hook-channel');
+  const hookRelayBtn = document.getElementById('hook-relay');
+  const hookTestBtn = document.getElementById('hook-test');
+  const hookMsgEl = document.getElementById('hook-msg');
+  const hookStateEl = document.getElementById('hook-state');
+
+  let hookSaved = false;
+
+  async function loadWebhookState(){
+    const { data, error } = await supabase
+      .from('private_config').select('key, value, updated_at')
+      .in('key', ['discord_webhook_url', 'discord_role_id', 'discord_bot_token', 'discord_channel_id']);
+    if (error){ hookStateEl.textContent = ''; return; }
+    const rows = data || [];
+    const val = k => { const r = rows.find(x => x.key === k); return (r && r.value) || ''; };
+    const hook = rows.find(r => r.key === 'discord_webhook_url');
+    hookRoleInput.value = val('discord_role_id');
+    hookChannelInput.value = val('discord_channel_id');
+    hookBotInput.placeholder = val('discord_bot_token')
+      ? '•••••• saved — paste a new token to replace it'
+      : 'paste the bot token';
+    hookSaved = !!(hook && hook.value);
+    if (hookSaved){
+      hookUrlInput.placeholder = '•••••• saved — paste a new URL to replace it';
+      hookStateEl.textContent = 'Alerts are on. Saved ' +
+        new Date(hook.updated_at).toLocaleString() + '.';
+    } else {
+      hookStateEl.textContent = 'No webhook saved yet — orders will not notify you.';
+    }
+  }
+
+  hookSaveBtn.addEventListener('click', async () => {
+    const url = hookUrlInput.value.trim();
+    const role = hookRoleInput.value.trim();
+    const bot = hookBotInput.value.trim();
+    const channel = hookChannelInput.value.trim();
+    if (!url && !hookSaved){ hookMsgEl.textContent = 'Paste a webhook URL first.'; return; }
+    if (url && !/^https:\/\/(discord|discordapp)\.com\/api\/webhooks\//.test(url)){
+      hookMsgEl.textContent = 'That does not look like a Discord webhook URL.';
+      return;
+    }
+    if (role && !/^[0-9]{5,25}$/.test(role)){
+      hookMsgEl.textContent = 'A role ID is just digits — copy it with Developer Mode on.';
+      return;
+    }
+    if (channel && !/^[0-9]{5,25}$/.test(channel)){
+      hookMsgEl.textContent = 'A channel ID is just digits — copy it with Developer Mode on.';
+      return;
+    }
+    hookSaveBtn.disabled = true;
+    hookSaveBtn.textContent = 'Saving…';
+    hookMsgEl.textContent = '';
+    const now = new Date().toISOString();
+    const rows = [
+      { key: 'discord_role_id', value: role, updated_at: now },
+      { key: 'discord_channel_id', value: channel, updated_at: now }
+    ];
+    if (url) rows.push({ key: 'discord_webhook_url', value: url, updated_at: now });
+    if (bot) rows.push({ key: 'discord_bot_token', value: bot, updated_at: now });
+    const { error } = await supabase.from('private_config').upsert(rows);
+    hookSaveBtn.disabled = false;
+    hookSaveBtn.textContent = 'Save webhook';
+    if (error){ hookMsgEl.textContent = 'Error: ' + error.message; return; }
+    hookUrlInput.value = '';
+    hookBotInput.value = '';
+    hookMsgEl.textContent = 'Saved.';
+    loadWebhookState();
+  });
+
+  hookRelayBtn.addEventListener('click', async () => {
+    hookRelayBtn.disabled = true;
+    hookRelayBtn.textContent = 'Checking…';
+    hookMsgEl.textContent = '';
+    const { data, error } = await supabase.rpc('discord_relay_status');
+    hookRelayBtn.disabled = false;
+    hookRelayBtn.textContent = 'Check relay';
+    if (error){ hookMsgEl.textContent = 'Error: ' + error.message; return; }
+    if (!data){ hookMsgEl.textContent = 'No answer from the relay.'; return; }
+    if (!data.ok){
+      hookMsgEl.textContent = (data.bot ? data.bot + ': ' : '') +
+        (data.problem || 'not reachable — check the token.');
+      return;
+    }
+    hookMsgEl.textContent = data.bot + ' is live in #' + data.channel + ' — ' +
+      data.threads + ' thread(s), ' + data.pending + ' queued, ' + data.sync + '.';
+  });
+
+  hookTestBtn.addEventListener('click', async () => {
+    hookTestBtn.disabled = true;
+    hookTestBtn.textContent = 'Sending…';
+    hookMsgEl.textContent = '';
+    const { data, error } = await supabase.rpc('test_order_webhook');
+    hookTestBtn.disabled = false;
+    hookTestBtn.textContent = 'Send test';
+    if (error) hookMsgEl.textContent = 'Error: ' + error.message;
+    else if (data === 'no webhook configured') hookMsgEl.textContent = 'Save a webhook URL first.';
+    else hookMsgEl.textContent = 'Test sent — check Discord.';
+  });
+
+  creditEnabledToggle.addEventListener('click', () => toggleSwitch(creditEnabledToggle));
+
+  creditSaveBtn.addEventListener('click', async () => {
+    const rateRaw = creditRateInput.value;
+    const ratePct = Number(rateRaw);
+    if (rateRaw === '' || isNaN(ratePct) || ratePct < 0 || ratePct > 100){
+      creditMsgEl.textContent = 'Enter a rate between 0 and 100.';
+      return;
+    }
+
+    creditSaveBtn.disabled = true;
+    creditSaveBtn.textContent = 'Saving…';
+    creditMsgEl.textContent = '';
+
+    const payload = {
+      store_credit_enabled: creditEnabledToggle.getAttribute('aria-checked') === 'true',
+      store_credit_rate: ratePct / 100,
+      updated_at: new Date().toISOString()
+    };
+
+    const { error } = await supabase.from('settings').update(payload).eq('id', 1);
+
+    creditSaveBtn.disabled = false;
+    creditSaveBtn.textContent = 'Save store credit';
+
+    if (error){
+      creditMsgEl.textContent = 'Error: ' + error.message;
+      return;
+    }
+    creditMsgEl.textContent = 'Saved ✓ — live everywhere now.';
+    setTimeout(() => { if (creditMsgEl.textContent.startsWith('Saved')) creditMsgEl.textContent = ''; }, 3000);
+  });
+
+  /* ---- Debug modal tabs ---- */
+  document.querySelectorAll('.debug-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.debug-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.debug-section').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(`debug-section-${tab.dataset.tab}`).classList.add('active');
+      if (tab.dataset.tab === 'filaments') loadFilaments();
+      if (tab.dataset.tab === 'promo') loadPromoCodes();
+      if (tab.dataset.tab === 'alerts') loadWebhookState();
+    });
+  });
+
+  /* ---- Filaments ---- */
+  const FIL_BUCKET = BUCKET; // reuse the order-files bucket, under filaments/
+  const filListEl = document.getElementById('fil-list');
+  const filMsgEl = document.getElementById('fil-msg');
+  const filImageInput = document.getElementById('fil-image');
+  const filImgPreview = document.getElementById('fil-img-preview');
+  const filAddBtn = document.getElementById('fil-add-btn');
+  const filCancelBtn = document.getElementById('fil-cancel-btn');
+  let currentFilaments = [];
+  let editingFilamentId = null;
+
+  filImageInput.addEventListener('change', () => {
+    const file = filImageInput.files[0];
+    if (!file){ filImgPreview.style.backgroundImage = ''; return; }
+    filImgPreview.style.backgroundImage = `url(${URL.createObjectURL(file)})`;
+  });
+
+  function filPublicUrl(path){
+    return path ? supabase.storage.from(FIL_BUCKET).getPublicUrl(path).data.publicUrl : null;
+  }
+
+  async function loadFilaments(){
+    filListEl.innerHTML = `<div class="fil-empty"><svg class="logo-loading logo-loading-lg" width="28" height="28" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg"><polygon points="200,40.2 231.4,58.3 200,76.5 168.6,58.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.00s"/>
+      <polygon points="150.9,68.5 182.3,86.7 150.9,104.8 119.5,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
+      <polygon points="101.9,96.9 133.3,115 101.9,133.1 70.4,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="249.1,68.5 280.5,86.7 249.1,104.8 217.7,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
+      <polygon points="200,96.9 231.4,115 200,133.1 168.6,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="150.9,125.2 182.3,143.3 150.9,161.5 119.5,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="298.1,96.9 329.6,115 298.1,133.1 266.7,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
+      <polygon points="249.1,125.2 280.5,143.3 249.1,161.5 217.7,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="200,153.5 231.4,171.7 200,189.8 168.6,171.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="61.6,130.3 93,148.4 93,184.7 61.6,166.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="61.6,187 93,205.1 93,241.4 61.6,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="61.6,243.6 93,261.8 93,298 61.6,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="110.7,158.6 142.1,176.8 142.1,213 110.7,194.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="110.7,215.3 142.1,233.4 142.1,269.7 110.7,251.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="110.7,272 142.1,290.1 142.1,326.4 110.7,308.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="159.8,187 191.2,205.1 191.2,241.4 159.8,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="159.8,243.6 191.2,261.8 191.2,298 159.8,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="159.8,300.3 191.2,318.4 191.2,354.7 159.8,336.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
+      <polygon points="338.4,130.3 307,148.4 307,184.7 338.4,166.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
+      <polygon points="338.4,187 307,205.1 307,241.4 338.4,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="338.4,243.6 307,261.8 307,298 338.4,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="289.3,158.6 257.9,176.8 257.9,213 289.3,194.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
+      <polygon points="289.3,215.3 257.9,233.4 257.9,269.7 289.3,251.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="289.3,272 257.9,290.1 257.9,326.4 289.3,308.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="240.2,187 208.8,205.1 208.8,241.4 240.2,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
+      <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
+      <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/></svg></div>`;
+    const { data, error } = await supabase
+      .from('filaments')
+      .select('*')
+      .order('sort_order', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true });
+
+    if (error){
+      filListEl.innerHTML = `<div class="fil-empty">Couldn't load filaments: ${escapeHtml(error.message)}</div>`;
+      return;
+    }
+    currentFilaments = data || [];
+    renderFilaments();
+  }
+
+  function renderFilaments(){
+    if (currentFilaments.length === 0){
+      filListEl.innerHTML = '<div class="fil-empty">No filaments added yet — add one below.</div>';
+      return;
+    }
+    filListEl.innerHTML = '';
+    currentFilaments.forEach((f, i) => {
+      const row = document.createElement('div');
+      row.className = 'fil-row' + (f.id === editingFilamentId ? ' editing' : '');
+      const img = filPublicUrl(f.image_path);
+      row.innerHTML = `
+        <div class="fil-reorder">
+          <button type="button" class="fil-up" data-id="${f.id}" ${i === 0 ? 'disabled' : ''} title="Move up">▲</button>
+          <button type="button" class="fil-down" data-id="${f.id}" ${i === currentFilaments.length - 1 ? 'disabled' : ''} title="Move down">▼</button>
+        </div>
+        <div class="fil-swatch" style="${img ? `background-image:url(${img})` : ''}"></div>
+        <div class="fil-info">
+          <div class="fil-name">${escapeHtml(f.color_name)}</div>
+          <div class="fil-meta">${escapeHtml(f.type)} · $${Number(f.price_per_100g).toFixed(2)}/100g</div>
+        </div>
+        <div class="fil-actions">
+          <button class="fil-toggle ${f.active ? 'is-active' : ''}" data-id="${f.id}">${f.active ? 'Active' : 'Hidden'}</button>
+          <button class="fil-edit" data-id="${f.id}">Edit</button>
+          <button class="fil-del" data-id="${f.id}">🗑</button>
+        </div>
+      `;
+      filListEl.appendChild(row);
+    });
+
+    filListEl.querySelectorAll('.fil-toggle').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const f = currentFilaments.find(x => x.id === btn.dataset.id);
+        if (!f) return;
+        const { error } = await supabase.from('filaments').update({ active: !f.active }).eq('id', f.id);
+        if (error){ alert('Could not update: ' + error.message); return; }
+        f.active = !f.active;
+        renderFilaments();
+      });
+    });
+    filListEl.querySelectorAll('.fil-del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this filament? It will no longer be selectable when ordering.')) return;
+        const { error } = await supabase.from('filaments').delete().eq('id', btn.dataset.id);
+        if (error){ alert('Could not delete: ' + error.message); return; }
+        currentFilaments = currentFilaments.filter(x => x.id !== btn.dataset.id);
+        if (editingFilamentId === btn.dataset.id) exitFilamentEdit();
+        renderFilaments();
+      });
+    });
+    filListEl.querySelectorAll('.fil-edit').forEach(btn => {
+      btn.addEventListener('click', () => enterFilamentEdit(btn.dataset.id));
+    });
+    filListEl.querySelectorAll('.fil-up').forEach(btn => {
+      btn.addEventListener('click', () => moveFilament(btn.dataset.id, -1));
+    });
+    filListEl.querySelectorAll('.fil-down').forEach(btn => {
+      btn.addEventListener('click', () => moveFilament(btn.dataset.id, 1));
+    });
+  }
+
+  async function moveFilament(id, direction){
+    const i = currentFilaments.findIndex(f => f.id === id);
+    const j = i + direction;
+    if (i === -1 || j < 0 || j >= currentFilaments.length) return;
+
+    // Assign fresh sequential sort_order values to everything so ties/nulls
+    // from before this feature existed get resolved too.
+    const reordered = currentFilaments.slice();
+    [reordered[i], reordered[j]] = [reordered[j], reordered[i]];
+
+    // Optimistically update locally first for a snappy UI.
+    currentFilaments = reordered;
+    renderFilaments();
+
+    const updates = reordered.map((f, idx) =>
+      supabase.from('filaments').update({ sort_order: idx }).eq('id', f.id)
+    );
+    const results = await Promise.all(updates);
+    const failed = results.find(r => r.error);
+    if (failed){
+      alert('Could not save the new order: ' + failed.error.message);
+      loadFilaments();
+      return;
+    }
+    reordered.forEach((f, idx) => { f.sort_order = idx; });
+  }
+
+  function enterFilamentEdit(id){
+    const f = currentFilaments.find(x => x.id === id);
+    if (!f) return;
+    editingFilamentId = id;
+    document.getElementById('fil-color').value = f.color_name || '';
+    document.getElementById('fil-type').value = f.type || 'PLA';
+    document.getElementById('fil-price').value = f.price_per_100g != null ? f.price_per_100g : '';
+    filImageInput.value = '';
+    const img = filPublicUrl(f.image_path);
+    filImgPreview.style.backgroundImage = img ? `url(${img})` : '';
+    filAddBtn.textContent = 'Save changes';
+    filCancelBtn.style.display = 'inline-block';
+    filMsgEl.textContent = '';
+    renderFilaments();
+    document.querySelector('.fil-add-form')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function exitFilamentEdit(){
+    editingFilamentId = null;
+    document.getElementById('fil-color').value = '';
+    document.getElementById('fil-price').value = '';
+    filImageInput.value = '';
+    filImgPreview.style.backgroundImage = '';
+    filAddBtn.textContent = 'Add filament';
+    filCancelBtn.style.display = 'none';
+  }
+
+  filCancelBtn.addEventListener('click', () => { exitFilamentEdit(); renderFilaments(); });
+
+  filAddBtn.addEventListener('click', async () => {
+    const colorName = document.getElementById('fil-color').value.trim();
+    const type = document.getElementById('fil-type').value;
+    const priceRaw = document.getElementById('fil-price').value;
+    const price = Number(priceRaw);
+    const file = filImageInput.files[0];
+
+    if (!colorName || priceRaw === '' || isNaN(price) || price < 0){
+      filMsgEl.textContent = 'Please add a colour name and a valid price.';
+      return;
+    }
+
+    const isEditing = !!editingFilamentId;
+    filAddBtn.disabled = true;
+    filAddBtn.textContent = isEditing ? 'Saving…' : 'Adding…';
+    filMsgEl.textContent = '';
+
+    try {
+      let imagePath = isEditing
+        ? (currentFilaments.find(f => f.id === editingFilamentId)?.image_path || null)
+        : null;
+      if (file){
+        imagePath = `filaments/${Date.now()}-${sanitizeFileName(file.name)}`;
+        const { error: upErr } = await supabase.storage.from(FIL_BUCKET).upload(imagePath, file);
+        if (upErr) throw upErr;
+      }
+
+      if (isEditing){
+        const { error } = await supabase.from('filaments').update({
+          color_name: colorName,
+          type,
+          price_per_100g: price,
+          image_path: imagePath
+        }).eq('id', editingFilamentId);
+        if (error) throw error;
+        filMsgEl.textContent = 'Saved ✓';
+      } else {
+        const nextSortOrder = currentFilaments.length
+          ? Math.max(...currentFilaments.map(f => f.sort_order ?? 0)) + 1
+          : 0;
+        const { error } = await supabase.from('filaments').insert({
+          color_name: colorName,
+          type,
+          price_per_100g: price,
+          image_path: imagePath,
+          active: true,
+          sort_order: nextSortOrder
+        });
+        if (error) throw error;
+        filMsgEl.textContent = 'Added ✓';
+      }
+
+      exitFilamentEdit();
+      setTimeout(() => { if (filMsgEl.textContent === 'Added ✓' || filMsgEl.textContent === 'Saved ✓') filMsgEl.textContent = ''; }, 2500);
+      loadFilaments();
+
+    } catch (err){
+      filMsgEl.textContent = 'Error: ' + (err.message || 'please try again');
+      filAddBtn.textContent = isEditing ? 'Save changes' : 'Add filament';
+    } finally {
+      filAddBtn.disabled = false;
+    }
+  });
+
+  /* ---- Promo codes ---- */
+  const promoListEl = document.getElementById('promo-list');
+  const promoMsgEl = document.getElementById('promo-msg');
+  const promoCodeInput = document.getElementById('promo-code-input');
+  const promoTypeInput = document.getElementById('promo-type-input');
+  const promoValueInput = document.getElementById('promo-value-input');
+  const promoValueUnit = document.getElementById('promo-value-unit');
+  const promoAddBtn = document.getElementById('promo-add-btn');
+  let currentPromoCodes = [];
+
+  promoTypeInput.addEventListener('change', () => {
+    promoValueUnit.textContent = promoTypeInput.value === 'percent' ? '%' : '$';
+  });
+
+  function formatPromoValue(p){
+    return p.discount_type === 'percent' ? `${Number(p.discount_value)}% off` : `$${Number(p.discount_value).toFixed(2)} off`;
+  }
+
+  async function loadPromoCodes(){
+    promoListEl.innerHTML = '<div class="fil-empty">Loading…</div>';
+    const { data, error } = await supabase.from('promo_codes').select('*').order('created_at', { ascending: false });
+    if (error){
+      promoListEl.innerHTML = `<div class="fil-empty">Couldn't load promo codes: ${escapeHtml(error.message)}</div>`;
+      return;
+    }
+    currentPromoCodes = data || [];
+    renderPromoCodes();
+  }
+
+  function renderPromoCodes(){
+    if (currentPromoCodes.length === 0){
+      promoListEl.innerHTML = '<div class="fil-empty">No promo codes yet — add one below.</div>';
+      return;
+    }
+    promoListEl.innerHTML = '';
+    currentPromoCodes.forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'fil-row';
+      row.innerHTML = `
+        <div class="fil-info">
+          <div class="fil-name">${escapeHtml(p.code)}</div>
+          <div class="fil-meta">${formatPromoValue(p)}</div>
+        </div>
+        <div class="fil-actions">
+          <button class="fil-toggle ${p.active ? 'is-active' : ''}" data-id="${p.id}">${p.active ? 'Active' : 'Disabled'}</button>
+          <button class="fil-del" data-id="${p.id}">🗑</button>
+        </div>
+      `;
+      promoListEl.appendChild(row);
+    });
+
+    promoListEl.querySelectorAll('.fil-toggle').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const p = currentPromoCodes.find(x => x.id === btn.dataset.id);
+        if (!p) return;
+        const { error } = await supabase.from('promo_codes').update({ active: !p.active }).eq('id', p.id);
+        if (error){ alert('Could not update: ' + error.message); return; }
+        p.active = !p.active;
+        renderPromoCodes();
+      });
+    });
+    promoListEl.querySelectorAll('.fil-del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this promo code? Orders that already used it keep showing it, but it will stop validating for new orders.')) return;
+        const { error } = await supabase.from('promo_codes').delete().eq('id', btn.dataset.id);
+        if (error){ alert('Could not delete: ' + error.message); return; }
+        currentPromoCodes = currentPromoCodes.filter(x => x.id !== btn.dataset.id);
+        renderPromoCodes();
+      });
+    });
+  }
+
+  promoAddBtn.addEventListener('click', async () => {
+    const code = promoCodeInput.value.trim().toUpperCase();
+    const discountType = promoTypeInput.value;
+    const valueRaw = promoValueInput.value;
+    const value = Number(valueRaw);
+
+    if (!code){ promoMsgEl.textContent = 'Enter a code.'; return; }
+    if (valueRaw === '' || isNaN(value) || value <= 0 || (discountType === 'percent' && value > 100)){
+      promoMsgEl.textContent = discountType === 'percent' ? 'Enter a percent between 0 and 100.' : 'Enter a valid dollar amount.';
+      return;
+    }
+
+    promoAddBtn.disabled = true;
+    promoAddBtn.textContent = 'Adding…';
+    promoMsgEl.textContent = '';
+
+    const { error } = await supabase.from('promo_codes').insert({
+      code, discount_type: discountType, discount_value: value, active: true
+    });
+
+    promoAddBtn.disabled = false;
+    promoAddBtn.textContent = 'Add code';
+
+    if (error){
+      promoMsgEl.textContent = error.message.includes('duplicate') ? 'That code already exists.' : 'Error: ' + error.message;
+      return;
+    }
+    promoCodeInput.value = '';
+    promoValueInput.value = '';
+    promoMsgEl.textContent = 'Added ✓';
+    setTimeout(() => { if (promoMsgEl.textContent === 'Added ✓') promoMsgEl.textContent = ''; }, 2500);
+    loadPromoCodes();
+  });
+
+</script>
+</body>
+</html>
