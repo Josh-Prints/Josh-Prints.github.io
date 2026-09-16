@@ -825,15 +825,6 @@ h1{ animation: fadeInDown 0.5s ease both; }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // keep the loading logo on screen a moment even on a fast connection —
-  // otherwise it can flash by too quickly to notice
-  const loadingShownAt = Date.now();
-  const minLoadingMs = 2000 + Math.random() * 2000;
-  async function ensureMinLoadingTime(){
-    const remaining = minLoadingMs - (Date.now() - loadingShownAt);
-    if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
-  }
-
   const params = new URLSearchParams(window.location.search);
   const orderId = params.get('order');
 
@@ -971,7 +962,6 @@ h1{ animation: fadeInDown 0.5s ease both; }
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
-    await ensureMinLoadingTime();
     loadingEl.style.display = 'none';
     myOrdersEl.style.display = 'block';
 
@@ -1001,7 +991,6 @@ h1{ animation: fadeInDown 0.5s ease both; }
       if (session){
         await loadMyOrders(session.user.id);
       } else {
-        await ensureMinLoadingTime();
         loadingEl.style.display = 'none';
         lookupEl.style.display = 'block';
       }
@@ -1012,7 +1001,6 @@ h1{ animation: fadeInDown 0.5s ease both; }
 
   async function init(){
     const ok = await loadOrder();
-    await ensureMinLoadingTime();
     if (!ok){
       loadingEl.style.display = 'none';
       notFoundEl.style.display = 'block';
