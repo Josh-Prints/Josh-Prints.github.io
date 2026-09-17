@@ -1377,6 +1377,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <button type="button" class="debug-tab" data-tab="alerts">Discord</button>
       <button type="button" class="debug-tab" data-tab="email">Email</button>
       <button type="button" class="debug-tab" data-tab="testsend">Test Email</button>
+      <button type="button" class="debug-tab" data-tab="ai">AI</button>
     </div>
   </div>
   </div>
@@ -1609,6 +1610,25 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <div class="modal-foot">
         <span id="ts-msg"></span>
         <button class="save-btn" id="ts-send">Send test email</button>
+      </div>
+    </div>
+
+    <div class="debug-section" id="debug-section-ai">
+      <div class="modal-body">
+        <div class="rates-form-grid">
+          <label style="grid-column:1 / -1;">Groq API key
+            <input type="password" id="ai-key" placeholder="gsk_…" autocomplete="off">
+          </label>
+          <label style="grid-column:1 / -1;">Model
+            <input type="text" id="ai-model" placeholder="llama-3.3-70b-versatile" autocomplete="off">
+          </label>
+        </div>
+        <p class="modal-sub" id="ai-state" style="margin:12px 0 0;"></p>
+      </div>
+      <div class="modal-foot">
+        <span id="ai-msg"></span>
+        <button class="save-btn" id="ai-check" style="margin-right:8px;">Check status</button>
+        <button class="save-btn" id="ai-save">Save</button>
       </div>
     </div>
   </div>
@@ -2279,6 +2299,62 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     else tsMsgEl.textContent = data;
   });
 
+  /* ---------- AI assistant (Groq) ---------- */
+  const aiKeyInput = document.getElementById('ai-key');
+  const aiModelInput = document.getElementById('ai-model');
+  const aiSaveBtn = document.getElementById('ai-save');
+  const aiCheckBtn = document.getElementById('ai-check');
+  const aiMsgEl = document.getElementById('ai-msg');
+  const aiStateEl = document.getElementById('ai-state');
+
+  async function loadAiState(){
+    const { data, error } = await supabase
+      .from('private_config').select('key, value, updated_at')
+      .in('key', ['groq_api_key', 'groq_model']);
+    if (error){ aiStateEl.textContent = ''; return; }
+    const rows = data || [];
+    const val = k => { const r = rows.find(x => x.key === k); return (r && r.value) || ''; };
+    const keyRow = rows.find(r => r.key === 'groq_api_key');
+    aiModelInput.value = val('groq_model');
+    aiKeyInput.placeholder = keyRow && keyRow.value
+      ? '•••••• saved — paste a new key to replace it'
+      : 'gsk_…';
+    aiStateEl.textContent = keyRow && keyRow.value
+      ? 'A key is saved. Updated ' + new Date(keyRow.updated_at).toLocaleString() + '.'
+      : 'No API key saved yet — the assistant will show an error instead of replying.';
+  }
+
+  aiSaveBtn.addEventListener('click', async () => {
+    const key = aiKeyInput.value.trim();
+    const model = aiModelInput.value.trim();
+    aiSaveBtn.disabled = true;
+    aiSaveBtn.textContent = 'Saving…';
+    aiMsgEl.textContent = '';
+    const now = new Date().toISOString();
+    const rows = [{ key: 'groq_model', value: model, updated_at: now }];
+    if (key) rows.push({ key: 'groq_api_key', value: key, updated_at: now });
+    const { error } = await supabase.from('private_config').upsert(rows);
+    aiSaveBtn.disabled = false;
+    aiSaveBtn.textContent = 'Save';
+    if (error){ aiMsgEl.textContent = 'Error: ' + error.message; return; }
+    aiKeyInput.value = '';
+    aiMsgEl.textContent = 'Saved.';
+    loadAiState();
+  });
+
+  aiCheckBtn.addEventListener('click', async () => {
+    aiCheckBtn.disabled = true;
+    aiCheckBtn.textContent = 'Checking…';
+    aiMsgEl.textContent = '';
+    const { data, error } = await supabase.rpc('ai_status');
+    aiCheckBtn.disabled = false;
+    aiCheckBtn.textContent = 'Check status';
+    if (error){ aiMsgEl.textContent = 'Error: ' + error.message; return; }
+    if (!data){ aiMsgEl.textContent = 'No answer.'; return; }
+    if (!data.ok){ aiMsgEl.textContent = (data.model ? data.model + ': ' : '') + data.problem; return; }
+    aiMsgEl.textContent = data.model + ' is responding.';
+  });
+
   creditEnabledToggle.addEventListener('click', () => toggleSwitch(creditEnabledToggle));
 
   creditSaveBtn.addEventListener('click', async () => {
@@ -2323,6 +2399,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       if (tab.dataset.tab === 'alerts') loadWebhookState();
       if (tab.dataset.tab === 'email') loadResendState();
       if (tab.dataset.tab === 'testsend') loadTestSendOrders();
+      if (tab.dataset.tab === 'ai') loadAiState();
     });
   });
 
