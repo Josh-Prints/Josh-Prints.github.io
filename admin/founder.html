@@ -1376,6 +1376,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <button type="button" class="debug-tab" data-tab="promo">Promo Codes</button>
       <button type="button" class="debug-tab" data-tab="alerts">Discord</button>
       <button type="button" class="debug-tab" data-tab="email">Email</button>
+      <button type="button" class="debug-tab" data-tab="testsend">Test Email</button>
     </div>
   </div>
   </div>
@@ -1590,6 +1591,24 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         <button class="save-btn" id="rs-check" style="margin-right:8px;">Check status</button>
         <button class="save-btn" id="rs-test" style="margin-right:8px;">Send test</button>
         <button class="save-btn" id="rs-save">Save</button>
+      </div>
+    </div>
+
+    <div class="debug-section" id="debug-section-testsend">
+      <div class="modal-body">
+        <div class="rates-form-grid">
+          <label style="grid-column:1 / -1;">Order to preview
+            <select id="ts-order"></select>
+          </label>
+          <label style="grid-column:1 / -1;">Send the real confirmation email to
+            <input type="email" id="ts-to" placeholder="you@example.com" autocomplete="off">
+          </label>
+        </div>
+        <p class="modal-sub" style="margin:12px 0 0;">Sends the exact email a customer gets for this order, subject tagged [TEST], to whatever address you put above — never to the order's own email.</p>
+      </div>
+      <div class="modal-foot">
+        <span id="ts-msg"></span>
+        <button class="save-btn" id="ts-send">Send test email</button>
       </div>
     </div>
   </div>
@@ -2215,6 +2234,51 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     else rsMsgEl.textContent = data;
   });
 
+  /* ---------- test-send a real order-confirmation email ---------- */
+  const tsOrderSelect = document.getElementById('ts-order');
+  const tsToInput = document.getElementById('ts-to');
+  const tsSendBtn = document.getElementById('ts-send');
+  const tsMsgEl = document.getElementById('ts-msg');
+  let tsOrdersLoaded = false;
+
+  async function loadTestSendOrders(){
+    if (tsOrdersLoaded) return;
+    tsOrdersLoaded = true;
+    const { data, error } = await supabase.from('orders')
+      .select('id, full_name, email, order_type, created_at')
+      .order('created_at', { ascending: false })
+      .limit(25);
+    if (error){ tsMsgEl.textContent = 'Could not load orders: ' + error.message; return; }
+    tsOrderSelect.innerHTML = (data || []).map(o => {
+      const when = new Date(o.created_at).toLocaleDateString();
+      const label = (o.full_name || 'Unknown') + ' — ' + o.email + ' — ' + when;
+      return `<option value="${o.id}" data-email="${o.email || ''}">${escapeHtml(label)}</option>`;
+    }).join('');
+    if (data && data[0]) tsToInput.value = data[0].email || '';
+  }
+
+  tsOrderSelect.addEventListener('change', () => {
+    const opt = tsOrderSelect.selectedOptions[0];
+    if (opt) tsToInput.value = opt.dataset.email || '';
+  });
+
+  tsSendBtn.addEventListener('click', async () => {
+    const orderId = tsOrderSelect.value;
+    const to = tsToInput.value.trim();
+    if (!orderId){ tsMsgEl.textContent = 'Pick an order first.'; return; }
+    if (!to){ tsMsgEl.textContent = 'Enter an address to send it to.'; return; }
+    tsSendBtn.disabled = true;
+    tsSendBtn.textContent = 'Sending…';
+    tsMsgEl.textContent = '';
+    const { data, error } = await supabase.rpc('test_send_order_confirmation',
+      { p_order_id: orderId, p_to: to });
+    tsSendBtn.disabled = false;
+    tsSendBtn.textContent = 'Send test email';
+    if (error) tsMsgEl.textContent = 'Error: ' + error.message;
+    else if (data === 'sent') tsMsgEl.textContent = 'Sent — check ' + to + '.';
+    else tsMsgEl.textContent = data;
+  });
+
   creditEnabledToggle.addEventListener('click', () => toggleSwitch(creditEnabledToggle));
 
   creditSaveBtn.addEventListener('click', async () => {
@@ -2258,6 +2322,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       if (tab.dataset.tab === 'promo') loadPromoCodes();
       if (tab.dataset.tab === 'alerts') loadWebhookState();
       if (tab.dataset.tab === 'email') loadResendState();
+      if (tab.dataset.tab === 'testsend') loadTestSendOrders();
     });
   });
 
