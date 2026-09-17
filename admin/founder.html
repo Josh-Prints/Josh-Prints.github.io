@@ -837,6 +837,33 @@
   }
   .ai-effort-row select:focus{ border-color: var(--accent); }
   .ai-effort-row[hidden]{ display: none; }
+  .email-log-toolbar{ display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
+  .email-log-toolbar select{
+    background: var(--bg); border:1px solid rgba(var(--border-tint),0.18);
+    border-radius:7px; padding:6px 8px; font-size:12.5px; color: var(--ink);
+  }
+  .email-log-list{
+    display:flex; flex-direction:column; max-height: 440px; overflow-y:auto;
+    border:1px solid rgba(var(--border-tint),0.10); border-radius:10px;
+  }
+  .email-log-row{
+    display:flex; align-items:flex-start; gap:10px; padding:10px 12px;
+    border-top:1px solid rgba(var(--border-tint),0.08); font-size:12.5px;
+  }
+  .email-log-row:first-child{ border-top:none; }
+  .email-log-time{
+    flex:0 0 128px; color: var(--ink-dim);
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size:11px;
+  }
+  .email-log-main{ flex:1; min-width:0; }
+  .email-log-top{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .email-log-to{ font-weight:600; word-break:break-all; }
+  .email-log-subject{ color: var(--ink-dim); margin-top:2px; word-break:break-word; }
+  .email-log-error{ color: var(--danger, #d64d4d); margin-top:2px; word-break:break-word; }
+  .tag.kind{ background: rgba(var(--border-tint),0.10); color: var(--ink-dim); }
+  .tag.ok{ background: rgba(63,185,80,0.16); color: #3fb950; }
+  .tag.fail{ background: rgba(214,77,77,0.16); color: var(--danger, #d64d4d); }
+  .email-log-empty{ padding:22px; text-align:center; color: var(--ink-dim); font-size:13px; }
   .modal-foot{
     display: flex;
     align-items: center;
@@ -1427,6 +1454,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <button type="button" class="debug-tab" data-tab="alerts">Discord</button>
       <button type="button" class="debug-tab" data-tab="email">Email</button>
       <button type="button" class="debug-tab" data-tab="testsend">Test Email</button>
+      <button type="button" class="debug-tab" data-tab="emaillog">Email Log</button>
       <button type="button" class="debug-tab" data-tab="ai">AI</button>
     </div>
   </div>
@@ -1660,6 +1688,24 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <div class="modal-foot">
         <span id="ts-msg"></span>
         <button class="save-btn" id="ts-send">Send test email</button>
+      </div>
+    </div>
+
+    <div class="debug-section" id="debug-section-emaillog">
+      <div class="modal-body">
+        <div class="email-log-toolbar">
+          <select id="el-filter">
+            <option value="">All kinds</option>
+            <option value="order_confirmation">Order confirmations</option>
+            <option value="status_change">Status changes</option>
+            <option value="unread_reminder">Unread reminders</option>
+            <option value="ai_tool">AI assistant</option>
+            <option value="test">Test sends</option>
+          </select>
+          <button class="save-btn" id="el-refresh">Refresh</button>
+          <span class="modal-sub" id="el-count" style="margin:0;"></span>
+        </div>
+        <div class="email-log-list" id="el-list"></div>
       </div>
     </div>
 
@@ -2380,6 +2426,55 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     else tsMsgEl.textContent = data;
   });
 
+  /* ---------- Email log ---------- */
+  const elFilterSelect = document.getElementById('el-filter');
+  const elRefreshBtn = document.getElementById('el-refresh');
+  const elCountEl = document.getElementById('el-count');
+  const elListEl = document.getElementById('el-list');
+
+  const EMAIL_KIND_LABEL = {
+    order_confirmation: 'Confirmation',
+    status_change: 'Status change',
+    unread_reminder: 'Unread reminder',
+    ai_tool: 'AI assistant',
+    test: 'Test'
+  };
+
+  async function loadEmailLog(){
+    elListEl.innerHTML = '<div class="email-log-empty">Loading…</div>';
+    let query = supabase.from('email_log').select('*').order('created_at', { ascending: false }).limit(200);
+    if (elFilterSelect.value) query = query.eq('kind', elFilterSelect.value);
+    const { data, error } = await query;
+    if (error){
+      elListEl.innerHTML = '<div class="email-log-empty">Error: ' + escapeHtml(error.message) + '</div>';
+      elCountEl.textContent = '';
+      return;
+    }
+    const rows = data || [];
+    elCountEl.textContent = rows.length + (rows.length === 200 ? '+ shown (most recent 200)' : ' sent');
+    if (rows.length === 0){
+      elListEl.innerHTML = '<div class="email-log-empty">No emails logged yet.</div>';
+      return;
+    }
+    elListEl.innerHTML = rows.map(r => `
+      <div class="email-log-row">
+        <div class="email-log-time">${new Date(r.created_at).toLocaleString()}</div>
+        <div class="email-log-main">
+          <div class="email-log-top">
+            <span class="tag kind">${escapeHtml(EMAIL_KIND_LABEL[r.kind] || r.kind)}</span>
+            <span class="tag ${r.ok ? 'ok' : 'fail'}">${r.ok ? 'Sent' : 'Failed'}</span>
+            <span class="email-log-to">${escapeHtml(r.to_email)}</span>
+          </div>
+          ${r.subject ? `<div class="email-log-subject">${escapeHtml(r.subject)}</div>` : ''}
+          ${r.error ? `<div class="email-log-error">${escapeHtml(r.error)}</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  elFilterSelect.addEventListener('change', loadEmailLog);
+  elRefreshBtn.addEventListener('click', loadEmailLog);
+
   /* ---------- AI assistant (Claude) ---------- */
   const aiKeyInput = document.getElementById('ai-key');
   const aiModelList = document.getElementById('ai-model-list');
@@ -2501,6 +2596,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       if (tab.dataset.tab === 'alerts') loadWebhookState();
       if (tab.dataset.tab === 'email') loadResendState();
       if (tab.dataset.tab === 'testsend') loadTestSendOrders();
+      if (tab.dataset.tab === 'emaillog') loadEmailLog();
       if (tab.dataset.tab === 'ai') loadAiState();
     });
   });
