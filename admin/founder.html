@@ -2393,6 +2393,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   const aiStateEl = document.getElementById('ai-state');
 
   const AI_DEFAULT_MODEL = 'claude-sonnet-5';
+  const AI_DEFAULT_SYSTEM_PROMPT = 'You are the internal order assistant for Voxprints, a 3D printing storefront. Below is a summary of the most recent orders and their full message threads. You also have tools to look up orders that summary does not cover -- older orders, orders filtered by status (including completed/sold/cancelled), and deleted/archived orders -- and to pull complete detail plus the full message history for one specific order. Be concise and specific (reference order names/ids). If something is not in the data or tools, say so rather than guessing.';
   let aiSelectedModel = AI_DEFAULT_MODEL;
 
   function selectAiModel(model){
@@ -2413,7 +2414,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     const keyRow = rows.find(r => r.key === 'anthropic_api_key');
     selectAiModel(val('anthropic_model') || AI_DEFAULT_MODEL);
     aiEffortSelect.value = val('anthropic_effort') || 'high';
-    aiSystemPromptInput.value = val('anthropic_system_prompt');
+    aiSystemPromptInput.value = val('anthropic_system_prompt') || AI_DEFAULT_SYSTEM_PROMPT;
     aiKeyInput.placeholder = keyRow && keyRow.value
       ? '•••••• saved — paste a new key to replace it'
       : 'sk-ant-…';
