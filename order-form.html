@@ -1344,13 +1344,9 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       document.getElementById('order-link-text').textContent = orderUrl.href;
       document.getElementById('view-order-btn').href = orderUrl.href;
 
-      // Best-effort: email them a copy of the link too. If this fails
-      // (no email set up yet, Resend hiccup, etc), the order itself is
-      // already saved and the link is already shown above, so we don't
-      // want this to block or scare the customer.
-      supabase.functions.invoke('send-order-link', {
-        body: { email, full_name: fullName, order_url: orderUrl.href }
-      }).catch(() => { /* silent — link is already shown on screen */ });
+      // The confirmation email itself is sent server-side by a database
+      // trigger on order insert (Resend) -- nothing to do here, and its
+      // success or failure can never affect this page.
 
       form.style.display = 'none';
       const successPanel = document.getElementById('success-panel');

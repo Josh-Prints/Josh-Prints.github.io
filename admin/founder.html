@@ -1375,6 +1375,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <button type="button" class="debug-tab" data-tab="credit">Store Credits</button>
       <button type="button" class="debug-tab" data-tab="promo">Promo Codes</button>
       <button type="button" class="debug-tab" data-tab="alerts">Discord</button>
+      <button type="button" class="debug-tab" data-tab="email">Email</button>
     </div>
   </div>
   </div>
@@ -1561,6 +1562,34 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         <button class="save-btn" id="hook-relay" style="margin-right:8px;">Check relay</button>
         <button class="save-btn" id="hook-test" style="margin-right:8px;">Send test</button>
         <button class="save-btn" id="hook-save">Save</button>
+      </div>
+    </div>
+
+    <div class="debug-section" id="debug-section-email">
+      <div class="modal-body">
+        <div class="rates-form-grid">
+          <label style="grid-column:1 / -1;">Resend API key
+            <input type="password" id="rs-key" placeholder="re_…" autocomplete="off">
+          </label>
+          <label>From name
+            <input type="text" id="rs-from-name" placeholder="Voxprints" autocomplete="off">
+          </label>
+          <label>From email
+            <input type="email" id="rs-from-email" placeholder="orders@voxprints.com" autocomplete="off">
+          </label>
+        </div>
+        <p class="modal-sub" id="rs-state" style="margin:12px 0 0;"></p>
+        <div class="rates-form-grid" style="margin-top:14px;">
+          <label style="grid-column:1 / -1;">Send a test to
+            <input type="email" id="rs-test-to" placeholder="you@example.com" autocomplete="off">
+          </label>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <span id="rs-msg"></span>
+        <button class="save-btn" id="rs-check" style="margin-right:8px;">Check status</button>
+        <button class="save-btn" id="rs-test" style="margin-right:8px;">Send test</button>
+        <button class="save-btn" id="rs-save">Save</button>
       </div>
     </div>
   </div>
@@ -2101,6 +2130,91 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     else hookMsgEl.textContent = 'Test sent — check Discord.';
   });
 
+  /* ---------- order confirmation emails (Resend) ---------- */
+  const rsKeyInput = document.getElementById('rs-key');
+  const rsFromNameInput = document.getElementById('rs-from-name');
+  const rsFromEmailInput = document.getElementById('rs-from-email');
+  const rsTestToInput = document.getElementById('rs-test-to');
+  const rsSaveBtn = document.getElementById('rs-save');
+  const rsCheckBtn = document.getElementById('rs-check');
+  const rsTestBtn = document.getElementById('rs-test');
+  const rsMsgEl = document.getElementById('rs-msg');
+  const rsStateEl = document.getElementById('rs-state');
+
+  async function loadResendState(){
+    const { data, error } = await supabase
+      .from('private_config').select('key, value, updated_at')
+      .in('key', ['resend_api_key', 'resend_from_name', 'resend_from_email']);
+    if (error){ rsStateEl.textContent = ''; return; }
+    const rows = data || [];
+    const val = k => { const r = rows.find(x => x.key === k); return (r && r.value) || ''; };
+    const keyRow = rows.find(r => r.key === 'resend_api_key');
+    rsFromNameInput.value = val('resend_from_name');
+    rsFromEmailInput.value = val('resend_from_email');
+    rsKeyInput.placeholder = keyRow && keyRow.value
+      ? '•••••• saved — paste a new key to replace it'
+      : 're_…';
+    if (keyRow && keyRow.value){
+      rsStateEl.textContent = 'A key is saved. Updated ' +
+        new Date(keyRow.updated_at).toLocaleString() + '.';
+    } else {
+      rsStateEl.textContent = 'No API key saved yet — order confirmation emails will not send.';
+    }
+  }
+
+  rsSaveBtn.addEventListener('click', async () => {
+    const key = rsKeyInput.value.trim();
+    const fromName = rsFromNameInput.value.trim();
+    const fromEmail = rsFromEmailInput.value.trim();
+    if (fromEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(fromEmail)){
+      rsMsgEl.textContent = 'That from-email does not look right.';
+      return;
+    }
+    rsSaveBtn.disabled = true;
+    rsSaveBtn.textContent = 'Saving…';
+    rsMsgEl.textContent = '';
+    const now = new Date().toISOString();
+    const rows = [
+      { key: 'resend_from_name', value: fromName, updated_at: now },
+      { key: 'resend_from_email', value: fromEmail, updated_at: now }
+    ];
+    if (key) rows.push({ key: 'resend_api_key', value: key, updated_at: now });
+    const { error } = await supabase.from('private_config').upsert(rows);
+    rsSaveBtn.disabled = false;
+    rsSaveBtn.textContent = 'Save';
+    if (error){ rsMsgEl.textContent = 'Error: ' + error.message; return; }
+    rsKeyInput.value = '';
+    rsMsgEl.textContent = 'Saved.';
+    loadResendState();
+  });
+
+  rsCheckBtn.addEventListener('click', async () => {
+    rsCheckBtn.disabled = true;
+    rsCheckBtn.textContent = 'Checking…';
+    rsMsgEl.textContent = '';
+    const { data, error } = await supabase.rpc('resend_status');
+    rsCheckBtn.disabled = false;
+    rsCheckBtn.textContent = 'Check status';
+    if (error){ rsMsgEl.textContent = 'Error: ' + error.message; return; }
+    if (!data){ rsMsgEl.textContent = 'No answer.'; return; }
+    if (!data.ok){ rsMsgEl.textContent = (data.from ? data.from + ': ' : '') + data.problem; return; }
+    rsMsgEl.textContent = 'Sending from ' + data.from + ' works.';
+  });
+
+  rsTestBtn.addEventListener('click', async () => {
+    const to = rsTestToInput.value.trim();
+    if (!to){ rsMsgEl.textContent = 'Enter an address to send the test to.'; return; }
+    rsTestBtn.disabled = true;
+    rsTestBtn.textContent = 'Sending…';
+    rsMsgEl.textContent = '';
+    const { data, error } = await supabase.rpc('test_order_confirmation_email', { p_to: to });
+    rsTestBtn.disabled = false;
+    rsTestBtn.textContent = 'Send test';
+    if (error) rsMsgEl.textContent = 'Error: ' + error.message;
+    else if (data === 'sent') rsMsgEl.textContent = 'Sent — check ' + to + '.';
+    else rsMsgEl.textContent = data;
+  });
+
   creditEnabledToggle.addEventListener('click', () => toggleSwitch(creditEnabledToggle));
 
   creditSaveBtn.addEventListener('click', async () => {
@@ -2143,6 +2257,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       document.getElementById(`debug-section-${tab.dataset.tab}`).classList.add('active');
       if (tab.dataset.tab === 'promo') loadPromoCodes();
       if (tab.dataset.tab === 'alerts') loadWebhookState();
+      if (tab.dataset.tab === 'email') loadResendState();
     });
   });
 
