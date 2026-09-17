@@ -1015,10 +1015,24 @@ h1{ animation: fadeInDown 0.5s ease both; }
     setInterval(loadOrder, POLL_MS);
   }
 
+  // The reminder email logic (unread for 4h) reads this timestamp -- refresh
+  // it while the tab is actually visible, not just open, and throttled so an
+  // open tab does not hammer the database every poll tick.
+  let lastMarkedSeenAt = 0;
+  function maybeMarkOrderSeen(deleted){
+    if (deleted) return;
+    if (document.visibilityState !== 'visible') return;
+    if (Date.now() - lastMarkedSeenAt < 60000) return;
+    lastMarkedSeenAt = Date.now();
+    supabase.rpc('mark_order_seen', { p_order_id: orderId }).catch(() => {});
+  }
+
   async function loadOrder(){
     const { data: order, error } = await supabase.rpc('get_order', { p_id: orderId });
     const orderRow = Array.isArray(order) ? order[0] : order;
     if (error || !orderRow) return false;
+
+    maybeMarkOrderSeen(orderRow.deleted);
 
     const snapshot = `${orderRow.status}|${orderRow.quote_amount}`;
     if (snapshot !== lastStatusSnapshot){
