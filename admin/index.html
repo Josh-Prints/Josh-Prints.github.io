@@ -1602,6 +1602,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     completed: 'Completed', sold: 'Sold', cancelled: 'Cancelled'
   };
   let myUserId = null;
+  let dashboardReady = false;
   let myDisplayName = null;
   let onlyMine = false;
   let sortMode = 'newest';
@@ -1794,6 +1795,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       await supabase.auth.signOut();
       myUserId = null;
       myDisplayName = null;
+      dashboardReady = false;
       loginErr.textContent = 'This account is not an approved admin.';
       loginErr.classList.add('show');
       showLogin();
@@ -1846,6 +1848,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   function showDashboard(){
     loginView.style.display = 'none';
     dashView.style.display = 'block';
+    if (dashboardReady) return;   // already showing -- don't wipe and reload on a tab refocus
+    dashboardReady = true;
     loadOrders();
     startUnreadPolling();
   }
@@ -2020,6 +2024,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     await supabase.auth.signOut();
     myUserId = null;
     myDisplayName = null;
+    dashboardReady = false;
     if (unreadPollTimer){ clearInterval(unreadPollTimer); unreadPollTimer = null; }
     showLogin();
   });
@@ -2063,17 +2068,10 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <polygon points="240.2,187 208.8,205.1 208.8,241.4 240.2,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
       <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
       <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/></svg></div>`;
-    const loadStart = Date.now();
-    const minDisplayMs = 2000 + Math.random() * 2000;
     const { data, error } = await supabase
       .from('orders')
       .select('*')
       .order('created_at', { ascending: false });
-
-    // keep the loading logo on screen a moment even on a fast connection —
-    // otherwise it can flash by too quickly to notice
-    const minDisplay = minDisplayMs - (Date.now() - loadStart);
-    if (minDisplay > 0) await new Promise(r => setTimeout(r, minDisplay));
 
     if (error){
       ordersContainer.innerHTML = `<div class="empty">Couldn't load orders: ${escapeHtml(error.message)}</div>`;
