@@ -1581,6 +1581,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   const dashView = document.getElementById('dash-view');
   const loginErr = document.getElementById('login-err');
   let myUserId = null;
+  let dashboardReady = false;
 
   function escapeHtml(str){
     return (str || '').replace(/[&<>"']/g, c => ({
@@ -1635,6 +1636,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     myUserId = session.user.id;
     loginView.style.display = 'none';
     dashView.style.display = 'block';
+    if (dashboardReady) return;   // already showing -- don't reload on a tab refocus
+    dashboardReady = true;
     loadAdmins();
     loadSettingsPanels();
   });
