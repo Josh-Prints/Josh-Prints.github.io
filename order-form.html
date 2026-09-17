@@ -989,6 +989,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       <button type="button" id="copy-link-btn">Copy</button>
     </div>
     <a href="#" id="view-order-btn" class="view-order-btn" target="_blank">Open your order page →</a>
+    <p id="email-notice">📧 We've also emailed this link to <strong id="email-notice-addr"></strong> — check your inbox (and spam folder) if you don't see it soon.</p>
   </div>
 
   <footer>Voxprints · orders reviewed and quoted individually</footer>
@@ -1343,6 +1344,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
 
       document.getElementById('order-link-text').textContent = orderUrl.href;
       document.getElementById('view-order-btn').href = orderUrl.href;
+      document.getElementById('email-notice-addr').textContent = email;
 
       // The confirmation email itself is sent server-side by a database
       // trigger on order insert (Resend) -- nothing to do here, and its
