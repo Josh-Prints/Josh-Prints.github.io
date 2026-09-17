@@ -787,6 +787,20 @@
     outline: none;
   }
   .rates-form-grid input:focus{ border-color: var(--accent); }
+  .rates-form-grid textarea{
+    background: var(--bg);
+    border: 1px solid rgba(var(--border-tint),0.18);
+    border-radius: 6px;
+    color: var(--ink);
+    padding: 9px 10px;
+    font-size: 13px;
+    line-height: 1.4;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    outline: none;
+    resize: vertical;
+  }
+  .rates-form-grid textarea:focus{ border-color: var(--accent); }
+  .rates-form-grid textarea::placeholder{ color: var(--ink-dim); opacity: 0.6; }
   .ai-field-label{
     font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
@@ -1685,7 +1699,11 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
               <option value="max">Max — most thorough, most expensive</option>
             </select>
           </label>
+          <label style="grid-column:1 / -1;">System prompt
+            <textarea id="ai-system-prompt" rows="6" placeholder="You are the internal order assistant for Voxprints, a 3D printing storefront. Below is a summary of the most recent orders and their full message threads. You also have tools to look up orders that summary does not cover -- older orders, orders filtered by status (including completed/sold/cancelled), and deleted/archived orders -- and to pull complete detail plus the full message history for one specific order. Be concise and specific (reference order names/ids). If something is not in the data or tools, say so rather than guessing."></textarea>
+          </label>
         </div>
+        <p class="modal-sub" style="margin:10px 0 0;">Leave blank to use the default shown above as placeholder text. Whatever you write here replaces the assistant's personality/instructions only — it still only changes an order's status or messages a customer when you explicitly ask it to in the chat, and it still gets the order data and tools either way.</p>
         <p class="modal-sub" id="ai-state" style="margin:12px 0 0;"></p>
       </div>
       <div class="modal-foot">
@@ -2368,6 +2386,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   const aiModelOptions = Array.from(aiModelList.querySelectorAll('.ai-model-option'));
   const aiEffortRow = document.getElementById('ai-effort-row');
   const aiEffortSelect = document.getElementById('ai-effort');
+  const aiSystemPromptInput = document.getElementById('ai-system-prompt');
   const aiSaveBtn = document.getElementById('ai-save');
   const aiCheckBtn = document.getElementById('ai-check');
   const aiMsgEl = document.getElementById('ai-msg');
@@ -2387,13 +2406,14 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   async function loadAiState(){
     const { data, error } = await supabase
       .from('private_config').select('key, value, updated_at')
-      .in('key', ['anthropic_api_key', 'anthropic_model', 'anthropic_effort']);
+      .in('key', ['anthropic_api_key', 'anthropic_model', 'anthropic_effort', 'anthropic_system_prompt']);
     if (error){ aiStateEl.textContent = ''; return; }
     const rows = data || [];
     const val = k => { const r = rows.find(x => x.key === k); return (r && r.value) || ''; };
     const keyRow = rows.find(r => r.key === 'anthropic_api_key');
     selectAiModel(val('anthropic_model') || AI_DEFAULT_MODEL);
     aiEffortSelect.value = val('anthropic_effort') || 'high';
+    aiSystemPromptInput.value = val('anthropic_system_prompt');
     aiKeyInput.placeholder = keyRow && keyRow.value
       ? '•••••• saved — paste a new key to replace it'
       : 'sk-ant-…';
@@ -2410,7 +2430,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     const now = new Date().toISOString();
     const rows = [
       { key: 'anthropic_model', value: aiSelectedModel, updated_at: now },
-      { key: 'anthropic_effort', value: aiEffortSelect.value, updated_at: now }
+      { key: 'anthropic_effort', value: aiEffortSelect.value, updated_at: now },
+      { key: 'anthropic_system_prompt', value: aiSystemPromptInput.value.trim(), updated_at: now }
     ];
     if (key) rows.push({ key: 'anthropic_api_key', value: key, updated_at: now });
     const { error } = await supabase.from('private_config').upsert(rows);
