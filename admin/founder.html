@@ -787,6 +787,42 @@
     outline: none;
   }
   .rates-form-grid input:focus{ border-color: var(--accent); }
+  .ai-field-label{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--ink-dim); margin: 0 0 6px;
+  }
+  .ai-model-list{
+    display: flex; flex-direction: column;
+    border: 1px solid rgba(var(--border-tint),0.14);
+    border-radius: 10px; overflow: hidden;
+  }
+  .ai-model-option{
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    width: 100%; text-align: left; background: var(--bg); border: none;
+    border-bottom: 1px solid rgba(var(--border-tint),0.10);
+    padding: 11px 14px; cursor: pointer; color: var(--ink); font: inherit;
+  }
+  .ai-model-option:last-child{ border-bottom: none; }
+  .ai-model-option:hover{ filter: brightness(1.06); }
+  .ai-model-option.selected{ background: var(--accent-dim); }
+  .ai-model-option .ai-model-name{ font-weight: 600; font-size: 14px; }
+  .ai-model-option .ai-model-desc{ font-size: 12px; color: var(--ink-dim); margin-top: 2px; }
+  .ai-model-option .ai-model-check{ color: var(--accent); font-size: 16px; opacity: 0; flex: none; }
+  .ai-model-option.selected .ai-model-check{ opacity: 1; }
+  .ai-effort-row select{
+    background: var(--bg);
+    border: 1px solid rgba(var(--border-tint),0.18);
+    border-radius: 6px;
+    color: var(--ink);
+    padding: 9px 10px;
+    font-size: 14px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    outline: none;
+    width: 100%;
+  }
+  .ai-effort-row select:focus{ border-color: var(--accent); }
+  .ai-effort-row[hidden]{ display: none; }
   .modal-foot{
     display: flex;
     align-items: center;
@@ -1619,8 +1655,35 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
           <label style="grid-column:1 / -1;">Claude API key
             <input type="password" id="ai-key" placeholder="sk-ant-…" autocomplete="off">
           </label>
-          <label style="grid-column:1 / -1;">Model
-            <input type="text" id="ai-model" placeholder="claude-opus-5" autocomplete="off">
+          <div style="grid-column:1 / -1;">
+            <p class="ai-field-label">Model</p>
+            <div class="ai-model-list" id="ai-model-list">
+              <button type="button" class="ai-model-option" data-model="claude-fable-5-1">
+                <span><span class="ai-model-name">Fable 5.1</span><span class="ai-model-desc">For your toughest challenges — highest cost</span></span>
+                <span class="ai-model-check">✓</span>
+              </button>
+              <button type="button" class="ai-model-option" data-model="claude-opus-5">
+                <span><span class="ai-model-name">Opus 5</span><span class="ai-model-desc">For complex tasks</span></span>
+                <span class="ai-model-check">✓</span>
+              </button>
+              <button type="button" class="ai-model-option" data-model="claude-sonnet-5">
+                <span><span class="ai-model-name">Sonnet 5</span><span class="ai-model-desc">Most efficient for everyday tasks</span></span>
+                <span class="ai-model-check">✓</span>
+              </button>
+              <button type="button" class="ai-model-option" data-model="claude-haiku-4-5">
+                <span><span class="ai-model-name">Haiku 4.5</span><span class="ai-model-desc">Fastest for quick answers</span></span>
+                <span class="ai-model-check">✓</span>
+              </button>
+            </div>
+          </div>
+          <label class="ai-effort-row" style="grid-column:1 / -1;" id="ai-effort-row">Effort
+            <select id="ai-effort">
+              <option value="low">Low — cheapest, fine for simple questions</option>
+              <option value="medium">Medium</option>
+              <option value="high" selected>High — balanced (default)</option>
+              <option value="xhigh">X-High</option>
+              <option value="max">Max — most thorough, most expensive</option>
+            </select>
           </label>
         </div>
         <p class="modal-sub" id="ai-state" style="margin:12px 0 0;"></p>
@@ -2301,21 +2364,36 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
   /* ---------- AI assistant (Claude) ---------- */
   const aiKeyInput = document.getElementById('ai-key');
-  const aiModelInput = document.getElementById('ai-model');
+  const aiModelList = document.getElementById('ai-model-list');
+  const aiModelOptions = Array.from(aiModelList.querySelectorAll('.ai-model-option'));
+  const aiEffortRow = document.getElementById('ai-effort-row');
+  const aiEffortSelect = document.getElementById('ai-effort');
   const aiSaveBtn = document.getElementById('ai-save');
   const aiCheckBtn = document.getElementById('ai-check');
   const aiMsgEl = document.getElementById('ai-msg');
   const aiStateEl = document.getElementById('ai-state');
 
+  const AI_DEFAULT_MODEL = 'claude-sonnet-5';
+  let aiSelectedModel = AI_DEFAULT_MODEL;
+
+  function selectAiModel(model){
+    aiSelectedModel = model;
+    aiModelOptions.forEach(btn => btn.classList.toggle('selected', btn.dataset.model === model));
+    aiEffortRow.hidden = (model === 'claude-haiku-4-5');
+  }
+  aiModelOptions.forEach(btn => btn.addEventListener('click', () => selectAiModel(btn.dataset.model)));
+  selectAiModel(AI_DEFAULT_MODEL);
+
   async function loadAiState(){
     const { data, error } = await supabase
       .from('private_config').select('key, value, updated_at')
-      .in('key', ['anthropic_api_key', 'anthropic_model']);
+      .in('key', ['anthropic_api_key', 'anthropic_model', 'anthropic_effort']);
     if (error){ aiStateEl.textContent = ''; return; }
     const rows = data || [];
     const val = k => { const r = rows.find(x => x.key === k); return (r && r.value) || ''; };
     const keyRow = rows.find(r => r.key === 'anthropic_api_key');
-    aiModelInput.value = val('anthropic_model');
+    selectAiModel(val('anthropic_model') || AI_DEFAULT_MODEL);
+    aiEffortSelect.value = val('anthropic_effort') || 'high';
     aiKeyInput.placeholder = keyRow && keyRow.value
       ? '•••••• saved — paste a new key to replace it'
       : 'sk-ant-…';
@@ -2326,12 +2404,14 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
   aiSaveBtn.addEventListener('click', async () => {
     const key = aiKeyInput.value.trim();
-    const model = aiModelInput.value.trim();
     aiSaveBtn.disabled = true;
     aiSaveBtn.textContent = 'Saving…';
     aiMsgEl.textContent = '';
     const now = new Date().toISOString();
-    const rows = [{ key: 'anthropic_model', value: model, updated_at: now }];
+    const rows = [
+      { key: 'anthropic_model', value: aiSelectedModel, updated_at: now },
+      { key: 'anthropic_effort', value: aiEffortSelect.value, updated_at: now }
+    ];
     if (key) rows.push({ key: 'anthropic_api_key', value: key, updated_at: now });
     const { error } = await supabase.from('private_config').upsert(rows);
     aiSaveBtn.disabled = false;
