@@ -1307,6 +1307,37 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   .ai-msg li{ margin: 2px 0; }
   .ai-msg strong{ font-weight: 700; }
   .ai-msg em{ font-style: italic; }
+  .ai-typing{ display: flex; gap: 4px; align-items: center; padding: 10px 12px; }
+  .ai-typing span{
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ink-dim); opacity: 0.5;
+    animation: ai-typing-bounce 1.2s infinite ease-in-out;
+  }
+  .ai-typing span:nth-child(2){ animation-delay: 0.15s; }
+  .ai-typing span:nth-child(3){ animation-delay: 0.3s; }
+  @keyframes ai-typing-bounce{
+    0%, 60%, 100%{ transform: translateY(0); opacity: 0.5; }
+    30%{ transform: translateY(-4px); opacity: 1; }
+  }
+  .ai-step{
+    align-self: flex-start; max-width: 92%; font-size: 12px;
+    border: 1px solid rgba(var(--border-tint),0.14); border-radius: 10px;
+    background: var(--bg); overflow: hidden;
+  }
+  .ai-step-head{
+    display: flex; align-items: center; gap: 6px; padding: 7px 10px;
+    cursor: pointer; color: var(--ink-dim); user-select: none;
+  }
+  .ai-step-head .ai-step-chevron{ margin-left: auto; font-size: 10px; transition: transform 0.15s; }
+  .ai-step.open .ai-step-chevron{ transform: rotate(90deg); }
+  .ai-step-body{
+    display: none; padding: 8px 10px 10px; margin-top: -2px;
+    border-top: 1px solid rgba(var(--border-tint),0.10);
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    font-size: 11px; color: var(--ink-dim); white-space: pre-wrap; word-break: break-word;
+    max-height: 200px; overflow-y: auto;
+  }
+  .ai-step.open .ai-step-body{ display: block; }
   .ai-panel-foot{
     display: flex; gap: 8px; padding: 10px; border-top: 1px solid rgba(var(--border-tint),0.10);
   }
@@ -3198,6 +3229,60 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       return div;
     }
 
+    function addTyping(){
+      const div = document.createElement('div');
+      div.className = 'ai-msg ai-msg-bot ai-typing';
+      div.innerHTML = '<span></span><span></span><span></span>';
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+      return div;
+    }
+
+    const TOOL_STEP_LABELS = {
+      list_orders: { icon: '🔍', label: 'Looked up orders' },
+      get_order_detail: { icon: '📄', label: 'Checked an order' },
+      update_order_status: { icon: '✏️', label: 'Changed an order’s status' },
+      send_customer_message: { icon: '✉️', label: 'Sent a customer message' }
+    };
+
+    function summarizeToolInput(input){
+      const parts = Object.entries(input || {}).map(([k, v]) => `${k}: ${v}`);
+      return parts.join(', ');
+    }
+
+    function addToolStep(call){
+      const meta = TOOL_STEP_LABELS[call.name] || { icon: '🔧', label: call.name };
+      const summary = summarizeToolInput(call.input);
+
+      const div = document.createElement('div');
+      div.className = 'ai-step';
+
+      const head = document.createElement('div');
+      head.className = 'ai-step-head';
+      const label = document.createElement('span');
+      label.textContent = meta.icon + ' ' + meta.label + (summary ? ' — ' + summary : '');
+      const chevron = document.createElement('span');
+      chevron.className = 'ai-step-chevron';
+      chevron.textContent = '▸';
+      head.appendChild(label);
+      head.appendChild(chevron);
+      head.addEventListener('click', () => div.classList.toggle('open'));
+
+      const body = document.createElement('div');
+      body.className = 'ai-step-body';
+      let detail;
+      try { detail = JSON.stringify({ input: call.input, result: call.result }, null, 2); }
+      catch (e) { detail = String(call.result); }
+      if (detail.length > 4000) detail = detail.slice(0, 4000) + '\n… (truncated)';
+      body.textContent = detail;
+
+      div.appendChild(head);
+      div.appendChild(body);
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+      return div;
+    }
+
     // A small markdown subset for the model's own replies -- bold, italic,
     // inline code, and bullet/numbered lists. Escapes the raw text first, so
     // this is safe to render as HTML even though the text ultimately traces
@@ -3244,23 +3329,28 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       input.value = '';
       input.disabled = true;
       sendBtn.disabled = true;
-      const thinking = addMsg('…', 'ai-msg-bot');
+      const typing = addTyping();
 
       const { data, error } = await supabase.rpc('admin_ai_chat', { p_messages: history });
 
       input.disabled = false;
       sendBtn.disabled = false;
       input.focus();
+      typing.remove();
 
       if (error){
-        thinking.textContent = 'Error: ' + error.message;
-        thinking.className = 'ai-msg ai-msg-error';
+        addMsg('Error: ' + error.message, 'ai-msg-error');
         history.pop();   // don't poison future turns with a failed exchange
         return;
       }
-      const reply = data || '(no reply)';
-      thinking.innerHTML = mdToHtml(reply);
-      if (reply.startsWith('Error:')) thinking.className = 'ai-msg ai-msg-error';
+
+      const toolCalls = (data && data.tool_calls) || [];
+      toolCalls.forEach(addToolStep);
+
+      const reply = (data && data.text) || '(no reply)';
+      const bot = addMsg('', 'ai-msg-bot');
+      bot.innerHTML = mdToHtml(reply);
+      if (reply.startsWith('Error:')) bot.className = 'ai-msg ai-msg-error';
       history.push({ role: 'assistant', content: reply });
     });
   })();
