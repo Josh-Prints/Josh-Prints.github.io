@@ -3213,12 +3213,14 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     const fab = document.getElementById('ai-fab');
     const panel = document.getElementById('ai-panel');
     const closeBtn = document.getElementById('ai-close');
+    const clearBtn = document.getElementById('ai-clear');
     const log = document.getElementById('ai-log');
     const form = document.getElementById('ai-form');
     const input = document.getElementById('ai-input');
     const sendBtn = document.getElementById('ai-send');
 
-    let history = [];   // {role, content} pairs sent back to admin_ai_chat each turn
+    const GREETING_HTML = '<div class="ai-msg ai-msg-bot">Ask me about orders or messages — e.g. "what\'s still unread?" or "summarise James\'s order."</div>';
+    let historyLoaded = false;
 
     function addMsg(text, cls){
       const div = document.createElement('div');
@@ -3314,11 +3316,35 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       return html;
     }
 
+    async function loadPastConversation(){
+      historyLoaded = true;
+      const { data, error } = await supabase
+        .from('ai_messages').select('role, content').order('created_at', { ascending: true });
+      if (error || !data || data.length === 0) return;   // keep the default greeting
+      log.innerHTML = '';
+      data.forEach(m => {
+        const bot = addMsg('', m.role === 'user' ? 'ai-msg-user' : 'ai-msg-bot');
+        bot.innerHTML = mdToHtml(m.content);
+      });
+    }
+
     fab.addEventListener('click', () => {
       panel.hidden = !panel.hidden;
-      if (!panel.hidden) input.focus();
+      if (!panel.hidden){
+        input.focus();
+        if (!historyLoaded) loadPastConversation();
+      }
     });
     closeBtn.addEventListener('click', () => { panel.hidden = true; });
+
+    clearBtn.addEventListener('click', async () => {
+      if (!confirm('Clear this conversation? The assistant will no longer remember it.')) return;
+      clearBtn.disabled = true;
+      const { error } = await supabase.from('ai_messages').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      clearBtn.disabled = false;
+      if (error){ addMsg('Error: ' + error.message, 'ai-msg-error'); return; }
+      log.innerHTML = GREETING_HTML;
+    });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -3326,13 +3352,12 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       if (!text) return;
 
       addMsg(text, 'ai-msg-user');
-      history.push({ role: 'user', content: text });
       input.value = '';
       input.disabled = true;
       sendBtn.disabled = true;
       const typing = addTyping();
 
-      const { data, error } = await supabase.rpc('admin_ai_chat', { p_messages: history });
+      const { data, error } = await supabase.rpc('admin_ai_chat', { p_message: text });
 
       input.disabled = false;
       sendBtn.disabled = false;
@@ -3341,7 +3366,6 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
       if (error){
         addMsg('Error: ' + error.message, 'ai-msg-error');
-        history.pop();   // don't poison future turns with a failed exchange
         return;
       }
 
@@ -3352,7 +3376,6 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       const bot = addMsg('', 'ai-msg-bot');
       bot.innerHTML = mdToHtml(reply);
       if (reply.startsWith('Error:')) bot.className = 'ai-msg ai-msg-error';
-      history.push({ role: 'assistant', content: reply });
     });
   })();
 </script>
@@ -3362,7 +3385,10 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 <div id="ai-panel" hidden>
   <div class="ai-panel-head">
     <span>✨ Order assistant</span>
-    <button type="button" id="ai-close" aria-label="Close">✕</button>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button type="button" id="ai-clear" aria-label="Clear conversation" title="Clear conversation">🗑</button>
+      <button type="button" id="ai-close" aria-label="Close">✕</button>
+    </div>
   </div>
   <div class="ai-panel-body" id="ai-log">
     <div class="ai-msg ai-msg-bot">Ask me about orders or messages — e.g. "what's still unread?" or "summarise James's order."</div>
