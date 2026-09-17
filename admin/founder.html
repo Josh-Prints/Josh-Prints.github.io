@@ -1359,6 +1359,41 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     border-radius: 14px; padding: 20px; margin-bottom: 18px;
   }
   .founder-card h2{ margin:0 0 4px; font-size:16px; }
+  .settings-section-title{
+    font-size:15px; font-weight:700; margin: 28px 0 12px;
+    padding-top:20px; border-top:1px solid rgba(var(--border-tint),0.10);
+  }
+  .settings-section-title.first{ margin-top:0; padding-top:0; border-top:none; }
+  .home-hero{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding: 90px 20px 70px; min-height: 320px;
+  }
+  .home-hero-eyebrow{
+    font-size:12px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase;
+    color: var(--ink-dim); margin:0 0 12px;
+    opacity:0; animation: home-fade-up 0.7s ease-out forwards;
+  }
+  .home-hero-greeting{
+    font-size: clamp(32px, 6vw, 64px); font-weight:800; line-height:1.15; margin:0;
+    opacity:0; animation: home-fade-up 0.9s cubic-bezier(0.22,1,0.36,1) forwards;
+    animation-delay: 0.15s;
+  }
+  .home-hero-greeting .home-name{
+    display:inline-block; font-style: italic; font-weight:800;
+    background: linear-gradient(90deg, var(--accent), #8fd3ff);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    opacity:0; transform: translateY(14px) scale(0.94);
+    animation: home-name-pop 0.8s cubic-bezier(0.22,1,0.36,1) forwards;
+    animation-delay: 0.5s;
+  }
+  @keyframes home-fade-up{
+    from{ opacity:0; transform: translateY(18px); }
+    to{ opacity:1; transform: translateY(0); }
+  }
+  @keyframes home-name-pop{
+    from{ opacity:0; transform: translateY(14px) scale(0.94); }
+    to{ opacity:1; transform: translateY(0) scale(1); }
+  }
   .founder-card .hint{ margin:0 0 16px; font-size:13px; color: var(--ink-dim); }
   .adm-row{
     display:flex; align-items:center; gap:12px; flex-wrap:wrap;
@@ -1446,22 +1481,25 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
   <div class="page-tabs">
     <div class="page-tabs-inner">
-      <button type="button" class="debug-tab active" data-tab="admin">Admin</button>
-      <button type="button" class="debug-tab" data-tab="rates">Rates</button>
-      <button type="button" class="debug-tab" data-tab="site">Site</button>
-      <button type="button" class="debug-tab" data-tab="credit">Store Credits</button>
-      <button type="button" class="debug-tab" data-tab="promo">Promo Codes</button>
+      <button type="button" class="debug-tab active" data-tab="home">Home</button>
+      <button type="button" class="debug-tab" data-tab="admin">Admin</button>
+      <button type="button" class="debug-tab" data-tab="settings">Settings</button>
       <button type="button" class="debug-tab" data-tab="alerts">Discord</button>
       <button type="button" class="debug-tab" data-tab="email">Email</button>
-      <button type="button" class="debug-tab" data-tab="testsend">Test Email</button>
-      <button type="button" class="debug-tab" data-tab="emaillog">Email Log</button>
       <button type="button" class="debug-tab" data-tab="ai">AI</button>
     </div>
   </div>
   </div>
 
   <div class="founder-wrap">
-    <div class="debug-section active" id="debug-section-admin">
+    <div class="debug-section active" id="debug-section-home">
+      <div class="home-hero">
+        <p class="home-hero-eyebrow">Welcome back</p>
+        <h1 class="home-hero-greeting" id="home-greeting">Hello.</h1>
+      </div>
+    </div>
+
+    <div class="debug-section" id="debug-section-admin">
     <div class="founder-card">
       <h2>Admins</h2>
       <div id="adm-list"></div>
@@ -1479,7 +1517,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     </div>
     </div>
 
-    <div class="debug-section" id="debug-section-rates">
+    <div class="debug-section" id="debug-section-settings">
+      <h2 class="settings-section-title first">Rates</h2>
       <div class="modal-body">
         <div class="rates-form-grid">
           <label>Labor rate<span class="unit">$/hr</span><input type="number" id="r-labor" step="0.5" min="0"></label>
@@ -1499,9 +1538,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         <span id="rates-msg"></span>
         <button class="save-btn" id="rates-save">Save rates</button>
       </div>
-    </div>
 
-    <div class="debug-section" id="debug-section-site">
+      <h2 class="settings-section-title">Site</h2>
       <div class="modal-body">
         <label style="display:block; margin-bottom:14px;">Eyebrow tag
           <input type="text" class="banner-textarea" id="site-eyebrow-input" placeholder="Now taking orders">
@@ -1574,9 +1612,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         <span id="orders-msg"></span>
         <button class="save-btn" id="orders-save">Save ordering</button>
       </div>
-    </div>
 
-    <div class="debug-section" id="debug-section-credit">
+      <h2 class="settings-section-title">Store Credit</h2>
       <div class="modal-body">
         <div class="theme-row">
           <span>💳 Store credit enabled</span>
@@ -1590,9 +1627,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         <span id="credit-msg"></span>
         <button class="save-btn" id="credit-save">Save store credit</button>
       </div>
-    </div>
 
-    <div class="debug-section" id="debug-section-promo">
+      <h2 class="settings-section-title">Promo Codes</h2>
       <div class="modal-body">
         <div class="fil-list" id="promo-list">
           <div class="fil-empty">Loading…</div>
@@ -1646,6 +1682,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     </div>
 
     <div class="debug-section" id="debug-section-email">
+      <h2 class="settings-section-title first">Resend Settings</h2>
       <div class="modal-body">
         <div class="rates-form-grid">
           <label style="grid-column:1 / -1;">Resend API key
@@ -1671,9 +1708,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         <button class="save-btn" id="rs-test" style="margin-right:8px;">Send test</button>
         <button class="save-btn" id="rs-save">Save</button>
       </div>
-    </div>
 
-    <div class="debug-section" id="debug-section-testsend">
+      <h2 class="settings-section-title">Send a Test Email</h2>
       <div class="modal-body">
         <div class="rates-form-grid">
           <label style="grid-column:1 / -1;">Order to preview
@@ -1689,9 +1725,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         <span id="ts-msg"></span>
         <button class="save-btn" id="ts-send">Send test email</button>
       </div>
-    </div>
 
-    <div class="debug-section" id="debug-section-emaillog">
+      <h2 class="settings-section-title">Email Log</h2>
       <div class="modal-body">
         <div class="email-log-toolbar">
           <select id="el-filter">
@@ -1835,7 +1870,23 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     dashboardReady = true;
     loadAdmins();
     loadSettingsPanels();
+    loadHomeGreeting(session.user.email);
   });
+
+  /* ---------- home greeting ---------- */
+  const homeGreetingEl = document.getElementById('home-greeting');
+
+  async function loadHomeGreeting(email){
+    const { data } = await supabase.from('admin_profiles').select('display_name').eq('id', myUserId).maybeSingle();
+    const name = data?.display_name || (email ? email.split('@')[0] : 'there');
+    homeGreetingEl.innerHTML = 'Hello, <span class="home-name">' + escapeHtml(name) + '</span>.';
+    playHomeAnimation();
+  }
+
+  function playHomeAnimation(){
+    document.querySelectorAll('.home-hero-eyebrow, .home-hero-greeting, .home-hero-greeting .home-name')
+      .forEach(el => { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; });
+  }
 
   /* ---------- admin roster ---------- */
   const admListEl = document.getElementById('adm-list');
@@ -2592,12 +2643,11 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       document.querySelectorAll('.debug-section').forEach(s => s.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById(`debug-section-${tab.dataset.tab}`).classList.add('active');
-      if (tab.dataset.tab === 'promo') loadPromoCodes();
+      if (tab.dataset.tab === 'settings') loadPromoCodes();
       if (tab.dataset.tab === 'alerts') loadWebhookState();
-      if (tab.dataset.tab === 'email') loadResendState();
-      if (tab.dataset.tab === 'testsend') loadTestSendOrders();
-      if (tab.dataset.tab === 'emaillog') loadEmailLog();
+      if (tab.dataset.tab === 'email'){ loadResendState(); loadTestSendOrders(); loadEmailLog(); }
       if (tab.dataset.tab === 'ai') loadAiState();
+      if (tab.dataset.tab === 'home') playHomeAnimation();
     });
   });
 
