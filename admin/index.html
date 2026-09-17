@@ -1299,6 +1299,14 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   .ai-msg-bot{ background: var(--bg); align-self: flex-start; }
   .ai-msg-user{ background: var(--accent-dim); align-self: flex-end; }
   .ai-msg-error{ background: var(--warn-dim); color: var(--warn); align-self: flex-start; }
+  .ai-msg code{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+    background: rgba(var(--border-tint),0.10); border-radius: 4px; padding: 1px 5px; font-size: 12px;
+  }
+  .ai-msg ul, .ai-msg ol{ margin: 4px 0; padding-left: 20px; }
+  .ai-msg li{ margin: 2px 0; }
+  .ai-msg strong{ font-weight: 700; }
+  .ai-msg em{ font-style: italic; }
   .ai-panel-foot{
     display: flex; gap: 8px; padding: 10px; border-top: 1px solid rgba(var(--border-tint),0.10);
   }
@@ -3190,6 +3198,36 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       return div;
     }
 
+    // A small markdown subset for the model's own replies -- bold, italic,
+    // inline code, and bullet/numbered lists. Escapes the raw text first, so
+    // this is safe to render as HTML even though the text ultimately traces
+    // back to order notes/messages the model was given as context.
+    function mdToHtml(raw){
+      let s = escapeHtml(raw)
+        .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/__([^_\n]+)__/g, '<strong>$1</strong>')
+        .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
+        .replace(/(^|\s)_([^_\n]+)_(?=\s|$)/g, '$1<em>$2</em>');
+
+      const lines = s.split('\n');
+      let html = '', listTag = null;
+      for (const line of lines){
+        const bullet = /^\s*[-*]\s+(.*)/.exec(line);
+        const numbered = /^\s*\d+\.\s+(.*)/.exec(line);
+        const tag = bullet ? 'ul' : numbered ? 'ol' : null;
+        if (tag){
+          if (listTag !== tag){ if (listTag) html += `</${listTag}>`; html += `<${tag}>`; listTag = tag; }
+          html += `<li>${(bullet || numbered)[1]}</li>`;
+        } else {
+          if (listTag){ html += `</${listTag}>`; listTag = null; }
+          html += line + '\n';
+        }
+      }
+      if (listTag) html += `</${listTag}>`;
+      return html;
+    }
+
     fab.addEventListener('click', () => {
       panel.hidden = !panel.hidden;
       if (!panel.hidden) input.focus();
@@ -3221,7 +3259,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         return;
       }
       const reply = data || '(no reply)';
-      thinking.textContent = reply;
+      thinking.innerHTML = mdToHtml(reply);
       if (reply.startsWith('Error:')) thinking.className = 'ai-msg ai-msg-error';
       history.push({ role: 'assistant', content: reply });
     });
