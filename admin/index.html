@@ -1307,18 +1307,6 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   .ai-msg li{ margin: 2px 0; }
   .ai-msg strong{ font-weight: 700; }
   .ai-msg em{ font-style: italic; }
-  .ai-typing{ display: flex; gap: 4px; align-items: center; padding: 10px 12px; }
-  .ai-typing span{
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--ink-dim); opacity: 0.5;
-    animation: ai-typing-bounce 1.2s infinite ease-in-out;
-  }
-  .ai-typing span:nth-child(2){ animation-delay: 0.15s; }
-  .ai-typing span:nth-child(3){ animation-delay: 0.3s; }
-  @keyframes ai-typing-bounce{
-    0%, 60%, 100%{ transform: translateY(0); opacity: 0.5; }
-    30%{ transform: translateY(-4px); opacity: 1; }
-  }
   .ai-step{
     align-self: flex-start; max-width: 92%; font-size: 12px;
     border: 1px solid rgba(var(--border-tint),0.14); border-radius: 10px;
@@ -1338,6 +1326,35 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     max-height: 200px; overflow-y: auto;
   }
   .ai-step.open .ai-step-body{ display: block; }
+  .ai-status{
+    color: var(--ink-dim); font-style: italic;
+    animation: ai-status-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes ai-status-pulse{
+    0%, 100%{ opacity: 0.6; } 50%{ opacity: 1; }
+  }
+  .ai-order-card{
+    align-self: flex-start; max-width: 92%; font-size: 12.5px;
+    border: 1px solid rgba(var(--border-tint),0.16); border-radius: 10px;
+    background: var(--bg); padding: 10px 12px;
+  }
+  .ai-order-card-top{ display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .ai-order-card-name{ font-weight: 700; }
+  .ai-order-card-status{
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 999px; background: rgba(95,168,255,0.16); color: var(--accent);
+  }
+  .ai-order-card-sub{ color: var(--ink-dim); margin-top: 4px; }
+  .ai-order-card-jump{
+    margin-top: 8px; background: none; border: none; padding: 0; cursor: pointer;
+    color: var(--accent); font-size: 12px; font-weight: 600;
+  }
+  .ai-actions{ display: flex; flex-wrap: wrap; gap: 6px; align-self: flex-start; max-width: 92%; }
+  .ai-action-btn{
+    background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(95,168,255,0.3);
+    border-radius: 999px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .ai-action-btn:hover{ filter: brightness(1.08); }
   .ai-panel-foot{
     display: flex; gap: 8px; padding: 10px; border-top: 1px solid rgba(var(--border-tint),0.10);
   }
@@ -1683,6 +1700,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   const filterBar = document.getElementById('filter-bar');
 
   let currentOrders = [];
+  let focusHandled = false;
   let customerCreditMap = {};
   let activeFilter = 'all';
   let openChatOrderId = null;
@@ -2183,6 +2201,42 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     }
 
     renderOrders();
+
+    if (!focusHandled){
+      focusHandled = true;
+      const focusId = new URLSearchParams(location.search).get('focus');
+      if (focusId) jumpToOrder(focusId);
+    }
+  }
+
+  function jumpToOrder(id){
+    const order = currentOrders.find(o => o.id === id);
+    if (!order){ window.location.href = 'index.html?focus=' + id; return; }
+
+    const inFilter = activeFilter === 'deleted' ? order.deleted
+      : activeFilter === 'all' ? !order.deleted
+      : (!order.deleted && order.status === activeFilter);
+
+    if (!inFilter || onlyMine){
+      const targetFilter = order.deleted ? 'deleted' : 'all';
+      activeFilter = targetFilter;
+      onlyMine = false;
+      filterBar.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      const targetChip = filterBar.querySelector(`.chip[data-filter="${targetFilter}"]`);
+      if (targetChip) targetChip.classList.add('active');
+      renderOrders();
+    }
+
+    requestAnimationFrame(() => {
+      const card = ordersContainer.querySelector(`.order-card[data-id="${id}"]`);
+      if (!card) return;
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('just-updated');
+      setTimeout(() => card.classList.remove('just-updated'), 900);
+      const toggleBtn = card.querySelector('.chat-toggle:not(.copy-link-btn):not(.delete-btn):not(.restore-btn)');
+      const chatPanel = document.getElementById(`chat-panel-${id}`);
+      if (toggleBtn && chatPanel && !chatPanel.classList.contains('open')) toggleBtn.click();
+    });
   }
 
   function renderOrders(){
@@ -2224,6 +2278,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       const card = document.createElement('div');
       card.className = 'order-card' + (order.status === 'new' ? ' is-new' : '') + (order.id === lastUpdatedOrderId ? ' just-updated' : '');
       card.style.animationDelay = Math.min(idx * 30, 300) + 'ms';
+      card.dataset.id = order.id;
 
       const typeLabel = order.order_type === 'custom_model' ? 'Custom Model'
         : order.order_type === 'design' ? `Design: ${escapeHtml(order.design_name || 'Unknown')}`
@@ -3208,7 +3263,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   });
 
 
-  /* ---- AI assistant (Claude) ---- */
+  /* ---- AI assistant (Claude, streaming) ---- */
   (function(){
     const fab = document.getElementById('ai-fab');
     const panel = document.getElementById('ai-panel');
@@ -3219,8 +3274,10 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     const input = document.getElementById('ai-input');
     const sendBtn = document.getElementById('ai-send');
 
+    const AI_CHAT_URL = SUPABASE_URL + '/functions/v1/ai-chat';
     const GREETING_HTML = '<div class="ai-msg ai-msg-bot">Ask me about orders or messages — e.g. "what\'s still unread?" or "summarise James\'s order."</div>';
     let historyLoaded = false;
+    let sending = false;
 
     function addMsg(text, cls){
       const div = document.createElement('div');
@@ -3231,10 +3288,20 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       return div;
     }
 
-    function addTyping(){
+    const STATUS_LABELS = {
+      thinking: '✻ Thinking…',
+      list_orders: '🔍 Looking up orders…',
+      get_order_detail: '📄 Checking an order…',
+      update_order_status: '✏️ Changing an order’s status…',
+      send_customer_message: '✉️ Sending a customer message…',
+      send_customer_email: '📧 Sending a customer email…',
+      suggest_actions: '💡 Preparing suggestions…'
+    };
+
+    function addStatus(text){
       const div = document.createElement('div');
-      div.className = 'ai-msg ai-msg-bot ai-typing';
-      div.innerHTML = '<span></span><span></span><span></span>';
+      div.className = 'ai-msg ai-msg-bot ai-status';
+      div.textContent = text;
       log.appendChild(div);
       log.scrollTop = log.scrollHeight;
       return div;
@@ -3284,6 +3351,46 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       log.appendChild(div);
       log.scrollTop = log.scrollHeight;
       return div;
+    }
+
+    function addOrderCard(order){
+      if (!order || !order.id) return;
+      const div = document.createElement('div');
+      div.className = 'ai-order-card';
+      const priceText = order.quote != null ? ' · $' + Number(order.quote).toFixed(2) : '';
+      div.innerHTML = `
+        <div class="ai-order-card-top">
+          <span class="ai-order-card-name">${escapeHtml(order.customer || 'Unknown customer')}</span>
+          <span class="ai-order-card-status">${escapeHtml(order.status || '')}</span>
+        </div>
+        <div class="ai-order-card-sub">${escapeHtml(order.design || order.type || '')}${priceText}</div>
+        <button type="button" class="ai-order-card-jump">Jump to order →</button>
+      `;
+      div.querySelector('.ai-order-card-jump').addEventListener('click', () => jumpToOrder(order.id));
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function addActionButtons(actions){
+      if (!Array.isArray(actions) || actions.length === 0) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'ai-actions';
+      actions.forEach(a => {
+        if (!a || !a.label) return;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ai-action-btn';
+        btn.textContent = a.label;
+        btn.addEventListener('click', () => {
+          if (a.type === 'jump_order' && a.order_id) jumpToOrder(a.order_id);
+          else if (a.type === 'prompt' && a.prompt) sendMessage(a.prompt);
+        });
+        wrap.appendChild(btn);
+      });
+      if (wrap.children.length){
+        log.appendChild(wrap);
+        log.scrollTop = log.scrollHeight;
+      }
     }
 
     // A small markdown subset for the model's own replies -- bold, italic,
@@ -3346,36 +3453,88 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       log.innerHTML = GREETING_HTML;
     });
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const text = input.value.trim();
-      if (!text) return;
-
+    async function sendMessage(text){
+      if (sending || !text) return;
+      sending = true;
       addMsg(text, 'ai-msg-user');
       input.value = '';
       input.disabled = true;
       sendBtn.disabled = true;
-      const typing = addTyping();
 
-      const { data, error } = await supabase.rpc('admin_ai_chat', { p_message: text });
+      let statusEl = null;
+      let botEl = null;
+      let botRaw = '';
+      const ensureStatus = (t) => { if (!statusEl) statusEl = addStatus(t); else statusEl.textContent = t; };
+      const clearStatus = () => { if (statusEl){ statusEl.remove(); statusEl = null; } };
 
-      input.disabled = false;
-      sendBtn.disabled = false;
-      input.focus();
-      typing.remove();
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData && sessionData.session && sessionData.session.access_token;
+        if (!token) throw new Error('not signed in');
 
-      if (error){
-        addMsg('Error: ' + error.message, 'ai-msg-error');
-        return;
+        const resp = await fetch(AI_CHAT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_KEY },
+          body: JSON.stringify({ message: text, context: { current_order_id: openChatOrderId || null, page: 'orders' } })
+        });
+        if (!resp.ok || !resp.body) throw new Error('Request failed (' + resp.status + ')');
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        while (true){
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop() || '';
+          for (const line of lines){
+            if (!line.startsWith('data: ')) continue;
+            const raw = line.slice(6).trim();
+            if (!raw) continue;
+            let evt;
+            try { evt = JSON.parse(raw); } catch (e) { continue; }
+
+            if (evt.type === 'status'){
+              ensureStatus(evt.phase === 'thinking' ? STATUS_LABELS.thinking : (STATUS_LABELS[evt.tool] || ('🔧 Using ' + evt.tool + '…')));
+            } else if (evt.type === 'text_delta'){
+              if (!botEl){ clearStatus(); botEl = addMsg('', 'ai-msg-bot'); }
+              botRaw += evt.text;
+              botEl.innerHTML = mdToHtml(botRaw);
+              log.scrollTop = log.scrollHeight;
+            } else if (evt.type === 'tool_result'){
+              clearStatus();
+              addToolStep({ name: evt.tool, input: evt.input, result: evt.result });
+              if ((evt.tool === 'list_orders' || evt.tool === 'get_order_detail') && evt.result){
+                const rows = Array.isArray(evt.result) ? evt.result : [evt.result];
+                rows.slice(0, 5).forEach(addOrderCard);
+              }
+            } else if (evt.type === 'actions'){
+              addActionButtons(evt.actions);
+            } else if (evt.type === 'error'){
+              clearStatus();
+              addMsg('Error: ' + evt.message, 'ai-msg-error');
+            } else if (evt.type === 'done'){
+              clearStatus();
+            }
+          }
+        }
+        if (botEl && botRaw.startsWith('Error:')) botEl.className = 'ai-msg ai-msg-error';
+      } catch (err){
+        clearStatus();
+        addMsg('Error: ' + (err.message || 'request failed'), 'ai-msg-error');
+      } finally {
+        input.disabled = false;
+        sendBtn.disabled = false;
+        input.focus();
+        sending = false;
       }
+    }
 
-      const toolCalls = (data && data.tool_calls) || [];
-      toolCalls.forEach(addToolStep);
-
-      const reply = (data && data.text) || '(no reply)';
-      const bot = addMsg('', 'ai-msg-bot');
-      bot.innerHTML = mdToHtml(reply);
-      if (reply.startsWith('Error:')) bot.className = 'ai-msg ai-msg-error';
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (text) sendMessage(text);
     });
   })();
 </script>
