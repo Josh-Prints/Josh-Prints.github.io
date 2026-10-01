@@ -8,3 +8,5 @@
 - Still use judgment: if a merge isn't a clean fast-forward (main has
   diverged, real conflicts), stop and check with the user rather than
   resolving it silently.
+- See `THEME.md` for the site's color palette, typography, and component
+  conventions — match it when building or editing any page.
