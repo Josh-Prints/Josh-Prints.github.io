@@ -488,6 +488,7 @@
     cursor: pointer;
   }
   .chat-toggle:hover{ color: var(--ink); }
+  a.chat-toggle{ text-decoration: none; display: inline-flex; align-items: center; }
 
   .chat-panel{
     display: none;
@@ -2336,6 +2337,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
           </select>
           <input type="text" class="quote-input" placeholder="Quote $" data-id="${order.id}" value="${order.quote_amount ?? ''}">
           <button class="save-btn" data-id="${order.id}">Save</button>
+          <a class="chat-toggle" href="../quote.html?order=${order.id}" target="_blank" rel="noopener">🧮 Quote builder</a>
           ${order.status !== 'cancelled' ? `<button class="cancel-order-btn" data-id="${order.id}">✕ Cancel order</button>` : ''}
           <button class="chat-toggle" data-id="${order.id}">💬 Messages<span class="notif-dot job" id="job-dot-${order.id}"></span></button>
           <button class="chat-toggle copy-link-btn" data-id="${order.id}">🔗 Copy link</button>
