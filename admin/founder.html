@@ -1372,7 +1372,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   .settings-section-title.first{ margin-top:0; padding-top:0; border-top:none; }
   .home-hero{
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    text-align:center; padding: 90px 20px 70px; min-height: 320px;
+    text-align:center; padding: 56px 20px 36px;
   }
   .home-hero-eyebrow{
     font-size:12px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase;
@@ -1400,6 +1400,82 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     from{ opacity:0; transform: translateY(14px) scale(0.94); }
     to{ opacity:1; transform: translateY(0) scale(1); }
   }
+
+  /* ---- Home: daily summary + to-do ---- */
+  .home-brief{ max-width: 760px; margin: 0 auto; padding: 0 0 40px; display:flex; flex-direction:column; gap:18px; }
+  .hb-card{
+    background: var(--bg-raised); border:1px solid rgba(var(--border-tint),0.12);
+    border-radius: 12px; padding: 18px 20px;
+  }
+  .hb-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .hb-card h2{ margin:0; font-size:17px; letter-spacing:-0.01em; }
+  .hb-sub{ margin:3px 0 0; font-size:12.5px; color: var(--ink-dim); }
+  .hb-refresh{
+    display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600;
+    padding:6px 12px; border-radius:6px; cursor:pointer;
+    background: var(--bg); color: var(--ink); border:1px solid rgba(var(--border-tint),0.18);
+  }
+  @media (hover:hover){ .hb-refresh:hover{ background: var(--btn-hover-bg); } }
+  .hb-refresh:disabled{ opacity:0.6; cursor:default; }
+  .hb-lede{ font-size:15.5px; line-height:1.55; margin:14px 0 4px; }
+  .hb-lede b{ font-weight:700; }
+  .hb-lede .hb-todo-line{ display:block; margin-top:6px; color: var(--ink-dim); font-size:14px; }
+  .hb-stats{ display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin:14px 0 4px; }
+  .hb-stat{ border:1px solid rgba(var(--border-tint),0.12); border-radius:10px; padding:11px 13px; background: var(--bg); }
+  .hb-stat-num{ font-family: ui-monospace,'SF Mono','Roboto Mono',monospace; font-size:24px; font-weight:700; letter-spacing:-0.02em; line-height:1.1; }
+  .hb-stat-num.zero{ color: var(--ink-dim); font-weight:600; }
+  .hb-stat-num.bad{ color: var(--err); }
+  .hb-stat-label{ font-size:12px; color: var(--ink-dim); margin-top:4px; }
+  .hb-h3{
+    display:flex; align-items:center; gap:8px; margin:20px 0 8px; font-size:12px; font-weight:700;
+    letter-spacing:0.08em; text-transform:uppercase; color: var(--ink-dim);
+  }
+  .hb-h3 .hb-badge{
+    font-family: ui-monospace,'SF Mono','Roboto Mono',monospace; letter-spacing:0; text-transform:none;
+    font-size:11px; font-weight:700; padding:1px 8px; border-radius:20px;
+    background: var(--accent-dim); color: var(--accent);
+  }
+  .hb-h3 .hb-badge.warn{ background: var(--warn-dim); color: var(--warn); }
+  .hb-h3 .hb-badge.err{ background: rgba(207,34,46,0.14); color: var(--err); }
+  .hb-list{ border:1px solid rgba(var(--border-tint),0.12); border-radius:10px; overflow:hidden; }
+  .hb-row{
+    display:flex; align-items:center; gap:12px; padding:11px 14px; text-decoration:none; color: var(--ink);
+    border-top:1px solid rgba(var(--border-tint),0.08); background: var(--bg);
+  }
+  .hb-row:first-child{ border-top:none; }
+  @media (hover:hover){ .hb-row:hover{ background: var(--btn-hover-bg); } }
+  .hb-row-main{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .hb-row-main b{ font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .hb-row-main small{ font-size:12px; color: var(--ink-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .hb-row-meta{ font-size:12px; color: var(--ink-dim); text-align:right; white-space:nowrap; font-family: ui-monospace,'SF Mono','Roboto Mono',monospace; }
+  .hb-row .ico{ color: var(--ink-dim); }
+  .hb-alert{
+    display:flex; align-items:flex-start; gap:10px; padding:11px 14px; font-size:13.5px; line-height:1.45;
+    border:1px solid rgba(var(--border-tint),0.12); border-radius:10px; background: var(--warn-dim); color: var(--ink);
+    margin-bottom:8px; text-align:left; width:100%; font-family:inherit; cursor:default;
+  }
+  .hb-alert.err{ background: rgba(207,34,46,0.10); }
+  .hb-alert .ico{ margin-top:3px; color: var(--warn); }
+  .hb-alert.err .ico{ color: var(--err); }
+  .hb-alert button.hb-link{ background:none; border:none; padding:0; color: var(--accent); font:inherit; font-weight:600; cursor:pointer; text-decoration:underline; }
+  .hb-pipeline{ display:flex; flex-wrap:wrap; gap:8px; }
+  .hb-chip{ font-size:12.5px; padding:5px 11px; border-radius:20px; border:1px solid rgba(var(--border-tint),0.15); background: var(--bg); }
+  .hb-chip b{ font-family: ui-monospace,'SF Mono','Roboto Mono',monospace; }
+  .hb-chip span{ color: var(--ink-dim); }
+  #hb-todo-body{ margin-top:14px; }
+  .hb-allclear{
+    display:flex; align-items:center; gap:10px; padding:16px; border-radius:10px;
+    background: var(--ok-dim); color: var(--ok); font-weight:600; font-size:14.5px;
+  }
+  .hb-empty{ font-size:13.5px; color: var(--ink-dim); margin:4px 0 0; }
+  .hb-note{ font-size:12px; color: var(--ink-dim); margin:12px 0 0; }
+  details.hb-card > summary{ cursor:pointer; font-weight:700; font-size:15px; list-style:none; display:flex; align-items:center; gap:8px; }
+  details.hb-card > summary::-webkit-details-marker{ display:none; }
+  details.hb-card[open] > summary .hb-chev{ transform: rotate(90deg); }
+  .hb-chev{ transition: transform 0.2s ease; color: var(--ink-dim); }
+  .hb-hist-row{ display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:10px 0; border-top:1px solid rgba(var(--border-tint),0.08); font-size:13px; }
+  .hb-hist-row:first-of-type{ border-top:none; }
+  .hb-hist-row span:last-child{ color: var(--ink-dim); }
   .founder-card .hint{ margin:0 0 16px; font-size:13px; color: var(--ink-dim); }
   .adm-row{
     display:flex; align-items:center; gap:12px; flex-wrap:wrap;
@@ -1632,6 +1708,39 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <div class="home-hero">
         <p class="home-hero-eyebrow">Welcome back</p>
         <h1 class="home-hero-greeting" id="home-greeting">Hello.</h1>
+      </div>
+
+      <div class="home-brief" id="home-brief">
+        <section class="hb-card" id="hb-digest">
+          <div class="hb-head">
+            <div>
+              <h2>Daily summary</h2>
+              <p class="hb-sub" id="hb-digest-sub">Loading…</p>
+            </div>
+            <button type="button" class="hb-refresh" id="hb-refresh"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#repeat"/></svg> Refresh</button>
+          </div>
+          <p class="hb-lede" id="hb-lede"></p>
+          <div class="hb-stats" id="hb-stats"></div>
+          <div id="hb-new-orders"></div>
+          <div class="hb-h3">Pipeline right now</div>
+          <div class="hb-pipeline" id="hb-pipeline"></div>
+          <p class="hb-note">A fresh summary is written automatically the first time you open this page each day, then kept so you can look back at it.</p>
+        </section>
+
+        <section class="hb-card" id="hb-todo">
+          <div class="hb-head">
+            <div>
+              <h2>What needs you</h2>
+              <p class="hb-sub" id="hb-todo-sub"></p>
+            </div>
+          </div>
+          <div id="hb-todo-body"></div>
+        </section>
+
+        <details class="hb-card" id="hb-history">
+          <summary><span class="hb-chev"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#chevron-right"/></svg></span> Previous days</summary>
+          <div id="hb-history-body" style="margin-top:10px;"></div>
+        </details>
       </div>
     </div>
 
@@ -2042,6 +2151,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     loadAdmins();
     loadSettingsPanels();
     loadHomeGreeting(session.user.email);
+    loadHomeBrief(false);
   });
 
   /* ---------- home greeting ---------- */
@@ -2058,6 +2168,145 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     document.querySelectorAll('.home-hero-eyebrow, .home-hero-greeting, .home-hero-greeting .home-name')
       .forEach(el => { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; });
   }
+
+  /* ---------- home: daily summary + what needs you ---------- */
+  const hb = id => document.getElementById(id);
+  const hbIco = n => '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#' + n + '"/></svg>';
+  const hbMoney = v => '$' + Number(v || 0).toFixed(2);
+  const hbPlural = (n, one, many) => n + ' ' + (n === 1 ? one : (many || one + 's'));
+  function hbAgo(ts){
+    const m = Math.max(0, Math.round((Date.now() - new Date(ts)) / 60000));
+    if (m < 60) return Math.max(m, 1) + 'm';
+    const h = Math.round(m / 60);
+    return h < 48 ? h + 'h' : Math.round(h / 24) + 'd';
+  }
+  function hbType(o){
+    return o.type === 'custom_model' ? 'Custom model' : o.type === 'design' ? 'Design: ' + (o.design || 'Unknown') : 'Custom print';
+  }
+  function hbLocalDay(){
+    const d = new Date(), p = n => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+  }
+  const hbWhen = ts => new Date(ts).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+
+  function hbRow(o, meta){
+    const who = o.claimed_by ? 'claimed by ' + escapeHtml(o.claimed_by) : 'unclaimed';
+    return '<a class="hb-row" href="order.html?id=' + encodeURIComponent(o.id) + '">' +
+      '<span class="hb-row-main"><b>' + escapeHtml(o.name || 'Customer') + '</b><small>' + escapeHtml(hbType(o)) + ' · ' + who + '</small></span>' +
+      '<span class="hb-row-meta">' + meta + '</span>' + hbIco('chevron-right') + '</a>';
+  }
+  function hbSection(icon, title, rows, tone){
+    if (!rows.length) return '';
+    return '<div class="hb-h3">' + hbIco(icon) + ' ' + escapeHtml(title) + ' <span class="hb-badge ' + (tone || '') + '">' + rows.length + '</span></div>' +
+      '<div class="hb-list">' + rows.join('') + '</div>';
+  }
+
+  function renderDigest(d){
+    hb('hb-digest-sub').textContent = 'Covers ' + hbWhen(d.window_start) + ' to ' + hbWhen(d.window_end) + ' (the 24 hours before this summary was written)';
+    const n = d.new_orders.count, m = d.messages, parts = [];
+    if (n) parts.push('<b>' + hbPlural(n, 'new order') + '</b> came in');
+    if (m.from_customers) parts.push('customers sent <b>' + hbPlural(m.from_customers, 'message') + '</b> on ' + hbPlural(m.orders_with_customer_messages, 'order'));
+    if (m.from_admins) parts.push('the team sent <b>' + hbPlural(m.from_admins, 'reply', 'replies') + '</b>');
+    if (d.new_customers) parts.push('<b>' + hbPlural(d.new_customers, 'new customer') + '</b> signed up');
+    if (d.emails.failed) parts.push('<b>' + hbPlural(d.emails.failed, 'email') + '</b> failed to send');
+    const lede = parts.length
+      ? 'In the last 24 hours, ' + parts.join('; ') + '.'
+      : 'A quiet 24 hours: no new orders, messages or sign-ups.';
+    hb('hb-lede').innerHTML = lede + '<span class="hb-todo-line" id="hb-todo-line"></span>';
+
+    const tile = (num, label, cls) => '<div class="hb-stat"><div class="hb-stat-num ' + (cls || (Number(num) === 0 ? 'zero' : '')) + '">' + num + '</div><div class="hb-stat-label">' + label + '</div></div>';
+    hb('hb-stats').innerHTML =
+      tile(n, 'New orders') +
+      tile(m.from_customers, 'Customer messages') +
+      tile(m.from_admins, 'Team replies') +
+      tile(d.new_customers, 'New customers') +
+      tile(d.emails.sent, 'Emails sent') +
+      (d.emails.failed ? tile(d.emails.failed, 'Emails failed', 'bad') : '') +
+      tile(hbMoney(d.ai.cost), 'AI spend (' + hbPlural(d.ai.replies, 'reply', 'replies') + ')', Number(d.ai.cost) === 0 ? 'zero' : '');
+
+    hb('hb-new-orders').innerHTML = hbSection('package', 'New orders in this window',
+      d.new_orders.items.map(o => hbRow(o, escapeHtml(o.status) + ' · ' + hbAgo(o.created_at) + ' ago')));
+
+    const order = ['new', 'acknowledged', 'quoted', 'printing', 'completed', 'sold', 'cancelled'];
+    hb('hb-pipeline').innerHTML = order.filter(k => d.pipeline[k]).map(k =>
+      '<span class="hb-chip"><b>' + d.pipeline[k].count + '</b> ' + k + (Number(d.pipeline[k].value) ? ' <span>' + hbMoney(d.pipeline[k].value) + '</span>' : '') + '</span>'
+    ).join('') || '<p class="hb-empty">No active orders.</p>';
+  }
+
+  function renderTodo(t){
+    const q = t.queues, alerts = [];
+    if (t.orders_open === false)
+      alerts.push('<div class="hb-alert">' + hbIco('triangle-alert') + '<span>New orders are switched <b>off</b>, so customers can\'t place any. <button type="button" class="hb-link" data-goto="settings">Open Settings</button></span></div>');
+    if (t.failed_emails && t.failed_emails.length)
+      alerts.push('<div class="hb-alert err">' + hbIco('mail') + '<span><b>' + hbPlural(t.failed_emails.length, 'email') + '</b> failed to send this week (latest: ' + escapeHtml(t.failed_emails[0].kind) + ' to ' + escapeHtml(t.failed_emails[0].to) + '). <button type="button" class="hb-link" data-goto="email">Open Email</button></span></div>');
+    if (t.ai){
+      if (!t.ai.configured)
+        alerts.push('<div class="hb-alert">' + hbIco('sparkles') + '<span>Your Claude balance isn\'t set, so the assistant\'s remaining credit can\'t be shown. <button type="button" class="hb-link" data-goto="ai">Set it</button></span></div>');
+      else if (t.ai.remaining !== null && Number(t.ai.remaining) < 1)
+        alerts.push('<div class="hb-alert err">' + hbIco('sparkles') + '<span>Claude credit is low: <b>' + hbMoney(Math.max(0, t.ai.remaining)) + '</b> left. Top up in the Anthropic console, then update it. <button type="button" class="hb-link" data-goto="ai">Open AI</button></span></div>');
+    }
+
+    const stale = o => (Date.now() - new Date(o.created_at)) / 86400000;
+    let html = alerts.join('');
+    html += hbSection('message-square', 'Customers waiting for a reply', q.unanswered.map(o =>
+      hbRow(o, 'waiting ' + hbAgo(o.last_msg_at) + (o.waiting > 1 ? ' · ' + o.waiting + ' msgs' : ''))), 'warn');
+    html += hbSection('package', 'New orders to acknowledge', q.new.map(o => hbRow(o, 'in ' + hbAgo(o.created_at) + ' ago')), 'warn');
+    html += hbSection('calculator', 'Acknowledged, needs a quote', q.acknowledged.map(o => hbRow(o, 'order ' + hbAgo(o.created_at) + ' old')));
+    html += hbSection('check', 'Completed, mark as sold once it\'s paid and handed over', q.completed.map(o => hbRow(o, hbMoney(o.quote))));
+    html += hbSection('circle-dollar-sign', 'Quoted, waiting on the customer', q.quoted.map(o =>
+      hbRow(o, hbMoney(o.quote) + (stale(o) > 7 ? ' · ' + hbAgo(o.created_at) + ' old' : ''))));
+    html += hbSection('printer', 'Printing now', q.printing.map(o => hbRow(o, hbMoney(o.quote))));
+
+    const actions = alerts.length + q.unanswered.length + q.new.length + q.acknowledged.length + q.completed.length;
+    const active = q.new.length + q.acknowledged.length + q.quoted.length + q.printing.length + q.completed.length;
+    if (!actions && !q.quoted.length && !q.printing.length)
+      html = '<div class="hb-allclear">' + hbIco('party-popper') + ' You\'re all caught up. Nothing needs you right now.</div>' + html;
+    else if (!actions)
+      html = '<div class="hb-allclear">' + hbIco('check') + ' Nothing needs action right now. These are just waiting on others.</div>' + html;
+    html += '<p class="hb-note">Customer store credit owed: <b>' + hbMoney(t.store_credit_outstanding) + '</b></p>';
+    hb('hb-todo-body').innerHTML = html;
+    hb('hb-todo-sub').textContent = hbPlural(active, 'open order') + ' · updated ' + new Date(t.generated_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const line = document.getElementById('hb-todo-line');
+    if (line) line.textContent = actions ? 'Right now, ' + hbPlural(actions, 'thing needs', 'things need') + ' your attention (below).' : 'Right now, nothing needs your attention.';
+  }
+
+  function renderHistory(list){
+    const today = hbLocalDay();
+    const rows = (list || []).filter(d => d.day !== today).map(d =>
+      '<div class="hb-hist-row"><span><b>' + new Date(d.day + 'T12:00:00').toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short' }) + '</b></span>' +
+      '<span>' + hbPlural(d.new_orders.count, 'new order') + ' · ' + hbPlural(d.messages.from_customers, 'customer message') + ' · ' +
+      hbPlural(d.messages.from_admins, 'reply', 'replies') + (d.new_customers ? ' · ' + hbPlural(d.new_customers, 'sign-up') : '') + '</span></div>');
+    hb('hb-history-body').innerHTML = rows.join('') || '<p class="hb-empty">Earlier summaries will appear here after your first full day.</p>';
+  }
+
+  let hbLoadedAt = 0, hbBusy = false;
+  async function loadHomeBrief(force){
+    if (hbBusy || (!force && Date.now() - hbLoadedAt < 20000)) return;
+    hbBusy = true;
+    const btn = hb('hb-refresh');
+    btn.disabled = true;
+    try {
+      const [dig, todo, hist] = await Promise.all([
+        supabase.rpc('founder_daily_digest', { p_day: hbLocalDay(), p_force: !!force }),
+        supabase.rpc('founder_todo'),
+        supabase.rpc('founder_digest_history', { p_limit: 8 })
+      ]);
+      if (dig.error) hb('hb-digest-sub').textContent = 'Could not load the summary: ' + dig.error.message;
+      else renderDigest(dig.data);
+      if (todo.error) hb('hb-todo-body').innerHTML = '<p class="hb-empty">Could not load your to-do list: ' + escapeHtml(todo.error.message) + '</p>';
+      else renderTodo(todo.data);
+      if (!hist.error) renderHistory(hist.data);
+      hbLoadedAt = Date.now();
+    } finally {
+      hbBusy = false;
+      btn.disabled = false;
+    }
+  }
+  hb('hb-refresh').addEventListener('click', () => loadHomeBrief(true));
+  hb('hb-todo-body').addEventListener('click', e => {
+    const g = e.target.closest('[data-goto]');
+    if (g){ const t = document.querySelector('.debug-tab[data-tab="' + g.dataset.goto + '"]'); if (t) t.click(); }
+  });
 
   /* ---------- admin roster ---------- */
   const admListEl = document.getElementById('adm-list');
@@ -2865,7 +3114,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       if (tab.dataset.tab === 'alerts') loadWebhookState();
       if (tab.dataset.tab === 'email'){ loadResendState(); loadTestSendOrders(); loadEmailLog(); }
       if (tab.dataset.tab === 'ai') loadAiState();
-      if (tab.dataset.tab === 'home') playHomeAnimation();
+      if (tab.dataset.tab === 'home'){ playHomeAnimation(); loadHomeBrief(false); }
     });
   });
 
