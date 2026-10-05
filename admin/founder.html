@@ -1519,6 +1519,26 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     border-radius: 999px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
   }
   .ai-action-btn:hover{ filter: brightness(1.08); }
+  .ai-usage-card{
+    border: 1px solid rgba(var(--border-tint),0.12); border-radius: 10px; padding: 14px 16px; margin-bottom: 18px;
+    background: var(--bg);
+  }
+  .ai-usage-top{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin: 4px 0 12px; }
+  .ai-usage-remaining{ font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+  .ai-usage-remaining.low{ color: var(--warn); }
+  .ai-usage-remaining.out{ color: var(--err); }
+  .ai-usage-sub{ font-size: 12.5px; color: var(--ink-dim); }
+  .ai-usage-set{ grid-template-columns: 1fr auto; align-items: end; }
+  .ai-usage-recent{ margin-top: 14px; font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 11.5px; }
+  .ai-usage-recent .row{ display:flex; justify-content:space-between; gap:12px; padding: 5px 0; border-top: 1px solid rgba(var(--border-tint),0.08); color: var(--ink-dim); }
+  .ai-usage-recent .row b{ color: var(--ink); font-weight: 600; }
+  .ai-cost{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 20px; white-space: nowrap; cursor: default;
+    background: var(--bg); border: 1px solid rgba(var(--border-tint),0.15); color: var(--ink-dim);
+  }
+  .ai-cost.low{ color: var(--warn); border-color: var(--warn); background: var(--warn-dim, transparent); }
+  .ai-cost.out{ color: var(--err); border-color: var(--err); }
   .ai-panel-foot{
     display: flex; gap: 8px; padding: 10px; border-top: 1px solid rgba(var(--border-tint),0.10);
   }
@@ -1857,6 +1877,22 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
     <div class="debug-section" id="debug-section-ai">
       <div class="modal-body">
+        <div class="ai-usage-card" id="ai-usage-card">
+          <p class="ai-field-label">Credit &amp; usage</p>
+          <div class="ai-usage-top">
+            <span class="ai-usage-remaining" id="ai-usage-remaining">—</span>
+            <span class="ai-usage-sub" id="ai-usage-sub"></span>
+          </div>
+          <div class="ai-usage-set rates-form-grid">
+            <label>Current balance ($)
+              <input type="number" id="ai-credit-input" step="0.01" min="0" inputmode="decimal" placeholder="3.54">
+            </label>
+            <button type="button" class="save-btn" id="ai-credit-save">Set balance</button>
+          </div>
+          <p class="modal-sub" id="ai-credit-msg" style="margin:8px 0 0;min-height:16px;"></p>
+          <p class="modal-sub" style="margin:4px 0 0;">Type the balance shown in your Anthropic console. From that moment the app counts what each reply costs (token counts × the model's price), so this is an estimate that can drift a little from the real bill. Re-enter your balance whenever you top up.</p>
+          <div class="ai-usage-recent" id="ai-usage-recent"></div>
+        </div>
         <div class="rates-form-grid">
           <label style="grid-column:1 / -1;">Claude API key
             <input type="password" id="ai-key" placeholder="sk-ant-…" autocomplete="off">
@@ -2664,7 +2700,54 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   aiModelOptions.forEach(btn => btn.addEventListener('click', () => selectAiModel(btn.dataset.model)));
   selectAiModel(AI_DEFAULT_MODEL);
 
+  /* credit & usage card (the assistant panel's header pill feeds this too) */
+  const aiUsageRemainingEl = document.getElementById('ai-usage-remaining');
+  const aiUsageSubEl = document.getElementById('ai-usage-sub');
+  const aiUsageRecentEl = document.getElementById('ai-usage-recent');
+  const aiCreditInput = document.getElementById('ai-credit-input');
+  const aiCreditSaveBtn = document.getElementById('ai-credit-save');
+  const aiCreditMsgEl = document.getElementById('ai-credit-msg');
+  const aiMoney = n => '$' + Math.abs(Number(n) || 0).toFixed(2);
+  const AI_MODEL_SHORT = { 'claude-fable-5-1': 'Fable 5.1', 'claude-opus-5': 'Opus 5', 'claude-sonnet-5': 'Sonnet 5', 'claude-haiku-4-5': 'Haiku 4.5' };
+
+  function renderAiUsageCard(u){
+    if (!u || !aiUsageRemainingEl) return;
+    aiUsageRemainingEl.classList.remove('low', 'out');
+    if (u.configured){
+      const left = Number(u.remaining);
+      aiUsageRemainingEl.textContent = left <= 0 ? '$0.00 left' : aiMoney(left) + ' left';
+      if (left <= 0) aiUsageRemainingEl.classList.add('out'); else if (left < 1) aiUsageRemainingEl.classList.add('low');
+      aiUsageSubEl.textContent = aiMoney(u.spent) + ' used across ' + u.replies + ' repl' + (u.replies === 1 ? 'y' : 'ies')
+        + ' since ' + new Date(u.since).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    } else {
+      aiUsageRemainingEl.textContent = aiMoney(u.spent) + ' used';
+      aiUsageSubEl.textContent = 'No balance set yet — enter yours below to track what is left.';
+    }
+    const recent = Array.isArray(u.recent) ? u.recent : [];
+    aiUsageRecentEl.innerHTML = recent.length
+      ? recent.map(r => `<div class="row"><span>${escapeHtml(new Date(r.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))} · ${escapeHtml(AI_MODEL_SHORT[r.model] || r.model)} · ${Number(r.input).toLocaleString()} in / ${Number(r.output).toLocaleString()} out</span><b>$${Number(r.cost).toFixed(4)}</b></div>`).join('')
+      : '';
+  }
+  async function loadAiUsage(){
+    const { data } = await supabase.rpc('ai_usage_summary');
+    if (data) renderAiUsageCard(data);
+  }
+  aiCreditSaveBtn.addEventListener('click', async () => {
+    const raw = aiCreditInput.value.trim();
+    const amount = Number(raw);
+    if (raw === '' || isNaN(amount) || amount < 0){ aiCreditMsgEl.textContent = 'Enter your current balance, e.g. 3.54'; return; }
+    aiCreditSaveBtn.disabled = true; aiCreditSaveBtn.textContent = 'Saving…'; aiCreditMsgEl.textContent = '';
+    const { data, error } = await supabase.rpc('set_ai_credit', { p_amount: amount });
+    aiCreditSaveBtn.disabled = false; aiCreditSaveBtn.textContent = 'Set balance';
+    if (error){ aiCreditMsgEl.textContent = 'Error: ' + error.message; return; }
+    aiCreditInput.value = '';
+    renderAiUsageCard(data);
+    aiCreditMsgEl.innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg> Balance set to ' + aiMoney(amount);
+    setTimeout(() => { if (aiCreditMsgEl.textContent.trim().startsWith('Balance set')) aiCreditMsgEl.textContent = ''; }, 3000);
+  });
+
   async function loadAiState(){
+    loadAiUsage();
     const { data, error } = await supabase
       .from('private_config').select('key, value, updated_at')
       .in('key', ['anthropic_api_key', 'anthropic_model', 'anthropic_effort', 'anthropic_system_prompt']);
@@ -2883,6 +2966,29 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     const form = document.getElementById('ai-form');
     const input = document.getElementById('ai-input');
     const sendBtn = document.getElementById('ai-send');
+    const costEl = document.getElementById('ai-cost');
+    // Shows the estimated Claude API credit left (or spend so far, if no balance has been set).
+    function renderCost(u){
+      if (!u || !costEl) return;
+      const money = n => '$' + Math.abs(Number(n) || 0).toFixed(2);
+      costEl.hidden = false;
+      costEl.classList.remove('low', 'out');
+      const last = u.last_cost != null ? ' Last reply ≈ $' + Number(u.last_cost).toFixed(3) + '.' : '';
+      if (u.configured){
+        const left = Number(u.remaining);
+        if (left <= 0){ costEl.textContent = 'Out of credit'; costEl.classList.add('out'); }
+        else { costEl.textContent = money(left) + ' left'; if (left < 1) costEl.classList.add('low'); }
+        costEl.title = 'Estimated Claude API credit remaining (' + money(u.spent) + ' used across ' + u.replies + ' repl' + (u.replies === 1 ? 'y' : 'ies') + ' since the balance was set).' + last;
+      } else {
+        costEl.textContent = money(u.spent) + ' used';
+        costEl.title = 'Estimated Claude API spend so far. A founder can set your balance in the AI tab to show what is left.' + last;
+      }
+      if (typeof renderAiUsageCard === 'function') renderAiUsageCard(u);
+    }
+    async function loadCost(){
+      const { data } = await supabase.rpc('ai_usage_summary');
+      if (data) renderCost(data);
+    }
 
     const AI_CHAT_URL = SUPABASE_URL + '/functions/v1/ai-chat';
     const GREETING_HTML = '<div class="ai-msg ai-msg-bot">Ask me about orders or messages — e.g. "what\'s still unread?" or "summarise James\'s order."</div>';
@@ -3060,6 +3166,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       if (!panel.hidden){
         input.focus();
         if (!historyLoaded) loadPastConversation();
+        loadCost();
       }
     });
     closeBtn.addEventListener('click', () => { panel.hidden = true; });
@@ -3129,6 +3236,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
                 const rows = Array.isArray(evt.result) ? evt.result : [evt.result];
                 rows.slice(0, 5).forEach(addOrderCard);
               }
+            } else if (evt.type === 'usage'){
+              renderCost(evt);
             } else if (evt.type === 'actions'){
               addActionButtons(evt.actions);
             } else if (evt.type === 'error'){
@@ -3165,6 +3274,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   <div class="ai-panel-head">
     <span><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#sparkles"/></svg> Order assistant</span>
     <div style="display:flex; gap:10px; align-items:center;">
+      <span class="ai-cost" id="ai-cost" hidden></span>
       <button type="button" id="ai-clear" aria-label="Clear conversation" title="Clear conversation"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#trash-2"/></svg></button>
       <button type="button" id="ai-close" aria-label="Close"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
     </div>

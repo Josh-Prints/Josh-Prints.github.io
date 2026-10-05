@@ -1395,6 +1395,13 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     border-radius: 999px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
   }
   .ai-action-btn:hover{ filter: brightness(1.08); }
+  .ai-cost{
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 20px; white-space: nowrap; cursor: default;
+    background: var(--bg); border: 1px solid rgba(var(--border-tint),0.15); color: var(--ink-dim);
+  }
+  .ai-cost.low{ color: var(--warn); border-color: var(--warn); background: var(--warn-dim, transparent); }
+  .ai-cost.out{ color: var(--err); border-color: var(--err); }
   .ai-panel-foot{
     display: flex; gap: 8px; padding: 10px; border-top: 1px solid rgba(var(--border-tint),0.10);
   }
@@ -2725,6 +2732,29 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     const form = document.getElementById('ai-form');
     const input = document.getElementById('ai-input');
     const sendBtn = document.getElementById('ai-send');
+    const costEl = document.getElementById('ai-cost');
+    // Shows the estimated Claude API credit left (or spend so far, if no balance has been set).
+    function renderCost(u){
+      if (!u || !costEl) return;
+      const money = n => '$' + Math.abs(Number(n) || 0).toFixed(2);
+      costEl.hidden = false;
+      costEl.classList.remove('low', 'out');
+      const last = u.last_cost != null ? ' Last reply ≈ $' + Number(u.last_cost).toFixed(3) + '.' : '';
+      if (u.configured){
+        const left = Number(u.remaining);
+        if (left <= 0){ costEl.textContent = 'Out of credit'; costEl.classList.add('out'); }
+        else { costEl.textContent = money(left) + ' left'; if (left < 1) costEl.classList.add('low'); }
+        costEl.title = 'Estimated Claude API credit remaining (' + money(u.spent) + ' used across ' + u.replies + ' repl' + (u.replies === 1 ? 'y' : 'ies') + ' since the balance was set).' + last;
+      } else {
+        costEl.textContent = money(u.spent) + ' used';
+        costEl.title = 'Estimated Claude API spend so far. A founder can set your balance in the AI tab to show what is left.' + last;
+      }
+      if (typeof renderAiUsageCard === 'function') renderAiUsageCard(u);
+    }
+    async function loadCost(){
+      const { data } = await supabase.rpc('ai_usage_summary');
+      if (data) renderCost(data);
+    }
 
     const AI_CHAT_URL = SUPABASE_URL + '/functions/v1/ai-chat';
     const GREETING_HTML = '<div class="ai-msg ai-msg-bot">Ask me about orders or messages — e.g. "what\'s still unread?" or "summarise James\'s order."</div>';
@@ -2893,6 +2923,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       if (!panel.hidden){
         input.focus();
         if (!historyLoaded) loadPastConversation();
+        loadCost();
       }
     });
     closeBtn.addEventListener('click', () => { panel.hidden = true; });
@@ -2962,6 +2993,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
                 const rows = Array.isArray(evt.result) ? evt.result : [evt.result];
                 rows.slice(0, 5).forEach(addOrderCard);
               }
+            } else if (evt.type === 'usage'){
+              renderCost(evt);
             } else if (evt.type === 'actions'){
               addActionButtons(evt.actions);
             } else if (evt.type === 'error'){
@@ -2998,6 +3031,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   <div class="ai-panel-head">
     <span><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#sparkles"/></svg> Order assistant</span>
     <div style="display:flex; gap:10px; align-items:center;">
+      <span class="ai-cost" id="ai-cost" hidden></span>
       <button type="button" id="ai-clear" aria-label="Clear conversation" title="Clear conversation"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#trash-2"/></svg></button>
       <button type="button" id="ai-close" aria-label="Close"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
     </div>
