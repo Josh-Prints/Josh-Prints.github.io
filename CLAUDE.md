@@ -10,3 +10,7 @@
   resolving it silently.
 - See `THEME.md` for the site's color palette, typography, and component
   conventions — match it when building or editing any page.
+- If a push to `main` doesn't show up on voxprints.com, check the "pages build
+  and deployment" runs in Actions. A run stuck in `queued` (or cancelled by a
+  newer push) means nothing deployed; cancelling it and pushing a fresh commit
+  to `main` starts a new one. Don't cancel a run that is `in_progress`.
