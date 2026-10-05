@@ -8,6 +8,7 @@
 <title>Your order - Voxprints</title>
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <style>
+  .ico{ vertical-align:-0.18em; flex-shrink:0; }
   :root{
     --bg: #f6f8fa;
     --bg-raised: #ffffff;
@@ -659,7 +660,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
   <div class="topbar-links">
     <a class="btn btn-primary" href="order-form.html">Order</a>
     <div class="menu-wrap">
-      <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false">☰</button>
+      <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#menu"/></svg></button>
       <div class="menu-dropdown" id="menu-dropdown">
         <a href="index.html">Home</a>
         <a href="browse.html">Browse designs</a>
@@ -671,7 +672,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
           Sign in with Google
         </button>
         <button type="button" class="google-btn" id="email-code-btn">
-          ✉️ Sign in with email code
+          <svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#mail"/></svg> Sign in with email code
         </button>
         <div class="account-chip" id="account-chip">
           <img id="account-avatar" alt="">
@@ -679,13 +680,13 @@ h1{ animation: fadeInDown 0.5s ease both; }
             <span class="name" id="account-name"></span>
             <span class="account-credit" id="account-credit"></span>
           </div>
-          <button type="button" class="account-edit-btn" id="account-edit-btn" aria-label="Edit profile" title="Edit profile">✏️</button>
+          <button type="button" class="account-edit-btn" id="account-edit-btn" aria-label="Edit profile" title="Edit profile"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pencil"/></svg></button>
           <button type="button" class="account-signout-btn" id="account-signout-btn">Sign out</button>
         </div>
-        <a href="admin/" id="admin-link" style="display:none;">🛠️ Admin dashboard</a>
+        <a href="admin/" id="admin-link" style="display:none;"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#wrench"/></svg> Admin dashboard</a>
         <div class="menu-dropdown-divider"></div>
         <div class="theme-row">
-          <span>🌙 Dark mode</span>
+          <span><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#moon"/></svg> Dark mode</span>
           <button type="button" class="theme-switch" id="theme-switch" role="switch" aria-checked="false" aria-label="Toggle dark mode"><span class="thumb"></span></button>
         </div>
       </div>
@@ -800,7 +801,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
         <textarea id="msg-body" placeholder="Write a message…" aria-label="Message"></textarea>
         <div class="composer-row">
           <button type="button" class="attach-btn" id="attach-btn">
-            <span id="attach-label">📎 Attach file</span>
+            <span id="attach-label"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file</span>
             <input type="file" id="attach-input" multiple aria-label="Attach file">
           </button>
           <button type="button" class="send-btn" id="send-btn">Send</button>
@@ -813,7 +814,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
 
 <div class="pdf-modal" id="pdf-modal">
   <div class="pdf-modal-inner" role="dialog" aria-modal="true" aria-label="File preview">
-    <button type="button" class="pdf-modal-close" id="pdf-modal-close" aria-label="Close preview">✕</button>
+    <button type="button" class="pdf-modal-close" id="pdf-modal-close" aria-label="Close preview"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
     <iframe class="pdf-modal-frame" id="pdf-modal-frame" src=""></iframe>
     <img class="pdf-modal-img" id="pdf-modal-img" src="" alt="">
   </div>
@@ -877,19 +878,19 @@ h1{ animation: fadeInDown 0.5s ease both; }
     if (ext === 'pdf'){
       return `<div class="pdf-preview" data-url="${url}" title="Click to view ${safeName}">
         <embed src="${url}#toolbar=0&navpanes=0&view=FitH" type="application/pdf">
-        <div class="pdf-preview-label">📄 ${safeName}</div>
+        <div class="pdf-preview-label"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#file-text"/></svg> ${safeName}</div>
       </div>`;
     }
     if (IMAGE_EXTS.includes(ext)){
       return `<div class="img-preview" data-url="${url}" title="Click to view ${safeName}">
         <img src="${url}" alt="${safeName}" loading="lazy">
-        <div class="pdf-preview-label">🖼 ${safeName}</div>
+        <div class="pdf-preview-label"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#image"/></svg> ${safeName}</div>
       </div>`;
     }
     const viewBtn = MODEL_EXTS.includes(ext)
-      ? `<a class="view3d-btn" href="viewer.html?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name || '')}" target="_blank">👁 View in 3D</a>`
+      ? `<a class="view3d-btn" href="viewer.html?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name || '')}" target="_blank"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#eye"/></svg> View in 3D</a>`
       : '';
-    return `<span class="file-attachment"><a class="file-link" target="_blank" href="${url}">📎 ${safeName}</a>${viewBtn}</span>`;
+    return `<span class="file-attachment"><a class="file-link" target="_blank" href="${url}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> ${safeName}</a>${viewBtn}</span>`;
   }
 
   const pdfModal = document.getElementById('pdf-modal');
@@ -1140,8 +1141,8 @@ h1{ animation: fadeInDown 0.5s ease both; }
   document.getElementById('attach-input').addEventListener('change', (e) => {
     attachedFiles.push(...Array.from(e.target.files));
     e.target.value = '';
-    document.getElementById('attach-label').textContent = attachedFiles.length
-      ? `📎 ${attachedFiles.length} file${attachedFiles.length > 1 ? 's' : ''}` : '📎 Attach file';
+    document.getElementById('attach-label').innerHTML = attachedFiles.length
+      ? `<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> ${attachedFiles.length} file${attachedFiles.length > 1 ? 's' : ''}` : '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file';
   });
 
   function sanitizeFileName(name){
@@ -1181,7 +1182,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
       bodyEl.value = '';
       attachedFiles = [];
       document.getElementById('attach-input').value = '';
-      document.getElementById('attach-label').textContent = '📎 Attach file';
+      document.getElementById('attach-label').innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file';
       lastMessageCount = -1; // force re-render
       loadMessages();
 
@@ -1253,7 +1254,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
       accountChip.style.display = 'flex';
       accountName.textContent = (currentProfileName || user.email || '').split(' ')[0];
       accountAvatar.src = user.user_metadata?.avatar_url || '';
-      accountCredit.textContent = '💳 $' + Number(profile?.store_credit || 0).toFixed(2);
+      accountCredit.innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#credit-card"/></svg> $' + Number(profile?.store_credit || 0).toFixed(2);
     }
 
     function openModal(mode){

@@ -8,6 +8,7 @@
 <title>Browse designs — Voxprints</title>
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <style>
+  .ico{ vertical-align:-0.18em; flex-shrink:0; }
   :root{
     --canvas: #ffffff;
     --canvas-inset: #f6f8fa;
@@ -418,7 +419,7 @@
     <div class="topbar-links">
       <a class="btn btn-primary" href="order-form.html">Order</a>
       <div class="menu-wrap">
-        <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false">☰</button>
+        <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#menu"/></svg></button>
         <div class="menu-dropdown" id="menu-dropdown">
           <a href="index.html">Home</a>
           <a href="estimate.html">Estimate cost</a>
@@ -430,7 +431,7 @@
             Sign in with Google
           </button>
           <button type="button" class="google-btn" id="email-code-btn">
-            ✉️ Sign in with email code
+            <svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#mail"/></svg> Sign in with email code
           </button>
           <div class="account-chip" id="account-chip">
             <img id="account-avatar" alt="">
@@ -438,13 +439,13 @@
               <span class="name" id="account-name"></span>
               <span class="account-credit" id="account-credit"></span>
             </div>
-            <button type="button" class="account-edit-btn" id="account-edit-btn" aria-label="Edit profile" title="Edit profile">✏️</button>
+            <button type="button" class="account-edit-btn" id="account-edit-btn" aria-label="Edit profile" title="Edit profile"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pencil"/></svg></button>
             <button type="button" class="account-signout-btn" id="account-signout-btn">Sign out</button>
           </div>
-          <a href="admin/" id="admin-link" style="display:none;">🛠️ Admin dashboard</a>
+          <a href="admin/" id="admin-link" style="display:none;"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#wrench"/></svg> Admin dashboard</a>
           <div class="menu-dropdown-divider"></div>
           <div class="theme-row">
-            <span>🌙 Dark mode</span>
+            <span><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#moon"/></svg> Dark mode</span>
             <button type="button" class="theme-switch" id="theme-switch" role="switch" aria-checked="false" aria-label="Toggle dark mode"><span class="thumb"></span></button>
           </div>
         </div>
@@ -482,7 +483,7 @@
 
     <div class="search-wrap">
       <input type="text" id="search-input" placeholder="Search designs…">
-      <span class="icon">🔍</span>
+      <span class="icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#search"/></svg></span>
     </div>
 
     <div id="loading" style="display:none;"><svg class="logo-loading" width="128" height="128" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
@@ -526,7 +527,7 @@
 
   <div class="modal-overlay" id="modal-overlay">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-name">
-      <button class="modal-close" id="modal-close">✕</button>
+      <button class="modal-close" id="modal-close"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
       <div class="modal-gallery" id="modal-gallery" style="display:none;">
         <div class="modal-gallery-track" id="modal-gallery-track"></div>
         <button type="button" class="modal-gallery-arrow prev" id="gallery-prev" aria-label="Previous photo">‹</button>
@@ -743,15 +744,15 @@
       const img = publicUrl(p.image_path);
       const photoCount = (p.image_path ? 1 : 0) + (p.image_paths?.length || 0);
       tile.innerHTML = `
-        <div class="tile-img">${img ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;" alt="">` : 'No image'}${photoCount > 1 ? `<div class="tile-photo-badge">🖼 ${photoCount}</div>` : ''}</div>
+        <div class="tile-img">${img ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;" alt="">` : 'No image'}${photoCount > 1 ? `<div class="tile-photo-badge"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#image"/></svg> ${photoCount}</div>` : ''}</div>
         <div class="tile-body">
           <div class="tile-name">${escapeHtml(p.name)}</div>
           ${p.description ? `<div class="tile-desc">${escapeHtml(p.description)}</div>` : ''}
           ${p.price != null ? `<div class="tile-price">$${Number(p.price).toFixed(2)}</div>` : ''}
           ${p.model_path ? `
           <div class="tile-model-row">
-            <a class="view3d" href="viewer.html?url=${encodeURIComponent(publicUrl(p.model_path))}&name=${encodeURIComponent(p.model_name || '')}" target="_blank" data-stop="1">👁 View in 3D</a>
-            <a href="${publicUrl(p.model_path)}" download="${escapeHtml(p.model_name || 'model')}" data-stop="1">⇩ Download</a>
+            <a class="view3d" href="viewer.html?url=${encodeURIComponent(publicUrl(p.model_path))}&name=${encodeURIComponent(p.model_name || '')}" target="_blank" data-stop="1"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#eye"/></svg> View in 3D</a>
+            <a href="${publicUrl(p.model_path)}" download="${escapeHtml(p.model_name || 'model')}" data-stop="1"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#download"/></svg> Download</a>
           </div>` : ''}
         </div>
       `;
@@ -855,8 +856,8 @@
       const modelUrl = publicUrl(design.model_path);
       modelRow.style.display = 'flex';
       modelRow.innerHTML = `
-        <a class="view3d" href="viewer.html?url=${encodeURIComponent(modelUrl)}&name=${encodeURIComponent(design.model_name || '')}" target="_blank">👁 View in 3D</a>
-        <a href="${modelUrl}" download="${escapeHtml(design.model_name || 'model')}">⇩ Download</a>
+        <a class="view3d" href="viewer.html?url=${encodeURIComponent(modelUrl)}&name=${encodeURIComponent(design.model_name || '')}" target="_blank"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#eye"/></svg> View in 3D</a>
+        <a href="${modelUrl}" download="${escapeHtml(design.model_name || 'model')}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#download"/></svg> Download</a>
       `;
     } else {
       modelRow.style.display = 'none';
@@ -1007,7 +1008,7 @@
       accountChip.style.display = 'flex';
       accountName.textContent = (currentProfileName || user.email || '').split(' ')[0];
       accountAvatar.src = user.user_metadata?.avatar_url || '';
-      accountCredit.textContent = '💳 $' + Number(profile?.store_credit || 0).toFixed(2);
+      accountCredit.innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#credit-card"/></svg> $' + Number(profile?.store_credit || 0).toFixed(2);
       if (myOrdersLink) myOrdersLink.textContent = 'My orders';
     }
 

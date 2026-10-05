@@ -8,6 +8,7 @@
 <title>Estimate a Print — Voxprints</title>
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <style>
+  .ico{ vertical-align:-0.18em; flex-shrink:0; }
   :root{
     --canvas: #ffffff;
     --canvas-inset: #f6f8fa;
@@ -447,7 +448,7 @@
     <div class="topbar-links">
       <a class="btn btn-primary" href="order-form.html">Order</a>
       <div class="menu-wrap">
-        <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false">☰</button>
+        <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#menu"/></svg></button>
         <div class="menu-dropdown" id="menu-dropdown">
           <a href="index.html">Home</a>
           <a href="browse.html">Browse designs</a>
@@ -459,7 +460,7 @@
             Sign in with Google
           </button>
           <button type="button" class="google-btn" id="email-code-btn">
-            ✉️ Sign in with email code
+            <svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#mail"/></svg> Sign in with email code
           </button>
           <div class="account-chip" id="account-chip">
             <img id="account-avatar" alt="">
@@ -467,13 +468,13 @@
               <span class="name" id="account-name"></span>
               <span class="account-credit" id="account-credit"></span>
             </div>
-            <button type="button" class="account-edit-btn" id="account-edit-btn" aria-label="Edit profile" title="Edit profile">✏️</button>
+            <button type="button" class="account-edit-btn" id="account-edit-btn" aria-label="Edit profile" title="Edit profile"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pencil"/></svg></button>
             <button type="button" class="account-signout-btn" id="account-signout-btn">Sign out</button>
           </div>
-          <a href="admin/" id="admin-link" style="display:none;">🛠️ Admin dashboard</a>
+          <a href="admin/" id="admin-link" style="display:none;"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#wrench"/></svg> Admin dashboard</a>
           <div class="menu-dropdown-divider"></div>
           <div class="theme-row">
-            <span>🌙 Dark mode</span>
+            <span><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#moon"/></svg> Dark mode</span>
             <button type="button" class="theme-switch" id="theme-switch" role="switch" aria-checked="false" aria-label="Toggle dark mode"><span class="thumb"></span></button>
           </div>
         </div>
@@ -828,7 +829,7 @@
       accountChip.style.display = 'flex';
       accountName.textContent = (currentProfileName || user.email || '').split(' ')[0];
       accountAvatar.src = user.user_metadata?.avatar_url || '';
-      accountCredit.textContent = '💳 $' + Number(profile?.store_credit || 0).toFixed(2);
+      accountCredit.innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#credit-card"/></svg> $' + Number(profile?.store_credit || 0).toFixed(2);
       if (myOrdersLink) myOrdersLink.textContent = 'My orders';
     }
 

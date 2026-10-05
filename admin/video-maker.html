@@ -6,6 +6,7 @@
 <title>Voxprints Studio — Video Editor</title>
 <link rel="icon" type="image/svg+xml" href="../logo.svg">
 <style>
+  .ico{ vertical-align:-0.18em; flex-shrink:0; }
   :root{
     --app: #14161b;
     --panel: #1b1e24;
@@ -468,9 +469,13 @@
   .rmark.out{ background:#4493f8; box-shadow:-2px 0 0 rgba(68,147,248,0.4); }
   .clip.off{ opacity:0.38; }
   .clip.grouped::after{
-    content:'⛓'; position:absolute; right:5px; top:3px; font-size:9px; opacity:0.75; pointer-events:none;
+    content:''; position:absolute; right:5px; top:4px; width:10px; height:10px; background:currentColor; opacity:0.75; pointer-events:none;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%222.4%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71%22 /%3E %3Cpath d=%22M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71%22 /%3E%3C/svg%3E") center/contain no-repeat; mask:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%222.4%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71%22 /%3E %3Cpath d=%22M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71%22 /%3E%3C/svg%3E") center/contain no-repeat;
   }
-  .clip.off .lbl::before{ content:'⦸ '; }
+  .clip.off .lbl::before{
+    content:''; display:inline-block; width:0.95em; height:0.95em; margin-right:4px; vertical-align:-0.12em; background:currentColor;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%222.4%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49%22 /%3E %3Cpath d=%22M14.084 14.158a3 3 0 0 1-4.242-4.242%22 /%3E %3Cpath d=%22M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143%22 /%3E %3Cpath d=%22m2 2 20 20%22 /%3E%3C/svg%3E") center/contain no-repeat; mask:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%222.4%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49%22 /%3E %3Cpath d=%22M14.084 14.158a3 3 0 0 1-4.242-4.242%22 /%3E %3Cpath d=%22M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143%22 /%3E %3Cpath d=%22m2 2 20 20%22 /%3E%3C/svg%3E") center/contain no-repeat;
+  }
   .ctx-menu{
     display:none; position:fixed; z-index:200; min-width:172px; padding:5px;
     background: var(--panel2); border:1px solid var(--line2); border-radius:7px;
@@ -674,16 +679,16 @@
       <div class="panel-head">Project <span class="count" id="binCount">0 items</span></div>
       <div class="panel-body">
         <label class="import-btn">
-          ⬆ Import media
+          <svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#upload"/></svg> Import media
           <input type="file" id="importInput" accept="video/*,image/*,audio/*" multiple>
         </label>
         <input type="file" id="projFileInput" accept=".json,application/json" style="display:none">
         <input type="search" class="text-input bin-search" id="binSearch" placeholder="Search media…">
         <div class="quick-row">
-          <button class="btn" data-cmd="addText">＋ Text</button>
-          <button class="btn" data-cmd="addOutro">＋ Outro</button>
-          <button class="btn" data-cmd="addRect">＋ Shape</button>
-          <button class="btn" data-cmd="addAdjust">＋ Adjust</button>
+          <button class="btn" data-cmd="addText"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#plus"/></svg> Text</button>
+          <button class="btn" data-cmd="addOutro"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#plus"/></svg> Outro</button>
+          <button class="btn" data-cmd="addRect"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#plus"/></svg> Shape</button>
+          <button class="btn" data-cmd="addAdjust"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#plus"/></svg> Adjust</button>
         </div>
         <div id="binList"></div>
       </div>
@@ -699,11 +704,11 @@
         <button class="mode-btn" id="modeCrop" title="Crop edges on screen">Crop</button>
         <button class="mode-btn" id="guidesBtn" title="Safe margins and rule-of-thirds guides">Guides</button>
         <span class="mon-gap"></span>
-        <button class="tbtn" id="goStart" title="Go to start (Home)">⏮</button>
-        <button class="tbtn" id="stepBack" title="Previous frame (←)">◀</button>
-        <button class="tbtn play" id="playBtn" title="Play / pause (Space)">▶</button>
-        <button class="tbtn" id="stepFwd" title="Next frame (→)">▶</button>
-        <button class="tbtn" id="goEnd" title="Go to end (End)">⏭</button>
+        <button class="tbtn" id="goStart" title="Go to start (Home)"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#skip-back"/></svg></button>
+        <button class="tbtn" id="stepBack" title="Previous frame (←)"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#chevron-left"/></svg></button>
+        <button class="tbtn play" id="playBtn" title="Play / pause (Space)"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#play"/></svg></button>
+        <button class="tbtn" id="stepFwd" title="Next frame (→)"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#chevron-right"/></svg></button>
+        <button class="tbtn" id="goEnd" title="Go to end (End)"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#skip-forward"/></svg></button>
         <span class="mon-gap"></span>
         <span class="tc" id="tcNow">00:00:00.00</span>
         <span class="tc dim" id="tcTotal">/ 00:00:00.00</span>
@@ -723,26 +728,26 @@
 
   <div class="tl-wrap">
     <div class="tl-toolbar">
-      <button class="tool on" data-tool="select" title="Selection tool (V)">➤</button>
-      <button class="tool" data-tool="blade" title="Blade tool (C)">✂</button>
+      <button class="tool on" data-tool="select" title="Selection tool (V)"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#mouse-pointer-2"/></svg></button>
+      <button class="tool" data-tool="blade" title="Blade tool (C)"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#scissors"/></svg></button>
       <div class="tl-sep"></div>
-      <button class="tool" data-cmd="split" title="Split at playhead (C)">⧦</button>
-      <button class="tool" data-cmd="splitAll" title="Split all tracks (Ctrl+Shift+K)">⧨</button>
-      <button class="tool" data-cmd="duplicate" title="Duplicate (Ctrl+D)">⧉</button>
-      <button class="tool" data-cmd="delete" title="Delete (Del)">🗑</button>
+      <button class="tool" data-cmd="split" title="Split at playhead (C)"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#scissors-line-dashed"/></svg></button>
+      <button class="tool" data-cmd="splitAll" title="Split all tracks (Ctrl+Shift+K)"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#separator-vertical"/></svg></button>
+      <button class="tool" data-cmd="duplicate" title="Duplicate (Ctrl+D)"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#copy"/></svg></button>
+      <button class="tool" data-cmd="delete" title="Delete (Del)"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#trash-2"/></svg></button>
       <div class="tl-sep"></div>
-      <button class="tool on" id="snapBtn" data-cmd="snapToggle" title="Snapping (S)">🧲</button>
-      <button class="tool" id="loopBtn" data-cmd="loopToggle" title="Loop playback (Ctrl+L)">🔁</button>
+      <button class="tool on" id="snapBtn" data-cmd="snapToggle" title="Snapping (S)"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#magnet"/></svg></button>
+      <button class="tool" id="loopBtn" data-cmd="loopToggle" title="Loop playback (Ctrl+L)"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#repeat"/></svg></button>
       <div class="tl-sep"></div>
-      <button class="tool" data-cmd="addMarker" title="Add marker (M)">🔖</button>
+      <button class="tool" data-cmd="addMarker" title="Add marker (M)"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#bookmark"/></svg></button>
       <button class="tool" data-cmd="setIn" title="Mark in (I)">[</button>
       <button class="tool" data-cmd="setOut" title="Mark out (O)">]</button>
       <div class="tl-spacer"></div>
       <span class="tl-hint" id="tlHint">no clip selected</span>
       <div class="tl-sep"></div>
-      <button class="tool zoom-out" data-cmd="zoomOut" title="Zoom out (−)">−</button>
-      <button class="tool" data-cmd="zoomFit" title="Zoom to fit (Shift+Z)">⤢</button>
-      <button class="tool" data-cmd="zoomIn" title="Zoom in (+)">＋</button>
+      <button class="tool zoom-out" data-cmd="zoomOut" title="Zoom out (−)"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#zoom-out"/></svg></button>
+      <button class="tool" data-cmd="zoomFit" title="Zoom to fit (Shift+Z)"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#maximize-2"/></svg></button>
+      <button class="tool" data-cmd="zoomIn" title="Zoom in (+)"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#zoom-in"/></svg></button>
     </div>
     <div class="tl">
       <div class="tl-heads" id="tlHeads"><div class="tl-head-pad"></div></div>
@@ -2533,14 +2538,14 @@
     playing = true;
     clockStart = performance.now();
     headAtStart = state.playhead;
-    playBtn.textContent = '❚❚';
+    playBtn.innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pause"/></svg>';
     rafId = requestAnimationFrame(frame);
   }
   function stopPlayback(ended){
     if (!playing && !ended) return;
     playing = false;
     if (rafId){ cancelAnimationFrame(rafId); rafId = null; }
-    playBtn.textContent = '▶';
+    playBtn.innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#play"/></svg>';
     syncMedia(state.playhead, false);
     updateAudio(state.playhead, false);
     if (exporting && recorder && recorder.state !== 'inactive') recorder.stop();
@@ -2594,11 +2599,11 @@
       html += `<div class="trk-head${tr.id === state.activeTrack ? ' active' : ''}" data-track="${tr.id}" style="height:${laneHeight(tr)}px">
         <span class="nm">${esc(tr.name)}</span>
         ${tr.kind === 'video'
-          ? `<button class="tbtn-sm${tr.hidden ? ' off' : ''}" data-t-act="hide" title="Hide track">${tr.hidden ? '🚫' : '👁'}</button>`
+          ? `<button class="tbtn-sm${tr.hidden ? ' off' : ''}" data-t-act="hide" title="Hide track">${tr.hidden ? '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#eye-off"/></svg>' : '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#eye"/></svg>'}</button>`
           : ''}
-        <button class="tbtn-sm${tr.muted ? ' off' : ''}" data-t-act="mute" title="Mute track">${tr.muted ? '🔇' : '🔊'}</button>
+        <button class="tbtn-sm${tr.muted ? ' off' : ''}" data-t-act="mute" title="Mute track">${tr.muted ? '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#volume-x"/></svg>' : '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#volume-2"/></svg>'}</button>
         <button class="tbtn-sm${tr.solo ? ' solo' : ''}" data-t-act="solo" title="Solo track">S</button>
-        <button class="tbtn-sm${tr.locked ? ' off' : ''}" data-t-act="lock" title="Lock track">${tr.locked ? '🔒' : '🔓'}</button>
+        <button class="tbtn-sm${tr.locked ? ' off' : ''}" data-t-act="lock" title="Lock track">${tr.locked ? '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#lock"/></svg>' : '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#lock-open"/></svg>'}</button>
       </div>`;
     });
     tlHeads.innerHTML = html;
@@ -2636,10 +2641,10 @@
     drawWaveforms();
   }
   function clipLabel(c){
-    if (c.type === 'text') return '🅣 ' + (c.text || 'Text').slice(0, 40);
-    if (c.type === 'outro') return '✦ Logo outro';
-    if (c.type === 'shape') return '◼ ' + c.name;
-    if (c.type === 'adjust') return '◐ Adjustment';
+    if (c.type === 'text') return 'Text · ' + (c.text || 'Text').slice(0, 40);
+    if (c.type === 'outro') return 'Logo outro';
+    if (c.type === 'shape') return 'Shape · ' + c.name;
+    if (c.type === 'adjust') return 'Adjustment';
     return c.name;
   }
 
@@ -3477,7 +3482,7 @@
       `<div class="preset-row">` +
       ['', '#4493f8', '#3fb950', '#e3b341', '#f85149', '#a371f7'].map(col =>
         `<button class="preset lbl-swatch${(c.label||'') === col ? ' on' : ''}" data-label="${col}"
-           style="${col ? `background:${col};border-color:${col}` : ''}">${col ? '' : '✕'}</button>`).join('') +
+           style="${col ? `background:${col};border-color:${col}` : ''}">${col ? '' : '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg>'}</button>`).join('') +
       `</div>`
     );
 
@@ -3730,7 +3735,7 @@
              <span class="kf-name">${ANIM_LABEL[k] || k}</span>
              <span class="kf-n">${c.kf[k].length}◆</span>
              <select class="kf-ez" data-kfez="${k}">${easeOpts(c.kf[k][0] && c.kf[k][0].ez)}</select>
-             <button data-kfclear="${k}" title="Remove these keyframes">✕</button>
+             <button data-kfclear="${k}" title="Remove these keyframes"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
            </div>`).join('') +
         `<div style="font-size:11px;color:var(--dim2);line-height:1.5;margin-top:7px">
            Move the playhead, then change a value — a keyframe is added there automatically.
@@ -3912,10 +3917,10 @@
         ? (a.width ? `${a.width}×${a.height}` : 'image')
         : (a.duration ? tcFmt(a.duration) : '…');
       h += `<div class="bin-item" data-asset="${a.id}">
-        <div class="bin-thumb" data-thumb="${a.id}">${a.kind === 'audio' ? '♪' : ''}</div>
+        <div class="bin-thumb" data-thumb="${a.id}">${a.kind === 'audio' ? '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#music"/></svg>' : ''}</div>
         <div class="bin-meta"><div class="bin-name">${esc(a.name)}</div><div class="bin-sub">${sub}</div></div>
-        <button class="bin-add" title="Add to timeline">＋</button>
-        <button class="bin-add bin-del" title="Remove from project">✕</button>
+        <button class="bin-add" title="Add to timeline"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#plus"/></svg></button>
+        <button class="bin-add bin-del" title="Remove from project"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
       </div>`;
     }
     binList.innerHTML = h;

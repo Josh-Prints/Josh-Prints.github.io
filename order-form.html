@@ -8,6 +8,7 @@
 <title>Voxprints - Custom 3D Printing Orders</title>
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <style>
+  .ico{ vertical-align:-0.18em; flex-shrink:0; }
   :root{
     --bg: #f6f8fa;
     --bg-raised: #ffffff;
@@ -202,7 +203,7 @@
     background: rgba(26,127,55,0.1); border: 1px solid rgba(26,127,55,0.3);
     border-radius: 8px; font-size: 13px; color: var(--ok);
   }
-  .discount-banner.show{ display:flex; animation: fadeInUp 0.3s ease both; }
+  .discount-banner.show{ display:flex; align-items:center; gap:8px; animation: fadeInUp 0.3s ease both; }
   .promo-msg{ font-size:12.5px; margin-top:6px; min-height:16px; }
   .promo-msg.ok{ color: var(--ok); }
   .promo-msg.err{ color: var(--err); }
@@ -810,7 +811,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
   <div class="topbar-links">
     <a class="btn btn-primary" href="order.html">Track order</a>
     <div class="menu-wrap">
-      <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false">☰</button>
+      <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#menu"/></svg></button>
       <div class="menu-dropdown" id="menu-dropdown">
         <a href="index.html">Home</a>
         <a href="browse.html">Browse designs</a>
@@ -822,7 +823,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
           Sign in with Google
         </button>
         <button type="button" class="google-btn" id="email-code-btn">
-          ✉️ Sign in with email code
+          <svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#mail"/></svg> Sign in with email code
         </button>
         <div class="account-chip" id="account-chip">
           <img id="account-avatar" alt="">
@@ -830,13 +831,13 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
             <span class="name" id="account-name"></span>
             <span class="account-credit" id="account-credit"></span>
           </div>
-          <button type="button" class="account-edit-btn" id="account-edit-btn" aria-label="Edit profile" title="Edit profile">✏️</button>
+          <button type="button" class="account-edit-btn" id="account-edit-btn" aria-label="Edit profile" title="Edit profile"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pencil"/></svg></button>
           <button type="button" class="account-signout-btn" id="account-signout-btn">Sign out</button>
         </div>
-        <a href="admin/" id="admin-link" style="display:none;">🛠️ Admin dashboard</a>
+        <a href="admin/" id="admin-link" style="display:none;"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#wrench"/></svg> Admin dashboard</a>
         <div class="menu-dropdown-divider"></div>
         <div class="theme-row">
-          <span>🌙 Dark mode</span>
+          <span><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#moon"/></svg> Dark mode</span>
           <button type="button" class="theme-switch" id="theme-switch" role="switch" aria-checked="false" aria-label="Toggle dark mode"><span class="thumb"></span></button>
         </div>
       </div>
@@ -953,7 +954,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       <label>3D file <span style="text-transform:none; letter-spacing:0;">(optional)</span></label>
       <div class="dropzone" id="dropzone">
         <input type="file" id="file_input" accept=".stl,.obj,.3mf,.step,.stp,.iges,.igs,.zip" multiple>
-        <div class="glyph">⇪</div>
+        <div class="glyph"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#upload"/></svg></div>
         <div class="main">Drop a file or tap to browse</div>
         <div class="sub">STL, OBJ, 3MF, STEP, IGES, up to 100MB</div>
       </div>
@@ -967,7 +968,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       <div class="promo-msg" id="promo-msg"></div>
     </div>
 
-    <div class="discount-banner" id="discount-banner">🎉 You have 35% off your next order under 4 hours — I'll apply it to your quote.</div>
+    <div class="discount-banner" id="discount-banner"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#party-popper"/></svg> You have 35% off your next order under 4 hours — I'll apply it to your quote.</div>
 
     <button type="submit" id="submit-btn">
       <span class="progress-fill" id="progress-fill"></span>
@@ -978,10 +979,10 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
   </form>
 
   <div class="success-panel" id="success-panel">
-    <div class="check">✓</div>
+    <div class="check"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg></div>
     <h2 tabindex="-1" id="success-heading">Order received</h2>
     <div class="save-warning">
-      <span class="icon">⚠️</span>
+      <span class="icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#triangle-alert"/></svg></span>
       <span class="text"><strong>Save this link now.</strong> It's the only way to check your order status, see your quote, and message me. If you lose it, there's no way to look it up, so bookmark it, screenshot it, or copy it somewhere safe before you leave this page.</span>
     </div>
     <div class="link-box">
@@ -989,7 +990,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       <button type="button" id="copy-link-btn">Copy</button>
     </div>
     <a href="#" id="view-order-btn" class="view-order-btn" target="_blank">Open your order page →</a>
-    <p id="email-notice">📧 We've also emailed this link to <strong id="email-notice-addr"></strong> — check your inbox (and spam folder) if you don't see it soon.</p>
+    <p id="email-notice"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#mail"/></svg> We've also emailed this link to <strong id="email-notice-addr"></strong> — check your inbox (and spam folder) if you don't see it soon.</p>
   </div>
 
   <footer>Voxprints · orders reviewed and quoted individually</footer>
@@ -1040,7 +1041,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       return;
     }
     validatedPromo = data[0];
-    promoMsg.textContent = `✓ ${validatedPromo.description} — I'll apply it to your quote.`;
+    promoMsg.innerHTML = `<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg> ${escapeHtml(validatedPromo.description)} — I'll apply it to your quote.`;
     promoMsg.className = 'promo-msg ok';
   }
   promoInput.addEventListener('blur', checkPromoCode);
@@ -1434,7 +1435,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       accountChip.style.display = 'flex';
       accountName.textContent = (currentProfileName || user.email || '').split(' ')[0];
       accountAvatar.src = user.user_metadata?.avatar_url || '';
-      accountCredit.textContent = '💳 $' + Number(profile?.store_credit || 0).toFixed(2);
+      accountCredit.innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#credit-card"/></svg> $' + Number(profile?.store_credit || 0).toFixed(2);
       if (myOrdersLink) myOrdersLink.textContent = 'My orders';
 
       fieldFullName.style.display = 'none';

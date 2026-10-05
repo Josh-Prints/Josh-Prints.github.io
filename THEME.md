@@ -134,3 +134,27 @@ Every page uses the same mechanism — copy it verbatim for a new page:
    don't introduce new shadow/easing values without a reason.
 5. Keep borders as `rgba(var(--border-tint), alpha)`, never a flat gray hex,
    so dark mode stays correct for free.
+
+## Icons (no emoji)
+
+The site does not use emoji. All icons come from one sprite, `/icons.svg`
+(Lucide icons, ISC license, drawn on a 24px grid with a 2px round-capped
+stroke in `currentColor`, so they pick up the surrounding text color and
+dark/light mode automatically). Use this exact markup, with the symbol id
+as the last part of the `href`:
+
+```html
+<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#mail"/></svg>
+```
+
+- Each page's stylesheet starts with `.ico{ vertical-align:-0.18em; flex-shrink:0; }`.
+- The icon scales with `font-size` (1em). Put a space after it before the label.
+- Inside a `display:flex`/`inline-flex` container, add a `gap` instead (flex
+  containers drop the whitespace between an icon and a text node).
+- To add an icon, copy its `<symbol>` from the Lucide package into
+  `icons.svg` (same `<g fill="none" stroke="currentColor" ...>` wrapper).
+- In JS that sets `textContent`, switch to `innerHTML` and `escapeHtml()` any
+  user-supplied text. Plain-text spots (placeholders, `title`, toasts,
+  `alert`) cannot hold an SVG, so leave the emoji out there.
+- Typographic arrows (`→ ←`), the `◆` keyframe marker and `⇧` key hints are
+  plain text and are intentionally kept.

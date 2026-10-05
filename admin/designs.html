@@ -7,6 +7,7 @@
 <title>Manage designs — Voxprints Admin</title>
 <link rel="icon" type="image/svg+xml" href="../logo.svg">
 <style>
+  .ico{ vertical-align:-0.18em; flex-shrink:0; }
   :root{
     --bg: #f6f8fa;
     --bg-raised: #ffffff;
@@ -368,7 +369,7 @@
       <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
     </svg><span class="brand-text">Vox<span>prints</span></span>: Designs</h1>
     <div class="right">
-      <button type="button" class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle dark mode" aria-pressed="false">🌙</button>
+      <button type="button" class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle dark mode" aria-pressed="false"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#moon"/></svg></button>
       <a class="btn" href="index.html">← Back to orders</a>
       <button class="btn btn-primary" id="add-btn">+ Add design</button>
     </div>
@@ -380,7 +381,7 @@
 
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal">
-    <button class="modal-close" id="modal-close">✕</button>
+    <button class="modal-close" id="modal-close"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
     <h2 id="modal-title">Add design</h2>
     <form id="design-form">
       <div class="field">
@@ -439,7 +440,7 @@
     }
     function applyTheme(mode){
       const isDark = mode === 'dark';
-      toggle.textContent = isDark ? '☀️' : '🌙';
+      toggle.innerHTML = isDark ? '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#sun"/></svg>' : '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#moon"/></svg>';
       toggle.setAttribute('aria-pressed', String(isDark));
     }
     toggle.addEventListener('click', () => {
@@ -634,12 +635,12 @@
       tile.innerHTML = `
         <div class="tile-img">${img ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;" alt="">` : 'No image'}</div>
         <div class="tile-body">
-          <div class="tile-name">${escapeHtml(p.name)}${!p.active ? '<span class="tile-badge">Hidden</span>' : ''}${p.pinned ? '<span class="tile-badge pin">📌 Pinned</span>' : ''}</div>
+          <div class="tile-name">${escapeHtml(p.name)}${!p.active ? '<span class="tile-badge">Hidden</span>' : ''}${p.pinned ? '<span class="tile-badge pin"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pin"/></svg> Pinned</span>' : ''}</div>
           <div class="tile-price">${p.price != null ? '$' + Number(p.price).toFixed(2) : 'No price set'}</div>
-          ${photoCount > 1 ? `<div class="tile-model-badge">🖼 ${photoCount} photos</div>` : ''}
-          ${p.model_path ? `<div class="tile-model-badge">🧊 ${escapeHtml(p.model_name || '3D file')}</div>` : ''}
+          ${photoCount > 1 ? `<div class="tile-model-badge"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#image"/></svg> ${photoCount} photos</div>` : ''}
+          ${p.model_path ? `<div class="tile-model-badge"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#box"/></svg> ${escapeHtml(p.model_name || '3D file')}</div>` : ''}
           <div class="tile-actions">
-            <button type="button" class="pin-btn${p.pinned ? ' pinned' : ''}" data-pin="${p.id}">${p.pinned ? '📌 Pinned' : '📌 Pin'}</button>
+            <button type="button" class="pin-btn${p.pinned ? ' pinned' : ''}" data-pin="${p.id}">${p.pinned ? '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pin"/></svg> Pinned' : '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pin"/></svg> Pin'}</button>
             <button type="button" data-edit="${p.id}">Edit</button>
             <button type="button" class="danger" data-delete="${p.id}">Delete</button>
           </div>
@@ -731,7 +732,7 @@
       <div class="photo-thumb" data-key="${p.key}">
         <img src="${p.url}" alt="">
         ${i === 0 ? '<span class="cover-badge">Cover</span>' : ''}
-        <button type="button" class="photo-remove" data-remove="${p.key}" aria-label="Remove photo">✕</button>
+        <button type="button" class="photo-remove" data-remove="${p.key}" aria-label="Remove photo"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
         ${i > 0 ? `<button type="button" class="photo-move move-left" data-move-left="${p.key}" aria-label="Move earlier">‹</button>` : ''}
         ${i < pendingPhotos.length - 1 ? `<button type="button" class="photo-move move-right" data-move-right="${p.key}" aria-label="Move later">›</button>` : ''}
       </div>
@@ -774,7 +775,7 @@
     if (currentModelPath && !removeExistingModel){
       el.style.display = 'flex';
       el.className = 'file-current';
-      el.innerHTML = `<span class="name">🧊 ${escapeHtml(currentModelName || 'model file')}</span><button type="button" id="model-remove-btn">Remove</button>`;
+      el.innerHTML = `<span class="name"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#box"/></svg> ${escapeHtml(currentModelName || 'model file')}</span><button type="button" id="model-remove-btn">Remove</button>`;
       document.getElementById('model-remove-btn').addEventListener('click', () => {
         removeExistingModel = true;
         renderModelCurrent();

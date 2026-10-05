@@ -7,6 +7,7 @@
 <title>Voxprints — Founder</title>
 <link rel="icon" type="image/svg+xml" href="../logo.svg">
 <style>
+  .ico{ vertical-align:-0.18em; flex-shrink:0; }
   :root{
     --bg: #f6f8fa;
     --bg-raised: #ffffff;
@@ -1683,10 +1684,10 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <div class="site-divider"></div>
       <div class="modal-body">
         <label style="display:block;">Announcement message
-          <textarea class="banner-textarea" id="banner-msg-input" rows="2" placeholder="e.g. 🎄 Holiday orders close Dec 18 — order now to get it in time!"></textarea>
+          <textarea class="banner-textarea" id="banner-msg-input" rows="2" placeholder="e.g. Holiday orders close Dec 18 — order now to get it in time!"></textarea>
         </label>
         <div class="theme-row" style="margin-top:14px;">
-          <span>📢 Show banner</span>
+          <span><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#megaphone"/></svg> Show banner</span>
           <button type="button" class="theme-switch" id="banner-enabled-toggle" role="switch" aria-checked="false" aria-label="Show banner"><span class="thumb"></span></button>
         </div>
         <div class="theme-row">
@@ -1711,7 +1712,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
       <div class="modal-body">
         <div class="theme-row">
-          <span>🛒 Accepting new orders</span>
+          <span><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#shopping-cart"/></svg> Accepting new orders</span>
           <button type="button" class="theme-switch" id="orders-enabled-toggle" role="switch" aria-checked="true" aria-label="Accepting new orders"><span class="thumb"></span></button>
         </div>
         <label style="display:block;margin-top:14px;">What customers see while closed
@@ -1726,7 +1727,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <h2 class="settings-section-title">Store Credit</h2>
       <div class="modal-body">
         <div class="theme-row">
-          <span>💳 Store credit enabled</span>
+          <span><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#credit-card"/></svg> Store credit enabled</span>
           <button type="button" class="theme-switch" id="credit-enabled-toggle" role="switch" aria-checked="false" aria-label="Store credit enabled"><span class="thumb"></span></button>
         </div>
         <div class="rates-form-grid" style="margin-top:14px;">
@@ -1865,19 +1866,19 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
             <div class="ai-model-list" id="ai-model-list">
               <button type="button" class="ai-model-option" data-model="claude-fable-5-1">
                 <span><span class="ai-model-name">Fable 5.1</span><span class="ai-model-desc">For your toughest challenges — highest cost</span></span>
-                <span class="ai-model-check">✓</span>
+                <span class="ai-model-check"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg></span>
               </button>
               <button type="button" class="ai-model-option" data-model="claude-opus-5">
                 <span><span class="ai-model-name">Opus 5</span><span class="ai-model-desc">For complex tasks</span></span>
-                <span class="ai-model-check">✓</span>
+                <span class="ai-model-check"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg></span>
               </button>
               <button type="button" class="ai-model-option" data-model="claude-sonnet-5">
                 <span><span class="ai-model-name">Sonnet 5</span><span class="ai-model-desc">Most efficient for everyday tasks</span></span>
-                <span class="ai-model-check">✓</span>
+                <span class="ai-model-check"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg></span>
               </button>
               <button type="button" class="ai-model-option" data-model="claude-haiku-4-5">
                 <span><span class="ai-model-name">Haiku 4.5</span><span class="ai-model-desc">Fastest for quick answers</span></span>
-                <span class="ai-model-check">✓</span>
+                <span class="ai-model-check"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg></span>
               </button>
             </div>
           </div>
@@ -2183,7 +2184,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       ratesMsg.textContent = 'Error: ' + error.message;
       return;
     }
-    ratesMsg.textContent = 'Saved ✓ — live everywhere now.';
+    ratesMsg.innerHTML = 'Saved <svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg> — live everywhere now.';
     setTimeout(() => { if (ratesMsg.textContent.startsWith('Saved')) ratesMsg.textContent = ''; }, 3000);
   });
 
@@ -2209,7 +2210,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     ordersSaveBtn.disabled = false;
     ordersSaveBtn.textContent = 'Save ordering';
     if (error){ ordersMsgEl.textContent = 'Error: ' + error.message; return; }
-    ordersMsgEl.textContent = open ? 'Open for orders ✓' : 'Closed — the order form is off ✓';
+    ordersMsgEl.innerHTML = open ? 'Open for orders <svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg>' : 'Closed — the order form is off <svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg>';
     setTimeout(() => { ordersMsgEl.textContent = ''; }, 4000);
   });
 
@@ -2278,7 +2279,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       bannerMsgEl.textContent = 'Error: ' + error.message;
       return;
     }
-    bannerMsgEl.textContent = 'Saved ✓ — live everywhere now.';
+    bannerMsgEl.innerHTML = 'Saved <svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg> — live everywhere now.';
     setTimeout(() => { if (bannerMsgEl.textContent.startsWith('Saved')) bannerMsgEl.textContent = ''; }, 3000);
   });
 
@@ -2346,7 +2347,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       siteDescMsgEl.textContent = 'Error: ' + error.message;
       return;
     }
-    siteDescMsgEl.textContent = 'Saved ✓ — live everywhere now.';
+    siteDescMsgEl.innerHTML = 'Saved <svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg> — live everywhere now.';
     setTimeout(() => { if (siteDescMsgEl.textContent.startsWith('Saved')) siteDescMsgEl.textContent = ''; }, 3000);
   });
 
@@ -2745,7 +2746,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       creditMsgEl.textContent = 'Error: ' + error.message;
       return;
     }
-    creditMsgEl.textContent = 'Saved ✓ — live everywhere now.';
+    creditMsgEl.innerHTML = 'Saved <svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg> — live everywhere now.';
     setTimeout(() => { if (creditMsgEl.textContent.startsWith('Saved')) creditMsgEl.textContent = ''; }, 3000);
   });
 
@@ -2811,7 +2812,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         </div>
         <div class="fil-actions">
           <button class="fil-toggle ${p.active ? 'is-active' : ''}" data-id="${p.id}">${p.active ? 'Active' : 'Disabled'}</button>
-          <button class="fil-del" data-id="${p.id}">🗑</button>
+          <button class="fil-del" data-id="${p.id}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#trash-2"/></svg></button>
         </div>
       `;
       promoListEl.appendChild(row);
@@ -2867,8 +2868,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     }
     promoCodeInput.value = '';
     promoValueInput.value = '';
-    promoMsgEl.textContent = 'Added ✓';
-    setTimeout(() => { if (promoMsgEl.textContent === 'Added ✓') promoMsgEl.textContent = ''; }, 2500);
+    promoMsgEl.innerHTML = 'Added <svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg>';
+    setTimeout(() => { if (promoMsgEl.textContent.trim() === 'Added') promoMsgEl.textContent = ''; }, 2500);
     loadPromoCodes();
   });
 
@@ -2906,31 +2907,32 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       return div;
     }
 
+    const icoHtml = n => '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#' + n + '"/></svg>';
     const STATUS_LABELS = {
-      thinking: '✻ Thinking…',
-      list_orders: '🔍 Looking up orders…',
-      get_order_detail: '📄 Checking an order…',
-      update_order_status: '✏️ Changing an order’s status…',
-      send_customer_message: '✉️ Sending a customer message…',
-      send_customer_email: '📧 Sending a customer email…',
-      suggest_actions: '💡 Preparing suggestions…'
+      thinking: icoHtml('asterisk') + ' Thinking…',
+      list_orders: icoHtml('search') + ' Looking up orders…',
+      get_order_detail: icoHtml('file-text') + ' Checking an order…',
+      update_order_status: icoHtml('pencil') + ' Changing an order’s status…',
+      send_customer_message: icoHtml('mail') + ' Sending a customer message…',
+      send_customer_email: icoHtml('mail') + ' Sending a customer email…',
+      suggest_actions: icoHtml('lightbulb') + ' Preparing suggestions…'
     };
 
     function addStatus(text){
       const div = document.createElement('div');
       div.className = 'ai-msg ai-msg-bot ai-status';
-      div.textContent = text;
+      div.innerHTML = text;
       log.appendChild(div);
       log.scrollTop = log.scrollHeight;
       return div;
     }
 
     const TOOL_STEP_LABELS = {
-      list_orders: { icon: '🔍', label: 'Looked up orders' },
-      get_order_detail: { icon: '📄', label: 'Checked an order' },
-      update_order_status: { icon: '✏️', label: 'Changed an order’s status' },
-      send_customer_message: { icon: '✉️', label: 'Sent a customer message' },
-      send_customer_email: { icon: '📧', label: 'Sent a customer email' }
+      list_orders: { icon: 'search', label: 'Looked up orders' },
+      get_order_detail: { icon: 'file-text', label: 'Checked an order' },
+      update_order_status: { icon: 'pencil', label: 'Changed an order’s status' },
+      send_customer_message: { icon: 'mail', label: 'Sent a customer message' },
+      send_customer_email: { icon: 'mail', label: 'Sent a customer email' }
     };
 
     function summarizeToolInput(input){
@@ -2939,7 +2941,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     }
 
     function addToolStep(call){
-      const meta = TOOL_STEP_LABELS[call.name] || { icon: '🔧', label: call.name };
+      const meta = TOOL_STEP_LABELS[call.name] || { icon: 'wrench', label: call.name };
       const summary = summarizeToolInput(call.input);
 
       const div = document.createElement('div');
@@ -2948,10 +2950,10 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       const head = document.createElement('div');
       head.className = 'ai-step-head';
       const label = document.createElement('span');
-      label.textContent = meta.icon + ' ' + meta.label + (summary ? ' — ' + summary : '');
+      label.innerHTML = icoHtml(meta.icon) + ' ' + escapeHtml(meta.label + (summary ? ' — ' + summary : ''));
       const chevron = document.createElement('span');
       chevron.className = 'ai-step-chevron';
-      chevron.textContent = '▸';
+      chevron.innerHTML = icoHtml('chevron-right');
       head.appendChild(label);
       head.appendChild(chevron);
       head.addEventListener('click', () => div.classList.toggle('open'));
@@ -3082,7 +3084,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       let statusEl = null;
       let botEl = null;
       let botRaw = '';
-      const ensureStatus = (t) => { if (!statusEl) statusEl = addStatus(t); else statusEl.textContent = t; };
+      const ensureStatus = (t) => { if (!statusEl) statusEl = addStatus(t); else statusEl.innerHTML = t; };
       const clearStatus = () => { if (statusEl){ statusEl.remove(); statusEl = null; } };
 
       try {
@@ -3114,7 +3116,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
             try { evt = JSON.parse(raw); } catch (e) { continue; }
 
             if (evt.type === 'status'){
-              ensureStatus(evt.phase === 'thinking' ? STATUS_LABELS.thinking : (STATUS_LABELS[evt.tool] || ('🔧 Using ' + evt.tool + '…')));
+              ensureStatus(evt.phase === 'thinking' ? STATUS_LABELS.thinking : (STATUS_LABELS[evt.tool] || (icoHtml('wrench') + ' Using ' + escapeHtml(evt.tool) + '…')));
             } else if (evt.type === 'text_delta'){
               if (!botEl){ clearStatus(); botEl = addMsg('', 'ai-msg-bot'); }
               botRaw += evt.text;
@@ -3158,13 +3160,13 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 </script>
 
 <!-- AI ASSISTANT -->
-<button type="button" id="ai-fab" aria-label="Open AI assistant" title="AI assistant" hidden>✨</button>
+<button type="button" id="ai-fab" aria-label="Open AI assistant" title="AI assistant" hidden><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#sparkles"/></svg></button>
 <div id="ai-panel" hidden>
   <div class="ai-panel-head">
-    <span>✨ Order assistant</span>
+    <span><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#sparkles"/></svg> Order assistant</span>
     <div style="display:flex; gap:10px; align-items:center;">
-      <button type="button" id="ai-clear" aria-label="Clear conversation" title="Clear conversation">🗑</button>
-      <button type="button" id="ai-close" aria-label="Close">✕</button>
+      <button type="button" id="ai-clear" aria-label="Clear conversation" title="Clear conversation"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#trash-2"/></svg></button>
+      <button type="button" id="ai-close" aria-label="Close"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
     </div>
   </div>
   <div class="ai-panel-body" id="ai-log">

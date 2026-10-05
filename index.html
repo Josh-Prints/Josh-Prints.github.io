@@ -8,6 +8,7 @@
 <title>Voxprints</title>
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <style>
+  .ico{ vertical-align:-0.18em; flex-shrink:0; }
   :root{
     --canvas: #ffffff;
     --canvas-inset: #f6f8fa;
@@ -493,7 +494,7 @@
     </a>
     <div class="topbar-links">
       <a class="btn btn-primary" href="order-form.html">Order</a>
-      <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false">☰</button>
+      <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#menu"/></svg></button>
     </div>
   </div>
 
@@ -507,14 +508,14 @@
   <div class="sidebar" id="sidebar" aria-hidden="true" inert>
     <div class="sidebar-head">
       <span>Menu</span>
-      <button class="sidebar-close" id="sidebar-close" aria-label="Close menu">✕</button>
+      <button class="sidebar-close" id="sidebar-close" aria-label="Close menu"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
     </div>
     <nav>
-      <a href="browse.html"><span class="icon">🔍</span> Browse designs</a>
-      <a href="estimate.html"><span class="icon">💲</span> Estimate cost</a>
-      <a href="order-form.html"><span class="icon">✎</span> Start a custom order</a>
-      <a href="order.html" id="my-orders-link"><span class="icon">📦</span> Track an order</a>
-      <a href="admin/" id="admin-link" style="display:none;"><span class="icon">🛠️</span> Admin dashboard</a>
+      <a href="browse.html"><span class="icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#search"/></svg></span> Browse designs</a>
+      <a href="estimate.html"><span class="icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#circle-dollar-sign"/></svg></span> Estimate cost</a>
+      <a href="order-form.html"><span class="icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pencil"/></svg></span> Start a custom order</a>
+      <a href="order.html" id="my-orders-link"><span class="icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#package"/></svg></span> Track an order</a>
+      <a href="admin/" id="admin-link" style="display:none;"><span class="icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#wrench"/></svg></span> Admin dashboard</a>
     </nav>
     <div class="theme-row" style="border-top:1px solid var(--border-muted); margin-top:8px;">
       <button type="button" class="google-btn" id="google-signin-btn">
@@ -522,7 +523,7 @@
         Sign in with Google
       </button>
       <button type="button" class="google-btn" id="email-code-btn">
-        ✉️ Sign in with email code
+        <svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#mail"/></svg> Sign in with email code
       </button>
       <div class="account-chip" id="account-chip">
         <img id="account-avatar" alt="">
@@ -530,12 +531,12 @@
           <span class="name" id="account-name"></span>
           <span class="account-credit" id="account-credit"></span>
         </div>
-        <button type="button" class="account-edit-btn" id="account-edit-btn" aria-label="Edit profile" title="Edit profile">✏️</button>
+        <button type="button" class="account-edit-btn" id="account-edit-btn" aria-label="Edit profile" title="Edit profile"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pencil"/></svg></button>
         <button type="button" class="account-signout-btn" id="account-signout-btn">Sign out</button>
       </div>
     </div>
     <div class="theme-row">
-      <span>🌙 Dark mode</span>
+      <span><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#moon"/></svg> Dark mode</span>
       <button type="button" class="theme-switch" id="theme-switch" role="switch" aria-checked="false" aria-label="Toggle dark mode"><span class="thumb"></span></button>
     </div>
   </div>
@@ -863,7 +864,7 @@
       signInBtn.style.display = 'flex';
       emailCodeBtn.style.display = 'flex';
       accountChip.style.display = 'none';
-      if (myOrdersLink) myOrdersLink.innerHTML = '<span class="icon">📦</span> Track an order';
+      if (myOrdersLink) myOrdersLink.innerHTML = '<span class="icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#package"/></svg></span> Track an order';
       if (adminLink) adminLink.style.display = 'none';
       currentUser = null;
       currentProfileName = '';
@@ -877,8 +878,8 @@
       accountChip.style.display = 'flex';
       accountName.textContent = (currentProfileName || user.email || '').split(' ')[0];
       accountAvatar.src = user.user_metadata?.avatar_url || '';
-      accountCredit.textContent = '💳 $' + Number(profile?.store_credit || 0).toFixed(2);
-      if (myOrdersLink) myOrdersLink.innerHTML = '<span class="icon">📦</span> My orders';
+      accountCredit.innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#credit-card"/></svg> $' + Number(profile?.store_credit || 0).toFixed(2);
+      if (myOrdersLink) myOrdersLink.innerHTML = '<span class="icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#package"/></svg></span> My orders';
     }
 
     function openModal(mode){

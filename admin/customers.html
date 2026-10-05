@@ -7,6 +7,7 @@
 <title>Customers — Voxprints Admin</title>
 <link rel="icon" type="image/svg+xml" href="../logo.svg">
 <style>
+  .ico{ vertical-align:-0.18em; flex-shrink:0; }
   :root{
     --bg: #f6f8fa;
     --bg-raised: #ffffff;
@@ -267,7 +268,7 @@
       <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
     </svg><span class="brand-text">Vox<span>prints</span></span>: Customers</h1>
     <div class="right">
-      <button type="button" class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle dark mode" aria-pressed="false">🌙</button>
+      <button type="button" class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle dark mode" aria-pressed="false"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#moon"/></svg></button>
       <a class="btn" href="index.html">← Back to orders</a>
     </div>
   </div>
@@ -319,7 +320,7 @@
     }
     function applyTheme(mode){
       const isDark = mode === 'dark';
-      toggle.textContent = isDark ? '☀️' : '🌙';
+      toggle.innerHTML = isDark ? '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#sun"/></svg>' : '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#moon"/></svg>';
       toggle.setAttribute('aria-pressed', String(isDark));
     }
     toggle.addEventListener('click', () => {
@@ -495,14 +496,14 @@
             <div class="cust-stat"><div class="num">$${s.value.toFixed(2)}</div><div class="label">Est. value</div></div>
             <div class="cust-stat"><div class="num">${lastOrder}</div><div class="label">Last order</div></div>
             <div class="cust-stat">
-              <div class="num" id="cust-credit-wrap-${c.id}">$${Number(c.store_credit || 0).toFixed(2)}<button type="button" class="credit-edit-btn" data-id="${c.id}" title="Edit store credit">✏️</button></div>
+              <div class="num" id="cust-credit-wrap-${c.id}">$${Number(c.store_credit || 0).toFixed(2)}<button type="button" class="credit-edit-btn" data-id="${c.id}" title="Edit store credit"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pencil"/></svg></button></div>
               <div class="label">Store credit</div>
             </div>
           </div>
           ${statusChips || c.discount_available ? `
           <div class="cust-extra">
             ${statusChips}
-            ${c.discount_available ? '<span class="chip discount">🎉 Discount available</span>' : ''}
+            ${c.discount_available ? '<span class="chip discount"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#party-popper"/></svg> Discount available</span>' : ''}
           </div>` : ''}
         </div>
       `;
@@ -543,7 +544,7 @@
       const current = customers.find(c => c.id === id);
       if (current) current.store_credit = newVal;
       const wrap = document.getElementById(`cust-credit-wrap-${id}`);
-      wrap.innerHTML = `$${newVal.toFixed(2)}<button type="button" class="credit-edit-btn" data-id="${id}" title="Edit store credit">✏️</button>`;
+      wrap.innerHTML = `$${newVal.toFixed(2)}<button type="button" class="credit-edit-btn" data-id="${id}" title="Edit store credit"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pencil"/></svg></button>`;
     }
   });
 </script>

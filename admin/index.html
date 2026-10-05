@@ -7,6 +7,7 @@
 <title>Voxprints - Admin</title>
 <link rel="icon" type="image/svg+xml" href="../logo.svg">
 <style>
+  .ico{ vertical-align:-0.18em; flex-shrink:0; }
   :root{
     --bg: #f6f8fa;
     --bg-raised: #ffffff;
@@ -488,7 +489,7 @@
     cursor: pointer;
   }
   .chat-toggle:hover{ color: var(--ink); }
-  a.chat-toggle{ text-decoration: none; display: inline-flex; align-items: center; }
+  a.chat-toggle{ text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
 
   .chat-panel{
     display: none;
@@ -1452,7 +1453,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     <div class="right">
       <button class="icon-btn" id="refresh-btn">Refresh</button>
       <button class="icon-btn" id="logout-btn">Sign out</button>
-      <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false">☰
+      <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#menu"/></svg>
         <span class="notif-dot admin" id="menu-dot-admin"></span>
         <span class="notif-dot job" id="menu-dot-job"></span>
       </button>
@@ -1465,21 +1466,21 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   <div class="sidebar" id="sidebar" aria-hidden="true">
     <div class="sidebar-head">
       <span>Menu</span>
-      <button class="sidebar-close" id="sidebar-close" aria-label="Close menu">✕</button>
+      <button class="sidebar-close" id="sidebar-close" aria-label="Close menu"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
     </div>
     <nav>
-      <a href="../index.html"><span class="icon">🏠</span> Back to main site</a>
-      <a href="designs.html"><span class="icon">🧩</span> Manage designs</a>
-      <a href="customers.html"><span class="icon">🧑‍🤝‍🧑</span> Customers</a>
-      <a href="../quote.html" id="quote-builder-btn"><span class="icon">🧮</span> Quote builder</a>
-      <button type="button" id="filaments-btn"><span class="icon">🧵</span> Filaments</button>
-      <a href="video-maker.html"><span class="icon">🎬</span> Video maker</a>
-      <button type="button" id="admin-chat-btn"><span class="icon">💬</span> Admin chat<span class="notif-dot admin inline" id="sidebar-dot-admin"></span></button>
-      <button type="button" id="my-name-btn"><span class="icon">🙋</span> Set your name</button>
-      <a href="founder.html" id="founder-link" style="display:none;"><span class="icon">👑</span> Founder</a>
+      <a href="../index.html"><span class="icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#house"/></svg></span> Back to main site</a>
+      <a href="designs.html"><span class="icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#puzzle"/></svg></span> Manage designs</a>
+      <a href="customers.html"><span class="icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#users"/></svg></span> Customers</a>
+      <a href="../quote.html" id="quote-builder-btn"><span class="icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#calculator"/></svg></span> Quote builder</a>
+      <button type="button" id="filaments-btn"><span class="icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#spool"/></svg></span> Filaments</button>
+      <a href="video-maker.html"><span class="icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#clapperboard"/></svg></span> Video maker</a>
+      <button type="button" id="admin-chat-btn"><span class="icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#message-square"/></svg></span> Admin chat<span class="notif-dot admin inline" id="sidebar-dot-admin"></span></button>
+      <button type="button" id="my-name-btn"><span class="icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#hand"/></svg></span> Set your name</button>
+      <a href="founder.html" id="founder-link" style="display:none;"><span class="icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#crown"/></svg></span> Founder</a>
     </nav>
     <div class="theme-row">
-      <span>🌙 Dark mode</span>
+      <span><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#moon"/></svg> Dark mode</span>
       <button type="button" class="theme-switch" id="theme-switch" role="switch" aria-checked="false" aria-label="Toggle dark mode"><span class="thumb"></span></button>
     </div>
   </div>
@@ -1495,7 +1496,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     <button class="chip" data-filter="sold">Sold</button>
     <button class="chip" data-filter="cancelled">Cancelled</button>
     <button class="chip" data-filter="deleted">Deleted</button>
-    <button class="chip" id="only-mine-chip">🙋 Claimed by me</button>
+    <button class="chip" id="only-mine-chip"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#hand"/></svg> Claimed by me</button>
     <select class="sort-select" id="sort-select">
       <option value="newest">Newest first</option>
       <option value="oldest">Oldest first</option>
@@ -1538,7 +1539,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
 <div class="pdf-modal" id="pdf-modal">
   <div class="pdf-modal-inner">
-    <button type="button" class="pdf-modal-close" id="pdf-modal-close">✕</button>
+    <button type="button" class="pdf-modal-close" id="pdf-modal-close"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
     <iframe class="pdf-modal-frame" id="pdf-modal-frame" src=""></iframe>
     <img class="pdf-modal-img" id="pdf-modal-img" src="" alt="">
   </div>
@@ -1673,7 +1674,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <textarea placeholder="Message the team…" id="admin-chat-body"></textarea>
       <div class="chat-composer-row">
         <label class="chat-attach">
-          <span id="admin-chat-attach-label">📎 Attach file</span>
+          <span id="admin-chat-attach-label"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file</span>
           <input type="file" id="admin-chat-attach" multiple>
         </label>
         <button class="chat-send" id="admin-chat-send">Send</button>
@@ -1746,19 +1747,19 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     if (ext === 'pdf'){
       return `<div class="pdf-preview" data-url="${url}" title="Click to view ${safeName}">
         <embed src="${url}#toolbar=0&navpanes=0&view=FitH" type="application/pdf">
-        <div class="pdf-preview-label">📄 ${safeName}</div>
+        <div class="pdf-preview-label"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#file-text"/></svg> ${safeName}</div>
       </div>`;
     }
     if (IMAGE_EXTS.includes(ext)){
       return `<div class="img-preview" data-url="${url}" title="Click to view ${safeName}">
         <img src="${url}" alt="${safeName}" loading="lazy">
-        <div class="pdf-preview-label">🖼 ${safeName}</div>
+        <div class="pdf-preview-label"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#image"/></svg> ${safeName}</div>
       </div>`;
     }
     const viewBtn = MODEL_EXTS.includes(ext)
-      ? `<a class="view3d-btn" href="../viewer.html?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name || '')}" target="_blank">👁 View in 3D</a>`
+      ? `<a class="view3d-btn" href="../viewer.html?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name || '')}" target="_blank"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#eye"/></svg> View in 3D</a>`
       : '';
-    return `<span class="file-attachment"><a class="file-link" target="_blank" href="${url}">⇩ ${safeName}</a>${viewBtn}</span>`;
+    return `<span class="file-attachment"><a class="file-link" target="_blank" href="${url}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#download"/></svg> ${safeName}</a>${viewBtn}</span>`;
   }
 
   const pdfModal = document.getElementById('pdf-modal');
@@ -2061,7 +2062,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       showToast(
         'admin',
         `${latest.sender_name || 'Admin'} · Admin chat`,
-        latest.body || (latest.file_name ? `📎 ${latest.file_name}` : 'New message'),
+        latest.body || (latest.file_name ? `Attachment: ${latest.file_name}` : 'New message'),
         () => document.getElementById('admin-chat-btn').click()
       );
     }
@@ -2100,7 +2101,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         showToast(
           'job',
           `${order ? order.full_name : 'Customer'} · New message`,
-          m.body || (m.file_name ? `📎 ${m.file_name}` : 'Sent a file'),
+          m.body || (m.file_name ? `Attachment: ${m.file_name}` : 'Sent a file'),
           () => {
             const btn = ordersContainer.querySelector(`.chat-toggle[data-id="${m.order_id}"]`);
             btn?.click();
@@ -2298,23 +2299,23 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         </div>
         <div class="claim-row">
           ${order.claimed_by_id
-            ? `<span class="claim-badge ${order.claimed_by_id === myUserId ? 'mine' : ''}">👤 Claimed by ${escapeHtml(order.claimed_by || 'someone')}</span>
+            ? `<span class="claim-badge ${order.claimed_by_id === myUserId ? 'mine' : ''}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#user"/></svg> Claimed by ${escapeHtml(order.claimed_by || 'someone')}</span>
                ${order.claimed_by_id === myUserId ? `<button class="unclaim-btn" data-id="${order.id}">Release</button>` : `<button class="claim-btn" data-id="${order.id}">Take over</button>`}`
             : `<span class="claim-badge">Unclaimed</span><button class="claim-btn" data-id="${order.id}">Claim job</button>`
           }
         </div>
         ${order.signup_discount_snapshot ? `
         <div class="discount-row">
-          <span class="discount-badge">🎉 Signup discount available (35% off, prints under 4hrs)</span>
+          <span class="discount-badge"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#party-popper"/></svg> Signup discount available (35% off, prints under 4hrs)</span>
           <button type="button" class="discount-used-btn" data-discount-id="${order.id}" data-user-id="${order.user_id || ''}">Mark discount used</button>
         </div>` : ''}
         ${order.promo_code ? `
         <div class="discount-row">
-          <span class="discount-badge">🏷️ Promo: ${escapeHtml(order.promo_code)} — ${escapeHtml(order.promo_description || '')}</span>
+          <span class="discount-badge"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#tag"/></svg> Promo: ${escapeHtml(order.promo_code)} — ${escapeHtml(order.promo_description || '')}</span>
         </div>` : ''}
         ${order.user_id ? `
         <div class="credit-row">
-          <span class="credit-badge">💳 Store credit: $${Number(customerCreditMap[order.user_id] || 0).toFixed(2)}</span>
+          <span class="credit-badge"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#credit-card"/></svg> Store credit: $${Number(customerCreditMap[order.user_id] || 0).toFixed(2)}</span>
           <label class="credit-use-label">
             <input type="checkbox" class="credit-use-checkbox" data-id="${order.id}" ${order.use_store_credit ? 'checked' : ''}>
             Use store credit
@@ -2323,7 +2324,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
             value="${Number(order.store_credit_use_amount || 0).toFixed(2)}"
             style="display:${order.use_store_credit ? 'inline-block' : 'none'};">
         </div>` : ''}
-        ${order.filament_color ? `<div class="order-meta" style="margin-top:6px;">🧵 ${escapeHtml(order.filament_color)}${order.filament_type ? ' · ' + escapeHtml(order.filament_type) : ''}${order.filament_price_per_100g != null ? ` · $${Number(order.filament_price_per_100g).toFixed(2)}/100g` : ''}</div>` : ''}
+        ${order.filament_color ? `<div class="order-meta" style="margin-top:6px;"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#spool"/></svg> ${escapeHtml(order.filament_color)}${order.filament_type ? ' · ' + escapeHtml(order.filament_type) : ''}${order.filament_price_per_100g != null ? ` · $${Number(order.filament_price_per_100g).toFixed(2)}/100g` : ''}</div>` : ''}
         ${order.notes ? `<div class="order-notes">${escapeHtml(order.notes)}</div>` : ''}
         ${(() => {
           const files = (order.files && order.files.length > 0)
@@ -2337,13 +2338,13 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
           </select>
           <input type="text" class="quote-input" placeholder="Quote $" data-id="${order.id}" value="${order.quote_amount ?? ''}">
           <button class="save-btn" data-id="${order.id}">Save</button>
-          <a class="chat-toggle" href="../quote.html?order=${order.id}" target="_blank" rel="noopener">🧮 Quote builder</a>
-          ${order.status !== 'cancelled' ? `<button class="cancel-order-btn" data-id="${order.id}">✕ Cancel order</button>` : ''}
-          <button class="chat-toggle" data-id="${order.id}">💬 Messages<span class="notif-dot job" id="job-dot-${order.id}"></span></button>
-          <button class="chat-toggle copy-link-btn" data-id="${order.id}">🔗 Copy link</button>
+          <a class="chat-toggle" href="../quote.html?order=${order.id}" target="_blank" rel="noopener"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#calculator"/></svg> Quote builder</a>
+          ${order.status !== 'cancelled' ? `<button class="cancel-order-btn" data-id="${order.id}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg> Cancel order</button>` : ''}
+          <button class="chat-toggle" data-id="${order.id}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#message-square"/></svg> Messages<span class="notif-dot job" id="job-dot-${order.id}"></span></button>
+          <button class="chat-toggle copy-link-btn" data-id="${order.id}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#link"/></svg> Copy link</button>
           ${order.deleted
-            ? `<button class="chat-toggle restore-btn" data-id="${order.id}">♻️ Restore</button>`
-            : `<button class="chat-toggle delete-btn" data-id="${order.id}">🗑 Delete</button>`
+            ? `<button class="chat-toggle restore-btn" data-id="${order.id}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#archive-restore"/></svg> Restore</button>`
+            : `<button class="chat-toggle delete-btn" data-id="${order.id}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#trash-2"/></svg> Delete</button>`
           }
         </div>
         <div class="chat-panel" id="chat-panel-${order.id}">
@@ -2378,7 +2379,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
             <textarea placeholder="Reply to ${escapeHtml(order.full_name)}…" id="chat-body-${order.id}"></textarea>
             <div class="chat-composer-row">
               <label class="chat-attach">
-                <span id="chat-attach-label-${order.id}">📎 Attach file</span>
+                <span id="chat-attach-label-${order.id}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file</span>
                 <input type="file" id="chat-attach-${order.id}" multiple>
               </label>
               <button class="chat-send" data-id="${order.id}">Send</button>
@@ -2398,9 +2399,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         url.searchParams.set('order', id);
         try {
           await navigator.clipboard.writeText(url.href);
-          const original = btn.textContent;
-          btn.textContent = '✓ Copied';
-          setTimeout(() => { btn.textContent = original; }, 1500);
+          const original = btn.innerHTML;
+          btn.innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg> Copied';
+          setTimeout(() => { btn.innerHTML = original; }, 1500);
         } catch (e) {
           prompt('Copy this link:', url.href);
         }
@@ -2481,9 +2482,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       input.addEventListener('change', () => {
         const label = document.getElementById(`chat-attach-label-${id}`);
         const n = input.files.length;
-        label.textContent = n === 0 ? '📎 Attach file'
-          : n === 1 ? `📎 ${input.files[0].name}`
-          : `📎 ${n} files`;
+        label.innerHTML = n === 0 ? '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file'
+          : n === 1 ? `<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> ${escapeHtml(input.files[0].name)}`
+          : `<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> ${n} files`;
       });
     });
 
@@ -2834,7 +2835,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
       bodyEl.value = '';
       fileInput.value = '';
-      document.getElementById(`chat-attach-label-${orderId}`).textContent = '📎 Attach file';
+      document.getElementById(`chat-attach-label-${orderId}`).innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file';
       loadChat(orderId);
 
     } catch (err){
@@ -2881,9 +2882,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
   adminChatAttachInput.addEventListener('change', () => {
     const n = adminChatAttachInput.files.length;
-    adminChatAttachLabel.textContent = n === 0 ? '📎 Attach file'
-      : n === 1 ? `📎 ${adminChatAttachInput.files[0].name}`
-      : `📎 ${n} files`;
+    adminChatAttachLabel.innerHTML = n === 0 ? '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file'
+      : n === 1 ? `<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> ${escapeHtml(adminChatAttachInput.files[0].name)}`
+      : `<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> ${n} files`;
   });
 
   async function loadAdminChat(){
@@ -2898,7 +2899,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     }
     if (!data || data.length === 0){
       if (adminChatRenderCache !== 'empty'){
-        adminChatMessages.innerHTML = '<div class="chat-empty">No messages yet — say hi 👋</div>';
+        adminChatMessages.innerHTML = '<div class="chat-empty">No messages yet — say hi <svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#hand"/></svg></div>';
         adminChatRenderCache = 'empty';
       }
       return;
@@ -2956,7 +2957,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
       adminChatBody.value = '';
       adminChatAttachInput.value = '';
-      adminChatAttachLabel.textContent = '📎 Attach file';
+      adminChatAttachLabel.innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file';
       adminChatRenderCache = null; // force a fresh render since we just changed the data
       loadAdminChat();
 
@@ -3062,8 +3063,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       const img = filPublicUrl(f.image_path);
       row.innerHTML = `
         <div class="fil-reorder">
-          <button type="button" class="fil-up" data-id="${f.id}" ${i === 0 ? 'disabled' : ''} title="Move up">▲</button>
-          <button type="button" class="fil-down" data-id="${f.id}" ${i === currentFilaments.length - 1 ? 'disabled' : ''} title="Move down">▼</button>
+          <button type="button" class="fil-up" data-id="${f.id}" ${i === 0 ? 'disabled' : ''} title="Move up"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#chevron-up"/></svg></button>
+          <button type="button" class="fil-down" data-id="${f.id}" ${i === currentFilaments.length - 1 ? 'disabled' : ''} title="Move down"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#chevron-down"/></svg></button>
         </div>
         <div class="fil-swatch" style="${img ? `background-image:url(${img})` : ''}"></div>
         <div class="fil-info">
@@ -3073,7 +3074,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         <div class="fil-actions">
           <button class="fil-toggle ${f.active ? 'is-active' : ''}" data-id="${f.id}">${f.active ? 'Active' : 'Hidden'}</button>
           <button class="fil-edit" data-id="${f.id}">Edit</button>
-          <button class="fil-del" data-id="${f.id}">🗑</button>
+          <button class="fil-del" data-id="${f.id}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#trash-2"/></svg></button>
         </div>
       `;
       filListEl.appendChild(row);
@@ -3201,7 +3202,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
           image_path: imagePath
         }).eq('id', editingFilamentId);
         if (error) throw error;
-        filMsgEl.textContent = 'Saved ✓';
+        filMsgEl.innerHTML = 'Saved <svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg>';
       } else {
         const nextSortOrder = currentFilaments.length
           ? Math.max(...currentFilaments.map(f => f.sort_order ?? 0)) + 1
@@ -3215,11 +3216,11 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
           sort_order: nextSortOrder
         });
         if (error) throw error;
-        filMsgEl.textContent = 'Added ✓';
+        filMsgEl.innerHTML = 'Added <svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg>';
       }
 
       exitFilamentEdit();
-      setTimeout(() => { if (filMsgEl.textContent === 'Added ✓' || filMsgEl.textContent === 'Saved ✓') filMsgEl.textContent = ''; }, 2500);
+      setTimeout(() => { if (['Added', 'Saved'].includes(filMsgEl.textContent.trim())) filMsgEl.textContent = ''; }, 2500);
       loadFilaments();
 
     } catch (err){
@@ -3260,7 +3261,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
     if (error){ nameMsg.textContent = 'Error: ' + error.message; return; }
     myDisplayName = val;
-    nameMsg.textContent = 'Saved ✓';
+    nameMsg.innerHTML = 'Saved <svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg>';
     setTimeout(() => nameOverlay.classList.remove('open'), 700);
   });
 
@@ -3290,31 +3291,32 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       return div;
     }
 
+    const icoHtml = n => '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#' + n + '"/></svg>';
     const STATUS_LABELS = {
-      thinking: '✻ Thinking…',
-      list_orders: '🔍 Looking up orders…',
-      get_order_detail: '📄 Checking an order…',
-      update_order_status: '✏️ Changing an order’s status…',
-      send_customer_message: '✉️ Sending a customer message…',
-      send_customer_email: '📧 Sending a customer email…',
-      suggest_actions: '💡 Preparing suggestions…'
+      thinking: icoHtml('asterisk') + ' Thinking…',
+      list_orders: icoHtml('search') + ' Looking up orders…',
+      get_order_detail: icoHtml('file-text') + ' Checking an order…',
+      update_order_status: icoHtml('pencil') + ' Changing an order’s status…',
+      send_customer_message: icoHtml('mail') + ' Sending a customer message…',
+      send_customer_email: icoHtml('mail') + ' Sending a customer email…',
+      suggest_actions: icoHtml('lightbulb') + ' Preparing suggestions…'
     };
 
     function addStatus(text){
       const div = document.createElement('div');
       div.className = 'ai-msg ai-msg-bot ai-status';
-      div.textContent = text;
+      div.innerHTML = text;
       log.appendChild(div);
       log.scrollTop = log.scrollHeight;
       return div;
     }
 
     const TOOL_STEP_LABELS = {
-      list_orders: { icon: '🔍', label: 'Looked up orders' },
-      get_order_detail: { icon: '📄', label: 'Checked an order' },
-      update_order_status: { icon: '✏️', label: 'Changed an order’s status' },
-      send_customer_message: { icon: '✉️', label: 'Sent a customer message' },
-      send_customer_email: { icon: '📧', label: 'Sent a customer email' }
+      list_orders: { icon: 'search', label: 'Looked up orders' },
+      get_order_detail: { icon: 'file-text', label: 'Checked an order' },
+      update_order_status: { icon: 'pencil', label: 'Changed an order’s status' },
+      send_customer_message: { icon: 'mail', label: 'Sent a customer message' },
+      send_customer_email: { icon: 'mail', label: 'Sent a customer email' }
     };
 
     function summarizeToolInput(input){
@@ -3323,7 +3325,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     }
 
     function addToolStep(call){
-      const meta = TOOL_STEP_LABELS[call.name] || { icon: '🔧', label: call.name };
+      const meta = TOOL_STEP_LABELS[call.name] || { icon: 'wrench', label: call.name };
       const summary = summarizeToolInput(call.input);
 
       const div = document.createElement('div');
@@ -3332,10 +3334,10 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       const head = document.createElement('div');
       head.className = 'ai-step-head';
       const label = document.createElement('span');
-      label.textContent = meta.icon + ' ' + meta.label + (summary ? ' — ' + summary : '');
+      label.innerHTML = icoHtml(meta.icon) + ' ' + escapeHtml(meta.label + (summary ? ' — ' + summary : ''));
       const chevron = document.createElement('span');
       chevron.className = 'ai-step-chevron';
-      chevron.textContent = '▸';
+      chevron.innerHTML = icoHtml('chevron-right');
       head.appendChild(label);
       head.appendChild(chevron);
       head.addEventListener('click', () => div.classList.toggle('open'));
@@ -3466,7 +3468,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       let statusEl = null;
       let botEl = null;
       let botRaw = '';
-      const ensureStatus = (t) => { if (!statusEl) statusEl = addStatus(t); else statusEl.textContent = t; };
+      const ensureStatus = (t) => { if (!statusEl) statusEl = addStatus(t); else statusEl.innerHTML = t; };
       const clearStatus = () => { if (statusEl){ statusEl.remove(); statusEl = null; } };
 
       try {
@@ -3498,7 +3500,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
             try { evt = JSON.parse(raw); } catch (e) { continue; }
 
             if (evt.type === 'status'){
-              ensureStatus(evt.phase === 'thinking' ? STATUS_LABELS.thinking : (STATUS_LABELS[evt.tool] || ('🔧 Using ' + evt.tool + '…')));
+              ensureStatus(evt.phase === 'thinking' ? STATUS_LABELS.thinking : (STATUS_LABELS[evt.tool] || (icoHtml('wrench') + ' Using ' + escapeHtml(evt.tool) + '…')));
             } else if (evt.type === 'text_delta'){
               if (!botEl){ clearStatus(); botEl = addMsg('', 'ai-msg-bot'); }
               botRaw += evt.text;
@@ -3542,13 +3544,13 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 </script>
 
 <!-- AI ASSISTANT -->
-<button type="button" id="ai-fab" aria-label="Open AI assistant" title="AI assistant" hidden>✨</button>
+<button type="button" id="ai-fab" aria-label="Open AI assistant" title="AI assistant" hidden><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#sparkles"/></svg></button>
 <div id="ai-panel" hidden>
   <div class="ai-panel-head">
-    <span>✨ Order assistant</span>
+    <span><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#sparkles"/></svg> Order assistant</span>
     <div style="display:flex; gap:10px; align-items:center;">
-      <button type="button" id="ai-clear" aria-label="Clear conversation" title="Clear conversation">🗑</button>
-      <button type="button" id="ai-close" aria-label="Close">✕</button>
+      <button type="button" id="ai-clear" aria-label="Clear conversation" title="Clear conversation"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#trash-2"/></svg></button>
+      <button type="button" id="ai-close" aria-label="Close"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
     </div>
   </div>
   <div class="ai-panel-body" id="ai-log">

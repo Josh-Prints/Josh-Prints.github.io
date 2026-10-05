@@ -9,6 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
+  .ico{ vertical-align:-0.18em; flex-shrink:0; }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
@@ -398,7 +399,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
 </head>
 <body>
 
-<button type="button" class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle dark mode" aria-pressed="false">🌙</button>
+<button type="button" class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle dark mode" aria-pressed="false"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#moon"/></svg></button>
 <div class="header">
   <a href="admin/" style="display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,'SF Mono','Roboto Mono',monospace;font-size:0.72rem;color:var(--ink-dim);text-decoration:none;margin-bottom:0.9rem;letter-spacing:0.04em;">&larr; Back to admin</a>
   <div class="header-eyebrow"><svg class="logo-mark" width="16" height="16" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
@@ -460,7 +461,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
   <!-- JOB INPUTS -->
   <div class="card">
     <div class="card-header">
-      <div class="card-icon">🖨</div>
+      <div class="card-icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#printer"/></svg></div>
       <div class="card-title">Job Details</div>
     </div>
     <div class="input-group">
@@ -489,7 +490,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
   <!-- RATES -->
   <div class="card">
     <div class="card-header">
-      <div class="card-icon">⚙</div>
+      <div class="card-icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#settings"/></svg></div>
       <div class="card-title">Rates</div>
     </div>
     <div class="rates-grid">
@@ -555,7 +556,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
   <!-- INVOICE DETAILS -->
   <div class="card card-wide">
     <div class="card-header">
-      <div class="card-icon">📄</div>
+      <div class="card-icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#file-text"/></svg></div>
       <div class="card-title">Quote Details</div>
     </div>
     <div class="client-grid">
@@ -608,7 +609,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
   <!-- EXTRA COSTS -->
   <div class="card card-wide" id="extraCostCard" style="display:none">
     <div class="card-header">
-      <div class="card-icon">➕</div>
+      <div class="card-icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#plus"/></svg></div>
       <div class="card-title">Extra Costs</div>
     </div>
     <div id="extraCostList"></div>
@@ -706,7 +707,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
     }
     function applyTheme(mode){
       const isDark = mode === 'dark';
-      toggle.textContent = isDark ? '☀️' : '🌙';
+      toggle.innerHTML = isDark ? '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#sun"/></svg>' : '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#moon"/></svg>';
       toggle.setAttribute('aria-pressed', String(isDark));
     }
     toggle.addEventListener('click', () => {
@@ -880,7 +881,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
           <input class="extra-amount" type="number" min="0" step="0.5" placeholder="0.00" value="${item.amount || ''}" aria-label="Extra cost amount"
             oninput="updateExtra(${item.id},'amount',this.value)">
         </div>
-        <button class="extra-remove" onclick="removeExtraRow(${item.id})" title="Remove" aria-label="Remove extra cost">✕</button>`;
+        <button class="extra-remove" onclick="removeExtraRow(${item.id})" title="Remove" aria-label="Remove extra cost"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>`;
       list.appendChild(row);
     });
   }
@@ -1264,7 +1265,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
 
     orderData.quote_amount = amount;
     orderData.status = 'quoted';
-    btn.textContent = '✓ Saved — status set to Quoted';
+    btn.innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg> Saved — status set to Quoted';
     setTimeout(() => { btn.disabled = false; btn.innerHTML = original; }, 2400);
   }
 
