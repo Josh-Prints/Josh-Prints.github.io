@@ -2895,7 +2895,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     }
 
     function jumpToOrder(id){
-      window.location.href = 'index.html?focus=' + id;
+      window.location.href = 'order.html?id=' + encodeURIComponent(id);
     }
 
     function addMsg(text, cls){

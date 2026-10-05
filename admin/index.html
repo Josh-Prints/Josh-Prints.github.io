@@ -377,6 +377,44 @@
     box-shadow: 0 0 0 1px rgba(9,105,218,0.12);
   }
 
+  .order-row{
+    display:flex; align-items:center; gap: 14px;
+    padding: 13px 16px; margin-bottom: 8px;
+    background: var(--bg-raised);
+    border: 1px solid rgba(var(--border-tint),0.10);
+    border-left: 3px solid transparent;
+    border-radius: var(--radius);
+    color: inherit; text-decoration: none; cursor: pointer;
+    animation: fadeInUp 0.3s cubic-bezier(0.22,1,0.36,1) both;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.12s;
+  }
+  .order-row:hover{ border-color: rgba(var(--border-tint),0.22); box-shadow: 0 3px 14px rgba(31,35,40,0.07); transform: translateY(-1px); }
+  .order-row.is-new{ border-left-color: var(--accent); background: rgba(9,105,218,0.05); }
+  .row-main{ flex: 1 1 220px; min-width: 0; display:flex; flex-direction:column; gap: 5px; }
+  .row-name{ display:flex; align-items:center; gap:8px; font-weight:600; font-size:15px; }
+  .row-sub{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size:11.5px; color: var(--ink-dim); }
+  .row-sub .order-type-badge{ margin-right: 0; }
+  .row-claim{ min-width: 70px; text-align:right; }
+  .row-quote{ min-width: 78px; text-align:right; font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size:14px; font-weight:600; }
+  .row-pill{
+    display:inline-flex; align-items:center; gap:6px; min-width: 112px; justify-content:center;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size:11.5px; font-weight:600;
+    padding: 4px 10px; border-radius: 20px;
+  }
+  .row-pill::before{ content:''; width:7px; height:7px; border-radius:50%; background: currentColor; }
+  .row-pill.s-new, .row-pill.s-printing{ background: var(--accent-dim); color: var(--accent); }
+  .row-pill.s-acknowledged, .row-pill.s-quoted{ background: var(--warn-dim); color: var(--warn); }
+  .row-pill.s-completed, .row-pill.s-sold{ background: var(--ok-dim); color: var(--ok); }
+  .row-pill.s-cancelled, .row-pill.s-deleted{ background: rgba(var(--border-tint),0.1); color: var(--ink-dim); }
+  .row-chev{ color: var(--ink-dim); font-size: 16px; display:flex; }
+  @media (max-width: 640px){
+    .order-row{ flex-wrap: wrap; gap: 8px 12px; padding: 12px 14px; }
+    .row-main{ flex-basis: 100%; }
+    .row-claim{ text-align:left; min-width: 0; order: 3; }
+    .row-quote{ min-width: 0; text-align:left; order: 2; }
+    .row-pill{ order: 1; min-width: 0; }
+    .row-chev{ display:none; }
+  }
   .sort-select{
     margin-left: auto;
     padding: 5px 10px;
@@ -1703,11 +1741,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
   let currentOrders = [];
   let focusHandled = false;
-  let customerCreditMap = {};
   let activeFilter = 'all';
-  let openChatOrderId = null;
-  let chatPollTimer = null;
-  const chatRenderCache = {}; // orderId -> last rendered signature, to avoid needless re-renders
 
   const STATUS_OPTIONS = ['new', 'acknowledged', 'quoted', 'printing', 'completed', 'sold', 'cancelled'];
   const STATUS_LABEL = {
@@ -1719,7 +1753,6 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   let myDisplayName = null;
   let onlyMine = false;
   let sortMode = 'newest';
-  let lastUpdatedOrderId = null;
   const STATUS_ORDER = ['new', 'acknowledged', 'quoted', 'printing', 'completed', 'sold', 'cancelled'];
 
   function escapeHtml(str){
@@ -1992,12 +2025,6 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     try { return JSON.parse(localStorage.getItem(jobReadMapKey()) || '{}'); }
     catch { return {}; }
   }
-  function setJobLastRead(orderId, ts){
-    const map = getJobReadMap();
-    map[orderId] = ts || new Date().toISOString();
-    localStorage.setItem(jobReadMapKey(), JSON.stringify(map));
-  }
-
   function showToast(kind, title, body, onClick){
     const el = document.createElement('div');
     el.className = `toast ${kind}`;
@@ -2084,13 +2111,6 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       const lastRead = readMap[m.order_id] || pageLoadedAt;
       if (m.created_at <= lastRead) return; // this order's panel was open/read since this message
 
-      const panelOpen = openChatOrderId === m.order_id
-        && document.getElementById(`chat-panel-${m.order_id}`)?.classList.contains('open');
-      if (panelOpen){
-        setJobLastRead(m.order_id, m.created_at);
-        return;
-      }
-
       unreadJobOrders.add(m.order_id);
       updateJobDot(m.order_id);
       updateMenuDots();
@@ -2102,11 +2122,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
           'job',
           `${order ? order.full_name : 'Customer'} · New message`,
           m.body || (m.file_name ? `Attachment: ${m.file_name}` : 'Sent a file'),
-          () => {
-            const btn = ordersContainer.querySelector(`.chat-toggle[data-id="${m.order_id}"]`);
-            btn?.click();
-            btn?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
+          () => jumpToOrder(m.order_id)
         );
       }
     });
@@ -2195,13 +2211,6 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     }
     currentOrders = data || [];
 
-    const userIds = [...new Set(currentOrders.map(o => o.user_id).filter(Boolean))];
-    customerCreditMap = {};
-    if (userIds.length > 0){
-      const { data: profiles } = await supabase.from('customer_profiles').select('id, store_credit').in('id', userIds);
-      (profiles || []).forEach(p => { customerCreditMap[p.id] = p.store_credit; });
-    }
-
     renderOrders();
 
     if (!focusHandled){
@@ -2212,46 +2221,10 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   }
 
   function jumpToOrder(id){
-    const order = currentOrders.find(o => o.id === id);
-    if (!order){ window.location.href = 'index.html?focus=' + id; return; }
-
-    const inFilter = activeFilter === 'deleted' ? order.deleted
-      : activeFilter === 'all' ? !order.deleted
-      : (!order.deleted && order.status === activeFilter);
-
-    if (!inFilter || onlyMine){
-      const targetFilter = order.deleted ? 'deleted' : 'all';
-      activeFilter = targetFilter;
-      onlyMine = false;
-      filterBar.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-      const targetChip = filterBar.querySelector(`.chip[data-filter="${targetFilter}"]`);
-      if (targetChip) targetChip.classList.add('active');
-      renderOrders();
-    }
-
-    requestAnimationFrame(() => {
-      const card = ordersContainer.querySelector(`.order-card[data-id="${id}"]`);
-      if (!card) return;
-      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      card.classList.add('just-updated');
-      setTimeout(() => card.classList.remove('just-updated'), 900);
-      const toggleBtn = card.querySelector('.chat-toggle:not(.copy-link-btn):not(.delete-btn):not(.restore-btn)');
-      const chatPanel = document.getElementById(`chat-panel-${id}`);
-      if (toggleBtn && chatPanel && !chatPanel.classList.contains('open')) toggleBtn.click();
-    });
+    window.location.href = 'order.html?id=' + encodeURIComponent(id);
   }
 
   function renderOrders(){
-    // Every call below rebuilds each order's chat panel DOM from scratch
-    // (a fresh "loading" placeholder). chatRenderCache remembers the last
-    // signature we painted so loadChat() can skip redundant re-renders —
-    // but after a rebuild the cached signature no longer matches what's
-    // actually on screen, so if it's left in place loadChat() thinks
-    // nothing changed and never fills in the new placeholder, leaving it
-    // stuck on "loading" forever. Clear it here so the next loadChat for
-    // each order always paints at least once against the fresh DOM.
-    Object.keys(chatRenderCache).forEach(k => delete chatRenderCache[k]);
-
     let filtered = activeFilter === 'deleted'
       ? currentOrders.filter(o => o.deleted)
       : activeFilter === 'all'
@@ -2277,370 +2250,33 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
     ordersContainer.innerHTML = '';
     filtered.forEach((order, idx) => {
-      const card = document.createElement('div');
-      card.className = 'order-card' + (order.status === 'new' ? ' is-new' : '') + (order.id === lastUpdatedOrderId ? ' just-updated' : '');
-      card.style.animationDelay = Math.min(idx * 30, 300) + 'ms';
-      card.dataset.id = order.id;
+      const row = document.createElement('a');
+      row.className = 'order-row' + (order.status === 'new' && !order.deleted ? ' is-new' : '');
+      row.href = 'order.html?id=' + encodeURIComponent(order.id);
+      row.dataset.id = order.id;
+      row.style.animationDelay = Math.min(idx * 25, 250) + 'ms';
 
       const typeLabel = order.order_type === 'custom_model' ? 'Custom Model'
-        : order.order_type === 'design' ? `Design: ${escapeHtml(order.design_name || 'Unknown')}`
+        : order.order_type === 'design' ? `Design: ${order.design_name || 'Unknown'}`
         : 'Custom Print';
-      const created = new Date(order.created_at).toLocaleString();
+      const created = new Date(order.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      const statusKey = order.deleted ? 'deleted' : order.status;
+      const statusText = order.deleted ? 'Deleted' : (STATUS_LABEL[order.status] || order.status);
+      const mine = order.claimed_by_id && order.claimed_by_id === myUserId;
 
-      card.innerHTML = `
-        <div class="order-top">
-          <div>
-            <div class="order-name">${escapeHtml(order.full_name)}</div>
-            <div class="order-meta">
-              <span class="order-type-badge">${typeLabel}</span>${created}
-            </div>
-          </div>
-          <div class="row-status status-${order.status}"><span class="status-dot"></span>${STATUS_LABEL[order.status] || order.status}</div>
-        </div>
-        <div class="claim-row">
-          ${order.claimed_by_id
-            ? `<span class="claim-badge ${order.claimed_by_id === myUserId ? 'mine' : ''}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#user"/></svg> Claimed by ${escapeHtml(order.claimed_by || 'someone')}</span>
-               ${order.claimed_by_id === myUserId ? `<button class="unclaim-btn" data-id="${order.id}">Release</button>` : `<button class="claim-btn" data-id="${order.id}">Take over</button>`}`
-            : `<span class="claim-badge">Unclaimed</span><button class="claim-btn" data-id="${order.id}">Claim job</button>`
-          }
-        </div>
-        ${order.signup_discount_snapshot ? `
-        <div class="discount-row">
-          <span class="discount-badge"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#party-popper"/></svg> Signup discount available (35% off, prints under 4hrs)</span>
-          <button type="button" class="discount-used-btn" data-discount-id="${order.id}" data-user-id="${order.user_id || ''}">Mark discount used</button>
-        </div>` : ''}
-        ${order.promo_code ? `
-        <div class="discount-row">
-          <span class="discount-badge"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#tag"/></svg> Promo: ${escapeHtml(order.promo_code)} — ${escapeHtml(order.promo_description || '')}</span>
-        </div>` : ''}
-        ${order.user_id ? `
-        <div class="credit-row">
-          <span class="credit-badge"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#credit-card"/></svg> Store credit: $${Number(customerCreditMap[order.user_id] || 0).toFixed(2)}</span>
-          <label class="credit-use-label">
-            <input type="checkbox" class="credit-use-checkbox" data-id="${order.id}" ${order.use_store_credit ? 'checked' : ''}>
-            Use store credit
-          </label>
-          <input type="number" class="credit-use-amount" data-id="${order.id}" step="0.01" min="0"
-            value="${Number(order.store_credit_use_amount || 0).toFixed(2)}"
-            style="display:${order.use_store_credit ? 'inline-block' : 'none'};">
-        </div>` : ''}
-        ${order.filament_color ? `<div class="order-meta" style="margin-top:6px;"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#spool"/></svg> ${escapeHtml(order.filament_color)}${order.filament_type ? ' · ' + escapeHtml(order.filament_type) : ''}${order.filament_price_per_100g != null ? ` · $${Number(order.filament_price_per_100g).toFixed(2)}/100g` : ''}</div>` : ''}
-        ${order.notes ? `<div class="order-notes">${escapeHtml(order.notes)}</div>` : ''}
-        ${(() => {
-          const files = (order.files && order.files.length > 0)
-            ? order.files
-            : (order.file_path ? [{ path: order.file_path, name: order.file_name }] : []);
-          return files.map(f => `<div class="order-file">${renderAttachment(publicFileUrl(f.path), f.name)}</div>`).join('');
-        })()}
-        <div class="order-bottom">
-          <select class="status-select" data-id="${order.id}">
-            ${STATUS_OPTIONS.map(s => `<option value="${s}" ${s === order.status ? 'selected' : ''}>${STATUS_LABEL[s]}</option>`).join('')}
-          </select>
-          <input type="text" class="quote-input" placeholder="Quote $" data-id="${order.id}" value="${order.quote_amount ?? ''}">
-          <button class="save-btn" data-id="${order.id}">Save</button>
-          <a class="chat-toggle" href="../quote.html?order=${order.id}" target="_blank" rel="noopener"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#calculator"/></svg> Quote builder</a>
-          ${order.status !== 'cancelled' ? `<button class="cancel-order-btn" data-id="${order.id}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg> Cancel order</button>` : ''}
-          <button class="chat-toggle" data-id="${order.id}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#message-square"/></svg> Messages<span class="notif-dot job" id="job-dot-${order.id}"></span></button>
-          <button class="chat-toggle copy-link-btn" data-id="${order.id}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#link"/></svg> Copy link</button>
-          ${order.deleted
-            ? `<button class="chat-toggle restore-btn" data-id="${order.id}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#archive-restore"/></svg> Restore</button>`
-            : `<button class="chat-toggle delete-btn" data-id="${order.id}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#trash-2"/></svg> Delete</button>`
-          }
-        </div>
-        <div class="chat-panel" id="chat-panel-${order.id}">
-          <div class="chat-messages" id="chat-messages-${order.id}"><div class="chat-empty"><svg class="logo-loading logo-loading-lg" width="28" height="28" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg"><polygon points="200,40.2 231.4,58.3 200,76.5 168.6,58.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.00s"/>
-      <polygon points="150.9,68.5 182.3,86.7 150.9,104.8 119.5,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
-      <polygon points="101.9,96.9 133.3,115 101.9,133.1 70.4,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
-      <polygon points="249.1,68.5 280.5,86.7 249.1,104.8 217.7,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
-      <polygon points="200,96.9 231.4,115 200,133.1 168.6,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
-      <polygon points="150.9,125.2 182.3,143.3 150.9,161.5 119.5,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
-      <polygon points="298.1,96.9 329.6,115 298.1,133.1 266.7,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
-      <polygon points="249.1,125.2 280.5,143.3 249.1,161.5 217.7,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
-      <polygon points="200,153.5 231.4,171.7 200,189.8 168.6,171.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
-      <polygon points="61.6,130.3 93,148.4 93,184.7 61.6,166.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
-      <polygon points="61.6,187 93,205.1 93,241.4 61.6,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
-      <polygon points="61.6,243.6 93,261.8 93,298 61.6,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
-      <polygon points="110.7,158.6 142.1,176.8 142.1,213 110.7,194.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
-      <polygon points="110.7,215.3 142.1,233.4 142.1,269.7 110.7,251.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
-      <polygon points="110.7,272 142.1,290.1 142.1,326.4 110.7,308.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
-      <polygon points="159.8,187 191.2,205.1 191.2,241.4 159.8,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
-      <polygon points="159.8,243.6 191.2,261.8 191.2,298 159.8,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
-      <polygon points="159.8,300.3 191.2,318.4 191.2,354.7 159.8,336.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
-      <polygon points="338.4,130.3 307,148.4 307,184.7 338.4,166.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
-      <polygon points="338.4,187 307,205.1 307,241.4 338.4,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
-      <polygon points="338.4,243.6 307,261.8 307,298 338.4,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
-      <polygon points="289.3,158.6 257.9,176.8 257.9,213 289.3,194.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
-      <polygon points="289.3,215.3 257.9,233.4 257.9,269.7 289.3,251.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
-      <polygon points="289.3,272 257.9,290.1 257.9,326.4 289.3,308.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
-      <polygon points="240.2,187 208.8,205.1 208.8,241.4 240.2,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
-      <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
-      <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/></svg></div></div>
-          <div class="chat-composer">
-            <textarea placeholder="Reply to ${escapeHtml(order.full_name)}…" id="chat-body-${order.id}"></textarea>
-            <div class="chat-composer-row">
-              <label class="chat-attach">
-                <span id="chat-attach-label-${order.id}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file</span>
-                <input type="file" id="chat-attach-${order.id}" multiple>
-              </label>
-              <button class="chat-send" data-id="${order.id}">Send</button>
-            </div>
-          </div>
-        </div>
+      row.innerHTML = `
+        <span class="row-main">
+          <span class="row-name">${escapeHtml(order.full_name)}<span class="notif-dot job inline" id="job-dot-${order.id}"></span></span>
+          <span class="row-sub"><span class="order-type-badge">${escapeHtml(typeLabel)}</span><span>${created}</span>${order.filament_color ? `<span>${escapeHtml(order.filament_color)}${order.filament_type ? ' · ' + escapeHtml(order.filament_type) : ''}</span>` : ''}</span>
+        </span>
+        <span class="row-claim">${order.claimed_by_id ? `<span class="claim-badge ${mine ? 'mine' : ''}">${escapeHtml(mine ? 'You' : (order.claimed_by || 'Claimed'))}</span>` : ''}</span>
+        <span class="row-quote">${order.quote_amount != null ? '$' + Number(order.quote_amount).toFixed(2) : '—'}</span>
+        <span class="row-pill s-${statusKey}">${escapeHtml(statusText)}</span>
+        <span class="row-chev"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#chevron-right"/></svg></span>
       `;
-      ordersContainer.appendChild(card);
+      ordersContainer.appendChild(row);
     });
-    if (typeof refreshAllJobDots === 'function') refreshAllJobDots();
-
-    // Copy link buttons
-    ordersContainer.querySelectorAll('.copy-link-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = btn.dataset.id;
-        const url = new URL('order.html', window.location.href);
-        url.searchParams.set('order', id);
-        try {
-          await navigator.clipboard.writeText(url.href);
-          const original = btn.innerHTML;
-          btn.innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg> Copied';
-          setTimeout(() => { btn.innerHTML = original; }, 1500);
-        } catch (e) {
-          prompt('Copy this link:', url.href);
-        }
-      });
-    });
-
-    // Delete / restore buttons
-    ordersContainer.querySelectorAll('.delete-btn').forEach(btn => {
-      btn.addEventListener('click', () => setDeleted(btn.dataset.id, true));
-    });
-    ordersContainer.querySelectorAll('.restore-btn').forEach(btn => {
-      btn.addEventListener('click', () => setDeleted(btn.dataset.id, false));
-    });
-
-    // Claim / release
-    ordersContainer.querySelectorAll('.claim-btn').forEach(btn => {
-      btn.addEventListener('click', () => claimOrder(btn.dataset.id));
-    });
-    ordersContainer.querySelectorAll('.unclaim-btn').forEach(btn => {
-      btn.addEventListener('click', () => claimOrder(btn.dataset.id, true));
-    });
-
-    // Cancel order
-    ordersContainer.querySelectorAll('.cancel-order-btn').forEach(btn => {
-      btn.addEventListener('click', () => cancelOrder(btn.dataset.id));
-    });
-
-    // Mark signup discount as used
-    ordersContainer.querySelectorAll('.discount-used-btn').forEach(btn => {
-      btn.addEventListener('click', () => markDiscountUsed(btn.dataset.discountId, btn.dataset.userId));
-    });
-
-    // Store credit "use" checkbox — show/hide and default the amount field
-    ordersContainer.querySelectorAll('.credit-use-checkbox').forEach(cb => {
-      cb.addEventListener('change', () => {
-        const id = cb.dataset.id;
-        const amountInput = ordersContainer.querySelector(`.credit-use-amount[data-id="${id}"]`);
-        amountInput.style.display = cb.checked ? 'inline-block' : 'none';
-        if (cb.checked && Number(amountInput.value) === 0){
-          const order = currentOrders.find(o => o.id === id);
-          const quoteInput = ordersContainer.querySelector(`.quote-input[data-id="${id}"]`);
-          const quote = Number(quoteInput.value) || 0;
-          const balance = order && order.user_id ? Number(customerCreditMap[order.user_id] || 0) : 0;
-          amountInput.value = Math.max(0, Math.min(balance, quote)).toFixed(2);
-        }
-      });
-    });
-
-    // Chat toggles (exclude the copy-link/delete/restore buttons, which
-    // share the .chat-toggle class for styling only, not this behavior)
-    ordersContainer.querySelectorAll('.chat-toggle:not(.copy-link-btn):not(.delete-btn):not(.restore-btn)').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.dataset.id;
-        const panel = document.getElementById(`chat-panel-${id}`);
-        panel.classList.toggle('open');
-        if (panel.classList.contains('open')){
-          openChatOrderId = id;
-          loadChat(id);
-          setJobLastRead(id, new Date().toISOString());
-          unreadJobOrders.delete(id);
-          updateJobDot(id);
-          updateMenuDots();
-          if (chatPollTimer) clearInterval(chatPollTimer);
-          chatPollTimer = setInterval(() => {
-            loadChat(id);
-            setJobLastRead(id, new Date().toISOString());
-          }, 3000);
-        } else if (openChatOrderId === id){
-          openChatOrderId = null;
-          if (chatPollTimer) clearInterval(chatPollTimer);
-        }
-      });
-    });
-
-    // Chat attach labels
-    ordersContainer.querySelectorAll('[id^="chat-attach-"]').forEach(input => {
-      const id = input.id.replace('chat-attach-', '');
-      input.addEventListener('change', () => {
-        const label = document.getElementById(`chat-attach-label-${id}`);
-        const n = input.files.length;
-        label.innerHTML = n === 0 ? '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file'
-          : n === 1 ? `<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> ${escapeHtml(input.files[0].name)}`
-          : `<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> ${n} files`;
-      });
-    });
-
-    // Chat send buttons
-    ordersContainer.querySelectorAll('.chat-send').forEach(btn => {
-      btn.addEventListener('click', () => sendChatMessage(btn.dataset.id, btn));
-    });
-
-    // Save buttons
-    ordersContainer.querySelectorAll('.save-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = btn.dataset.id;
-        const select = ordersContainer.querySelector(`.status-select[data-id="${id}"]`);
-        const quoteInput = ordersContainer.querySelector(`.quote-input[data-id="${id}"]`);
-
-        const newStatus = select.value;
-        const quoteRaw = quoteInput.value.trim();
-        const quoteAmount = quoteRaw === '' ? null : Number(quoteRaw);
-        const order = currentOrders.find(o => o.id === id);
-
-        btn.disabled = true;
-        btn.textContent = 'Saving…';
-
-        const payload = { status: newStatus, quote_amount: quoteAmount };
-        let newBalance = null;
-
-        if (order && order.user_id){
-          const useCheckbox = ordersContainer.querySelector(`.credit-use-checkbox[data-id="${id}"]`);
-          const useAmountInput = ordersContainer.querySelector(`.credit-use-amount[data-id="${id}"]`);
-          const useChecked = useCheckbox ? useCheckbox.checked : false;
-
-          const [{ data: settingsRow }, { data: profileRow }] = await Promise.all([
-            supabase.from('settings').select('store_credit_rate, store_credit_enabled').eq('id', 1).single(),
-            supabase.from('customer_profiles').select('store_credit').eq('id', order.user_id).single()
-          ]);
-
-          let balance = profileRow ? Number(profileRow.store_credit) || 0 : 0;
-
-          // Award (or claw back) credit so it always matches 10% of the
-          // current quote while the order is "sold" — 0 the moment it's
-          // anything else, so moving off "sold" claws it back automatically.
-          const desiredAward = (newStatus === 'sold' && settingsRow?.store_credit_enabled && quoteAmount)
-            ? Math.round(quoteAmount * (settingsRow.store_credit_rate ?? 0.10) * 100) / 100
-            : 0;
-          const prevAward = Number(order.store_credit_awarded) || 0;
-          balance += (desiredAward - prevAward);
-
-          // How much credit this order is spending, capped to what's
-          // available and to the order price — never more than either.
-          let desiredUse = 0;
-          if (useChecked){
-            const cap = Math.max(0, Math.min(balance, quoteAmount || 0));
-            const raw = useAmountInput && useAmountInput.value.trim() !== '' ? Number(useAmountInput.value) : cap;
-            desiredUse = isNaN(raw) ? cap : Math.max(0, Math.min(raw, cap));
-          }
-          const prevUse = Number(order.store_credit_use_amount) || 0;
-          balance -= (desiredUse - prevUse);
-          balance = Math.max(0, Math.round(balance * 100) / 100);
-
-          if (desiredAward !== prevAward || desiredUse !== prevUse){
-            const { error: creditErr } = await supabase.from('customer_profiles').update({ store_credit: balance }).eq('id', order.user_id);
-            if (creditErr){
-              btn.disabled = false;
-              btn.textContent = 'Save';
-              alert('Could not update store credit: ' + creditErr.message);
-              return;
-            }
-          }
-          payload.store_credit_awarded = desiredAward;
-          payload.use_store_credit = useChecked;
-          payload.store_credit_use_amount = desiredUse;
-          newBalance = balance;
-        }
-
-        const { error } = await supabase
-          .from('orders')
-          .update(payload)
-          .eq('id', id);
-
-        btn.disabled = false;
-        btn.textContent = 'Save';
-
-        if (error){
-          alert('Could not save: ' + error.message);
-          return;
-        }
-        const idx = currentOrders.findIndex(o => o.id === id);
-        if (idx > -1){
-          Object.assign(currentOrders[idx], payload);
-        }
-        if (order && order.user_id && newBalance !== null){
-          customerCreditMap[order.user_id] = newBalance;
-        }
-        lastUpdatedOrderId = id;
-        renderOrders();
-        lastUpdatedOrderId = null;
-      });
-    });
-  }
-
-  async function setDeleted(id, deleted){
-    if (deleted && !confirm('Delete this order? The customer will no longer be able to message you about it.')) {
-      return;
-    }
-
-    const { error } = await supabase
-      .from('orders')
-      .update({ deleted })
-      .eq('id', id);
-
-    if (error){
-      alert('Could not update: ' + error.message);
-      return;
-    }
-
-    const idx = currentOrders.findIndex(o => o.id === id);
-    if (idx > -1) currentOrders[idx].deleted = deleted;
-    renderOrders();
-  }
-
-  async function claimOrder(id, release){
-    const payload = release
-      ? { claimed_by: null, claimed_by_id: null }
-      : { claimed_by: myDisplayName, claimed_by_id: myUserId };
-
-    const { error } = await supabase.from('orders').update(payload).eq('id', id);
-    if (error){ alert('Could not update: ' + error.message); return; }
-
-    const idx = currentOrders.findIndex(o => o.id === id);
-    if (idx > -1){
-      currentOrders[idx].claimed_by = payload.claimed_by;
-      currentOrders[idx].claimed_by_id = payload.claimed_by_id;
-    }
-    renderOrders();
-  }
-
-  async function cancelOrder(id){
-    if (!confirm('Cancel this order?')) return;
-    const { error } = await supabase.from('orders').update({ status: 'cancelled' }).eq('id', id);
-    if (error){ alert('Could not update: ' + error.message); return; }
-    const idx = currentOrders.findIndex(o => o.id === id);
-    if (idx > -1) currentOrders[idx].status = 'cancelled';
-    renderOrders();
-  }
-
-  async function markDiscountUsed(orderId, userId){
-    if (!confirm('Mark this account\'s signup discount as used? They will no longer see it as available.')) return;
-    const { error: orderErr } = await supabase.from('orders').update({ signup_discount_snapshot: false }).eq('id', orderId);
-    if (orderErr){ alert('Could not update: ' + orderErr.message); return; }
-    if (userId){
-      const { error: profileErr } = await supabase.from('customer_profiles').update({ discount_available: false }).eq('id', userId);
-      if (profileErr){ alert('Order updated, but could not update the customer profile: ' + profileErr.message); }
-    }
-    const idx = currentOrders.findIndex(o => o.id === orderId);
-    if (idx > -1) currentOrders[idx].signup_discount_snapshot = false;
-    renderOrders();
+    refreshAllJobDots();
   }
 
   document.getElementById('sort-select').addEventListener('change', (e) => {
@@ -2656,193 +2292,6 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
   function sanitizeFileName(name){
     return name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-  }
-
-  function adminLabel(m){
-    if (m.sender_id && m.sender_id === myUserId) return 'You';
-    return m.sender_name || 'Admin';
-  }
-
-  function withTimeout(promise, ms = 10000){
-    return Promise.race([
-      promise,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), ms))
-    ]);
-  }
-
-  async function loadChat(orderId){
-    const container = document.getElementById(`chat-messages-${orderId}`);
-    let data, error;
-    try {
-      ({ data, error } = await withTimeout(supabase
-        .from('messages')
-        .select('*')
-        .eq('order_id', orderId)
-        .order('created_at', { ascending: true })));
-    } catch (err){
-      // A thrown/rejected request (network hiccup, timeout, etc.) used to
-      // leave the "Loading…" placeholder stuck forever since nothing ever
-      // replaced it. Show a retry option instead, and let the next poll
-      // tick (or the button) try again.
-      if (chatRenderCache[orderId] !== 'error'){
-        container.innerHTML = `<div class="chat-empty">Couldn't load messages — <a href="#" class="chat-retry" data-id="${orderId}">retry</a></div>`;
-        chatRenderCache[orderId] = 'error';
-        container.querySelector('.chat-retry')?.addEventListener('click', (e) => {
-          e.preventDefault();
-          chatRenderCache[orderId] = null;
-          container.innerHTML = `<div class="chat-empty"><svg class="logo-loading logo-loading-lg" width="28" height="28" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg"><polygon points="200,40.2 231.4,58.3 200,76.5 168.6,58.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.00s"/>
-      <polygon points="150.9,68.5 182.3,86.7 150.9,104.8 119.5,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
-      <polygon points="101.9,96.9 133.3,115 101.9,133.1 70.4,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
-      <polygon points="249.1,68.5 280.5,86.7 249.1,104.8 217.7,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
-      <polygon points="200,96.9 231.4,115 200,133.1 168.6,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
-      <polygon points="150.9,125.2 182.3,143.3 150.9,161.5 119.5,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
-      <polygon points="298.1,96.9 329.6,115 298.1,133.1 266.7,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
-      <polygon points="249.1,125.2 280.5,143.3 249.1,161.5 217.7,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
-      <polygon points="200,153.5 231.4,171.7 200,189.8 168.6,171.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
-      <polygon points="61.6,130.3 93,148.4 93,184.7 61.6,166.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
-      <polygon points="61.6,187 93,205.1 93,241.4 61.6,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
-      <polygon points="61.6,243.6 93,261.8 93,298 61.6,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
-      <polygon points="110.7,158.6 142.1,176.8 142.1,213 110.7,194.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
-      <polygon points="110.7,215.3 142.1,233.4 142.1,269.7 110.7,251.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
-      <polygon points="110.7,272 142.1,290.1 142.1,326.4 110.7,308.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
-      <polygon points="159.8,187 191.2,205.1 191.2,241.4 159.8,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
-      <polygon points="159.8,243.6 191.2,261.8 191.2,298 159.8,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
-      <polygon points="159.8,300.3 191.2,318.4 191.2,354.7 159.8,336.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
-      <polygon points="338.4,130.3 307,148.4 307,184.7 338.4,166.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
-      <polygon points="338.4,187 307,205.1 307,241.4 338.4,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
-      <polygon points="338.4,243.6 307,261.8 307,298 338.4,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
-      <polygon points="289.3,158.6 257.9,176.8 257.9,213 289.3,194.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
-      <polygon points="289.3,215.3 257.9,233.4 257.9,269.7 289.3,251.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
-      <polygon points="289.3,272 257.9,290.1 257.9,326.4 289.3,308.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
-      <polygon points="240.2,187 208.8,205.1 208.8,241.4 240.2,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
-      <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
-      <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/></svg></div>`;
-          loadChat(orderId);
-        });
-      }
-      return;
-    }
-
-    if (error){
-      if (chatRenderCache[orderId] !== 'error'){
-        container.innerHTML = `<div class="chat-empty">Couldn't load messages — <a href="#" class="chat-retry" data-id="${orderId}">retry</a></div>`;
-        chatRenderCache[orderId] = 'error';
-        container.querySelector('.chat-retry')?.addEventListener('click', (e) => {
-          e.preventDefault();
-          chatRenderCache[orderId] = null;
-          container.innerHTML = `<div class="chat-empty"><svg class="logo-loading logo-loading-lg" width="28" height="28" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg"><polygon points="200,40.2 231.4,58.3 200,76.5 168.6,58.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.00s"/>
-      <polygon points="150.9,68.5 182.3,86.7 150.9,104.8 119.5,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
-      <polygon points="101.9,96.9 133.3,115 101.9,133.1 70.4,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
-      <polygon points="249.1,68.5 280.5,86.7 249.1,104.8 217.7,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
-      <polygon points="200,96.9 231.4,115 200,133.1 168.6,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
-      <polygon points="150.9,125.2 182.3,143.3 150.9,161.5 119.5,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
-      <polygon points="298.1,96.9 329.6,115 298.1,133.1 266.7,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.48s"/>
-      <polygon points="249.1,125.2 280.5,143.3 249.1,161.5 217.7,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
-      <polygon points="200,153.5 231.4,171.7 200,189.8 168.6,171.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
-      <polygon points="61.6,130.3 93,148.4 93,184.7 61.6,166.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
-      <polygon points="61.6,187 93,205.1 93,241.4 61.6,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
-      <polygon points="61.6,243.6 93,261.8 93,298 61.6,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
-      <polygon points="110.7,158.6 142.1,176.8 142.1,213 110.7,194.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
-      <polygon points="110.7,215.3 142.1,233.4 142.1,269.7 110.7,251.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
-      <polygon points="110.7,272 142.1,290.1 142.1,326.4 110.7,308.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
-      <polygon points="159.8,187 191.2,205.1 191.2,241.4 159.8,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
-      <polygon points="159.8,243.6 191.2,261.8 191.2,298 159.8,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
-      <polygon points="159.8,300.3 191.2,318.4 191.2,354.7 159.8,336.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
-      <polygon points="338.4,130.3 307,148.4 307,184.7 338.4,166.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.72s"/>
-      <polygon points="338.4,187 307,205.1 307,241.4 338.4,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
-      <polygon points="338.4,243.6 307,261.8 307,298 338.4,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
-      <polygon points="289.3,158.6 257.9,176.8 257.9,213 289.3,194.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.96s"/>
-      <polygon points="289.3,215.3 257.9,233.4 257.9,269.7 289.3,251.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
-      <polygon points="289.3,272 257.9,290.1 257.9,326.4 289.3,308.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
-      <polygon points="240.2,187 208.8,205.1 208.8,241.4 240.2,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.20s"/>
-      <polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.44s"/>
-      <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/></svg></div>`;
-          loadChat(orderId);
-        });
-      }
-      return;
-    }
-    if (!data || data.length === 0){
-      if (chatRenderCache[orderId] !== 'empty'){
-        container.innerHTML = '<div class="chat-empty">No messages yet.</div>';
-        chatRenderCache[orderId] = 'empty';
-      }
-      return;
-    }
-
-    // Skip re-rendering if nothing actually changed since the last poll —
-    // this is what was causing the messages panel to flicker/re-animate
-    // every few seconds even when there was nothing new to show.
-    const signature = JSON.stringify(data.map(m => [m.id, m.body, m.sender, m.sender_id, m.sender_name, m.files, m.file_path]));
-    if (chatRenderCache[orderId] === signature){
-      return;
-    }
-    chatRenderCache[orderId] = signature;
-
-    // Preserve scroll position unless the admin is already at (or near) the bottom.
-    const wasNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 40;
-
-    container.innerHTML = data.map(m => {
-      const fileLinks = (m.files && m.files.length > 0)
-        ? m.files
-        : (m.file_path ? [{ path: m.file_path, name: m.file_name }] : []);
-      return `
-      <div class="chat-msg ${m.sender}">
-        <div class="who">${m.sender === 'admin' ? adminLabel(m) : 'Customer'}</div>
-        ${m.body ? `<div>${escapeHtml(m.body)}</div>` : ''}
-        ${fileLinks.map(f => renderAttachment(publicFileUrl(f.path), f.name)).join('')}
-      </div>
-    `;
-    }).join('');
-
-    if (wasNearBottom){
-      container.scrollTop = container.scrollHeight;
-    }
-  }
-
-  async function sendChatMessage(orderId, btn){
-    // Guard against double-sends (e.g. a fast double click) firing the
-    // upload + insert twice while the first send is still in flight.
-    if (btn) btn.disabled = true;
-
-    const bodyEl = document.getElementById(`chat-body-${orderId}`);
-    const fileInput = document.getElementById(`chat-attach-${orderId}`);
-    const body = bodyEl.value.trim();
-    const files = Array.from(fileInput.files);
-
-    if (!body && files.length === 0) { if (btn) btn.disabled = false; return; }
-
-    try {
-      const uploaded = [];
-      for (const file of files){
-        const path = `messages/${orderId}/${Date.now()}-${sanitizeFileName(file.name)}`;
-        const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file);
-        if (upErr) throw upErr;
-        uploaded.push({ path, name: file.name });
-      }
-
-      const { error } = await supabase.from('messages').insert({
-        order_id: orderId,
-        sender: 'admin',
-        sender_id: myUserId,
-        sender_name: myDisplayName || 'Admin',
-        body: body || null,
-        file_path: uploaded[0]?.path || null,
-        file_name: uploaded[0]?.name || null,
-        files: uploaded
-      });
-      if (error) throw error;
-
-      bodyEl.value = '';
-      fileInput.value = '';
-      document.getElementById(`chat-attach-label-${orderId}`).innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file';
-      loadChat(orderId);
-
-    } catch (err){
-      alert('Could not send: ' + (err.message || 'please try again'));
-    } finally {
-      if (btn) btn.disabled = false;
-    }
   }
 
   /* ---- Admin chat (team-wide, not tied to any order) ---- */
@@ -3479,7 +2928,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         const resp = await fetch(AI_CHAT_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_KEY },
-          body: JSON.stringify({ message: text, context: { current_order_id: openChatOrderId || null, page: 'orders' } })
+          body: JSON.stringify({ message: text, context: { page: 'orders' } })
         });
         if (!resp.ok || !resp.body) throw new Error('Request failed (' + resp.status + ')');
 
