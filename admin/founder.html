@@ -6,6 +6,11 @@
 <script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <title>Voxprints — Founder</title>
 <link rel="icon" type="image/svg+xml" href="../logo.svg">
+<script>(function(){try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(/^sb-.*-auth-token$/.test(k)){document.documentElement.classList.add('has-session');break;}}}catch(e){}})();</script>
+<style>
+  /* A saved login exists: don't flash the sign-in screen while we confirm it (showLogin() overrides this inline). */
+  html.has-session #login-view{ display:none; }
+</style>
 <style>
   .ico{ vertical-align:-0.18em; flex-shrink:0; }
   :root{
@@ -2000,9 +2005,25 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     window.location.href = 'index.html';
   });
 
+  // Retries a lookup a couple of times so a network blip while confirming the
+  // login never looks like 'not an admin' (which signs the person out).
+  async function withRetry(fn){
+    let r;
+    for (let i = 0; i < 3; i++){
+      r = await fn();
+      if (!r.error) return r;
+      await new Promise(res => setTimeout(res, 700 * (i + 1)));
+    }
+    return r;
+  }
+
   supabase.auth.onAuthStateChange(async (_event, session) => {
     if (!session){ showLogin(); return; }
-    const { data: state } = await supabase.rpc('my_admin_state');
+    const { data: state, error: stateErr } = await withRetry(() => supabase.rpc('my_admin_state'));
+    if (stateErr){
+      showLogin("Couldn't reach the server to check your login. Refresh to try again.");
+      return;
+    }
     if (!state || !state.is_admin){
       await supabase.auth.signOut();
       showLogin('This account is not an approved admin.');
