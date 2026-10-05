@@ -1190,7 +1190,7 @@
 html{ scroll-behavior: smooth; }
 .topbar{ animation: fadeInDown 0.45s ease both; }
 .hamburger-btn{ transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), background 0.2s, border-color 0.2s; }
-.hamburger-btn:hover{ transform: rotate(90deg); }
+@media (hover:hover){ .hamburger-btn:hover{ transform: rotate(90deg); } }
 .hamburger-btn[aria-expanded="true"]{ transform: rotate(90deg); }
 a, button, .btn, .btn-plain, .btn-download, .chip, .icon-btn, .chat-toggle, .colour-btn, .preset-btn, .attach-btn, .send-btn, .view3d-btn, .view-order-btn,
 .claim-btn, .unclaim-btn, .cancel-order-btn, .save-btn, .delete-btn, .restore-btn, .copy-link-btn, .status-select, .quote-input, .sidebar-close, .remove-admin-btn{
