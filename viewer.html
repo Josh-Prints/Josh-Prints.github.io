@@ -218,7 +218,17 @@
   import { unzipSync, strFromU8 } from 'three/addons/libs/fflate.module.js';
 
   const params = new URLSearchParams(window.location.search);
-  const url = params.get('url');
+  // Only ever load/download files from our own storage over https. Anything else
+  // (javascript:, data:, other hosts) is dropped so a crafted link can't run script
+  // or point the viewer at an attacker's server.
+  const ALLOWED_FILE_HOST = 'paycasfatsakidsriwqt.supabase.co';
+  function safeFileUrl(raw){
+    try {
+      const u = new URL(raw, window.location.href);
+      return u.protocol === 'https:' && u.hostname === ALLOWED_FILE_HOST ? u.href : null;
+    } catch (e) { return null; }
+  }
+  const url = safeFileUrl(params.get('url'));
   const name = params.get('name') || 'model';
   const ext = (name.split('.').pop() || '').toLowerCase();
 

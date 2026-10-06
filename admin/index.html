@@ -1790,21 +1790,21 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     const ext = fileExt(name);
     const safeName = escapeHtml(name || 'attachment');
     if (ext === 'pdf'){
-      return `<div class="pdf-preview" data-url="${url}" title="Click to view ${safeName}">
-        <embed src="${url}#toolbar=0&navpanes=0&view=FitH" type="application/pdf">
+      return `<div class="pdf-preview" data-url="${escapeHtml(url)}" title="Click to view ${safeName}">
+        <embed src="${escapeHtml(url)}#toolbar=0&navpanes=0&view=FitH" type="application/pdf">
         <div class="pdf-preview-label"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#file-text"/></svg> ${safeName}</div>
       </div>`;
     }
     if (IMAGE_EXTS.includes(ext)){
-      return `<div class="img-preview" data-url="${url}" title="Click to view ${safeName}">
-        <img src="${url}" alt="${safeName}" loading="lazy">
+      return `<div class="img-preview" data-url="${escapeHtml(url)}" title="Click to view ${safeName}">
+        <img src="${escapeHtml(url)}" alt="${safeName}" loading="lazy">
         <div class="pdf-preview-label"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#image"/></svg> ${safeName}</div>
       </div>`;
     }
     const viewBtn = MODEL_EXTS.includes(ext)
       ? `<a class="view3d-btn" href="../viewer.html?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name || '')}" target="_blank"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#eye"/></svg> View in 3D</a>`
       : '';
-    return `<span class="file-attachment"><a class="file-link" target="_blank" href="${url}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#download"/></svg> ${safeName}</a>${viewBtn}</span>`;
+    return `<span class="file-attachment"><a class="file-link" target="_blank" href="${escapeHtml(url)}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#download"/></svg> ${safeName}</a>${viewBtn}</span>`;
   }
 
   const pdfModal = document.getElementById('pdf-modal');

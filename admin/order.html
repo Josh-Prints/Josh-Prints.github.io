@@ -604,14 +604,14 @@
   function renderAttachment(url, name){
     const ext = fileExt(name), safeName = escapeHtml(name || 'attachment');
     if (ext === 'pdf'){
-      return `<div class="pdf-preview" data-url="${url}" title="Click to view ${safeName}"><embed src="${url}#toolbar=0&navpanes=0&view=FitH" type="application/pdf"><div class="pdf-preview-label">${ico('file-text')} ${safeName}</div></div>`;
+      return `<div class="pdf-preview" data-url="${escapeHtml(url)}" title="Click to view ${safeName}"><embed src="${escapeHtml(url)}#toolbar=0&navpanes=0&view=FitH" type="application/pdf"><div class="pdf-preview-label">${ico('file-text')} ${safeName}</div></div>`;
     }
     if (IMAGE_EXTS.includes(ext)){
-      return `<div class="img-preview" data-url="${url}" title="Click to view ${safeName}"><img src="${url}" alt="${safeName}" loading="lazy"><div class="pdf-preview-label">${ico('image')} ${safeName}</div></div>`;
+      return `<div class="img-preview" data-url="${escapeHtml(url)}" title="Click to view ${safeName}"><img src="${escapeHtml(url)}" alt="${safeName}" loading="lazy"><div class="pdf-preview-label">${ico('image')} ${safeName}</div></div>`;
     }
     const viewBtn = MODEL_EXTS.includes(ext)
       ? `<a class="view3d-btn" href="../viewer.html?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name || '')}" target="_blank">${ico('eye')} View in 3D</a>` : '';
-    return `<span class="file-attachment"><a class="file-link" target="_blank" href="${url}">${ico('download')} ${safeName}</a>${viewBtn}</span>`;
+    return `<span class="file-attachment"><a class="file-link" target="_blank" href="${escapeHtml(url)}">${ico('download')} ${safeName}</a>${viewBtn}</span>`;
   }
   const pdfModal = $('pdf-modal'), pdfModalFrame = $('pdf-modal-frame'), pdfModalImg = $('pdf-modal-img');
   function closePdfModal(){ pdfModal.classList.remove('open'); pdfModalFrame.src = ''; pdfModalImg.src = ''; }

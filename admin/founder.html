@@ -2870,7 +2870,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     tsOrderSelect.innerHTML = (data || []).map(o => {
       const when = new Date(o.created_at).toLocaleDateString();
       const label = (o.full_name || 'Unknown') + ' — ' + o.email + ' — ' + when;
-      return `<option value="${o.id}" data-email="${o.email || ''}">${escapeHtml(label)}</option>`;
+      return `<option value="${o.id}" data-email="${escapeHtml(o.email || '')}">${escapeHtml(label)}</option>`;
     }).join('');
     if (data && data[0]) tsToInput.value = data[0].email || '';
   }
