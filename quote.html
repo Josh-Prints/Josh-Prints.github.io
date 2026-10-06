@@ -436,6 +436,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
 </div>
 
 <div class="order-banner" id="orderBanner" style="display:none;"></div>
+<div id="draftNote" style="display:none;font-size:12px;color:var(--ink-dim);margin:-6px 0 12px;font-family:ui-monospace,monospace;"></div>
 
 <div class="cost-bar-wrap">
   <div class="cost-bar-label-row">
@@ -721,6 +722,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
 
   const state = { modelHrs:0, printHrs:4, filGrams:120, rate:6, printRate:0.25, baseFee:1.75, filPerKg:50, surAmt:2, surThresh:3, discountPct:0 };
   let activePreset = 'PLA';
+  let draftLive = false, draftTimer = null, draftSig = null;   // per-order draft autosave, see readDraft()
   const el  = id => document.getElementById(id);
   const escapeAttr = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmt     = v => '$' + v.toFixed(2);
@@ -928,7 +930,45 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
     return { modelCost, printCost, filCost, surActive, surCost, xtraCost, subtotal, discAmt, total };
   }
 
+  /* ---- draft autosave (only when opened for a specific order) ----
+     Inputs are kept per order in an admin-only table as they change; the customer's
+     quote only changes when you press the save-to-order button. */
+  function readDraft() {
+    return {
+      model: el('modelHrsNum').value, print: el('printHrsNum').value, grams: el('filGramsNum').value,
+      discount: el('discountPct').value, round: el('roundDown').checked,
+      preset: activePreset, filKg: el('filCostKg').value
+    };
+  }
+  function applyDraft(d) {
+    const set = (id, v, evt) => { if (v == null) return; el(id).value = v; el(id).dispatchEvent(new Event(evt || 'input')); };
+    set('modelHrsNum', d.model); set('printHrsNum', d.print); set('filGramsNum', d.grams); set('discountPct', d.discount);
+    el('roundDown').checked = !!d.round; el('roundDown').dispatchEvent(new Event('change'));
+    if (d.preset === 'Custom') { setFilPreset('Custom'); set('filCostKg', d.filKg); }
+    else if (d.preset && Object.prototype.hasOwnProperty.call(PRESETS, d.preset)) setFilPreset(d.preset);
+  }
+  function draftNote(t) { const n = el('draftNote'); n.textContent = t; n.style.display = t ? 'block' : 'none'; }
+  function scheduleDraftSave() {
+    if (!draftLive) return;
+    draftNote('Saving draft…');
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(saveDraft, 700);
+  }
+  async function saveDraft() {
+    clearTimeout(draftTimer);
+    const draft = readDraft(), sig = JSON.stringify(draft);
+    if (sig === draftSig) { draftNote('Draft saved'); return; }
+    const at = new Date().toISOString();
+    const { data: { session } } = await supabase.auth.getSession();
+    const { error } = await supabase.from('order_quote_drafts')
+      .upsert({ order_id: orderIdParam, draft, updated_at: at, updated_by: session ? session.user.id : null }, { onConflict: 'order_id' });
+    if (error) { draftNote("Couldn't save draft (sign in to the admin dashboard first)"); return; }
+    draftSig = sig;
+    draftNote('Draft saved ' + new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
+  }
+
   function recalc() {
+    scheduleDraftSave();
     const { modelHrs, printHrs, filGrams, rate, printRate, baseFee, filPerKg, surAmt, surThresh, discountPct } = state;
     const { modelCost, printCost, filCost, surActive, surCost, subtotal, discAmt, total } = computeQuote();
 
@@ -1254,6 +1294,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
     btn.disabled = true;
     btn.textContent = 'Saving…';
 
+    await saveDraft();
     const { error } = await supabase.from('orders').update({ quote_amount: amount, status: 'quoted' }).eq('id', orderIdParam);
 
     if (error) {
@@ -1282,6 +1323,13 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
         if (!orderErr && order) {
           orderData = order;
           applyOrderContext(order);
+          const { data: dr } = await supabase.from('order_quote_drafts').select('draft, updated_at').eq('order_id', orderIdParam).maybeSingle();
+          if (dr && dr.draft) {
+            applyDraft(dr.draft);
+            draftNote('Draft restored (saved ' + new Date(dr.updated_at).toLocaleString([], { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) + ')');
+          }
+          draftSig = JSON.stringify(readDraft());
+          draftLive = true;
         } else {
           showOrderLoadError();
         }

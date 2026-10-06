@@ -501,6 +501,7 @@
               <button type="button" class="btn ok" id="qbApply"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg> Use this quote</button>
               <button type="button" class="btn" id="qbPdf"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#download"/></svg> Download quote PDF</button>
               <span class="qb-note" id="qbNote"></span>
+              <span class="qb-note" id="qbDraft"></span>
             </div>
           </div>
         </div>
@@ -588,6 +589,7 @@
   let customerCredit = 0;
   let settingsRow = null;
   let loaded = false;
+  let quoteDraft = null;   // the saved, unpublished quote-builder inputs for this order
 
   function escapeHtml(str){
     return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -677,11 +679,13 @@
     order = data;
     document.title = (order.full_name || 'Order') + ' — Voxprints Admin';
 
-    const [{ data: s }, creditRes] = await Promise.all([
+    const [{ data: s }, creditRes, draftRes] = await Promise.all([
       supabase.from('settings').select('*').eq('id', 1).maybeSingle(),
-      order.user_id ? supabase.from('customer_profiles').select('store_credit').eq('id', order.user_id).maybeSingle() : Promise.resolve({ data: null })
+      order.user_id ? supabase.from('customer_profiles').select('store_credit').eq('id', order.user_id).maybeSingle() : Promise.resolve({ data: null }),
+      supabase.from('order_quote_drafts').select('draft, updated_at').eq('order_id', order.id).maybeSingle()
     ]);
     settingsRow = s || null;
+    quoteDraft = draftRes && draftRes.data ? draftRes.data : null;
     customerCredit = Number(creditRes.data?.store_credit) || 0;
 
     $('state-msg').style.display = 'none';
@@ -1043,6 +1047,52 @@
       q.extras.map(x => row('#64B5F6', escapeHtml(x.reason) || 'Extra cost', '', fmt(x.amount), x.amount === 0)).join('') +
       (q.disc > 0 ? row('var(--seg-discount)', 'Discount', `${q.disc}%`, '−' + fmt(q.discAmt), false) : '') +
       `<div class="bd-total"><b>TOTAL${$('qbRound').checked && q.raw !== q.total ? ` <span class="f" style="font-weight:400">(rounded from ${fmt(q.raw)})</span>` : ''}</b><span class="v">${fmt(q.total)}</span></div>`;
+    scheduleDraftSave();
+  }
+
+  /* ---- draft autosave: the builder's inputs are kept per order as they change ----
+     Drafts live in their own admin-only table so customers never see them. They
+     don't change the customer's quote; "Use this quote" is still what publishes it. */
+  let draftTimer = null, draftLive = false, draftSig = null;
+  function readDraft(){
+    return {
+      model: $('qbModel').value, print: $('qbPrint').value, grams: $('qbGrams').value, discount: $('qbDiscount').value,
+      round: $('qbRound').checked, extrasOn: $('qbExtraToggle').checked,
+      extras: qb.extras.map(x => ({ reason: x.reason, amount: x.amount })),
+      preset: qb.activePreset, filKg: $('qbFilKg').value
+    };
+  }
+  function applyDraft(d){
+    if (d.model != null) $('qbModel').value = d.model;
+    if (d.print != null) $('qbPrint').value = d.print;
+    if (d.grams != null) $('qbGrams').value = d.grams;
+    if (d.discount != null) $('qbDiscount').value = d.discount;
+    $('qbRound').checked = !!d.round;
+    qb.extras = Array.isArray(d.extras) ? d.extras.map(x => ({ reason: String(x.reason || ''), amount: Number(x.amount) || 0 })) : [];
+    $('qbExtraToggle').checked = !!d.extrasOn;
+    $('qbExtraWrap').style.display = d.extrasOn ? '' : 'none';
+    renderExtras();
+    if (d.preset === 'Custom'){ setPreset('Custom'); if (d.filKg != null) $('qbFilKg').value = d.filKg; }
+    else if (d.preset && Object.prototype.hasOwnProperty.call(PRESETS, d.preset)) setPreset(d.preset);
+  }
+  function draftNote(t){ $('qbDraft').textContent = t; }
+  const clockTime = ts => new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  function scheduleDraftSave(){
+    if (!draftLive) return;
+    draftNote('Saving draft…');
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(saveDraft, 700);
+  }
+  async function saveDraft(){
+    clearTimeout(draftTimer);
+    const draft = readDraft(), sig = JSON.stringify(draft);
+    if (sig === draftSig){ draftNote('Draft saved'); return; }
+    const at = new Date().toISOString();
+    const { error } = await supabase.from('order_quote_drafts')
+      .upsert({ order_id: order.id, draft, updated_at: at, updated_by: myUserId }, { onConflict: 'order_id' });
+    if (error){ draftNote("Couldn't save draft"); return; }
+    draftSig = sig;
+    draftNote('Draft saved ' + clockTime(at));
   }
 
   function setPreset(name){
@@ -1080,6 +1130,12 @@
       $('qbFilKg').value = Number(order.filament_price_per_100g) * 10;
       setPreset('Custom');
     }
+    // A saved draft for this order beats the defaults above.
+    if (quoteDraft && quoteDraft.draft){
+      applyDraft(quoteDraft.draft);
+      draftSig = JSON.stringify(readDraft());
+      draftNote('Draft restored (saved ' + new Date(quoteDraft.updated_at).toLocaleString([], { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) + ')');
+    }
     ['qbModel','qbPrint','qbGrams','qbDiscount','qbRate','qbBase','qbPrintRate','qbSurAmt','qbSurThresh','qbRound'].forEach(id => $(id).addEventListener('input', recalc));
     $('qbRound').addEventListener('change', recalc);
     $('qbFilKg').addEventListener('input', () => { setPreset('Custom'); recalc(); });
@@ -1092,6 +1148,7 @@
     $('qbAddExtra').addEventListener('click', () => { qb.extras.push({ reason: '', amount: 0 }); renderExtras(); });
     if (order.quote_amount != null) $('qbNote').textContent = `Current quote on this order: ${fmt(order.quote_amount)}`;
     recalc();
+    draftLive = true;
   }
 
   $('qbApply').addEventListener('click', async () => {
@@ -1102,6 +1159,7 @@
     const sel = $('status-select');
     if (sel.value === 'new' || sel.value === 'acknowledged') sel.value = 'quoted';
     const btn = $('qbApply'); btn.disabled = true;
+    await saveDraft();
     const ok = await saveOrder();
     btn.disabled = false;
     $('qbNote').textContent = ok ? `Saved ${fmt(amount)} to this order` : 'Could not save — see the message under Save';
