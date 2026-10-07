@@ -1,0 +1,8 @@
+# GitHub Pages (Jekyll) config. Only the website itself should be published:
+# internal notes, database migrations and developer docs stay in the repo but are not served.
+exclude:
+  - SECURITY.md
+  - CLAUDE.md
+  - THEME.md
+  - migrations
+  - README.md
