@@ -11,6 +11,9 @@
 <style>
   .ico{ vertical-align:-0.18em; flex-shrink:0; }
   :root{
+    --ease-out-quint: cubic-bezier(.23, 1, .32, 1);
+    --ease-out-cubic: cubic-bezier(.33, 1, .68, 1);
+    --ease-in-out-cubic: cubic-bezier(.645, .045, .355, 1);
     --canvas: #ffffff;
     --canvas-inset: #f6f8fa;
     --border: #d1d9e0;
@@ -334,6 +337,56 @@
     border-radius: 8px;
   }
 
+
+  /* ---- hero logo: the voxels assemble like a 3D print, then it idles ---- */
+  .hero-logo{
+    position: relative; display: block; width: clamp(128px, 30vw, 176px); aspect-ratio: 1;
+    margin: 0 auto 22px; padding: 0; border: 0; background: none; cursor: pointer; color: inherit;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .hero-logo:focus-visible{ outline: 2px solid var(--accent); outline-offset: 8px; border-radius: 18px; }
+  .hero-logo svg{ display: block; width: 100%; height: 100%; overflow: visible; }
+  .vx-tilt, .vx-impact, .vx-float{ display: block; width: 100%; height: 100%; }
+  .vx-tilt{ transition: transform 220ms var(--ease-out-quint); }
+  .vx-p{ transform-box: fill-box; transform-origin: center; }
+  .vx-glow, .vx-ring{ position: absolute; pointer-events: none; opacity: 0; }
+  .vx-glow{ inset: -28%; border-radius: 50%; background: radial-gradient(circle, var(--accent) 0%, transparent 62%); }
+  .vx-ring{ inset: 14% 8%; border: 2px solid var(--accent); border-radius: 50%; }
+  .vx-shine{ transform: translateX(-60px) skewX(-18deg); opacity: 0; }
+
+  .vx-play .vx-p{
+    animation: vx-assemble 880ms var(--ease-out-quint) both;
+    animation-delay: calc(140ms + var(--i) * 36ms);
+  }
+  .vx-play .vx-impact{ animation: vx-impact 520ms cubic-bezier(.34,1.56,.64,1) 1.18s both; }
+  .vx-play .vx-ring{ animation: vx-ring 1300ms var(--ease-out-cubic) 1.2s forwards; }
+  .vx-play .vx-ring-2{ animation-delay: 1.38s; }
+  .vx-play .vx-shine{ animation: vx-shine 900ms var(--ease-in-out-cubic) 1.55s forwards; }
+  .vx-play .vx-glow{ animation: vx-glow 4.5s ease-in-out 1.2s infinite; }
+  .vx-play .vx-float{ animation: vx-float 5.5s ease-in-out 1.9s infinite alternate; }
+
+  @keyframes vx-assemble{
+    0%   { opacity: 0; transform: translate(calc(var(--dx) * 1px), calc(var(--dy) * 1px)) rotate(var(--rot)) scale(.35); }
+    45%  { opacity: 1; }
+    100% { opacity: 1; transform: none; }
+  }
+  @keyframes vx-impact{ 0% { transform: scale(.94); } 100% { transform: scale(1); } }
+  @keyframes vx-ring{ 0% { opacity: .5; transform: scale(.55); } 100% { opacity: 0; transform: scale(1.9); } }
+  @keyframes vx-shine{ 0% { opacity: 1; transform: translateX(-60px) skewX(-18deg); } 100% { opacity: 1; transform: translateX(560px) skewX(-18deg); } }
+  @keyframes vx-glow{ 0%, 100% { opacity: .10; transform: scale(.94); } 50% { opacity: .26; transform: scale(1.06); } }
+  @keyframes vx-float{ from { transform: translateY(0); } to { transform: translateY(-7px); } }
+
+  /* the text arrives just after the logo lands */
+  .hero-eyebrow{ animation-delay: .35s; }
+  h1{ animation-delay: .45s; }
+  .hero p{ animation-delay: .55s; }
+  .hero-actions{ animation-delay: .65s; }
+
+  @media (prefers-reduced-motion: reduce){
+    .hero-logo *, .hero-logo{ animation: none !important; transition: none !important; }
+    .vx-glow, .vx-ring, .vx-shine{ display: none; }
+  }
+
   /* ---- info strip: what we print ---- */
   .strip{
     border-top: 1px solid var(--border-muted);
@@ -567,6 +620,23 @@
   </div>
 
   <div class="hero">
+    <button type="button" class="hero-logo vx-play" id="hero-logo" aria-label="Voxprints logo. Press to replay the animation.">
+      <span class="vx-glow" aria-hidden="true"></span>
+      <span class="vx-ring" aria-hidden="true"></span>
+      <span class="vx-ring vx-ring-2" aria-hidden="true"></span>
+      <span class="vx-tilt"><span class="vx-impact"><span class="vx-float">
+        <svg viewBox="0 0 400 400" aria-hidden="true" focusable="false">
+          <defs>
+            <clipPath id="vx-clip"><polygon points="200,40.2 231.4,58.3 200,76.5 168.6,58.3" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="150.9,68.5 182.3,86.7 150.9,104.8 119.5,86.7" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="101.9,96.9 133.3,115 101.9,133.1 70.4,115" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="249.1,68.5 280.5,86.7 249.1,104.8 217.7,86.7" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="200,96.9 231.4,115 200,133.1 168.6,115" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="150.9,125.2 182.3,143.3 150.9,161.5 119.5,143.3" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="298.1,96.9 329.6,115 298.1,133.1 266.7,115" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="249.1,125.2 280.5,143.3 249.1,161.5 217.7,143.3" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="200,153.5 231.4,171.7 200,189.8 168.6,171.7" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="61.6,130.3 93,148.4 93,184.7 61.6,166.6" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="61.6,187 93,205.1 93,241.4 61.6,223.2" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="61.6,243.6 93,261.8 93,298 61.6,279.9" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="110.7,158.6 142.1,176.8 142.1,213 110.7,194.9" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="110.7,215.3 142.1,233.4 142.1,269.7 110.7,251.6" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="110.7,272 142.1,290.1 142.1,326.4 110.7,308.2" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="159.8,187 191.2,205.1 191.2,241.4 159.8,223.2" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="159.8,243.6 191.2,261.8 191.2,298 159.8,279.9" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="159.8,300.3 191.2,318.4 191.2,354.7 159.8,336.6" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="338.4,130.3 307,148.4 307,184.7 338.4,166.6" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="338.4,187 307,205.1 307,241.4 338.4,223.2" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="338.4,243.6 307,261.8 307,298 338.4,279.9" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="289.3,158.6 257.9,176.8 257.9,213 289.3,194.9" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="289.3,215.3 257.9,233.4 257.9,269.7 289.3,251.6" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="289.3,272 257.9,290.1 257.9,326.4 289.3,308.2" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="240.2,187 208.8,205.1 208.8,241.4 240.2,223.2" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" stroke-width="10" stroke-linejoin="round" stroke="#000"/><polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" stroke-width="10" stroke-linejoin="round" stroke="#000"/></clipPath>
+            <linearGradient id="vx-shine-grad" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="0.5" stop-color="#fff" stop-opacity="0.6"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <g><polygon class="vx-p" style="--i:26;--dx:-114;--dy:-245;--rot:-55deg" points="200,40.2 231.4,58.3 200,76.5 168.6,58.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:24;--dx:-6;--dy:-282;--rot:-19deg" points="150.9,68.5 182.3,86.7 150.9,104.8 119.5,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:21;--dx:-200;--dy:-253;--rot:-49deg" points="101.9,96.9 133.3,115 101.9,133.1 70.4,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:25;--dx:95;--dy:-311;--rot:97deg" points="249.1,68.5 280.5,86.7 249.1,104.8 217.7,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:22;--dx:-139;--dy:-404;--rot:28deg" points="200,96.9 231.4,115 200,133.1 168.6,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:19;--dx:-63;--dy:-355;--rot:98deg" points="150.9,125.2 182.3,143.3 150.9,161.5 119.5,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:23;--dx:311;--dy:-139;--rot:45deg" points="298.1,96.9 329.6,115 298.1,133.1 266.7,115" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:20;--dx:215;--dy:-285;--rot:-91deg" points="249.1,125.2 280.5,143.3 249.1,161.5 217.7,143.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:16;--dx:12;--dy:-367;--rot:83deg" points="200,153.5 231.4,171.7 200,189.8 168.6,171.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:17;--dx:-305;--dy:-158;--rot:-106deg" points="61.6,130.3 93,148.4 93,184.7 61.6,166.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:10;--dx:-187;--dy:187;--rot:-51deg" points="61.6,187 93,205.1 93,241.4 61.6,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:4;--dx:-359;--dy:102;--rot:58deg" points="61.6,243.6 93,261.8 93,298 61.6,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:14;--dx:-343;--dy:-172;--rot:32deg" points="110.7,158.6 142.1,176.8 142.1,213 110.7,194.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:8;--dx:-205;--dy:126;--rot:-88deg" points="110.7,215.3 142.1,233.4 142.1,269.7 110.7,251.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:2;--dx:-332;--dy:90;--rot:-105deg" points="110.7,272 142.1,290.1 142.1,326.4 110.7,308.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:11;--dx:-244;--dy:201;--rot:-70deg" points="159.8,187 191.2,205.1 191.2,241.4 159.8,223.2" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:5;--dx:-81;--dy:344;--rot:-2deg" points="159.8,243.6 191.2,261.8 191.2,298 159.8,279.9" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:0;--dx:70;--dy:259;--rot:-14deg" points="159.8,300.3 191.2,318.4 191.2,354.7 159.8,336.6" fill="#2d6fd9" stroke="#2d6fd9" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:18;--dx:349;--dy:127;--rot:-82deg" points="338.4,130.3 307,148.4 307,184.7 338.4,166.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:13;--dx:284;--dy:97;--rot:-114deg" points="338.4,187 307,205.1 307,241.4 338.4,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:7;--dx:142;--dy:246;--rot:-87deg" points="338.4,243.6 307,261.8 307,298 338.4,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:15;--dx:293;--dy:75;--rot:29deg" points="289.3,158.6 257.9,176.8 257.9,213 289.3,194.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:9;--dx:242;--dy:-91;--rot:69deg" points="289.3,215.3 257.9,233.4 257.9,269.7 289.3,251.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:3;--dx:103;--dy:182;--rot:-74deg" points="289.3,272 257.9,290.1 257.9,326.4 289.3,308.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:12;--dx:104;--dy:241;--rot:-78deg" points="240.2,187 208.8,205.1 208.8,241.4 240.2,223.2" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:6;--dx:263;--dy:233;--rot:-97deg" points="240.2,243.6 208.8,261.8 208.8,298 240.2,279.9" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round"/><polygon class="vx-p" style="--i:1;--dx:-76;--dy:279;--rot:118deg" points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round"/></g>
+          <rect class="vx-shine" x="-120" y="-20" width="90" height="440" fill="url(#vx-shine-grad)" clip-path="url(#vx-clip)"/>
+        </svg>
+      </span></span></span>
+    </button>
     <div class="hero-eyebrow" id="hero-eyebrow">Now taking orders</div>
     <h1 id="hero-headline">Custom 3D printing,<br>made to order.</h1>
     <p id="hero-desc">Founded by Joshua Paterson and co-owned with Kaisyn Hazer. Send a model or describe what you need. Get a quote back, track progress, and message me directly, start to finish.</p>
@@ -577,6 +647,27 @@
       <a class="btn btn-lg" href="order.html">Track an order</a>
     </div>
   </div>
+  <script>
+  /* Hero logo: press/tap to replay, and a light cursor tilt on desktop. */
+  (function(){
+    var btn = document.getElementById('hero-logo'), hero = document.querySelector('.hero');
+    if (!btn || !hero) return;
+    var tilt = btn.querySelector('.vx-tilt');
+    btn.addEventListener('click', function(){
+      btn.classList.remove('vx-play'); void btn.offsetWidth; btn.classList.add('vx-play');
+    });
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches || !matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    var raf = 0, rx = 0, ry = 0;
+    function apply(){ raf = 0; tilt.style.transform = 'perspective(700px) rotateX(' + rx + 'deg) rotateY(' + ry + 'deg)'; }
+    hero.addEventListener('pointermove', function(e){
+      var r = btn.getBoundingClientRect();
+      var nx = (e.clientX - (r.left + r.width / 2)) / window.innerWidth, ny = (e.clientY - (r.top + r.height / 2)) / window.innerHeight;
+      ry = Math.max(-1, Math.min(1, nx * 2)) * 16; rx = Math.max(-1, Math.min(1, -ny * 2)) * 11;
+      if (!raf) raf = requestAnimationFrame(apply);
+    });
+    hero.addEventListener('pointerleave', function(){ rx = ry = 0; apply(); });
+  })();
+  </script>
 
   <div class="featured" id="featured-section" style="display:none;">
     <div class="featured-head">
