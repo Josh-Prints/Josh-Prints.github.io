@@ -24,6 +24,7 @@
   var sentTotal = 0;
   var sentByCode = {};
   var toastShown = false;
+  var hiddenAt = 0; // last time the tab/app went to the background (phones cancel in-flight requests then)
   var navAt = 0;   // last time the visitor clicked a link / submitted a form (the page is probably about to unload)
 
   function safe(fn) { try { return fn(); } catch (e) { return undefined; } }
@@ -114,7 +115,8 @@
   document.addEventListener('submit', function (e) {
     safe(function () { navAt = Date.now(); addCrumb('submit', 'form' + (e.target && e.target.id ? '#' + e.target.id : '')); });
   }, true);
-  window.addEventListener('pagehide', function () { unloading = true; });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') hiddenAt = Date.now(); });
+  window.addEventListener('pagehide', function () { unloading = true; hiddenAt = Date.now(); });
   window.addEventListener('beforeunload', function () { unloading = true; });
 
   /* ---- the code: stable for the same kind of error on the same page ---- */
@@ -263,6 +265,7 @@
             var msg = '';
             safe(function () { var j = JSON.parse(txt); msg = j.message || j.msg || j.error_description || j.error || ''; });
             if (!msg) msg = clip(txt, 160);
+            if (ep === 'auth/token' && s === 400 && /refresh token/i.test(msg)) return;   // an old login that expired: the page just asks them to sign in again
             report('http', method + ' ' + ep + ' → ' + s + (msg ? ': ' + msg : ''), { endpoint: ep, method: method, status: s },
               null, { toast: s >= 500 });
           }, function () {
@@ -279,7 +282,7 @@
           // is going away, this code never runs again; otherwise it is a real failure.
           setTimeout(function () {
             safe(function () {
-              if (unloading || document.visibilityState === 'hidden' || Date.now() - navAt < 4000) return;
+              if (unloading || document.visibilityState === 'hidden' || Date.now() - navAt < 4000 || Date.now() - hiddenAt < 20000) return;
               addCrumb('api', method + ' ' + ep + ' → network error');
               report('network', method + ' ' + ep + ' → network error: ' + (msg || 'failed'),
                 { endpoint: ep, method: method, status: 0 }, null, { toast: true });

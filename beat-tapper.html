@@ -922,7 +922,9 @@
   function songKey(){ return buffer ? (songName + '|' + Math.round(buffer.duration * 1000) + '|' + songSize) : ''; }
   function onCloudError(e){
     var m = String(e && e.message || e || '');
-    if (/not allowed/i.test(m)) { notAdmin = true; acctLine(); } else note('Could not save to your account (' + esc(m.slice(0, 80)) + '). It is still saved on this device.', 'err');
+    if (/not allowed/i.test(m)) { notAdmin = true; acctLine(); return; }
+    if (/load failed|failed to fetch|network/i.test(m) && !onCloudError.retried) { onCloudError.retried = true; setTimeout(function(){ onCloudError.retried = false; scheduleProfileSave(); scheduleTakeSave(true); }, 3000); return; }
+    note('Could not save to your account (' + esc(m.slice(0, 80)) + '). It is still saved on this device.', 'err');
   }
   function scheduleProfileSave(){
     if (!sb || !user || !cloudReady || notAdmin) return;
@@ -975,6 +977,7 @@
       loadTake();
     }, onCloudError);
   }
+  document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible' && takeDirty) scheduleTakeSave(true); });
   acctLine();
   try {
     import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm').then(function(m){

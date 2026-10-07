@@ -747,7 +747,7 @@
       const img = publicUrl(p.image_path);
       const photoCount = (p.image_path ? 1 : 0) + (p.image_paths?.length || 0);
       tile.innerHTML = `
-        <div class="tile-img">${img ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;" alt="">` : 'No image'}${photoCount > 1 ? `<div class="tile-photo-badge"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#image"/></svg> ${photoCount}</div>` : ''}</div>
+        <div class="tile-img">${img ? `<img src="${img}" loading="lazy" decoding="async" onerror="if(!this.dataset.r){this.dataset.r=1;var u=this.src;this.src='';this.src=u+(u.indexOf('?')>-1?'&':'?')+'r=1';}else{this.outerHTML='No image';}" style="width:100%;height:100%;object-fit:cover;" alt="">` : 'No image'}${photoCount > 1 ? `<div class="tile-photo-badge"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#image"/></svg> ${photoCount}</div>` : ''}</div>
         <div class="tile-body">
           <div class="tile-name">${escapeHtml(p.name)}</div>
           ${p.description ? `<div class="tile-desc">${escapeHtml(p.description)}</div>` : ''}
