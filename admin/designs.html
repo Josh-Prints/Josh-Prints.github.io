@@ -477,6 +477,22 @@
   let currentModelPath = null;
   let currentModelName = null;
   let removeExistingModel = false;
+  // Phone photos are 2-5 MB; tiles need far less. Shrink to 1600px on the long side (JPEG) before upload.
+  // If the browser can't decode the file (e.g. HEIC) or it wouldn't get smaller, the original is uploaded untouched.
+  async function downscaleImage(file, max = 1600){
+    const keep = { blob: file, name: file.name };
+    try {
+      if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) return keep;
+      const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+      if (k === 1 && file.size < 600 * 1024){ bmp.close && bmp.close(); return keep; }
+      const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+      const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(bmp, 0, 0, c.width, c.height); bmp.close && bmp.close();
+      const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
+      if (!blob || blob.size >= file.size) return keep;
+      return { blob, name: file.name.replace(/\.[^.]+$/, '') + '.jpg' };
+    } catch (e){ return keep; }
+  }
   let pendingPhotos = []; // { key, kind:'existing'|'new', path?, file?, url }
   let photoKeySeq = 0;
   let allFilaments = [];
@@ -848,8 +864,9 @@
       for (let i = 0; i < pendingPhotos.length; i++){
         const p = pendingPhotos[i];
         if (p.kind === 'new'){
-          const path = `presets/${Date.now()}-${i}-${sanitizeFileName(p.file.name)}`;
-          const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, p.file);
+          const small = await downscaleImage(p.file);
+          const path = `presets/${Date.now()}-${i}-${sanitizeFileName(small.name)}`;
+          const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, small.blob, { contentType: small.blob.type || undefined });
           if (upErr) throw upErr;
           p.path = path;
         }
