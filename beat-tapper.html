@@ -269,7 +269,11 @@
 <div class="modal-back" id="settings" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="setTitle">
     <h2 id="setTitle"><span>Settings</span><button class="icon-btn" id="closeSettings" type="button" aria-label="Close"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button></h2>
-    <h3 style="margin-top:0;">Calibration</h3>
+    <h3 style="margin-top:0;">Sound check</h3>
+    <p class="hint">Can't hear anything? Press the button. You should hear three beeps.</p>
+    <div class="row"><button class="btn" id="soundTest" type="button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#volume-2"/></svg> Play test sound</button></div>
+    <p class="hint" id="audioInfo" style="margin:8px 0 0;min-height:18px;"></p>
+    <h3>Calibration</h3>
     <p class="hint">Everyone presses a little early or late, and speakers, Bluetooth and phones add delay. Calibrate once: a click plays, you tap on each click, and the offset is set for you. It is applied to every tap you record.</p>
     <div class="row">
       <label class="dim" style="display:flex;align-items:center;gap:8px;font-size:13px;">Offset
@@ -303,6 +307,32 @@
   if (!AC) { $('status').textContent = 'This browser has no Web Audio support. Try Chrome, Edge, Firefox or Safari.'; $('status').className = 'status err'; }
 
   var ctx = null, buffer = null, songName = '', songSize = 0, peaks = null;
+
+  /* Browsers keep Web Audio silent until a tap/click "unlocks" it, and iPhones also mute it when the silent switch is on. */
+  var silentEl = null, IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  function unlockAudio(){
+    if (!AC) return Promise.resolve(false);
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+    if (!ctx) ctx = new AC();
+    if (IOS) { // a playing <audio> element makes iOS treat the page as media, which ignores the silent switch
+      try {
+        if (!silentEl) {
+          var n = 800, w = new Uint8Array(44 + n), dv = new DataView(w.buffer), wr = function(o, t){ for (var i = 0; i < t.length; i++) w[o + i] = t.charCodeAt(i); };
+          wr(0, 'RIFF'); dv.setUint32(4, 36 + n, true); wr(8, 'WAVEfmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+          dv.setUint32(24, 8000, true); dv.setUint32(28, 8000, true); dv.setUint16(32, 1, true); dv.setUint16(34, 8, true); wr(36, 'data'); dv.setUint32(40, n, true);
+          for (var k = 0; k < n; k++) w[44 + k] = 128;
+          silentEl = new Audio(URL.createObjectURL(new Blob([w], { type: 'audio/wav' }))); silentEl.loop = true;
+        }
+        var pp = silentEl.play(); if (pp && pp.catch) pp.catch(function(){});
+      } catch (e) {}
+    }
+    var r = ctx.state === 'running' ? Promise.resolve() : ctx.resume();
+    try { var sb = ctx.createBufferSource(); sb.buffer = ctx.createBuffer(1, 1, 22050); sb.connect(ctx.destination); sb.start(0); } catch (e) {}
+    return Promise.resolve(r).then(function(){ return ctx.state === 'running'; }, function(){ return false; });
+  }
+  var BLOCKED = 'Your browser is blocking sound. Tap the page, then try again. On an iPhone also switch off silent mode (the ringer switch) and turn the volume up.';
+  function audioBlocked(){ setStatus(BLOCKED, 'err'); var r = document.getElementById('calRes'); if (r) r.textContent = BLOCKED; var a = document.getElementById('audioInfo'); if (a) a.textContent = BLOCKED; }
+  ['pointerdown', 'keydown'].forEach(function(ev){ document.addEventListener(ev, function(){ unlockAudio(); }, { once: true, capture: true }); });
   var lanes = [
     { id: 'hit',    name: 'Hit',    code: 'Space', color: COLORS[0], armed: true },
     { id: 'accent', name: 'Accent', code: 'KeyJ',  color: COLORS[1], armed: true }
@@ -484,8 +514,8 @@
       var i = Math.max(0, laneIdx(t.lane)), when = startAt + t.t / r, len = Math.max(0.05, Math.min(3, (t.d || 0) / r));
       var o = ctx.createOscillator(), g = ctx.createGain();
       o.type = 'triangle'; o.frequency.value = 480 + i * 110;
-      g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(0.16, when + 0.004);
-      g.gain.setValueAtTime(0.1, when + Math.max(0.01, len - 0.03)); g.gain.exponentialRampToValueAtTime(0.0001, when + len + 0.04);
+      g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(0.3, when + 0.004);
+      g.gain.setValueAtTime(0.2, when + Math.max(0.01, len - 0.03)); g.gain.exponentialRampToValueAtTime(0.0001, when + len + 0.04);
       o.connect(g); g.connect(ctx.destination); o.start(when); o.stop(when + len + 0.06); clickNodes.push(o);
     });
   }
@@ -507,6 +537,9 @@
 
   $('start').addEventListener('click', function(){
     if (!buffer) return;
+    unlockAudio().then(function(ok){ if (ok) beginRecording(); else audioBlocked(); });
+  });
+  function beginRecording(){
     hideResult(); document.activeElement && document.activeElement.blur();
     pass++; held = {};
     var lead = parseFloat($('lead').value) || 0, r = (parseFloat($('rate').value) || 100) / 100;
@@ -524,7 +557,7 @@
         ov.textContent = Math.ceil(left); setStatus('Get ready…'); leadTimer = setTimeout(tick, 40);
       }; tick();
     } else { mode = 'rec'; renderPads(); updateCounts(); setStatus('Recording. Tap along!', 'ok'); }
-  });
+  }
   $('stop').addEventListener('click', function(){
     if (mode === 'test') { stopAll(); resetButtons(); setStatus('Playback stopped.'); return; }
     endedEarly = true; finish(false);
@@ -643,12 +676,15 @@
   /* play the taps back as tones (held notes last as long as you held them) */
   $('test').addEventListener('click', function(){
     if (!buffer || !taps.length) return;
+    unlockAudio().then(function(ok){ if (ok) playTest(); else audioBlocked(); });
+  });
+  function playTest(){
     stopAll(); mode = 'test'; $('start').disabled = true; $('stop').disabled = false; renderLanes(); renderPads(); updateCounts();
     startPlayback({ rate: 1, lead: 0 });
     scheduleClicks(build(lastNatural).taps, 1);
     src.onended = function(){ if (this !== src) return; stopAll(); resetButtons(); setStatus('Playback finished.'); };
     setStatus('Playing your taps as tones. If they sound early or late, change the timing nudge and play again.');
-  });
+  }
 
   /* ---------- settings + calibration ---------- */
   var cal = { on: false, first: 0, n: 0, gap: 0.6, countIn: 4, beats: 16, taps: [], nodes: [], timer: 0 };
@@ -659,6 +695,17 @@
   $('closeSettings').addEventListener('click', closeSettings);
   $('settings').addEventListener('pointerdown', function(e){ if (e.target === this) closeSettings(); });
   $('calMs').addEventListener('change', function(){ var v = parseFloat(this.value); setCal(isFinite(v) ? v : 0); });
+  $('soundTest').addEventListener('click', function(){
+    unlockAudio().then(function(ok){
+      if (!ok) return audioBlocked();
+      [523, 659, 784].forEach(function(f, i){
+        var o = ctx.createOscillator(), g = ctx.createGain(), at = ctx.currentTime + 0.05 + i * 0.35;
+        o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(0.5, at + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, at + 0.28);
+        o.connect(g); g.connect(ctx.destination); o.start(at); o.stop(at + 0.3);
+      });
+      $('audioInfo').textContent = 'Sound is on (' + Math.round(ctx.sampleRate / 1000) + ' kHz' + (ctx.outputLatency ? ', ' + Math.round(ctx.outputLatency * 1000) + ' ms output delay' : '') + '). If you heard nothing, check your volume' + (IOS ? ' and the silent switch' : '') + ', and your headphones or Bluetooth connection.';
+    });
+  });
   $('calReset').addEventListener('click', function(){ setCal(0); $('calRes').textContent = 'Offset reset to 0 ms.'; });
 
   function calStop(){
@@ -668,14 +715,16 @@
   }
   $('calCancel').addEventListener('click', function(){ calStop(); $('calRes').textContent = 'Calibration cancelled.'; });
   $('calStart').addEventListener('click', function(){
-    if (!AC) return; if (!ctx) ctx = new AC(); if (ctx.state === 'suspended') ctx.resume();
+    unlockAudio().then(function(ok){ if (ok) calBegin(); else audioBlocked(); });
+  });
+  function calBegin(){
     cal.on = true; cal.taps = []; cal.n = cal.countIn + cal.beats; cal.first = ctx.currentTime + 0.6;
     $('calIdle').classList.add('hidden'); $('calRun').classList.remove('hidden'); $('calRes').textContent = ''; $('calLast').textContent = ''; $('openSettings').disabled = true; $('calPad').focus();
     for (var i = 0; i < cal.n; i++) {
       var when = cal.first + i * cal.gap, o = ctx.createOscillator(), g = ctx.createGain();
       o.type = 'square'; o.frequency.value = i < cal.countIn ? 700 : 1100;
-      g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(0.2, when + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, when + 0.05);
-      o.connect(g); g.connect(ctx.destination); o.start(when); o.stop(when + 0.06); cal.nodes.push(o);
+      g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(0.5, when + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, when + 0.08);
+      o.connect(g); g.connect(ctx.destination); o.start(when); o.stop(when + 0.09); cal.nodes.push(o);
     }
     var tick = function(){
       if (!cal.on) return;
@@ -685,7 +734,7 @@
       if (ctx.currentTime > cal.first + (cal.n - 1) * cal.gap + 0.5) return calFinish();
       cal.timer = setTimeout(tick, 40);
     }; tick();
-  });
+  }
   function calTap(e){
     var heard = heardTime(e), j = Math.round((heard - cal.first) / cal.gap);
     if (j < cal.countIn || j >= cal.n) return;                         // count-in taps are ignored
