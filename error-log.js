@@ -201,10 +201,13 @@
   window.addEventListener('error', function (e) {
     safe(function () {
       var t = e.target;
-      if (t && t !== window && (t.tagName === 'SCRIPT' || t.tagName === 'LINK')) {
-        var src = t.src || t.href || '';
-        var host = safe(function () { var u = new URL(src, location.href); return u.hostname + u.pathname; }) || src;
-        report('resource', 'Failed to load ' + clip(host, 120), { tag: t.tagName.toLowerCase() }, null, { toast: false });
+      if (t && t !== window && t.nodeType === 1) {
+        // An element (script, stylesheet, image, ...) failed to load. Not a JS error.
+        var attr = t.getAttribute && (t.getAttribute('src') || t.getAttribute('href'));
+        if (!attr || /^(data|blob|about):/i.test(attr)) return;       // nothing real was requested
+        var tag = (t.tagName || '').toLowerCase();
+        var host = safe(function () { var u = new URL(attr, location.href); return u.hostname + u.pathname; }) || attr;
+        report('resource', 'Failed to load ' + tag + ' ' + clip(host, 120), { tag: tag }, null, { toast: false });
         return;
       }
       var msg = e.message || '';

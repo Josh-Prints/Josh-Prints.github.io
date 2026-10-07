@@ -830,7 +830,7 @@
       resetEmailCodePanel();
       accountChip.style.display = 'flex';
       accountName.textContent = (currentProfileName || user.email || '').split(' ')[0];
-      accountAvatar.src = user.user_metadata?.avatar_url || '';
+      { const av = user.user_metadata?.avatar_url; if (av) accountAvatar.src = av; else accountAvatar.removeAttribute('src'); }
       accountCredit.innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#credit-card"/></svg> $' + Number(profile?.store_credit || 0).toFixed(2);
       if (myOrdersLink) myOrdersLink.textContent = 'My orders';
     }

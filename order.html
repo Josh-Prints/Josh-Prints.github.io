@@ -817,8 +817,8 @@ h1{ animation: fadeInDown 0.5s ease both; }
 <div class="pdf-modal" id="pdf-modal">
   <div class="pdf-modal-inner" role="dialog" aria-modal="true" aria-label="File preview">
     <button type="button" class="pdf-modal-close" id="pdf-modal-close" aria-label="Close preview"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
-    <iframe class="pdf-modal-frame" id="pdf-modal-frame" src=""></iframe>
-    <img class="pdf-modal-img" id="pdf-modal-img" src="" alt="">
+    <iframe class="pdf-modal-frame" id="pdf-modal-frame"></iframe>
+    <img class="pdf-modal-img" id="pdf-modal-img" alt="">
   </div>
 </div>
 
@@ -921,8 +921,8 @@ h1{ animation: fadeInDown 0.5s ease both; }
     pdfModal.classList.add('closing');
     setTimeout(() => {
       pdfModal.classList.remove('closing');
-      pdfModalFrame.src = '';
-      pdfModalImg.src = '';
+      pdfModalFrame.src = 'about:blank';
+      pdfModalImg.removeAttribute('src');
     }, 220);
   }
   document.getElementById('pdf-modal-close').addEventListener('click', closePdfModal);
@@ -1273,7 +1273,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
       resetEmailCodePanel();
       accountChip.style.display = 'flex';
       accountName.textContent = (currentProfileName || user.email || '').split(' ')[0];
-      accountAvatar.src = user.user_metadata?.avatar_url || '';
+      { const av = user.user_metadata?.avatar_url; if (av) accountAvatar.src = av; else accountAvatar.removeAttribute('src'); }
       accountCredit.innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#credit-card"/></svg> $' + Number(profile?.store_credit || 0).toFixed(2);
     }
 

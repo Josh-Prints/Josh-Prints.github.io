@@ -1591,8 +1591,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 <div class="pdf-modal" id="pdf-modal">
   <div class="pdf-modal-inner">
     <button type="button" class="pdf-modal-close" id="pdf-modal-close"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
-    <iframe class="pdf-modal-frame" id="pdf-modal-frame" src=""></iframe>
-    <img class="pdf-modal-img" id="pdf-modal-img" src="" alt="">
+    <iframe class="pdf-modal-frame" id="pdf-modal-frame"></iframe>
+    <img class="pdf-modal-img" id="pdf-modal-img" alt="">
   </div>
 </div>
 
@@ -1825,8 +1825,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   }
   function closePdfModal(){
     pdfModal.classList.remove('open');
-    pdfModalFrame.src = '';
-    pdfModalImg.src = '';
+    pdfModalFrame.src = 'about:blank';
+    pdfModalImg.removeAttribute('src');
   }
   document.getElementById('pdf-modal-close').addEventListener('click', closePdfModal);
   pdfModal.addEventListener('click', (e) => { if (e.target === pdfModal) closePdfModal(); });

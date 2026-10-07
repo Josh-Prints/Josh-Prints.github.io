@@ -538,8 +538,8 @@
 <div class="pdf-modal" id="pdf-modal">
   <div class="pdf-modal-inner">
     <button type="button" class="pdf-modal-close" id="pdf-modal-close"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
-    <iframe class="pdf-modal-frame" id="pdf-modal-frame" src=""></iframe>
-    <img class="pdf-modal-img" id="pdf-modal-img" src="" alt="">
+    <iframe class="pdf-modal-frame" id="pdf-modal-frame"></iframe>
+    <img class="pdf-modal-img" id="pdf-modal-img" alt="">
   </div>
 </div>
 
@@ -612,7 +612,7 @@
     return `<span class="file-attachment"><a class="file-link" target="_blank" href="${escapeHtml(url)}">${ico('download')} ${safeName}</a>${viewBtn}</span>`;
   }
   const pdfModal = $('pdf-modal'), pdfModalFrame = $('pdf-modal-frame'), pdfModalImg = $('pdf-modal-img');
-  function closePdfModal(){ pdfModal.classList.remove('open'); pdfModalFrame.src = ''; pdfModalImg.src = ''; }
+  function closePdfModal(){ pdfModal.classList.remove('open'); pdfModalFrame.src = 'about:blank'; pdfModalImg.removeAttribute('src'); }
   $('pdf-modal-close').addEventListener('click', closePdfModal);
   pdfModal.addEventListener('click', e => { if (e.target === pdfModal) closePdfModal(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closePdfModal(); });
