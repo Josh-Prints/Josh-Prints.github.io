@@ -184,6 +184,8 @@
   .savenote{ font-size:13px; color:var(--ink-dim); margin:10px 0 0; }
   .savenote.ok{ color:var(--ok); } .savenote.err{ color:var(--err); }
   .savenote a{ color:var(--accent); }
+  .undobar{ display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin:0 0 12px; padding:8px 12px; border-radius:8px; border:1px solid rgba(var(--border-tint),0.15); background:var(--bg); font-size:13px; }
+  .undobar span{ flex:1 1 auto; }
   .hidden{ display:none !important; }
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{ animation-duration:0.001ms !important; transition-duration:0.001ms !important; }
@@ -242,6 +244,7 @@
       <div class="lastline mono" id="lastLine"></div>
     </div>
     <div class="pads" id="pads"></div>
+    <div class="undobar hidden" id="undoBar" role="status"><span id="undoMsg"></span><button class="btn btn-sm" id="undoBtn" type="button">Undo</button></div>
     <p class="status" id="status">Choose a song to begin.</p>
     <div class="row">
       <button class="btn btn-primary" id="start" type="button" disabled><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#play"/></svg> Start recording</button>
@@ -263,6 +266,10 @@
         <label>Taps volume <input type="range" id="pbTaps" min="0" max="100" value="80"></label>
       </div>
       <div class="chips" id="pbLanes"></div>
+      <div class="row" style="margin-top:14px;">
+        <label class="dim" style="display:flex;align-items:center;gap:8px;font-size:13px;">Delete all taps from <select id="delLane"></select></label>
+        <button class="btn btn-sm btn-danger" id="delLaneBtn" type="button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#trash-2"/></svg> Delete</button>
+      </div>
     </div>
     <div class="row hidden" id="hearRow" style="margin-top:12px;">
       <label class="dim" style="display:flex;align-items:center;gap:8px;font-size:13px;"><input type="checkbox" id="hear" checked> Play my earlier taps as clicks while I record</label>
@@ -451,12 +458,9 @@
       var inp = d.querySelector('input[type=text]:not(.desc)'); inp.addEventListener('input', function(){ l.name = inp.value.trim() || ('Button ' + (i + 1)); saveLanes(); renderPads(); renderChips(); refreshResult(); });
       d.querySelector('.keycap').addEventListener('click', function(){ listening = listening === l.id ? null : l.id; renderLanes(); });
       d.querySelector('.armed input').addEventListener('change', function(e){ l.armed = e.target.checked; renderPads(); });
-      d.querySelector('[data-clear]').addEventListener('click', function(){
-        var n = countOf(l.id); if (!n) return; if (!confirm('Delete the ' + tapsWord(n) + ' recorded on "' + l.name + '"?')) return;
-        taps = taps.filter(function(t){ return t.lane !== l.id; }); afterTapsChanged();
-      });
+      d.querySelector('[data-clear]').addEventListener('click', function(){ deleteLaneTaps(l.id); });
       var rm = d.querySelector('[data-rm]'); if (rm) rm.addEventListener('click', function(){
-        var n = countOf(l.id); if (n && !confirm('Remove "' + l.name + '" and its ' + tapsWord(n) + '?')) return;
+        var n = countOf(l.id); snapshotForUndo('Removed "' + l.name + '"' + (n ? ' and its ' + tapsWord(n) : '') + '.');
         taps = taps.filter(function(t){ return t.lane !== l.id; }); lanes.splice(i, 1); saveLanes(); renderLanes(); renderPads(); renderChips(); afterTapsChanged();
       });
       box.appendChild(d);
@@ -512,9 +516,36 @@
     $('hearRow').classList.toggle('hidden', !taps.length);
     $('playback').classList.toggle('hidden', !taps.length);
     $('pbPlay').disabled = mode !== 'idle' || !taps.length; $('pbStop').disabled = mode !== 'test'; $('pbStart').disabled = mode !== 'idle';
-    renderPbLanes();
+    renderPbLanes(); renderDelSelect();
     $('start').innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#play"/></svg> ' + (taps.length ? 'Record another pass' : 'Start recording');
   }
+  /* deleting is instant and undoable (no confirm pop-ups: some phone and in-app browsers silently block them) */
+  var undoSnap = null, undoTimer = 0;
+  function snapshotForUndo(msg){
+    undoSnap = { taps: taps.map(function(t){ return { lane: t.lane, raw: t.raw, dur: t.dur, pass: t.pass }; }), lanes: lanes.map(function(l){ return { id: l.id, name: l.name, code: l.code, color: l.color, desc: l.desc, armed: l.armed }; }), pass: pass };
+    $('undoMsg').textContent = msg; $('undoBar').classList.remove('hidden'); clearTimeout(undoTimer); undoTimer = setTimeout(hideUndo, 15000);
+  }
+  function hideUndo(){ undoSnap = null; $('undoBar').classList.add('hidden'); clearTimeout(undoTimer); }
+  $('undoBtn').addEventListener('click', function(){
+    if (!undoSnap) return; var sn = undoSnap; hideUndo();
+    taps = sn.taps; lanes = sn.lanes; pass = sn.pass; fixSeq(); saveLanes();
+    renderLanes(); renderPads(); renderChips(); afterTapsChanged();
+    if (taps.length) showResult(lastNatural, true);
+    setStatus('Restored.', 'ok');
+  });
+  function deleteLaneTaps(id){
+    var l = laneOf(id), n = countOf(id); if (!l || !n || mode !== 'idle') return;
+    snapshotForUndo('Deleted ' + tapsWord(n) + ' from "' + l.name + '".');
+    taps = taps.filter(function(t){ return t.lane !== id; }); afterTapsChanged();
+    setStatus('Deleted ' + tapsWord(n) + ' from "' + l.name + '".');
+  }
+  function renderDelSelect(){
+    var sel = $('delLane'), keep = sel.value; sel.innerHTML = '';
+    lanes.forEach(function(l){ var n = countOf(l.id); if (!n) return; var o = document.createElement('option'); o.value = l.id; o.textContent = l.name + ' (' + tapsWord(n) + ')'; sel.appendChild(o); });
+    if (keep) sel.value = keep; if (!sel.value && sel.options.length) sel.selectedIndex = 0;
+    $('delLaneBtn').disabled = mode !== 'idle' || !sel.options.length; sel.disabled = mode !== 'idle';
+  }
+  $('delLaneBtn').addEventListener('click', function(){ var id = $('delLane').value; if (id) deleteLaneTaps(id); });
   function afterTapsChanged(){
     updateCounts(); drawWave(position()); refreshResult(); scheduleTakeSave();
     if (!taps.length) hideResult();
@@ -533,7 +564,7 @@
   /* ---------- loading the song ---------- */
   $('file').addEventListener('change', function(){
     var f = this.files && this.files[0]; if (!f || !AC) return;
-    stopAll(); hideResult(); taps = []; held = {}; pass = 0; buffer = null; peaks = null; takeLoadedFor = ''; playFrom = 0; $('start').disabled = true; updateCounts();
+    stopAll(); hideResult(); taps = []; held = {}; pass = 0; buffer = null; peaks = null; takeLoadedFor = ''; playFrom = 0; hideUndo(); $('start').disabled = true; updateCounts();
     setStatus('Reading the song…');
     if (!ctx) makeCtx();
     var rd = new FileReader();
@@ -622,7 +653,7 @@
     unlockAudio().then(function(ok){ if (ok) beginRecording(); else audioBlocked(); });
   });
   function beginRecording(){
-    hideResult(); document.activeElement && document.activeElement.blur();
+    hideResult(); hideUndo(); document.activeElement && document.activeElement.blur();
     pass++; held = {};
     var lead = parseFloat($('lead').value) || 0, r = (parseFloat($('rate').value) || 100) / 100;
     var armed = lanes.filter(function(l){ return l.armed; }).length;
@@ -645,7 +676,7 @@
     endedEarly = true; finish(false);
   });
   $('undo').addEventListener('click', undoTap);
-  $('clearAll').addEventListener('click', function(){ if (taps.length && confirm('Delete all ' + tapsWord(taps.length) + '?')) { taps = []; pass = 0; hideResult(); afterTapsChanged(); setStatus('Cleared. Ready when you are.'); } });
+  $('clearAll').addEventListener('click', function(){ if (!taps.length) return; snapshotForUndo('Deleted all ' + tapsWord(taps.length) + '.'); taps = []; pass = 0; hideResult(); afterTapsChanged(); setStatus('Cleared. Ready when you are.'); });
   $('again').addEventListener('click', function(){ if (!$('start').disabled) $('start').click(); });
 
   function resetButtons(){ $('start').disabled = !buffer; $('stop').disabled = true; renderLanes(); renderPads(); renderChips(); updateCounts(); }
