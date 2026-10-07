@@ -270,8 +270,10 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="setTitle">
     <h2 id="setTitle"><span>Settings</span><button class="icon-btn" id="closeSettings" type="button" aria-label="Close"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button></h2>
     <h3 style="margin-top:0;">Sound check</h3>
-    <p class="hint">Can't hear anything? Press the button. You should hear three beeps.</p>
+    <p class="hint">Can't hear anything? Press the first button, you should hear three beeps. If not, press the second one, which uses the browser's ordinary audio player.</p>
     <div class="row"><button class="btn" id="soundTest" type="button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#volume-2"/></svg> Play test sound</button></div>
+    <div class="row" style="margin-top:8px;"><button class="btn" id="soundTest2" type="button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#volume-2"/></svg> Test with a basic player</button></div>
+    <label class="dim" style="display:flex;align-items:flex-start;gap:8px;font-size:13px;margin-top:10px;"><input type="checkbox" id="compat" style="margin-top:3px;"> <span>Compatibility sound mode. Turn this on if the first test is silent but the basic player test is audible (common on iPhones and in app browsers). Calibrate again after changing it.</span></label>
     <p class="hint" id="audioInfo" style="margin:8px 0 0;min-height:18px;"></p>
     <h3>Calibration</h3>
     <p class="hint">Everyone presses a little early or late, and speakers, Bluetooth and phones add delay. Calibrate once: a click plays, you tap on each click, and the offset is set for you. It is applied to every tap you record.</p>
@@ -309,7 +311,11 @@
   var ctx = null, buffer = null, songName = '', songSize = 0, peaks = null;
 
   /* Browsers keep Web Audio silent until a tap/click "unlocks" it, and iPhones also mute it when the silent switch is on. */
+  var COMPAT_STORE = 'voxBeatTapperCompat', compat = false, mediaDest = null, outEl = null;
+  try { var cs = localStorage.getItem(COMPAT_STORE); compat = cs === null ? null : cs === '1'; } catch (e) { compat = null; }
+  function sink(){ return (compat && mediaDest) ? mediaDest : ctx.destination; }
   var silentEl = null, IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (compat === null) compat = IOS && !!(window.MediaStreamAudioDestinationNode || window.webkitMediaStreamAudioDestinationNode);
   function unlockAudio(){
     if (!AC) return Promise.resolve(false);
     try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
@@ -326,6 +332,10 @@
         var pp = silentEl.play(); if (pp && pp.catch) pp.catch(function(){});
       } catch (e) {}
     }
+    if (compat && !mediaDest && ctx.createMediaStreamDestination) { // compatibility route: Web Audio -> <audio> element, which ignores the iPhone silent switch
+      try { mediaDest = ctx.createMediaStreamDestination(); outEl = new Audio(); outEl.srcObject = mediaDest.stream; outEl.setAttribute('playsinline', ''); } catch (e) { mediaDest = null; }
+    }
+    if (compat && outEl) { var op = outEl.play(); if (op && op.catch) op.catch(function(){}); }
     var r = ctx.state === 'running' ? Promise.resolve() : ctx.resume();
     try { var sb = ctx.createBufferSource(); sb.buffer = ctx.createBuffer(1, 1, 22050); sb.connect(ctx.destination); sb.start(0); } catch (e) {}
     return Promise.resolve(r).then(function(){ return ctx.state === 'running'; }, function(){ return false; });
@@ -516,7 +526,7 @@
       o.type = 'triangle'; o.frequency.value = 480 + i * 110;
       g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(0.3, when + 0.004);
       g.gain.setValueAtTime(0.2, when + Math.max(0.01, len - 0.03)); g.gain.exponentialRampToValueAtTime(0.0001, when + len + 0.04);
-      o.connect(g); g.connect(ctx.destination); o.start(when); o.stop(when + len + 0.06); clickNodes.push(o);
+      o.connect(g); g.connect(sink()); o.start(when); o.stop(when + len + 0.06); clickNodes.push(o);
     });
   }
 
@@ -524,7 +534,7 @@
   function startPlayback(opts){
     if (ctx.state === 'suspended') ctx.resume();
     rate = opts.rate; finished = false; endedEarly = false;
-    src = ctx.createBufferSource(); src.buffer = buffer; src.playbackRate.value = rate; src.connect(ctx.destination);
+    src = ctx.createBufferSource(); src.buffer = buffer; src.playbackRate.value = rate; src.connect(sink());
     startAt = ctx.currentTime + 0.12 + opts.lead; src.start(startAt);
     src.onended = function(){ if (this !== src) return; finish(!endedEarly); };
     cancelAnimationFrame(rafId); loop();
@@ -701,10 +711,26 @@
       [523, 659, 784].forEach(function(f, i){
         var o = ctx.createOscillator(), g = ctx.createGain(), at = ctx.currentTime + 0.05 + i * 0.35;
         o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(0.5, at + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, at + 0.28);
-        o.connect(g); g.connect(ctx.destination); o.start(at); o.stop(at + 0.3);
+        o.connect(g); g.connect(sink()); o.start(at); o.stop(at + 0.3);
       });
-      $('audioInfo').textContent = 'Sound is on (' + Math.round(ctx.sampleRate / 1000) + ' kHz' + (ctx.outputLatency ? ', ' + Math.round(ctx.outputLatency * 1000) + ' ms output delay' : '') + '). If you heard nothing, check your volume' + (IOS ? ' and the silent switch' : '') + ', and your headphones or Bluetooth connection.';
+      $('audioInfo').textContent = 'Sound engine is running' + (compat ? ' in compatibility mode' : '') + ' (' + Math.round(ctx.sampleRate / 1000) + ' kHz' + (ctx.outputLatency ? ', ' + Math.round(ctx.outputLatency * 1000) + ' ms output delay' : '') + '). If you heard nothing, check your volume' + (IOS ? ' and the silent switch' : '') + ', and your headphones or Bluetooth connection.';
     });
+  });
+  $('compat').checked = !!compat;
+  $('compat').addEventListener('change', function(){
+    compat = this.checked; try { localStorage.setItem(COMPAT_STORE, compat ? '1' : '0'); } catch (e) {}
+    if (!compat && outEl) { try { outEl.pause(); } catch (e) {} }
+    unlockAudio().then(function(ok){ $('audioInfo').textContent = (compat ? 'Compatibility mode on. ' : 'Compatibility mode off. ') + 'Press "Play test sound" to check, then calibrate again.'; });
+  });
+  $('soundTest2').addEventListener('click', function(){
+    // plain <audio> element playing a generated beep, independent of Web Audio
+    var sr = 22050, n = Math.floor(sr * 1.1), w = new Uint8Array(44 + n * 2), dv = new DataView(w.buffer), wr = function(o, t){ for (var i = 0; i < t.length; i++) w[o + i] = t.charCodeAt(i); };
+    wr(0, 'RIFF'); dv.setUint32(4, 36 + n * 2, true); wr(8, 'WAVEfmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true); dv.setUint32(24, sr, true); dv.setUint32(28, sr * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true); wr(36, 'data'); dv.setUint32(40, n * 2, true);
+    [523, 659, 784].forEach(function(f, k){ var a = Math.floor(sr * k * 0.35), len = Math.floor(sr * 0.28); for (var i = 0; i < len; i++) { var env = Math.min(1, i / (sr * 0.01)) * Math.max(0, 1 - i / len); dv.setInt16(44 + (a + i) * 2, Math.round(Math.sin(2 * Math.PI * f * i / sr) * 0.6 * env * 32767), true); } });
+    var a2 = new Audio(URL.createObjectURL(new Blob([w], { type: 'audio/wav' }))); a2.volume = 1;
+    var pr = a2.play();
+    $('audioInfo').textContent = 'Playing with the basic player. Did you hear three beeps? If yes, but the first test was silent, tick Compatibility sound mode above.';
+    if (pr && pr.catch) pr.catch(function(err){ $('audioInfo').textContent = 'The browser would not play audio at all (' + (err && err.name || 'blocked') + '). Check the volume, silent mode, and that this page is allowed to play sound.'; });
   });
   $('calReset').addEventListener('click', function(){ setCal(0); $('calRes').textContent = 'Offset reset to 0 ms.'; });
 
@@ -724,7 +750,7 @@
       var when = cal.first + i * cal.gap, o = ctx.createOscillator(), g = ctx.createGain();
       o.type = 'square'; o.frequency.value = i < cal.countIn ? 700 : 1100;
       g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(0.5, when + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, when + 0.08);
-      o.connect(g); g.connect(ctx.destination); o.start(when); o.stop(when + 0.09); cal.nodes.push(o);
+      o.connect(g); g.connect(sink()); o.start(when); o.stop(when + 0.09); cal.nodes.push(o);
     }
     var tick = function(){
       if (!cal.on) return;
