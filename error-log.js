@@ -24,6 +24,7 @@
   var sentTotal = 0;
   var sentByCode = {};
   var toastShown = false;
+  var navAt = 0;   // last time the visitor clicked a link / submitted a form (the page is probably about to unload)
 
   function safe(fn) { try { return fn(); } catch (e) { return undefined; } }
   function clip(s, n) { s = String(s == null ? '' : s); return s.length > n ? s.slice(0, n) : s; }
@@ -103,12 +104,15 @@
       var text = el.getAttribute('aria-label') || el.getAttribute('title') || (tag === 'select' ? '' : (el.innerText || el.value || ''));
       text = clip(String(text).replace(/\s+/g, ' ').trim(), 40);
       var dest = '';
-      if (tag === 'a' && el.getAttribute('href')) dest = ' → ' + clip(el.getAttribute('href').split('?')[0], 60);
+      if (tag === 'a' && el.getAttribute('href')) {
+        dest = ' → ' + clip(el.getAttribute('href').split('?')[0], 60);
+        if (el.getAttribute('href').charAt(0) !== '#' && el.target !== '_blank') navAt = Date.now();
+      }
       addCrumb('click', tag + (label || '') + (text ? ' "' + text + '"' : '') + dest);
     });
   }, true);
   document.addEventListener('submit', function (e) {
-    safe(function () { addCrumb('submit', 'form' + (e.target && e.target.id ? '#' + e.target.id : '')); });
+    safe(function () { navAt = Date.now(); addCrumb('submit', 'form' + (e.target && e.target.id ? '#' + e.target.id : '')); });
   }, true);
   window.addEventListener('pagehide', function () { unloading = true; });
   window.addEventListener('beforeunload', function () { unloading = true; });
@@ -270,9 +274,17 @@
         safe(function () {
           if (unloading || (err && err.name === 'AbortError')) return;
           if (navigator.onLine === false) { addCrumb('net', 'offline'); return; }
-          addCrumb('api', method + ' ' + ep + ' → network error');
-          report('network', method + ' ' + ep + ' → network error: ' + ((err && err.message) || 'failed'),
-            { endpoint: ep, method: method, status: 0 }, null, { toast: true });
+          var msg = err && err.message;
+          // Leaving the page cancels in-flight requests ("Load failed" in Safari). Wait a moment: if the page
+          // is going away, this code never runs again; otherwise it is a real failure.
+          setTimeout(function () {
+            safe(function () {
+              if (unloading || document.visibilityState === 'hidden' || Date.now() - navAt < 4000) return;
+              addCrumb('api', method + ' ' + ep + ' → network error');
+              report('network', method + ' ' + ep + ' → network error: ' + (msg || 'failed'),
+                { endpoint: ep, method: method, status: 0 }, null, { toast: true });
+            });
+          }, 400);
         });
         throw err;
       });
