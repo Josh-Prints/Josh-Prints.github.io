@@ -173,6 +173,17 @@
   .calpad small{ display:block; font-size:12px; font-weight:400; color:var(--ink-dim); margin-top:4px; }
   .calres{ margin:10px 0 0; font-size:14px; }
   .calres b{ font-family:ui-monospace,'SF Mono','Roboto Mono',monospace; }
+  .lane-edit .desc{ flex:1 1 100%; width:100%; font-size:13px; }
+  .pad .ds{ display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; margin-top:6px; font-size:11px; line-height:1.3; color:var(--ink-dim); }
+  .playback{ margin-top:18px; padding-top:16px; border-top:1px solid rgba(var(--border-tint),0.10); }
+  .playback h3{ margin:0 0 4px; font-size:15px; }
+  .playback .vol{ display:flex; flex-wrap:wrap; gap:18px; margin:12px 0; }
+  .playback .vol label{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-dim); }
+  button.chip{ font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+  .chip.muted{ opacity:.45; text-decoration:line-through; }
+  .savenote{ font-size:13px; color:var(--ink-dim); margin:10px 0 0; }
+  .savenote.ok{ color:var(--ok); } .savenote.err{ color:var(--err); }
+  .savenote a{ color:var(--accent); }
   .hidden{ display:none !important; }
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{ animation-duration:0.001ms !important; transition-duration:0.001ms !important; }
@@ -200,6 +211,7 @@
     <h2><span class="n">2</span> Your buttons</h2>
     <p class="hint">Each button is its own track. Rename it, pick a colour, or click the key box to change its key. Untick Rec to leave a button out of the next pass.</p>
     <div id="laneList"></div>
+    <p class="savenote" id="saveNote"></p>
     <div class="row" style="margin-top:10px;">
       <button class="btn" id="addLane" type="button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#plus"/></svg> Add a button</button>
     </div>
@@ -237,6 +249,21 @@
       <button class="btn" id="undo" type="button" disabled>Undo last tap</button>
       <button class="btn btn-danger" id="clearAll" type="button" disabled>Clear all taps</button>
     </div>
+    <div class="playback hidden" id="playback">
+      <h3>Playback</h3>
+      <p class="hint" style="margin:0 0 10px;">Hear your taps as tones along with the song. Click the waveform to choose where playback starts. Click a button below to mute it.</p>
+      <div class="row">
+        <button class="btn btn-primary" id="pbPlay" type="button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#play"/></svg> Play my taps</button>
+        <button class="btn" id="pbStop" type="button" disabled><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pause"/></svg> Stop playback</button>
+        <button class="btn" id="pbStart" type="button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#skip-back"/></svg> From the start</button>
+        <span class="mono dim" id="pbFrom" style="font-size:13px;">Starts at 0:00.000</span>
+      </div>
+      <div class="vol">
+        <label>Song volume <input type="range" id="pbSong" min="0" max="100" value="100"></label>
+        <label>Taps volume <input type="range" id="pbTaps" min="0" max="100" value="80"></label>
+      </div>
+      <div class="chips" id="pbLanes"></div>
+    </div>
     <div class="row hidden" id="hearRow" style="margin-top:12px;">
       <label class="dim" style="display:flex;align-items:center;gap:8px;font-size:13px;"><input type="checkbox" id="hear" checked> Play my earlier taps as clicks while I record</label>
     </div>
@@ -249,7 +276,6 @@
     <div class="row" style="margin-bottom:12px;">
       <button class="btn btn-primary" id="dl" type="button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#download"/></svg> Download file</button>
       <button class="btn" id="cp" type="button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#copy"/></svg> Copy</button>
-      <button class="btn" id="test" type="button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#volume-2"/></svg> Play back my taps</button>
       <button class="btn" id="again" type="button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#plus"/></svg> Record another pass</button>
     </div>
     <textarea id="json" readonly spellcheck="false"></textarea>
@@ -259,7 +285,7 @@
     <h2>Tips for tight timing</h2>
     <ul class="tips">
       <li>Wired headphones or speakers are best. Bluetooth adds delay that browsers can't always measure; if your taps sound late on playback, use the timing nudge.</li>
-      <li>Use "Play back my taps" after recording. You'll hear a click on every tap. If they sit slightly off the music, change the nudge and play it back again, no need to re-record.</li>
+      <li>Use "Play my taps" after recording. You'll hear a click on every tap. If they sit slightly off the music, change the nudge and play it back again, no need to re-record.</li>
       <li>Hard to keep up? Drag the speed slider down (it can go to 25%). The times are saved against the original song, so they still match. Slower playback also lowers the pitch.</li>
       <li>To layer buttons, record one pass, then press "Record another pass". Your earlier taps play as clicks so you can tap along with them. Untick Rec on buttons you don't want to change.</li>
     </ul>
@@ -275,6 +301,8 @@
     <div class="row" style="margin-top:8px;"><button class="btn" id="soundTest2" type="button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#volume-2"/></svg> Test with a basic player</button></div>
     <label class="dim" style="display:flex;align-items:flex-start;gap:8px;font-size:13px;margin-top:10px;"><input type="checkbox" id="compat" style="margin-top:3px;"> <span>Compatibility sound mode. Turn this on if the first test is silent but the basic player test is audible (common on iPhones and in app browsers). Calibrate again after changing it.</span></label>
     <p class="hint" id="audioInfo" style="margin:8px 0 0;min-height:18px;"></p>
+    <h3>Account</h3>
+    <p class="hint" id="acctInfo" style="margin:0 0 4px;">Checking sign-in…</p>
     <h3>Calibration</h3>
     <p class="hint">Everyone presses a little early or late, and speakers, Bluetooth and phones add delay. Calibrate once: a click plays, you tap on each click, and the offset is set for you. It is applied to every tap you record.</p>
     <div class="row">
@@ -344,8 +372,8 @@
   function audioBlocked(){ setStatus(BLOCKED, 'err'); var r = document.getElementById('calRes'); if (r) r.textContent = BLOCKED; var a = document.getElementById('audioInfo'); if (a) a.textContent = BLOCKED; }
   ['pointerdown', 'keydown'].forEach(function(ev){ document.addEventListener(ev, function(){ unlockAudio(); }, { once: true, capture: true }); });
   var lanes = [
-    { id: 'hit',    name: 'Hit',    code: 'Space', color: COLORS[0], armed: true },
-    { id: 'accent', name: 'Accent', code: 'KeyJ',  color: COLORS[1], armed: true }
+    { id: 'hit',    name: 'Hit',    code: 'Space', color: COLORS[0], desc: '', armed: true },
+    { id: 'accent', name: 'Accent', code: 'KeyJ',  color: COLORS[1], desc: '', armed: true }
   ];
   var laneSeq = 3;
   var taps = [];                 // {lane, raw, dur, pass}  raw/dur in song seconds before nudge; dur null while held
@@ -353,17 +381,17 @@
   var pass = 0, lastNatural = true;
   var mode = 'idle';             // idle | lead | rec | test
   var src = null, startAt = 0, rate = 1, finished = false, endedEarly = false, rafId = 0, listening = null, leadTimer = 0;
-  var clickNodes = [];
+  var clickNodes = [], songG = null, tapG = null, laneG = {}, playFrom = 0, songVol = 1, tapVol = 0.8, muted = {}, playList = [], pbSig = '';
 
   /* remember button setup between visits */
-  try {
-    var saved = JSON.parse(localStorage.getItem(STORE) || 'null');
-    if (Array.isArray(saved) && saved.length && saved.length <= MAX_LANES && saved.every(function(l){ return l && typeof l.id === 'string' && typeof l.name === 'string' && typeof l.code === 'string'; })) {
-      lanes = saved.map(function(l, i){ return { id: l.id.slice(0, 20), name: l.name.slice(0, 24), code: l.code, color: /^#[0-9a-f]{6}$/i.test(l.color) ? l.color : COLORS[i % COLORS.length], armed: true }; });
-      laneSeq = lanes.reduce(function(m, l){ var n = parseInt(String(l.id).replace(/\D/g, ''), 10); return isFinite(n) ? Math.max(m, n + 1) : m; }, 3);
-    }
-  } catch (e) {}
-  function saveLanes(){ try { localStorage.setItem(STORE, JSON.stringify(lanes.map(function(l){ return { id: l.id, name: l.name, code: l.code, color: l.color }; }))); } catch (e) {} }
+  function cleanLanes(arr){
+    if (!Array.isArray(arr) || !arr.length || arr.length > MAX_LANES || !arr.every(function(l){ return l && typeof l.id === 'string' && typeof l.name === 'string' && typeof l.code === 'string'; })) return null;
+    return arr.map(function(l, i){ return { id: l.id.slice(0, 20), name: l.name.slice(0, 24), code: l.code.slice(0, 20), color: /^#[0-9a-f]{6}$/i.test(l.color) ? l.color : COLORS[i % COLORS.length], desc: typeof l.desc === 'string' ? l.desc.slice(0, 140) : '', armed: true }; });
+  }
+  function fixSeq(){ laneSeq = lanes.reduce(function(m, l){ var n = parseInt(String(l.id).replace(/\D/g, ''), 10); return isFinite(n) ? Math.max(m, n + 1) : m; }, 3); }
+  try { var savedLanes = cleanLanes(JSON.parse(localStorage.getItem(STORE) || 'null')); if (savedLanes) { lanes = savedLanes; fixSeq(); } } catch (e) {}
+  function laneData(){ return lanes.map(function(l){ return { id: l.id, name: l.name, code: l.code, color: l.color, desc: l.desc || '' }; }); }
+  function saveLanes(){ try { localStorage.setItem(STORE, JSON.stringify(laneData())); } catch (e) {} scheduleProfileSave(); }
 
   function laneIdx(id){ return lanes.findIndex(function(l){ return l.id === id; }); }
   function laneOf(id){ return lanes[laneIdx(id)]; }
@@ -387,9 +415,11 @@
         '<label class="armed"><input type="checkbox"' + (l.armed ? ' checked' : '') + '> Rec</label>' +
         '<span class="cnt mono" data-cnt>' + tapsWord(countOf(l.id)) + '</span>' +
         '<button type="button" class="btn btn-sm" data-clear title="Delete this button\'s taps">Clear taps</button>' +
-        (lanes.length > 1 ? '<button type="button" class="btn btn-sm btn-danger" data-rm aria-label="Remove button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#trash-2"/></svg></button>' : '');
+        (lanes.length > 1 ? '<button type="button" class="btn btn-sm btn-danger" data-rm aria-label="Remove button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#trash-2"/></svg></button>' : '') +
+        '<input type="text" class="desc" maxlength="140" placeholder="Description (optional): what is this button for?" value="' + esc(l.desc || '') + '" aria-label="Button description">';
       var col = d.querySelector('input[type=color]'); col.addEventListener('input', function(){ l.color = col.value; saveLanes(); renderPads(); renderChips(); drawWave(position()); });
-      var inp = d.querySelector('input[type=text]'); inp.addEventListener('input', function(){ l.name = inp.value.trim() || ('Button ' + (i + 1)); saveLanes(); renderPads(); renderChips(); refreshResult(); });
+      var dsc = d.querySelector('input.desc'); dsc.addEventListener('input', function(){ l.desc = dsc.value; saveLanes(); renderPads(); refreshResult(); });
+      var inp = d.querySelector('input[type=text]:not(.desc)'); inp.addEventListener('input', function(){ l.name = inp.value.trim() || ('Button ' + (i + 1)); saveLanes(); renderPads(); renderChips(); refreshResult(); });
       d.querySelector('.keycap').addEventListener('click', function(){ listening = listening === l.id ? null : l.id; renderLanes(); });
       d.querySelector('.armed input').addEventListener('change', function(e){ l.armed = e.target.checked; renderPads(); });
       d.querySelector('[data-clear]').addEventListener('click', function(){
@@ -413,7 +443,8 @@
     var box = $('pads'); box.innerHTML = '';
     lanes.forEach(function(l){
       var b = document.createElement('button'); b.type = 'button'; b.className = 'pad'; b.dataset.lane = l.id; b.style.setProperty('--lane', l.color);
-      b.innerHTML = '<span class="ct" data-ct>' + countOf(l.id) + '</span><span class="nm">' + esc(l.name) + '</span><span class="kc">' + esc(codeLabel(l.code)) + '</span>';
+      b.innerHTML = '<span class="ct" data-ct>' + countOf(l.id) + '</span><span class="nm">' + esc(l.name) + '</span><span class="kc">' + esc(codeLabel(l.code)) + '</span>' + (l.desc ? '<span class="ds">' + esc(l.desc) + '</span>' : '');
+      if (l.desc) b.title = l.desc;
       b.disabled = mode !== 'rec' || !l.armed;
       b.addEventListener('pointerdown', function(e){ e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (err) {} pressStart(l.id, 'p' + e.pointerId, e); });
       b.addEventListener('pointerup', function(e){ pressEnd('p' + e.pointerId, e); });
@@ -431,7 +462,9 @@
     updateChips(position());
   }
   function updateChips(pos){
-    var live = {}; Object.keys(held).forEach(function(k){ var t = held[k]; live[t.lane] = Math.max(live[t.lane] || 0, pos - t.raw); });
+    var live = {};
+    if (mode === 'test') playList.forEach(function(t){ if (pos >= t.t && pos < t.t + Math.max(t.d, 0.1) && !muted[t.lane]) live[t.lane] = Math.max(live[t.lane] || 0, pos - t.t); });
+    else Object.keys(held).forEach(function(k){ var t = held[k]; live[t.lane] = Math.max(live[t.lane] || 0, pos - t.raw); });
     document.querySelectorAll('#chips .chip').forEach(function(c){
       var d = live[c.dataset.lane], on = d != null;
       if (c.classList.contains('on') !== on) c.classList.toggle('on', on);
@@ -448,10 +481,13 @@
     $('undo').disabled = !(mode === 'rec' && taps.some(function(t){ return t.pass === pass; }));
     $('clearAll').disabled = mode !== 'idle' || !taps.length;
     $('hearRow').classList.toggle('hidden', !taps.length);
+    $('playback').classList.toggle('hidden', !taps.length);
+    $('pbPlay').disabled = mode !== 'idle' || !taps.length; $('pbStop').disabled = mode !== 'test'; $('pbStart').disabled = mode !== 'idle';
+    renderPbLanes();
     $('start').innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#play"/></svg> ' + (taps.length ? 'Record another pass' : 'Start recording');
   }
   function afterTapsChanged(){
-    updateCounts(); drawWave(position()); refreshResult();
+    updateCounts(); drawWave(position()); refreshResult(); scheduleTakeSave();
     if (!taps.length) hideResult();
   }
 
@@ -460,7 +496,7 @@
     var used = lanes.map(function(l){ return l.code; }), usedC = lanes.map(function(l){ return l.color; });
     var code = KEYS.filter(function(k){ return used.indexOf(k) < 0; })[0] || 'KeyZ';
     var color = COLORS.filter(function(c){ return usedC.indexOf(c) < 0; })[0] || COLORS[lanes.length % COLORS.length];
-    lanes.push({ id: 'b' + (laneSeq++), name: 'Button ' + (lanes.length + 1), code: code, color: color, armed: true });
+    lanes.push({ id: 'b' + (laneSeq++), name: 'Button ' + (lanes.length + 1), code: code, color: color, desc: '', armed: true });
     saveLanes(); renderLanes(); renderPads(); renderChips();
   });
   $('rate').addEventListener('input', function(){ $('rateOut').textContent = this.value + '%'; });
@@ -468,7 +504,7 @@
   /* ---------- loading the song ---------- */
   $('file').addEventListener('change', function(){
     var f = this.files && this.files[0]; if (!f || !AC) return;
-    stopAll(); hideResult(); taps = []; held = {}; pass = 0; buffer = null; peaks = null; $('start').disabled = true; updateCounts();
+    stopAll(); hideResult(); taps = []; held = {}; pass = 0; buffer = null; peaks = null; takeLoadedFor = ''; playFrom = 0; $('start').disabled = true; updateCounts();
     setStatus('Reading the song…');
     if (!ctx) ctx = new AC();
     var rd = new FileReader();
@@ -478,7 +514,7 @@
         buffer = b; songName = f.name; songSize = f.size; computePeaks();
         $('songMeta').innerHTML = '<b>' + esc(f.name) + '</b> &middot; ' + fmt(b.duration) + ' &middot; ' + Math.round(b.sampleRate / 1000) + ' kHz';
         $('start').disabled = false; $('tNow').textContent = fmt(0); $('tLeft').textContent = fmt(b.duration) + ' long';
-        setStatus('Ready. Press Start when you want to begin.', 'ok'); drawWave(0);
+        setStatus('Ready. Press Start when you want to begin.', 'ok'); setPlayFrom(0); drawWave(0); loadTake();
       };
       var fail = function(){ setStatus('Could not decode that audio file. MP3, M4A, WAV, OGG and FLAC usually work.', 'err'); };
       var p = ctx.decodeAudioData(rd.result, done, fail); if (p && p.catch) p.catch(function(){});
@@ -506,6 +542,7 @@
       var d = t.dur == null ? Math.max(0, pos - t.raw) : t.dur, x0 = Math.round((t.raw + nd) / dur * W), w = Math.max(3, Math.round(d / dur * W));
       g.fillStyle = lanes[i].color; g.fillRect(x0, 4 + i * (rowH + 1), w, rowH);
     });
+    if (playFrom > 0.05 && taps.length) { var mx2 = Math.round(playFrom / dur * W); g.fillStyle = css('--ok') || '#1a7f37'; g.fillRect(mx2 - 1, 0, 3, H); g.beginPath(); g.moveTo(mx2, 0); g.lineTo(mx2 + 18, 0); g.lineTo(mx2, 20); g.closePath(); g.fill(); }
     g.fillStyle = css('--ink') || '#000'; g.fillRect(px - 1, 0, 3, H);
   }
   function position(){ // song seconds currently being heard
@@ -519,14 +556,17 @@
   }
 
   /* ---------- click track (earlier taps / test playback) ---------- */
-  function scheduleClicks(list, r){
+  function scheduleClicks(list, r, from){
+    tapG = ctx.createGain(); tapG.gain.value = tapVol; tapG.connect(sink()); laneG = {};
+    lanes.forEach(function(l){ var g2 = ctx.createGain(); g2.gain.value = muted[l.id] ? 0 : 1; g2.connect(tapG); laneG[l.id] = g2; });
     list.forEach(function(t){
+      if (from && t.t < from - 0.001) return;
       var i = Math.max(0, laneIdx(t.lane)), when = startAt + t.t / r, len = Math.max(0.05, Math.min(3, (t.d || 0) / r));
       var o = ctx.createOscillator(), g = ctx.createGain();
       o.type = 'triangle'; o.frequency.value = 480 + i * 110;
       g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(0.3, when + 0.004);
       g.gain.setValueAtTime(0.2, when + Math.max(0.01, len - 0.03)); g.gain.exponentialRampToValueAtTime(0.0001, when + len + 0.04);
-      o.connect(g); g.connect(sink()); o.start(when); o.stop(when + len + 0.06); clickNodes.push(o);
+      o.connect(g); g.connect(laneG[t.lane] || tapG); o.start(when); o.stop(when + len + 0.06); clickNodes.push(o);
     });
   }
 
@@ -534,13 +574,16 @@
   function startPlayback(opts){
     if (ctx.state === 'suspended') ctx.resume();
     rate = opts.rate; finished = false; endedEarly = false;
-    src = ctx.createBufferSource(); src.buffer = buffer; src.playbackRate.value = rate; src.connect(sink());
-    startAt = ctx.currentTime + 0.12 + opts.lead; src.start(startAt);
+    var off = Math.max(0, opts.offset || 0), when = ctx.currentTime + 0.12 + opts.lead;
+    src = ctx.createBufferSource(); src.buffer = buffer; src.playbackRate.value = rate;
+    songG = ctx.createGain(); songG.gain.value = mode === 'test' ? songVol : 1; src.connect(songG); songG.connect(sink());
+    startAt = when - off / rate; src.start(when, off);
     src.onended = function(){ if (this !== src) return; finish(!endedEarly); };
     cancelAnimationFrame(rafId); loop();
   }
   function stopSource(){
     if (src) { var s = src; src = null; s.onended = null; try { s.stop(); } catch (e) {} try { s.disconnect(); } catch (e) {} }
+    try { if (songG) songG.disconnect(); if (tapG) tapG.disconnect(); } catch (e) {} songG = null; tapG = null; laneG = {};
     clickNodes.forEach(function(n){ try { n.stop(); } catch (e) {} }); clickNodes = [];
   }
   function stopAll(){ clearTimeout(leadTimer); stopSource(); mode = 'idle'; $('overlay').classList.remove('show'); cancelAnimationFrame(rafId); }
@@ -586,7 +629,7 @@
     var mine = taps.filter(function(t){ return t.pass === pass; }).length;
     if (!taps.length) { setStatus(natural ? 'The song ended but no taps were recorded.' : 'Stopped. No taps were recorded.', 'warn'); return; }
     if (!mine) setStatus('That pass had no new taps.', 'warn');
-    showResult(natural);
+    showResult(natural); scheduleTakeSave(true);
   }
   function closeHeld(p){
     Object.keys(held).forEach(function(k){ var t = held[k]; t.dur = Math.max(0, Math.min(p, buffer.duration) - t.raw); });
@@ -652,15 +695,16 @@
       song: { name: songName, durationSec: round(dur), sizeBytes: songSize },
       passes: pass, nudgeMs: Math.round(nd * 1000), calibrationMs: Math.round(calMs), endedWithSong: !!natural,
       note: 't = seconds into the song when the button went down, d = seconds it was held',
-      lanes: lanes.map(function(l){ return { id: l.id, name: l.name, key: codeLabel(l.code), color: l.color }; }),
+      lanes: lanes.map(function(l){ return { id: l.id, name: l.name, description: l.desc || '', key: codeLabel(l.code), color: l.color }; }),
       byLane: by, taps: list
     };
   }
-  function showResult(natural){
+  function showResult(natural, quiet){
     lastNatural = natural; $('result').classList.remove('hidden');
     $('resultHint').textContent = (natural ? 'The song finished, so the recording stopped on its own.' : 'You stopped before the song ended, so taps may only cover part of it.') + (pass > 1 ? ' This file has ' + pass + ' passes layered together.' : '');
     refreshResult();
-    setStatus(tapsWord(taps.length) + ' saved. Download the file below and send it over, or record another pass.', 'ok');
+    if (quiet) return;
+    setStatus(tapsWord(taps.length) + ' recorded' + (user ? ' and saved to your account' : '') + '. Download the file below and send it over, or record another pass.', 'ok');
     $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   function refreshResult(){
@@ -670,7 +714,7 @@
     $('json').value = JSON.stringify(d, null, 1);
   }
   function hideResult(){ $('result').classList.add('hidden'); }
-  $('nudge').addEventListener('change', function(){ refreshResult(); drawWave(position()); });
+  $('nudge').addEventListener('change', function(){ refreshResult(); drawWave(position()); scheduleTakeSave(); });
 
   $('dl').addEventListener('click', function(){
     var base = (songName || 'song').replace(/\.[^.]+$/, '').replace(/[^a-z0-9_-]+/gi, '-').replace(/^-+|-+$/g, '') || 'song';
@@ -683,22 +727,45 @@
     else { $('json').select(); document.execCommand('copy'); ok(); }
   });
 
-  /* play the taps back as tones (held notes last as long as you held them) */
-  $('test').addEventListener('click', function(){
-    if (!buffer || !taps.length) return;
+  /* ---------- playback of your taps ---------- */
+  function renderPbLanes(){
+    var sig = lanes.map(function(l){ return l.id + ':' + l.name + ':' + l.color + ':' + (countOf(l.id) ? 1 : 0) + (muted[l.id] ? 'm' : ''); }).join('|');
+    if (sig === pbSig) return; pbSig = sig;
+    var box = $('pbLanes'); box.innerHTML = '';
+    lanes.forEach(function(l){
+      if (!countOf(l.id)) return;
+      var c = document.createElement('button'); c.type = 'button'; c.className = 'chip' + (muted[l.id] ? ' muted' : ''); c.style.setProperty('--lane', l.color); c.title = muted[l.id] ? 'Muted. Click to hear it' : 'Click to mute';
+      c.innerHTML = '<i></i>' + esc(l.name) + ' <b>' + countOf(l.id) + '</b>';
+      c.addEventListener('click', function(){ muted[l.id] = !muted[l.id]; if (laneG[l.id]) laneG[l.id].gain.value = muted[l.id] ? 0 : 1; pbSig = ''; renderPbLanes(); });
+      box.appendChild(c);
+    });
+  }
+  function setPlayFrom(t){ playFrom = Math.max(0, Math.min(buffer ? Math.max(0, buffer.duration - 0.3) : 0, t)); $('pbFrom').textContent = 'Starts at ' + fmt(playFrom); drawWave(position()); }
+  $('pbPlay').addEventListener('click', function(){
+    if (!buffer || !taps.length || mode !== 'idle') return;
     unlockAudio().then(function(ok){ if (ok) playTest(); else audioBlocked(); });
+  });
+  $('pbStop').addEventListener('click', function(){ if (mode === 'test') { stopAll(); resetButtons(); setStatus('Playback stopped.'); } });
+  $('pbStart').addEventListener('click', function(){ setPlayFrom(0); });
+  $('pbSong').addEventListener('input', function(){ songVol = this.value / 100; if (songG && mode === 'test') songG.gain.value = songVol; });
+  $('pbTaps').addEventListener('input', function(){ tapVol = this.value / 100; if (tapG) tapG.gain.value = tapVol; });
+  $('wave').addEventListener('pointerdown', function(e){
+    if (!buffer || mode === 'rec' || mode === 'lead' || cal.on) return;
+    var r = this.getBoundingClientRect(); setPlayFrom((e.clientX - r.left) / r.width * buffer.duration);
+    if (mode === 'test') unlockAudio().then(function(ok){ if (ok) playTest(); });
   });
   function playTest(){
     stopAll(); mode = 'test'; $('start').disabled = true; $('stop').disabled = false; renderLanes(); renderPads(); updateCounts();
-    startPlayback({ rate: 1, lead: 0 });
-    scheduleClicks(build(lastNatural).taps, 1);
+    playList = build(lastNatural).taps;
+    startPlayback({ rate: 1, lead: 0, offset: playFrom });
+    scheduleClicks(playList, 1, playFrom);
     src.onended = function(){ if (this !== src) return; stopAll(); resetButtons(); setStatus('Playback finished.'); };
     setStatus('Playing your taps as tones. If they sound early or late, change the timing nudge and play again.');
   }
 
   /* ---------- settings + calibration ---------- */
   var cal = { on: false, first: 0, n: 0, gap: 0.6, countIn: 4, beats: 16, taps: [], nodes: [], timer: 0 };
-  function setCal(v){ calMs = Math.max(-500, Math.min(500, Math.round(v))); $('calMs').value = calMs; try { localStorage.setItem(CAL_STORE, String(calMs)); } catch (e) {} }
+  function setCal(v){ calMs = Math.max(-500, Math.min(500, Math.round(v))); $('calMs').value = calMs; try { localStorage.setItem(CAL_STORE, String(calMs)); } catch (e) {} scheduleProfileSave(); }
   function openSettings(){ if (mode !== 'idle') return; $('settings').hidden = false; $('calMs').value = calMs; $('calRes').textContent = ''; $('closeSettings').focus(); }
   function closeSettings(){ calStop(); $('settings').hidden = true; $('openSettings').focus(); }
   $('openSettings').addEventListener('click', openSettings);
@@ -782,7 +849,82 @@
   }
   $('calPad').addEventListener('pointerdown', function(e){ e.preventDefault(); if (cal.on) calTap(e); });
 
-  window.addEventListener('beforeunload', function(e){ if (taps.length) { e.preventDefault(); e.returnValue = ''; } });
+  /* ---------- saving to your account (Supabase) ---------- */
+  var SUPABASE_URL = 'https://paycasfatsakidsriwqt.supabase.co', SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
+  var sb = null, user = null, cloudReady = false, notAdmin = false, profileTimer = 0, takeTimer = 0, takeDirty = false, takeLoadedFor = '';
+  function note(msg, cls){ var n = $('saveNote'); n.className = 'savenote' + (cls ? ' ' + cls : ''); n.innerHTML = msg; }
+  function acctLine(){
+    var a = $('acctInfo');
+    if (!user) { a.innerHTML = 'Not signed in. Your buttons are saved on this device only. <a href="/admin/index.html">Sign in on the admin page</a>, then come back here to save them (and your taps) to your account.'; note('Saved on this device only. <a href="/admin/index.html">Sign in</a> to save to your account.'); }
+    else if (notAdmin) { a.textContent = 'Signed in as ' + user.email + ', but only admin accounts can save here.'; note('Signed in, but saving to an account needs an admin login.', 'err'); }
+    else { a.textContent = 'Signed in as ' + user.email + '. Your buttons, calibration and taps are saved to this account automatically.'; }
+  }
+  function songKey(){ return buffer ? (songName + '|' + Math.round(buffer.duration * 1000) + '|' + songSize) : ''; }
+  function onCloudError(e){
+    var m = String(e && e.message || e || '');
+    if (/not allowed/i.test(m)) { notAdmin = true; acctLine(); } else note('Could not save to your account (' + esc(m.slice(0, 80)) + '). It is still saved on this device.', 'err');
+  }
+  function scheduleProfileSave(){
+    if (!sb || !user || !cloudReady || notAdmin) return;
+    clearTimeout(profileTimer); note('Saving…'); profileTimer = setTimeout(function(){
+      sb.rpc('beat_tapper_save_profile', { p_lanes: laneData(), p_cal_ms: Math.round(calMs), p_compat: null }).then(function(r){
+        if (r.error) onCloudError(r.error); else note('Saved to your account.', 'ok');
+      }, onCloudError);
+    }, 800);
+  }
+  function scheduleTakeSave(now){
+    if (!buffer) return; takeDirty = true;
+    if (!sb || !user || !cloudReady || notAdmin) return;
+    clearTimeout(takeTimer); takeTimer = setTimeout(saveTake, now ? 50 : 1200);
+  }
+  function saveTake(){
+    if (!sb || !user || !buffer || notAdmin) return;
+    var rows = taps.filter(function(t){ return t.dur != null; }).map(function(t){ return [t.lane, Math.round(t.raw * 1000) / 1000, Math.round(t.dur * 1000) / 1000, t.pass]; });
+    sb.rpc('beat_tapper_save_take', { p_key: songKey(), p_name: songName, p_duration: buffer.duration, p_lanes: laneData(), p_taps: rows, p_passes: pass, p_nudge_ms: Math.round(nudge() * 1000) }).then(function(r){
+      if (r.error) onCloudError(r.error); else { takeDirty = false; note(rows.length ? 'Taps saved to your account.' : 'Saved to your account.', 'ok'); }
+    }, onCloudError);
+  }
+  function loadTake(){
+    if (!sb || !user || !cloudReady || notAdmin || !buffer) return;
+    var key = songKey(); if (takeLoadedFor === key) return; takeLoadedFor = key;
+    sb.rpc('beat_tapper_get_take', { p_key: key }).then(function(r){
+      if (r.error) return onCloudError(r.error);
+      var d = r.data; if (!d || !Array.isArray(d.taps) || !d.taps.length || taps.length || songKey() !== key || mode !== 'idle') return;
+      var known = {}; lanes.forEach(function(l){ known[l.id] = true; });
+      (cleanLanes(d.lanes) || []).forEach(function(l){ if (!known[l.id] && lanes.length < MAX_LANES) { lanes.push(l); known[l.id] = true; } });
+      taps = d.taps.filter(function(a){ return Array.isArray(a) && known[a[0]] && isFinite(a[1]) && isFinite(a[2]); }).map(function(a){ return { lane: a[0], raw: +a[1], dur: +a[2], pass: +a[3] || 1 }; });
+      pass = Math.max(d.passes || 0, taps.reduce(function(m, t){ return Math.max(m, t.pass); }, 0)); takeDirty = false;
+      if (isFinite(d.nudge_ms)) $('nudge').value = d.nudge_ms;
+      fixSeq(); saveLanes(); renderLanes(); renderPads(); renderChips(); updateCounts(); drawWave(0);
+      if (taps.length) { showResult(true, true); setStatus('Loaded ' + tapsWord(taps.length) + ' you saved for this song. Record another pass to add more, or clear them to start over.', 'ok'); }
+    }, onCloudError);
+  }
+  function initCloud(){
+    if (!sb || !user) return; cloudReady = false; notAdmin = false; acctLine();
+    sb.rpc('beat_tapper_get_profile').then(function(r){
+      if (r.error) { onCloudError(r.error); return; }
+      cloudReady = true;
+      if (r.data === null) {
+        // either no profile yet, or not an admin: try saving this device's setup (the server refuses non-admins)
+        scheduleProfileSave(); acctLine();
+      } else {
+        var cl = cleanLanes(r.data.lanes); if (cl) { lanes = cl; fixSeq(); try { localStorage.setItem(STORE, JSON.stringify(laneData())); } catch (e) {} }
+        if (isFinite(r.data.cal_ms)) { calMs = Math.max(-500, Math.min(500, Math.round(r.data.cal_ms))); $('calMs').value = calMs; try { localStorage.setItem(CAL_STORE, String(calMs)); } catch (e) {} }
+        renderLanes(); renderPads(); renderChips(); updateCounts(); acctLine(); note('Loaded your saved buttons.', 'ok');
+      }
+      loadTake();
+    }, onCloudError);
+  }
+  acctLine();
+  try {
+    import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm').then(function(m){
+      sb = m.createClient(SUPABASE_URL, SUPABASE_KEY);
+      sb.auth.onAuthStateChange(function(ev, session){ var u = session && session.user || null; if ((u && u.id) !== (user && user.id)) { user = u; takeLoadedFor = ''; if (user) initCloud(); else { cloudReady = false; notAdmin = false; acctLine(); } } });
+      return sb.auth.getSession();
+    }).then(function(r){ var u = r && r.data && r.data.session && r.data.session.user || null; if (u && !user) { user = u; initCloud(); } else if (!u) acctLine(); }).catch(function(){ $('acctInfo').textContent = 'Could not reach the account service. Everything still works and is saved on this device.'; });
+  } catch (e) {}
+
+  window.addEventListener('beforeunload', function(e){ if (taps.length && (!user || takeDirty)) { e.preventDefault(); e.returnValue = ''; } });
   window.addEventListener('resize', function(){ drawWave(position()); });
   setCal(calMs); renderLanes(); renderPads(); renderChips(); updateCounts();
 })();
