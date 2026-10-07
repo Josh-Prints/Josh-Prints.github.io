@@ -155,6 +155,24 @@
   .pill i{ width:8px; height:8px; border-radius:50%; background:var(--lane); }
   .tips{ margin:0; padding-left:18px; color:var(--ink-dim); font-size:13px; }
   .tips li{ margin:3px 0; }
+  .modal-back{ position:fixed; inset:0; background:rgba(1,4,9,0.55); display:flex; align-items:center; justify-content:center; padding:16px; z-index:50; }
+  .modal-back[hidden]{ display:none; }
+  .modal{
+    background:var(--bg-raised); border:1px solid rgba(var(--border-tint),0.12); border-radius:12px; width:100%; max-width:440px; max-height:calc(100vh - 32px); overflow:auto;
+    padding:22px 24px; box-shadow:0 10px 30px rgba(31,35,40,0.16); animation:popIn .25s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  @keyframes popIn{ from{ opacity:0; transform:scale(.94); } to{ opacity:1; transform:none; } }
+  .modal h2{ margin:0 0 14px; font-size:18px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .modal h3{ margin:18px 0 4px; font-size:15px; }
+  .icon-btn{ background:none; border:0; color:var(--ink-dim); font-size:18px; cursor:pointer; padding:4px 6px; border-radius:6px; }
+  .icon-btn:hover{ background:var(--btn-hover-bg); color:var(--ink); }
+  .calpad{
+    display:block; width:100%; padding:34px 12px; margin:12px 0 8px; border-radius:10px; border:2px solid var(--accent);
+    background:var(--accent-dim); color:var(--ink); font:inherit; font-size:18px; font-weight:700; cursor:pointer; user-select:none; -webkit-user-select:none; touch-action:none;
+  }
+  .calpad small{ display:block; font-size:12px; font-weight:400; color:var(--ink-dim); margin-top:4px; }
+  .calres{ margin:10px 0 0; font-size:14px; }
+  .calres b{ font-family:ui-monospace,'SF Mono','Roboto Mono',monospace; }
   .hidden{ display:none !important; }
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{ animation-duration:0.001ms !important; transition-duration:0.001ms !important; }
@@ -164,7 +182,7 @@
 <body>
 <header class="topbar">
   <a class="brand" href="/"><img src="logo.svg" alt=""><span class="brand-text">Vox<span>prints</span></span></a>
-  <span class="dim" style="font-size:13px;">Internal tool</span>
+  <button class="btn" id="openSettings" type="button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#settings"/></svg> Settings</button>
 </header>
 
 <main>
@@ -248,12 +266,38 @@
   </section>
 </main>
 
+<div class="modal-back" id="settings" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+    <h2 id="setTitle"><span>Settings</span><button class="icon-btn" id="closeSettings" type="button" aria-label="Close"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button></h2>
+    <h3 style="margin-top:0;">Calibration</h3>
+    <p class="hint">Everyone presses a little early or late, and speakers, Bluetooth and phones add delay. Calibrate once: a click plays, you tap on each click, and the offset is set for you. It is applied to every tap you record.</p>
+    <div class="row">
+      <label class="dim" style="display:flex;align-items:center;gap:8px;font-size:13px;">Offset
+        <input type="number" id="calMs" value="0" step="1" min="-500" max="500" style="width:90px;"> ms
+      </label>
+      <button class="btn btn-sm" id="calReset" type="button">Reset to 0</button>
+    </div>
+    <p class="hint" style="margin:8px 0 0;">Negative moves your taps earlier. Positive moves them later.</p>
+    <div id="calIdle" style="margin-top:14px;">
+      <button class="btn btn-primary" id="calStart" type="button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#play"/></svg> Calibrate</button>
+      <p class="hint" style="margin:8px 0 0;">Takes about 15 seconds. Use the same headphones or speakers you'll record with.</p>
+    </div>
+    <div id="calRun" class="hidden">
+      <button class="calpad" id="calPad" type="button"><span id="calMsg">Listen to the clicks…</span><small>Tap here, or press Space, right on each click</small></button>
+      <p class="hint" id="calLast" style="margin:0 0 8px;min-height:18px;"></p>
+      <button class="btn" id="calCancel" type="button">Cancel</button>
+    </div>
+    <p class="calres" id="calRes" aria-live="polite"></p>
+  </div>
+</div>
+
 <script>
 (function(){
   'use strict';
   var COLORS = ['#2d6fd9','#d29922','#3fb950','#bf3989','#00a5c4','#8957e5','#e5534b','#6e7681','#e07b00','#1f9d8a','#c2410c','#4f46e5','#84a000','#db2777','#0891b2','#7c3aed'];
   var KEYS = ['Space','KeyJ','KeyK','KeyL','KeyF','KeyD','KeyS','KeyA','KeyG','KeyH','Digit1','Digit2','Digit3','Digit4','Digit5','Digit6','Digit7','Digit8','Digit9','Digit0'];
-  var MAX_LANES = 16, STORE = 'voxBeatTapperLanes';
+  var MAX_LANES = 16, STORE = 'voxBeatTapperLanes', CAL_STORE = 'voxBeatTapperCal';
+  var calMs = 0; try { var cv = parseFloat(localStorage.getItem(CAL_STORE)); if (isFinite(cv)) calMs = Math.max(-500, Math.min(500, cv)); } catch (e) {}
   var $ = function(id){ return document.getElementById(id); };
   var AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) { $('status').textContent = 'This browser has no Web Audio support. Try Chrome, Edge, Firefox or Safari.'; $('status').className = 'status err'; }
@@ -321,6 +365,7 @@
     lockSetup(mode !== 'idle');
   }
   function lockSetup(lock){
+    $('openSettings').disabled = lock || cal.on;
     document.querySelectorAll('#laneList .keycap, #laneList .armed input, #laneList [data-clear], #laneList [data-rm], #rate, #lead, #hear').forEach(function(e){ e.disabled = lock; });
     $('addLane').disabled = lock || lanes.length >= MAX_LANES;
   }
@@ -510,12 +555,12 @@
     var age = e && e.timeStamp ? Math.max(0, (performance.now() - e.timeStamp) / 1000) : 0;
     return ctx.currentTime - age - (ctx.outputLatency || 0);
   }
-  function songTime(e){ return (heardTime(e) - startAt) * rate; }
+  function songTime(e){ return (heardTime(e) - startAt) * rate + (calMs / 1000) * rate; } // calibration offset is real time, so scale it to song time
 
   function pressStart(laneId, id, e){
     if (mode !== 'rec' || held[id]) return;
     var l = laneOf(laneId); if (!l || !l.armed) return;
-    var raw = songTime(e); if (raw < 0 || raw > buffer.duration + 0.5) return;
+    var raw = songTime(e); if (raw < -0.3 || raw > buffer.duration + 0.5) return; if (raw < 0) raw = 0;
     var t = { lane: laneId, raw: raw, dur: null, pass: pass }; taps.push(t); held[id] = t;
     $('lastLine').textContent = l.name + ' pressed at ' + fmt(raw);
     updateCounts(); updateChips(raw);
@@ -535,6 +580,8 @@
   }
 
   document.addEventListener('keydown', function(e){
+    if (cal.on) { if ((e.code === 'Space' || e.code === 'Enter') && !isTyping(e.target) && !e.repeat) { e.preventDefault(); calTap(e); } else if (e.code === 'Escape') calStop(); return; }
+    if (!$('settings').hidden) { if (e.code === 'Escape') closeSettings(); return; }
     if (listening) {
       e.preventDefault();
       if (e.code === 'Escape') { listening = null; renderLanes(); return; }
@@ -560,7 +607,7 @@
     return {
       tool: 'voxprints-beat-tapper', version: 2,
       song: { name: songName, durationSec: round(dur), sizeBytes: songSize },
-      passes: pass, nudgeMs: Math.round(nd * 1000), endedWithSong: !!natural,
+      passes: pass, nudgeMs: Math.round(nd * 1000), calibrationMs: Math.round(calMs), endedWithSong: !!natural,
       note: 't = seconds into the song when the button went down, d = seconds it was held',
       lanes: lanes.map(function(l){ return { id: l.id, name: l.name, key: codeLabel(l.code), color: l.color }; }),
       byLane: by, taps: list
@@ -603,9 +650,66 @@
     setStatus('Playing your taps as tones. If they sound early or late, change the timing nudge and play again.');
   });
 
+  /* ---------- settings + calibration ---------- */
+  var cal = { on: false, first: 0, n: 0, gap: 0.6, countIn: 4, beats: 16, taps: [], nodes: [], timer: 0 };
+  function setCal(v){ calMs = Math.max(-500, Math.min(500, Math.round(v))); $('calMs').value = calMs; try { localStorage.setItem(CAL_STORE, String(calMs)); } catch (e) {} }
+  function openSettings(){ if (mode !== 'idle') return; $('settings').hidden = false; $('calMs').value = calMs; $('calRes').textContent = ''; $('closeSettings').focus(); }
+  function closeSettings(){ calStop(); $('settings').hidden = true; $('openSettings').focus(); }
+  $('openSettings').addEventListener('click', openSettings);
+  $('closeSettings').addEventListener('click', closeSettings);
+  $('settings').addEventListener('pointerdown', function(e){ if (e.target === this) closeSettings(); });
+  $('calMs').addEventListener('change', function(){ var v = parseFloat(this.value); setCal(isFinite(v) ? v : 0); });
+  $('calReset').addEventListener('click', function(){ setCal(0); $('calRes').textContent = 'Offset reset to 0 ms.'; });
+
+  function calStop(){
+    if (!cal.on) return; cal.on = false; clearTimeout(cal.timer);
+    cal.nodes.forEach(function(n){ try { n.stop(); } catch (e) {} }); cal.nodes = [];
+    $('calRun').classList.add('hidden'); $('calIdle').classList.remove('hidden'); $('openSettings').disabled = false;
+  }
+  $('calCancel').addEventListener('click', function(){ calStop(); $('calRes').textContent = 'Calibration cancelled.'; });
+  $('calStart').addEventListener('click', function(){
+    if (!AC) return; if (!ctx) ctx = new AC(); if (ctx.state === 'suspended') ctx.resume();
+    cal.on = true; cal.taps = []; cal.n = cal.countIn + cal.beats; cal.first = ctx.currentTime + 0.6;
+    $('calIdle').classList.add('hidden'); $('calRun').classList.remove('hidden'); $('calRes').textContent = ''; $('calLast').textContent = ''; $('openSettings').disabled = true; $('calPad').focus();
+    for (var i = 0; i < cal.n; i++) {
+      var when = cal.first + i * cal.gap, o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'square'; o.frequency.value = i < cal.countIn ? 700 : 1100;
+      g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(0.2, when + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, when + 0.05);
+      o.connect(g); g.connect(ctx.destination); o.start(when); o.stop(when + 0.06); cal.nodes.push(o);
+    }
+    var tick = function(){
+      if (!cal.on) return;
+      var idx = Math.floor((ctx.currentTime - (ctx.outputLatency || 0) - cal.first) / cal.gap + 1);   // beats heard so far
+      var msg = idx < 1 ? 'Listen to the clicks…' : idx <= cal.countIn ? 'Count-in: ' + idx + ' / ' + cal.countIn : 'Tap! ' + Math.min(cal.beats, idx - cal.countIn) + ' / ' + cal.beats;
+      if ($('calMsg').textContent !== msg) $('calMsg').textContent = msg;
+      if (ctx.currentTime > cal.first + (cal.n - 1) * cal.gap + 0.5) return calFinish();
+      cal.timer = setTimeout(tick, 40);
+    }; tick();
+  });
+  function calTap(e){
+    var heard = heardTime(e), j = Math.round((heard - cal.first) / cal.gap);
+    if (j < cal.countIn || j >= cal.n) return;                         // count-in taps are ignored
+    var delta = (heard - (cal.first + j * cal.gap)) * 1000;            // + = late, - = early
+    if (Math.abs(delta) > cal.gap * 500) return;                       // nearer to no beat in particular
+    if (cal.taps.some(function(t){ return t.j === j; })) return;      // one tap per beat
+    cal.taps.push({ j: j, d: delta });
+    $('calLast').textContent = 'Last tap: ' + (delta >= 0 ? Math.round(delta) + ' ms late' : Math.round(-delta) + ' ms early');
+  }
+  function calFinish(){
+    var d = cal.taps.map(function(t){ return t.d; }).sort(function(a, b){ return a - b; }), res = $('calRes');
+    calStop();
+    if (d.length < 8) { res.textContent = 'Only ' + d.length + ' of ' + cal.beats + ' taps counted. Try again and tap on every click.'; return; }
+    var med = d.length % 2 ? d[(d.length - 1) / 2] : (d[d.length / 2 - 1] + d[d.length / 2]) / 2;
+    var dev = d.map(function(x){ return Math.abs(x - med); }).sort(function(a, b){ return a - b; }), mad = dev[Math.floor(dev.length / 2)];
+    setCal(-med);
+    res.innerHTML = 'Your taps landed <b>' + Math.abs(Math.round(med)) + ' ms ' + (med >= 0 ? 'late' : 'early') + '</b> on average (spread &plusmn;' + Math.round(mad) + ' ms). Offset set to <b>' + calMs + ' ms</b>.' +
+      (mad > 35 ? ' Your taps were quite uneven, so run it again for a better result.' : '');
+  }
+  $('calPad').addEventListener('pointerdown', function(e){ e.preventDefault(); if (cal.on) calTap(e); });
+
   window.addEventListener('beforeunload', function(e){ if (taps.length) { e.preventDefault(); e.returnValue = ''; } });
   window.addEventListener('resize', function(){ drawWave(position()); });
-  renderLanes(); renderPads(); renderChips(); updateCounts();
+  setCal(calMs); renderLanes(); renderPads(); renderChips(); updateCounts();
 })();
 </script>
 
