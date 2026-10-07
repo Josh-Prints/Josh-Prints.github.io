@@ -839,6 +839,10 @@ h1{ animation: fadeInDown 0.5s ease both; }
   const notFoundEl = document.getElementById('not-found');
   const loadErrorEl = document.getElementById('load-error');
   const orderView = document.getElementById('order-view');
+  // Opened from the admin "View as customer" button: show the order exactly as the
+  // customer sees it, but don't count it as the customer reading it and don't let
+  // anything be sent from here.
+  const PREVIEW = new URLSearchParams(window.location.search).get('preview') === '1';
   const myOrdersEl = document.getElementById('my-orders');
   const myOrdersListEl = document.getElementById('my-orders-list');
   const myOrdersEmptyEl = document.getElementById('my-orders-empty');
@@ -1029,10 +1033,24 @@ h1{ animation: fadeInDown 0.5s ease both; }
 
     loadingEl.style.display = 'none';
     orderView.style.display = 'block';
+    if (PREVIEW) applyPreviewMode();
 
     loadMessages();
     setInterval(loadMessages, POLL_MS);
     setInterval(loadOrder, POLL_MS);
+  }
+
+  function applyPreviewMode(){
+    if (!document.getElementById('preview-banner')){
+      const bar = document.createElement('div');
+      bar.id = 'preview-banner';
+      bar.setAttribute('role', 'status');
+      bar.style.cssText = 'background:var(--accent-dim);color:var(--ink);border:1px solid var(--accent);border-radius:8px;padding:10px 14px;margin:0 0 16px;font-size:13.5px;';
+      bar.textContent = "Admin preview: this is exactly what the customer sees. Replies are turned off here, and it isn't counted as the customer reading it.";
+      orderView.insertBefore(bar, orderView.firstChild);
+    }
+    const composer = document.getElementById('composer-wrap');
+    if (composer) composer.style.display = 'none';
   }
 
   document.getElementById('load-retry-btn').addEventListener('click', init);
@@ -1042,7 +1060,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
   // open tab does not hammer the database every poll tick.
   let lastMarkedSeenAt = 0;
   function maybeMarkOrderSeen(deleted){
-    if (deleted) return;
+    if (deleted || PREVIEW) return;
     if (document.visibilityState !== 'visible') return;
     if (Date.now() - lastMarkedSeenAt < 60000) return;
     lastMarkedSeenAt = Date.now();
@@ -1273,18 +1291,20 @@ h1{ animation: fadeInDown 0.5s ease both; }
       nameInput.focus();
     }
 
-    async function ensureProfile(user){
+    async function ensureProfile(user, isAdmin){
       const { data: profile } = await supabase.from('customer_profiles').select('*').eq('id', user.id).maybeSingle();
       if (profile) return profile;
+      // An admin looking at the customer view has no customer profile and doesn't need one.
+      if (isAdmin) return { full_name: user.user_metadata?.full_name || user.email || 'Admin', store_credit: 0 };
       pendingUser = user;
       openModal('signup');
       return null;
     }
 
     async function checkAdmin(userId){
-      if (!adminLink) return;
       const { data } = await supabase.from('admin_profiles').select('id').eq('id', userId).maybeSingle();
-      adminLink.style.display = data ? 'block' : 'none';
+      if (adminLink) adminLink.style.display = data ? 'block' : 'none';
+      return !!data;
     }
 
     editBtn.addEventListener('click', () => openModal('edit'));
@@ -1379,9 +1399,9 @@ h1{ animation: fadeInDown 0.5s ease both; }
 
     supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session){
-        const profile = await ensureProfile(session.user);
+        const isAdmin = await checkAdmin(session.user.id);
+        const profile = await ensureProfile(session.user, isAdmin);
         if (profile) renderSignedIn(session.user, profile);
-        checkAdmin(session.user.id);
       } else {
         renderSignedOut();
       }

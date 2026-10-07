@@ -799,7 +799,7 @@
       <h3>${ico('settings')} Actions</h3>
       <div class="action-list">
         <button type="button" class="btn" data-act="copy-link">${ico('link')} Copy customer link</button>
-        <a class="btn" href="../order.html?order=${encodeURIComponent(order.id)}" target="_blank" rel="noopener">${ico('eye')} View as customer</a>
+        <a class="btn" href="../order.html?order=${encodeURIComponent(order.id)}&preview=1" target="_blank" rel="noopener">${ico('eye')} View as customer</a>
         ${order.status !== 'cancelled' && !order.deleted ? `<button type="button" class="btn danger" data-act="cancel">${ico('x')} Cancel order</button>` : ''}
         ${order.deleted
           ? `<button type="button" class="btn" data-act="restore">${ico('archive-restore')} Restore order</button>`
