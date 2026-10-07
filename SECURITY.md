@@ -33,6 +33,14 @@ ever committed, rotate it first, then remove it.
 - URLs that come from the query string must be validated before use
   (see `safeFileUrl` in `viewer.html`).
 
+## Error log
+
+Every page loads `/error-log.js`, which reports crashes, failed requests and failed
+script loads to `log_client_error()` (public, but rate-limited and validated). It never
+records typed text, message bodies or request bodies; ids in URLs are cut to 8 characters.
+The data is only readable by founders (Founder > Errors). Rows are not pruned yet; see the
+end of `migrations/error-log-migration.sql`.
+
 ## Known, accepted or open items
 
 1. **Order links are bearer links.** `get_order`, `get_order_messages`,

@@ -7,6 +7,7 @@
 <title>Voxprints — Founder</title>
 <link rel="icon" type="image/svg+xml" href="../logo.svg">
 <script>(function(){try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(/^sb-.*-auth-token$/.test(k)){document.documentElement.classList.add('has-session');break;}}}catch(e){}})();</script>
+<script src="/error-log.js"></script>
 <style>
   /* A saved login exists: don't flash the sign-in screen while we confirm it (showLogin() overrides this inline). */
   html.has-session #login-view{ display:none; }
@@ -1476,6 +1477,61 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   .hb-hist-row{ display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:10px 0; border-top:1px solid rgba(var(--border-tint),0.08); font-size:13px; }
   .hb-hist-row:first-of-type{ border-top:none; }
   .hb-hist-row span:last-child{ color: var(--ink-dim); }
+
+  /* ---- Errors tab ---- */
+  .er-tab-badge{ display:inline-block; min-width:16px; padding:0 5px; margin-left:4px; border-radius:20px; font-size:10.5px; font-weight:700; line-height:16px; text-align:center; background: var(--err); color:#fff; }
+  .er-tab-badge[hidden]{ display:none; }
+  .er-toolbar{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:10px; }
+  .er-toolbar input[type=search]{
+    flex:1 1 220px; min-width:0; font:inherit; font-size:13.5px; padding:7px 11px; border-radius:6px;
+    background: var(--bg); color: var(--ink); border:1px solid rgba(var(--border-tint),0.18);
+  }
+  .er-toolbar input[type=search]:focus{ outline:none; border-color: var(--accent); box-shadow:0 0 0 3px rgba(9,105,218,0.12); }
+  .er-range{ display:inline-flex; gap:6px; }
+  .er-chip{ font:inherit; font-size:12.5px; font-weight:600; padding:6px 12px; border-radius:20px; cursor:pointer; background: var(--bg); color: var(--ink-dim); border:1px solid rgba(var(--border-tint),0.18); }
+  .er-chip.active{ background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+  .er-sub{ margin:0 0 14px; font-size:12.5px; color: var(--ink-dim); }
+  .er-empty{ margin:24px 0; text-align:center; color: var(--ink-dim); font-size:14px; }
+  .er-card{ background: var(--bg-raised); border:1px solid rgba(var(--border-tint),0.12); border-radius:12px; padding:14px 16px; margin-bottom:12px; }
+  .er-head{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px; }
+  .er-code{
+    font-family: ui-monospace,'SF Mono','Roboto Mono',monospace; font-size:14px; font-weight:700; letter-spacing:0.02em; cursor:pointer;
+    padding:3px 10px; border-radius:6px; background: var(--bg); color: var(--ink); border:1px solid rgba(var(--border-tint),0.2);
+  }
+  .er-kind{ font-family: ui-monospace,monospace; font-size:11px; padding:2px 8px; border-radius:20px; background: rgba(var(--border-tint),0.08); color: var(--ink-dim); }
+  .er-kind.http, .er-kind.network{ background: var(--warn-dim); color: var(--warn); }
+  .er-kind.js, .er-kind.promise{ background: rgba(207,34,46,0.12); color: var(--err); }
+  .er-reach{ font-size:12px; font-weight:600; padding:2px 9px; border-radius:20px; }
+  .er-reach.one{ background: var(--accent-dim); color: var(--accent); }
+  .er-reach.many{ background: rgba(207,34,46,0.12); color: var(--err); }
+  .er-count{ margin-left:auto; font-family: ui-monospace,monospace; font-size:12px; color: var(--ink-dim); }
+  .er-msg{ margin:10px 0 6px; font-size:14px; line-height:1.45; word-break:break-word; }
+  .er-meta{ font-size:12.5px; color: var(--ink-dim); }
+  .er-who{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .er-person{
+    font:inherit; font-size:12px; padding:3px 10px; border-radius:20px; background: var(--bg); color: var(--ink);
+    border:1px solid rgba(var(--border-tint),0.18);
+  }
+  button.er-person{ cursor:pointer; }
+  .er-person i{ font-style:normal; color: var(--ink-dim); }
+  .er-person.anon{ font-family: ui-monospace,monospace; }
+  .er-actions{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .er-btn{ font:inherit; font-size:12.5px; font-weight:600; padding:6px 12px; border-radius:6px; cursor:pointer; background: var(--bg); color: var(--ink); border:1px solid rgba(var(--border-tint),0.18); }
+  @media (hover:hover){ .er-btn:hover, .er-chip:hover, .er-code:hover, button.er-person:hover{ background: var(--btn-hover-bg); } }
+  .er-detail{ margin-top:12px; border-top:1px solid rgba(var(--border-tint),0.1); padding-top:6px; }
+  .er-occ{ padding:12px 0; border-bottom:1px solid rgba(var(--border-tint),0.08); }
+  .er-occ:last-child{ border-bottom:none; }
+  .er-occ-top{ font-size:13px; }
+  .er-occ-top b{ font-weight:700; }
+  .er-occ-sub{ font-size:12px; color: var(--ink-dim); margin-top:3px; word-break:break-word; }
+  .er-trail{ list-style:none; margin:8px 0 0; padding:0; font-family: ui-monospace,'SF Mono',monospace; font-size:11.5px; }
+  .er-trail li{ display:flex; gap:10px; padding:3px 0; color: var(--ink-dim); }
+  .er-trail li .when{ flex:0 0 52px; text-align:right; }
+  .er-trail li .what{ flex:1 1 auto; min-width:0; word-break:break-word; color: var(--ink); }
+  .er-trail li.err .what{ color: var(--err); font-weight:600; }
+  .er-occ details{ margin-top:6px; font-size:12px; color: var(--ink-dim); }
+  .er-occ pre{ margin:6px 0 0; padding:8px 10px; border-radius:6px; background: var(--bg); overflow:auto; font-size:11px; line-height:1.4; max-height:200px; }
+  #er-visitor{ margin-bottom:14px; }
   .founder-card .hint{ margin:0 0 16px; font-size:13px; color: var(--ink-dim); }
   .adm-row{
     display:flex; align-items:center; gap:12px; flex-wrap:wrap;
@@ -1699,6 +1755,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <button type="button" class="debug-tab" data-tab="alerts">Discord</button>
       <button type="button" class="debug-tab" data-tab="email">Email</button>
       <button type="button" class="debug-tab" data-tab="ai">AI</button>
+      <button type="button" class="debug-tab" data-tab="errors">Errors <span class="er-tab-badge" id="er-tab-badge" hidden></span></button>
     </div>
   </div>
   </div>
@@ -1989,6 +2046,21 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       </div>
     </div>
 
+    <div class="debug-section" id="debug-section-errors">
+      <div class="er-toolbar">
+        <div class="er-range" id="er-range" role="group" aria-label="Time range">
+          <button type="button" class="er-chip active" data-hours="24">24 hours</button>
+          <button type="button" class="er-chip" data-hours="168">7 days</button>
+          <button type="button" class="er-chip" data-hours="720">30 days</button>
+        </div>
+        <input type="search" id="er-search" placeholder="Search a code, name, email or visitor id" autocomplete="off">
+        <button type="button" class="save-btn" id="er-refresh">Refresh</button>
+      </div>
+      <p class="er-sub" id="er-sub">Every error anyone hits on the site shows up here with its own code. Visitors who see a code on screen can read it out to you.</p>
+      <div id="er-visitor" hidden></div>
+      <div id="er-list"><p class="er-empty">Loading…</p></div>
+    </div>
+
     <div class="debug-section" id="debug-section-ai">
       <div class="modal-body">
         <div class="ai-usage-card" id="ai-usage-card">
@@ -2152,6 +2224,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     loadSettingsPanels();
     loadHomeGreeting(session.user.email);
     loadHomeBrief(false);
+    loadErrorBadge();
   });
 
   /* ---------- home greeting ---------- */
@@ -2279,6 +2352,152 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     hb('hb-history-body').innerHTML = rows.join('') || '<p class="hb-empty">Earlier summaries will appear here after your first full day.</p>';
   }
 
+
+  /* ---------- Errors tab: every error anyone hits, with its own code ---------- */
+  const erState = { hours: 24, list: [], loaded: false };
+  const erPerson = o => o.name ? o.name + (o.email ? ' (' + o.email + ')' : '') : (o.email || null);
+  const erKinds = { js: 'crash', promise: 'crash', http: 'request failed', network: 'no connection', resource: 'file failed to load' };
+
+  function erWho(a){   // one person's chip in a card
+    if (a.name || a.email){
+      return '<span class="er-person">' + escapeHtml(a.name || a.email) + (a.name && a.email ? ' <i>' + escapeHtml(a.email) + '</i>' : '') +
+        (a.admin ? ' <i>· admin</i>' : ' <i>· customer</i>') + ' <i>×' + a.n + '</i></span>';
+    }
+    return '<button type="button" class="er-person anon" data-visitor="' + escapeHtml(a.visitor) + '" title="Everything this visitor hit">Anonymous · ' +
+      escapeHtml(a.visitor) + ' <i>×' + a.n + '</i></button>';
+  }
+
+  function erCard(e){
+    const one = e.people === 1;
+    const signed = e.signed_in, anon = e.people - e.signed_in;
+    const reach = one
+      ? 'Only 1 person: looks like their device or account'
+      : e.people + ' people: likely a site problem';
+    const split = e.people > 1 ? ' (' + (signed ? signed + ' signed in' : '') + (signed && anon ? ', ' : '') + (anon ? anon + ' anonymous' : '') + ')' : '';
+    const endpoint = e.extra && e.extra.endpoint ? ' · ' + escapeHtml(e.extra.endpoint) : '';
+    return '<article class="er-card" data-code="' + escapeHtml(e.code) + '">' +
+      '<div class="er-head">' +
+        '<button type="button" class="er-code" data-er="copy" title="Copy code">' + escapeHtml(e.code) + '</button>' +
+        '<span class="er-kind ' + escapeHtml(e.kind) + '">' + escapeHtml(erKinds[e.kind] || e.kind) + '</span>' +
+        '<span class="er-reach ' + (one ? 'one' : 'many') + '">' + escapeHtml(reach) + escapeHtml(split) + '</span>' +
+        '<span class="er-count">×' + e.occurrences + ' · last ' + hbAgo(e.last_seen) + ' ago</span>' +
+      '</div>' +
+      '<p class="er-msg">' + escapeHtml(e.message) + '</p>' +
+      '<div class="er-meta">Page <b>' + escapeHtml(e.page || '/') + '</b>' + endpoint + ' · ' + e.devices + (e.devices === 1 ? ' device' : ' devices') + ' · first seen ' + escapeHtml(hbWhen(e.first_seen)) + '</div>' +
+      '<div class="er-who">' + (e.affected || []).map(erWho).join('') + (e.people > (e.affected || []).length ? '<span class="er-person"><i>+' + (e.people - e.affected.length) + ' more</i></span>' : '') + '</div>' +
+      '<div class="er-actions">' +
+        '<button type="button" class="er-btn" data-er="details">Show every time it happened</button>' +
+        '<button type="button" class="er-btn" data-er="resolve">Mark resolved</button>' +
+      '</div>' +
+      '<div class="er-detail" hidden></div>' +
+    '</article>';
+  }
+
+  function erOccurrence(o, withCode){
+    const who = (o.name || o.email)
+      ? '<b>' + escapeHtml(erPerson(o)) + '</b> <span class="er-person" style="padding:1px 8px;">' + (o.admin ? 'admin' : 'customer') + '</span>'
+      : '<b>Anonymous visitor</b> <button type="button" class="er-person anon" data-visitor="' + escapeHtml(String(o.visitor).slice(0, 8)) + '">' + escapeHtml(String(o.visitor).slice(0, 8)) + '</button>';
+    const at = new Date(o.at).getTime();
+    const trail = (o.bc || []).map(c => {
+      const secs = Math.max(0, Math.round((at - Number(c.t)) / 1000));
+      const when = isFinite(secs) ? (secs >= 120 ? Math.round(secs / 60) + ' min' : secs + 's') + ' ago' : '';
+      return '<li><span class="when">' + escapeHtml(when) + '</span><span class="what">' + escapeHtml((c.k || '') + '  ' + (c.d || '')) + '</span></li>';
+    }).join('');
+    const device = [o.ua, o.vp].filter(Boolean).join(' · ');
+    return '<div class="er-occ">' +
+      '<div class="er-occ-top"><b>' + escapeHtml(hbWhen(o.at)) + '</b> (' + hbAgo(o.at) + ' ago) · ' + who + (withCode ? ' · <b>' + escapeHtml(o.code) + '</b>' : '') + '</div>' +
+      (withCode ? '<div class="er-occ-sub">' + escapeHtml(o.message) + '</div>' : '') +
+      '<div class="er-occ-sub">On <b>' + escapeHtml(o.url || o.page || '') + '</b> · arrived from ' + escapeHtml(o.ref || 'direct') + (device ? ' · ' + escapeHtml(device) : '') + '</div>' +
+      '<ol class="er-trail">' + trail + '<li class="err"><span class="when">then</span><span class="what">' + escapeHtml(o.code) + ' ' + escapeHtml(o.message) + '</span></li></ol>' +
+      (o.stack ? '<details><summary>Technical details</summary><pre>' + escapeHtml(o.stack) + '</pre></details>' : '') +
+    '</div>';
+  }
+
+  function erRender(){
+    const q = hb('er-search').value.trim().toLowerCase();
+    const list = erState.list.filter(e => !q || [e.code, e.message, e.page, e.extra && e.extra.endpoint]
+      .concat((e.affected || []).map(a => [a.name, a.email, a.visitor].join(' '))).join(' ').toLowerCase().includes(q));
+    hb('er-list').innerHTML = list.length ? list.map(erCard).join('')
+      : '<p class="er-empty">' + (erState.list.length ? 'Nothing matches that search.' : 'No errors in this time range. Nobody has hit one.') + '</p>';
+    const people = new Set(); let total = 0;
+    erState.list.forEach(e => { total += e.occurrences; });
+    hb('er-sub').textContent = erState.list.length
+      ? erState.list.length + (erState.list.length === 1 ? ' different error' : ' different errors') + ', ' + total + ' in total. Sorted by most recent.'
+      : 'Every error anyone hits on the site shows up here with its own code. Visitors who see a code on screen can read it out to you.';
+  }
+
+  function erBadge(n){
+    const b = hb('er-tab-badge');
+    b.hidden = !n; b.textContent = n > 99 ? '99+' : String(n);
+  }
+
+  async function loadErrors(){
+    hb('er-refresh').disabled = true;
+    const { data, error } = await supabase.rpc('founder_error_summary', { p_hours: erState.hours });
+    hb('er-refresh').disabled = false;
+    if (error){ hb('er-list').innerHTML = '<p class="er-empty">Could not load errors: ' + escapeHtml(error.message) + '</p>'; return; }
+    erState.list = data || [];
+    erState.loaded = true;
+    if (erState.hours === 24) erBadge(erState.list.length);
+    erRender();
+  }
+
+  async function loadErrorBadge(){
+    const { data } = await supabase.rpc('founder_error_summary', { p_hours: 24 });
+    if (Array.isArray(data)) erBadge(data.length);
+    return Array.isArray(data) ? data : [];
+  }
+
+  async function erShowVisitor(prefix){
+    const box = hb('er-visitor');
+    box.hidden = false;
+    box.innerHTML = '<div class="er-card"><p class="er-empty">Loading…</p></div>';
+    const { data, error } = await supabase.rpc('founder_error_occurrences', { p_code: null, p_visitor: prefix, p_limit: 100 });
+    if (error){ box.innerHTML = '<div class="er-card"><p class="er-empty">' + escapeHtml(error.message) + '</p></div>'; return; }
+    const codes = [...new Set((data || []).map(o => o.code))];
+    const named = (data || []).find(o => o.name || o.email);
+    box.innerHTML = '<div class="er-card"><div class="er-head"><b>' + (named ? escapeHtml(erPerson(named)) : 'Anonymous visitor ' + escapeHtml(prefix)) + '</b>' +
+      '<span class="er-count">' + (data || []).length + ' errors · ' + codes.length + (codes.length === 1 ? ' code' : ' different codes') + '</span></div>' +
+      '<p class="er-meta" style="margin-top:6px;">Everything this browser has hit' + (codes.length === 1 ? ': always the same error, so it is probably just them.' : '. Codes: ' + escapeHtml(codes.join(', ')) + '.') + '</p>' +
+      '<div class="er-detail">' + ((data || []).map(o => erOccurrence(o, true)).join('') || '<p class="er-empty">Nothing found.</p>') + '</div>' +
+      '<div class="er-actions"><button type="button" class="er-btn" data-er="close-visitor">Close</button></div></div>';
+    box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  hb('er-range').addEventListener('click', e => {
+    const b = e.target.closest('.er-chip'); if (!b) return;
+    document.querySelectorAll('#er-range .er-chip').forEach(c => c.classList.toggle('active', c === b));
+    erState.hours = Number(b.dataset.hours); loadErrors();
+  });
+  hb('er-refresh').addEventListener('click', loadErrors);
+  hb('er-search').addEventListener('input', erRender);
+  hb('debug-section-errors').addEventListener('click', async e => {
+    const v = e.target.closest('[data-visitor]');
+    if (v){ erShowVisitor(v.dataset.visitor); return; }
+    const btn = e.target.closest('[data-er]'); if (!btn) return;
+    const act = btn.dataset.er;
+    if (act === 'close-visitor'){ hb('er-visitor').hidden = true; return; }
+    const card = btn.closest('.er-card'); const code = card && card.dataset.code;
+    if (act === 'copy'){
+      try { await navigator.clipboard.writeText(code); const o = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = o; }, 1200); } catch (err) { /* ignore */ }
+    } else if (act === 'details'){
+      const box = card.querySelector('.er-detail');
+      if (!box.hidden){ box.hidden = true; btn.textContent = 'Show every time it happened'; return; }
+      box.hidden = false; box.innerHTML = '<p class="er-empty">Loading…</p>';
+      const { data, error } = await supabase.rpc('founder_error_occurrences', { p_code: code, p_visitor: null, p_limit: 50 });
+      box.innerHTML = error ? '<p class="er-empty">' + escapeHtml(error.message) + '</p>'
+        : (data || []).map(o => erOccurrence(o, false)).join('') || '<p class="er-empty">Nothing found.</p>';
+      btn.textContent = 'Hide';
+    } else if (act === 'resolve'){
+      btn.disabled = true;
+      const { error } = await supabase.rpc('founder_error_resolve', { p_code: code });
+      if (error){ btn.disabled = false; btn.textContent = 'Could not resolve'; return; }
+      erState.list = erState.list.filter(x => x.code !== code);
+      if (erState.hours === 24) erBadge(erState.list.length);
+      erRender();
+    }
+  });
+
   let hbLoadedAt = 0, hbBusy = false;
   async function loadHomeBrief(force){
     if (hbBusy || (!force && Date.now() - hbLoadedAt < 20000)) return;
@@ -2296,6 +2515,11 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       if (todo.error) hb('hb-todo-body').innerHTML = '<p class="hb-empty">Could not load your to-do list: ' + escapeHtml(todo.error.message) + '</p>';
       else renderTodo(todo.data);
       if (!hist.error) renderHistory(hist.data);
+      loadErrorBadge().then(errs => {
+        if (errs.length && !hb('hb-todo-body').querySelector('[data-er-alert]'))
+          hb('hb-todo-body').insertAdjacentHTML('afterbegin', '<div class="hb-alert err" data-er-alert>' + hbIco('triangle-alert') +
+            '<span><b>' + hbPlural(errs.length, 'different error') + '</b> hit visitors in the last 24 hours. <button type="button" class="hb-link" data-goto="errors">Open Errors</button></span></div>');
+      }).catch(() => {});
       hbLoadedAt = Date.now();
     } finally {
       hbBusy = false;
@@ -3114,6 +3338,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       if (tab.dataset.tab === 'alerts') loadWebhookState();
       if (tab.dataset.tab === 'email'){ loadResendState(); loadTestSendOrders(); loadEmailLog(); }
       if (tab.dataset.tab === 'ai') loadAiState();
+      if (tab.dataset.tab === 'errors') loadErrors();
       if (tab.dataset.tab === 'home'){ playHomeAnimation(); loadHomeBrief(false); }
     });
   });
