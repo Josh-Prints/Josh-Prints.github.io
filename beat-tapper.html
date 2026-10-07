@@ -341,13 +341,42 @@
   /* Browsers keep Web Audio silent until a tap/click "unlocks" it, and iPhones also mute it when the silent switch is on. */
   var COMPAT_STORE = 'voxBeatTapperCompat', compat = false, mediaDest = null, outEl = null;
   try { var cs = localStorage.getItem(COMPAT_STORE); compat = cs === null ? null : cs === '1'; } catch (e) { compat = null; }
-  function sink(){ return (compat && mediaDest) ? mediaDest : ctx.destination; }
+  var master = null, masterFor = null;
+  function sink(){ // everything goes through one gain + limiter so nothing can ever come out much louder than intended
+    var dest = (compat && mediaDest) ? mediaDest : ctx.destination;
+    if (!master || masterFor !== dest) {
+      try { if (master) master.disconnect(); } catch (e) {}
+      var g = ctx.createGain(); g.gain.value = 0.85;
+      var c = ctx.createDynamicsCompressor(); c.threshold.value = -8; c.knee.value = 6; c.ratio.value = 20; c.attack.value = 0.002; c.release.value = 0.1;
+      g.connect(c); c.connect(dest); master = g; masterFor = dest;
+    }
+    return master;
+  }
+  /* If the device's media controls (lock screen, notification, headset button, browser media bar) pause our player, stop everything cleanly
+     and build a fresh output path, so no backlog of audio can come out in a burst when it resumes. */
+  function haltFromOutside(why){
+    if (mode !== 'idle') { stopAll(); resetButtons(); setStatus('Stopped, because ' + why + '. Press Start to go again.', 'warn'); }
+    if (compat) resetOutput();
+  }
+  function resetOutput(){
+    try { if (outEl) { outEl.onpause = null; outEl.pause(); outEl.srcObject = null; } } catch (e) {}
+    try { if (master) master.disconnect(); } catch (e) {}
+    mediaDest = null; outEl = null; master = null; masterFor = null;
+  }
+  try {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({ title: 'Voxprints beat tapper' });
+      ['pause', 'stop'].forEach(function(a){ try { navigator.mediaSession.setActionHandler(a, function(){ haltFromOutside('you pressed pause on your device controls'); }); } catch (e) {} });
+      try { navigator.mediaSession.setActionHandler('play', function(){}); } catch (e) {}
+    }
+  } catch (e) {}
+  function makeCtx(){ ctx = new AC(); ctx.onstatechange = function(){ if (ctx.state !== 'running' && mode !== 'idle') haltFromOutside('your device interrupted the sound'); }; }
   var silentEl = null, IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   if (compat === null) compat = IOS && !!(window.MediaStreamAudioDestinationNode || window.webkitMediaStreamAudioDestinationNode);
   function unlockAudio(){
     if (!AC) return Promise.resolve(false);
     try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
-    if (!ctx) ctx = new AC();
+    if (!ctx) makeCtx();
     if (IOS) { // a playing <audio> element makes iOS treat the page as media, which ignores the silent switch
       try {
         if (!silentEl) {
@@ -355,13 +384,13 @@
           wr(0, 'RIFF'); dv.setUint32(4, 36 + n, true); wr(8, 'WAVEfmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
           dv.setUint32(24, 8000, true); dv.setUint32(28, 8000, true); dv.setUint16(32, 1, true); dv.setUint16(34, 8, true); wr(36, 'data'); dv.setUint32(40, n, true);
           for (var k = 0; k < n; k++) w[44 + k] = 128;
-          silentEl = new Audio(URL.createObjectURL(new Blob([w], { type: 'audio/wav' }))); silentEl.loop = true;
+          silentEl = new Audio(URL.createObjectURL(new Blob([w], { type: 'audio/wav' }))); silentEl.loop = true; silentEl.onpause = function(){ if (mode !== 'idle') haltFromOutside('the sound player was paused'); };
         }
         var pp = silentEl.play(); if (pp && pp.catch) pp.catch(function(){});
       } catch (e) {}
     }
     if (compat && !mediaDest && ctx.createMediaStreamDestination) { // compatibility route: Web Audio -> <audio> element, which ignores the iPhone silent switch
-      try { mediaDest = ctx.createMediaStreamDestination(); outEl = new Audio(); outEl.srcObject = mediaDest.stream; outEl.setAttribute('playsinline', ''); } catch (e) { mediaDest = null; }
+      try { mediaDest = ctx.createMediaStreamDestination(); outEl = new Audio(); outEl.srcObject = mediaDest.stream; outEl.setAttribute('playsinline', ''); outEl.onpause = function(){ haltFromOutside('the sound player was paused'); }; } catch (e) { mediaDest = null; }
     }
     if (compat && outEl) { var op = outEl.play(); if (op && op.catch) op.catch(function(){}); }
     var r = ctx.state === 'running' ? Promise.resolve() : ctx.resume();
@@ -506,7 +535,7 @@
     var f = this.files && this.files[0]; if (!f || !AC) return;
     stopAll(); hideResult(); taps = []; held = {}; pass = 0; buffer = null; peaks = null; takeLoadedFor = ''; playFrom = 0; $('start').disabled = true; updateCounts();
     setStatus('Reading the song…');
-    if (!ctx) ctx = new AC();
+    if (!ctx) makeCtx();
     var rd = new FileReader();
     rd.onerror = function(){ setStatus('Could not read that file.', 'err'); };
     rd.onload = function(){
@@ -786,7 +815,7 @@
   $('compat').checked = !!compat;
   $('compat').addEventListener('change', function(){
     compat = this.checked; try { localStorage.setItem(COMPAT_STORE, compat ? '1' : '0'); } catch (e) {}
-    if (!compat && outEl) { try { outEl.pause(); } catch (e) {} }
+    if (!compat && outEl) resetOutput();
     unlockAudio().then(function(ok){ $('audioInfo').textContent = (compat ? 'Compatibility mode on. ' : 'Compatibility mode off. ') + 'Press "Play test sound" to check, then calibrate again.'; });
   });
   $('soundTest2').addEventListener('click', function(){
