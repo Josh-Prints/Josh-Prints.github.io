@@ -104,7 +104,7 @@
   }
 
   /* page */
-  .page{ max-width: 1100px; margin: 0 auto; padding: 22px 24px 90px; }
+  .page{ max-width: 880px; margin: 0 auto; padding: 22px 24px 90px; }
   .state-msg{ text-align:center; color: var(--ink-dim); padding: 90px 0; font-size: 14px; }
   .state-msg .logo-loading{ margin: 0 auto 10px; }
   #order-content{ display:none; }
@@ -125,9 +125,8 @@
   .pill.s-completed, .pill.s-sold{ background: var(--ok-dim); color: var(--ok); }
   .pill.s-cancelled, .pill.s-deleted{ background: rgba(var(--border-tint),0.1); color: var(--ink-dim); }
 
-  .grid{ display:grid; grid-template-columns: minmax(0,1fr) 350px; gap:18px; align-items:start; }
-  .side{ position: sticky; top: 14px; }
-  @media (max-width: 920px){ .grid{ grid-template-columns: 1fr; } .side{ order:-1; position: static; } }
+  /* One column, always in this order: Handling, Status, Request, Messages, Quote builder, Actions. */
+  .grid{ display:block; }
   .panel{
     background: var(--bg-raised); border:1px solid rgba(var(--border-tint),0.10); border-radius: var(--radius);
     padding: 18px 20px; margin-bottom: 16px; animation: fadeInUp 0.4s ease both;
@@ -448,6 +447,8 @@
 
       <div class="grid">
         <div class="main">
+          <div class="panel" id="panel-claim"></div>
+          <div class="panel" id="panel-status"></div>
           <div class="panel" id="panel-request"></div>
 
           <div class="panel" id="panel-messages">
@@ -504,11 +505,7 @@
               <span class="qb-note" id="qbDraft"></span>
             </div>
           </div>
-        </div>
 
-        <div class="side">
-          <div class="panel" id="panel-status"></div>
-          <div class="panel" id="panel-claim"></div>
           <div class="panel" id="panel-actions"></div>
         </div>
       </div>
