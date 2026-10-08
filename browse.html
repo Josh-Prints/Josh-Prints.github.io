@@ -709,11 +709,18 @@
   async function loadDesigns(){
     const loadStart = Date.now();
     const minDisplayMs = 2000 + Math.random() * 2000;
-    const { data, error } = await supabase
-      .from('designs')
-      .select('*')
-      .eq('active', true)
-      .order('created_at', { ascending: false });
+    // Retry a couple of times (flaky mobile networks / in-app browsers), then fall back to the last list this device saw.
+    let data = null, error = null;
+    for (let attempt = 0; attempt < 3; attempt++){
+      ({ data, error } = await supabase.from('designs').select('*').eq('active', true).order('created_at', { ascending: false }));
+      if (!error && data) break;
+      await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+    }
+    if (!error && data){ try { localStorage.setItem('vxDesignsCache', JSON.stringify(data)); } catch (e) {} }
+    else {
+      if (window.vxReport) window.vxReport('http', 'Designs list failed to load after 3 tries: ' + String((error && (error.message || error.code)) || 'no data').slice(0, 120), { endpoint: 'designs' });
+      try { const c = JSON.parse(localStorage.getItem('vxDesignsCache') || 'null'); if (Array.isArray(c) && c.length){ data = c; error = null; } } catch (e) {}
+    }
 
     // keep the loading logo on screen a moment even on a fast connection —
     // otherwise it can flash by too quickly to notice
@@ -723,8 +730,9 @@
     loadingEl.style.display = 'none';
     if (skelGridEl) skelGridEl.style.display = 'none';
     if (error || !data){
-      emptyEl.textContent = 'Could not load designs right now.';
+      emptyEl.innerHTML = 'Could not load designs right now. <a href="#" id="retry-designs">Try again</a>';
       emptyEl.style.display = 'block';
+      const rt = document.getElementById('retry-designs'); if (rt) rt.addEventListener('click', e => { e.preventDefault(); location.reload(); });
       return;
     }
     designs = data;

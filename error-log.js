@@ -283,6 +283,7 @@
           setTimeout(function () {
             safe(function () {
               if (unloading || document.visibilityState === 'hidden' || Date.now() - navAt < 4000 || Date.now() - hiddenAt < 20000) return;
+              if (ep === 'auth/token') return;   // a login refresh that failed on a bad connection is retried by the page itself
               addCrumb('api', method + ' ' + ep + ' → network error');
               report('network', method + ' ' + ep + ' → network error: ' + (msg || 'failed'),
                 { endpoint: ep, method: method, status: 0 }, null, { toast: true });
@@ -293,4 +294,6 @@
       });
     };
   }
+  // for pages to report problems that don't throw (e.g. a list that failed to load): vxReport('http', 'what went wrong', {…})
+  window.vxReport = function (kind, message, extra) { report(kind || 'js', message, extra || {}, null, { toast: false }); };
 })();
