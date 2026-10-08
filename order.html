@@ -1129,7 +1129,8 @@ h1{ animation: fadeInDown 0.5s ease both; }
   }
 
   async function loadMessages(){
-    const { data, error } = await supabase.rpc('get_order_messages', { p_order_id: orderId });
+    let { data, error } = await supabase.rpc('get_order_messages_named', { p_order_id: orderId });
+    if (error) ({ data, error } = await supabase.rpc('get_order_messages', { p_order_id: orderId }));   // older database without sender names
     if (error) return;
     if (data.length === lastMessageCount) return; // nothing new, skip re-render
     lastMessageCount = data.length;
