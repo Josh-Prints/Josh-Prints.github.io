@@ -1844,6 +1844,10 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
       <h2 class="settings-section-title">Site</h2>
       <div class="modal-body">
+        <div class="theme-row" style="margin-bottom:12px;">
+          <span><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#eye"/></svg> Show the eyebrow tag on the home page</span>
+          <button type="button" class="theme-switch" id="site-eyebrow-enabled" role="switch" aria-checked="true" aria-label="Show the eyebrow tag"><span class="thumb"></span></button>
+        </div>
         <label style="display:block; margin-bottom:14px;">Eyebrow tag
           <input type="text" class="banner-textarea" id="site-eyebrow-input" placeholder="Now taking orders">
         </label>
@@ -2687,6 +2691,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     creditRateInput.value = Math.round((data.store_credit_rate ?? 0.10) * 100);
 
     siteEyebrowInput.value = data.hero_eyebrow || '';
+    siteEyebrowEnabledToggle.setAttribute('aria-checked', String(data.hero_eyebrow_enabled !== false));
     siteEyebrowColorInput.value = data.hero_eyebrow_color || '#0969da';
     currentEyebrowColor = data.hero_eyebrow_color || null;
     siteHeadlineInput.value = data.hero_headline || '';
@@ -2825,6 +2830,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
   /* ---- Site hero content (eyebrow / headline / description) ---- */
   const siteEyebrowInput = document.getElementById('site-eyebrow-input');
+  const siteEyebrowEnabledToggle = document.getElementById('site-eyebrow-enabled');
+  siteEyebrowEnabledToggle.addEventListener('click', () => { toggleSwitch(siteEyebrowEnabledToggle); renderSiteDescPreview(); });
   const siteEyebrowColorInput = document.getElementById('site-eyebrow-color-input');
   const siteEyebrowColorReset = document.getElementById('site-eyebrow-color-reset');
   const siteHeadlineInput = document.getElementById('site-headline-input');
@@ -2839,6 +2846,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
   function renderSiteDescPreview(){
     siteEyebrowPreview.textContent = siteEyebrowInput.value.trim() || '(nothing entered yet)';
+    siteEyebrowPreview.parentElement.style.display = siteEyebrowEnabledToggle.getAttribute('aria-checked') === 'true' ? 'inline-flex' : 'none';
     const dotColor = currentEyebrowColor || 'var(--ink-dim)';
     siteEyebrowDotPreview.style.background = dotColor;
     siteEyebrowPreview.style.color = currentEyebrowColor || 'var(--ink-dim)';
@@ -2864,8 +2872,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     const eyebrow = siteEyebrowInput.value.trim();
     const headline = siteHeadlineInput.value.trim();
     const description = siteDescInput.value.trim();
-    if (!eyebrow || !headline || !description){
-      siteDescMsgEl.textContent = 'Fill in the eyebrow tag, headline, and description.';
+    const eyebrowOn = siteEyebrowEnabledToggle.getAttribute('aria-checked') === 'true';
+    if ((eyebrowOn && !eyebrow) || !headline || !description){
+      siteDescMsgEl.textContent = eyebrowOn ? 'Fill in the eyebrow tag, headline, and description.' : 'Fill in the headline and description.';
       return;
     }
     siteDescSaveBtn.disabled = true;
@@ -2874,6 +2883,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
     const { error } = await supabase.from('settings').update({
       hero_eyebrow: eyebrow,
+      hero_eyebrow_enabled: eyebrowOn,
       hero_eyebrow_color: currentEyebrowColor,
       hero_headline: headline,
       site_description: description,

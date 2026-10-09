@@ -807,10 +807,11 @@
     const innerEl = document.getElementById('site-banner-inner');
     const textEl = document.getElementById('site-banner-text');
     const { data, error } = await supabase.from('settings')
-      .select('banner_enabled, banner_message, banner_force_scroll, site_description, hero_eyebrow, hero_headline, hero_eyebrow_color').eq('id', 1).single();
+      .select('banner_enabled, banner_message, banner_force_scroll, site_description, hero_eyebrow, hero_headline, hero_eyebrow_color, hero_eyebrow_enabled').eq('id', 1).single();
 
     if (!error && data){
       const heroEyebrowEl = document.getElementById('hero-eyebrow');
+      if (heroEyebrowEl && data.hero_eyebrow_enabled === false) heroEyebrowEl.style.display = 'none';
       if (heroEyebrowEl && data.hero_eyebrow && data.hero_eyebrow.trim()){
         heroEyebrowEl.textContent = data.hero_eyebrow;
       }
