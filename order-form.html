@@ -1122,7 +1122,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
     const ok = [], tooBig = [];
     Array.from(list).forEach(f => (f.size > MAX_UPLOAD_MB * 1024 * 1024 ? tooBig : ok).push(f));
     selectedFiles.push(...ok);
-    if (tooBig.length) showStatus('error', (tooBig.length === 1 ? `"${tooBig[0].name}" is` : `${tooBig.length} files are`) + ` over the ${MAX_UPLOAD_MB}MB limit (${(tooBig[0].size / 1048576).toFixed(0)}MB). Try exporting a smaller or lower-detail version, or message us and we'll sort it out.`);
+    if (tooBig.length) showStatus('err', (tooBig.length === 1 ? `"${tooBig[0].name}" is` : `${tooBig.length} files are`) + ` over the ${MAX_UPLOAD_MB}MB limit (${(tooBig[0].size / 1048576).toFixed(0)}MB). Try exporting a smaller or lower-detail version, or message us and we'll sort it out.`);
   }
   fileInput.addEventListener('change', () => {
     addFiles(fileInput.files);
