@@ -1120,7 +1120,8 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
   function addFiles(list){
     const ok = [], tooBig = [];
     Array.from(list).forEach(f => (f.size > MAX_UPLOAD_MB * 1024 * 1024 ? tooBig : ok).push(f));
-    selectedFiles.push(...ok);
+    // the same file picked or dropped twice only counts once
+    ok.forEach(f => { if (!selectedFiles.some(x => x.name === f.name && x.size === f.size && x.lastModified === f.lastModified)) selectedFiles.push(f); });
     let note = document.getElementById('file-note');
     if (!note){ note = document.createElement('div'); note.id = 'file-note'; note.setAttribute('role', 'alert'); note.style.cssText = 'color:var(--err);font-size:13px;margin:8px 0;'; fileListEl.parentNode.insertBefore(note, fileListEl); }
     note.textContent = '';
