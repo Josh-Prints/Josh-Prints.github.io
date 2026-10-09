@@ -74,3 +74,10 @@ end of `migrations/error-log-migration.sql`.
    `https://voxprints.com/*` only, turn on 2-step verification for the Google accounts
    of every founder/admin, and rotate the Discord bot token if a transcript that
    contained it was shared.
+
+## Large uploads (Cloudflare R2)
+
+- Order files over 50 MB (up to 500 MB) are uploaded straight from the browser to the `voxprints-files` R2 bucket; smaller files still go to Supabase storage.
+- The R2 keys are stored in `private_config` (founder-readable only, like the other API keys) and are only read by the `r2-sign` edge function using the service role. They are never in the site's code. Rotate by creating a new R2 token and updating the `r2_*` rows.
+- `r2-sign` is public on purpose (guests place orders) with the gateway JWT check off; it requires the site's publishable key, caps files at 500 MB, and the upload address is single-use for one file, valid 15 minutes, locked to the declared size. Accepted risk: anyone with the site key could still upload within those limits (R2 free tier is 10 GB).
+- Files on R2 are stored in `orders.files` as full `https://pub-….r2.dev/...` addresses; every page that opens files passes full addresses straight through.

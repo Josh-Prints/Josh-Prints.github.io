@@ -1777,6 +1777,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   }
 
   function publicFileUrl(path){
+    if (/^https?:\/\//i.test(path)) return path;   // Cloudflare R2
     return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
   }
 

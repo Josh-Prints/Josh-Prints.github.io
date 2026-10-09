@@ -958,7 +958,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
         <input type="file" id="file_input" accept=".stl,.obj,.3mf,.step,.stp,.iges,.igs,.zip" multiple>
         <div class="glyph"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#upload"/></svg></div>
         <div class="main">Drop a file or tap to browse</div>
-        <div class="sub">STL, OBJ, 3MF, STEP, IGES, up to 50MB</div>
+        <div class="sub">STL, OBJ, 3MF, STEP, IGES, up to 500MB</div>
       </div>
       <div class="file-list" id="file-list"></div>
       <div class="hint">No file to hand? Leave this blank, it's only needed for Custom Print.</div>
@@ -1115,9 +1115,8 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
     });
   }
 
-  // The storage service refuses files over its project-wide cap (50 MB on the free plan) with a vague 400.
-  // Check up front so the customer gets a clear message instead of a failed order.
-  const MAX_UPLOAD_MB = 50;
+  // Files up to 50MB go to Supabase storage; bigger ones go to Cloudflare R2 (see uploadToR2). Above 500MB we refuse up front.
+  const MAX_UPLOAD_MB = 500, SUPABASE_MAX_BYTES = 50 * 1024 * 1024;
   function addFiles(list){
     const ok = [], tooBig = [];
     Array.from(list).forEach(f => (f.size > MAX_UPLOAD_MB * 1024 * 1024 ? tooBig : ok).push(f));
@@ -1146,6 +1145,21 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
     addFiles(e.dataTransfer.files);
     renderFileList();
   });
+
+  // Big files: ask the server for a one-time upload address, then send the file straight to Cloudflare R2.
+  async function uploadToR2(file, orderId, onProgress){
+    const { data, error } = await supabase.functions.invoke('r2-sign', { body: { orderId, filename: file.name, size: file.size, contentType: file.type || 'application/octet-stream' } });
+    if (error || !data || !data.uploadUrl) throw new Error('Could not start the upload of "' + file.name + '". Please try again.');
+    await new Promise((resolve, reject) => {
+      const x = new XMLHttpRequest();
+      x.open('PUT', data.uploadUrl);
+      x.upload.onprogress = e => { if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total); };
+      x.onload = () => (x.status >= 200 && x.status < 300) ? resolve() : reject(new Error('Upload of "' + file.name + '" failed (' + x.status + '). Please try again.'));
+      x.onerror = () => reject(new Error('Upload of "' + file.name + '" failed. Check your connection and try again.'));
+      x.send(file);
+    });
+    return data.publicUrl;
+  }
 
   function showStatus(kind, msg){
     statusEl.className = `status show ${kind}`;
@@ -1310,13 +1324,19 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
         // bar glides smoothly (via the CSS width transition) instead of jumping.
         const bandStart = 10, bandEnd = 40;
         setBusy(true, Math.round(bandStart + (bandEnd - bandStart) * (i / selectedFiles.length)));
-        const { error: uploadError } = await supabase
-          .storage
-          .from(BUCKET)
-          .upload(path, file, { upsert: false });
-
-        if (uploadError) throw uploadError;
-        uploadedFiles.push({ path, name: file.name });
+        const progress = frac => setBusy(true, Math.round(bandStart + (bandEnd - bandStart) * ((i + frac) / selectedFiles.length)));
+        let r2Url = null;
+        if (file.size > SUPABASE_MAX_BYTES){
+          r2Url = await uploadToR2(file, orderId, progress);
+        } else {
+          const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: false });
+          if (uploadError){
+            // right at the storage limit: fall back to R2 instead of failing the order
+            if (/maximum allowed size|too large|exceed/i.test(uploadError.message || '')) r2Url = await uploadToR2(file, orderId, progress);
+            else throw uploadError;
+          }
+        }
+        uploadedFiles.push(r2Url ? { path: r2Url, name: file.name, storage: 'r2', size: file.size } : { path, name: file.name });
       }
       if (uploadedFiles.length > 0){
         filePath = uploadedFiles[0].path; // kept for older readers of file_path/file_name

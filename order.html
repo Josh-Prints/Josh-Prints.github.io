@@ -866,6 +866,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
   }
 
   function publicFileUrl(path){
+    if (/^https?:\/\//i.test(path)) return path;   // stored on Cloudflare R2 (files over 50MB)
     return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
   }
 

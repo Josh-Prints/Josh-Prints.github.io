@@ -598,7 +598,7 @@
   const fmt = v => '$' + Number(v).toFixed(2);
 
   /* ---------- files ---------- */
-  function publicFileUrl(path){ return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl; }
+  function publicFileUrl(path){ if (/^https?:\/\//i.test(path)) return path; /* Cloudflare R2 */ return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl; }
   const MODEL_EXTS = ['stl', 'obj', '3mf', 'step', 'stp', 'iges', 'igs'];
   const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
   const fileExt = name => (name || '').split('.').pop().toLowerCase();
