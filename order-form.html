@@ -958,7 +958,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
         <input type="file" id="file_input" accept=".stl,.obj,.3mf,.step,.stp,.iges,.igs,.zip" multiple>
         <div class="glyph"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#upload"/></svg></div>
         <div class="main">Drop a file or tap to browse</div>
-        <div class="sub">STL, OBJ, 3MF, STEP, IGES, up to 100MB</div>
+        <div class="sub">STL, OBJ, 3MF, STEP, IGES, up to 50MB</div>
       </div>
       <div class="file-list" id="file-list"></div>
       <div class="hint">No file to hand? Leave this blank, it's only needed for Custom Print.</div>
@@ -1115,8 +1115,17 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
     });
   }
 
+  // The storage service refuses files over its project-wide cap (50 MB on the free plan) with a vague 400.
+  // Check up front so the customer gets a clear message instead of a failed order.
+  const MAX_UPLOAD_MB = 50;
+  function addFiles(list){
+    const ok = [], tooBig = [];
+    Array.from(list).forEach(f => (f.size > MAX_UPLOAD_MB * 1024 * 1024 ? tooBig : ok).push(f));
+    selectedFiles.push(...ok);
+    if (tooBig.length) showStatus('error', (tooBig.length === 1 ? `"${tooBig[0].name}" is` : `${tooBig.length} files are`) + ` over the ${MAX_UPLOAD_MB}MB limit (${(tooBig[0].size / 1048576).toFixed(0)}MB). Try exporting a smaller or lower-detail version, or message us and we'll sort it out.`);
+  }
   fileInput.addEventListener('change', () => {
-    selectedFiles.push(...Array.from(fileInput.files));
+    addFiles(fileInput.files);
     fileInput.value = ''; // allow re-adding/selecting more after this batch
     renderFileList();
   });
@@ -1134,7 +1143,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
     });
   });
   dropzone.addEventListener('drop', e => {
-    selectedFiles.push(...Array.from(e.dataTransfer.files));
+    addFiles(e.dataTransfer.files);
     renderFileList();
   });
 
