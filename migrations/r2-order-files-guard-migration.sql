@@ -1,0 +1,9 @@
+-- Orders with files on Cloudflare R2 were refused ("Invalid file attachment") because guard_order_insert() only accepted
+-- paths starting with "<order id>/". It now also accepts "<R2 public address>/orders/<this order's id>/..." (address read from
+-- private_config.r2_public_url). Applied to the live project; only the attachment check inside guard_order_insert() changed:
+--
+--   select rtrim(value, '/') into r2base from public.private_config where key = 'r2_public_url';
+--   r2pre := case when r2base is null or r2base = '' then null else r2base || '/orders/' || new.id::text || '/' end;
+--   ... a file path is valid if it starts with new.id || '/'  OR  starts with r2pre   (and contains no '..')
+--
+-- See migrations/security-hardening-migration.sql for the rest of the function.
