@@ -1,0 +1,162 @@
+/* Customer pages take on the visit's home page look (see /looks.js and the "rotating home page looks"
+   section of index.html). "glow" is the normal site look, so it changes nothing here. Every other
+   look forces a dark palette, puts a fixed backdrop (.lk-bg) behind the page, and restyles headings,
+   panels and main buttons. Panels: .tile (browse), .card/.total-card (estimate, order tracking),
+   the order form and its success panel. */
+
+:root[data-hs]:not([data-hs="glow"]){
+  color-scheme: dark;
+  /* browse / estimate names */
+  --canvas: #0d1117; --canvas-inset: #161b22; --border: #30363d; --border-muted: #21262d;
+  --fg: #e6edf3; --fg-muted: #8b949e; --fg-subtle: #6e7681;
+  --accent: #4493f8; --accent-emphasis: #79c0ff; --accent-subtle: rgba(68,147,248,.15);
+  --btn-primary-hover: #5aa6ff; --btn-hover-bg: #21262d;
+  /* order form / order tracking names */
+  --bg: #0d1117; --bg-raised: #161b22; --ink: #e6edf3; --ink-dim: #8b949e; --steel: #8b949e;
+  --accent-dim: #4493f826; --border-tint: 255,255,255; --grid-line: rgba(0,0,0,0);
+  /* status colours in their dark-mode shades */
+  --green: #3fb950; --green-subtle: rgba(63,185,80,0.12); --ok: #3fb950; --ok-dim: #3fb95026; --err: #f85149; --warn: #e3b341; --warn-strong: #f2cc60;
+  background: var(--canvas);
+}
+:root[data-hs="holo"]:not([data-hs="glow"]){ --canvas: #07070d; --canvas-inset: #0e0e18; --bg: #07070d; --bg-raised: #0e0e18; }
+:root[data-hs="neon"]:not([data-hs="glow"]){ --canvas: #04050a; --canvas-inset: #0a1020; --bg: #04050a; --bg-raised: #0a1020; }
+:root[data-hs="wire"]:not([data-hs="glow"]){ --canvas: #04070e; --canvas-inset: #0a1120; --bg: #04070e; --bg-raised: #0a1120; }
+:root[data-hs="glass"]:not([data-hs="glow"]){ --canvas: #0a1024; --canvas-inset: #141a3a; --bg: #0a1024; --bg-raised: #141a3a; }
+:root[data-hs="iso"]:not([data-hs="glow"]){ --canvas: #0c1220; --canvas-inset: #141d31; --bg: #0c1220; --bg-raised: #141d31; }
+:root[data-hs="ascii"]:not([data-hs="glow"]){ --canvas: #04060a; --canvas-inset: #0a0e16; --bg: #04060a; --bg-raised: #0a0e16; }
+:root[data-hs="mesh"]:not([data-hs="glow"]){ --canvas: #0b0f24; --canvas-inset: #161b3a; --bg: #0b0f24; --bg-raised: #161b3a; }
+:root[data-hs="flap"]:not([data-hs="glow"]){ --canvas: #0a0b0e; --canvas-inset: #16181d; --bg: #0a0b0e; --bg-raised: #16181d; }
+:root[data-hs="vhs"]:not([data-hs="glow"]){ --canvas: #050a16; --canvas-inset: #0a1630; --bg: #050a16; --bg-raised: #0a1630; }
+:root[data-hs="blue"]:not([data-hs="glow"]){ --canvas: #082457; --canvas-inset: #0b2d6b; --bg: #082457; --bg-raised: #0b2d6b; --border: rgba(234,242,255,.35); --border-muted: rgba(234,242,255,.22); --fg: #eaf2ff; --fg-muted: #cfe0ff; --ink: #eaf2ff; --ink-dim: #cfe0ff; }
+
+:root[data-hs]:not([data-hs="glow"]) body{ background: transparent; }
+:root[data-hs]:not([data-hs="glow"]) .skeleton{ background: linear-gradient(90deg, var(--canvas-inset) 25%, rgba(255,255,255,.08) 37%, var(--canvas-inset) 63%); background-size: 400% 100%; }
+/* these looks are always dark, so the dark-mode switch would do nothing */
+:root[data-hs]:not([data-hs="glow"]) :has(> #theme-switch){ display: none; }
+
+.lk-bg{ position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.lk-bg::before, .lk-bg::after, .lk-bg span{ content: ""; position: absolute; display: block; }
+
+/* ---------- Particles ---------- */
+:root[data-hs="particles"] .lk-bg{
+  background:
+    radial-gradient(1100px 700px at 50% 0%, #13233f, transparent 70%),
+    radial-gradient(rgba(140,192,255,.75) 1px, transparent 1.6px) 0 0 / 90px 90px,
+    radial-gradient(rgba(140,192,255,.45) 1px, transparent 1.6px) 45px 30px / 130px 130px,
+    #0d1117;
+}
+:root[data-hs="particles"] .lk-bg::before{ inset: 0; background: radial-gradient(rgba(68,147,248,.35) 1px, transparent 1.6px) 20px 60px / 70px 70px; animation: lkDrift 40s linear infinite; }
+
+/* ---------- Holographic ---------- */
+:root[data-hs="holo"] .lk-bg{ background: #07070d; --holo: linear-gradient(110deg,#9ec5ff,#e0b3ff 18%,#ffb8e6 34%,#fff1b8 50%,#b8ffe3 66%,#9ec5ff 82%,#e0b3ff); }
+:root[data-hs="holo"] .lk-bg::before{ inset: -35%; background: conic-gradient(from 0deg,#4493f8,#b06cff,#ff7ad9,#ffd36e,#6effc8,#4493f8); filter: blur(90px) saturate(1.3); opacity: .22; animation: lkSpin 40s linear infinite; }
+:root[data-hs="holo"] .lk-bg::after{ inset: 0; background: repeating-linear-gradient(115deg, transparent 0 10px, rgba(255,255,255,.03) 10px 11px); }
+:root[data-hs="holo"] h1{ background: linear-gradient(110deg,#9ec5ff,#e0b3ff 18%,#ffb8e6 34%,#fff1b8 50%,#b8ffe3 66%,#9ec5ff 82%,#e0b3ff); background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: lkSlide 7s linear infinite; }
+:root[data-hs="holo"] h1 span{ color: inherit; }
+:root[data-hs="holo"] .btn-primary, :root[data-hs="holo"] .send-btn{ background: linear-gradient(110deg,#9ec5ff,#e0b3ff 18%,#ffb8e6 34%,#fff1b8 50%,#b8ffe3 66%,#9ec5ff 82%,#e0b3ff); background-size: 300% 100%; color: #14121f; border-color: transparent; animation: lkSlide 7s linear infinite; }
+
+/* ---------- Neon glow ---------- */
+:root[data-hs="neon"] .lk-bg{
+  background:
+    linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px) 0 0 / 64px 32px,
+    linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px) 0 0 / 64px 32px,
+    radial-gradient(900px 520px at 50% 30%, #0c1426, #03040a 72%);
+}
+:root[data-hs="neon"] .lk-bg::after{ left: 10%; right: 10%; bottom: -80px; height: 240px; background: radial-gradient(closest-side, rgba(68,147,248,.3), transparent); filter: blur(20px); }
+:root[data-hs="neon"] h1, :root[data-hs="neon"] h2{ color: #fff; text-shadow: 0 0 4px #fff, 0 0 12px #4493f8, 0 0 30px #4493f8; }
+:root[data-hs="neon"] .tile, :root[data-hs="neon"] .total-card, :root[data-hs="neon"] .success-panel, :root[data-hs="neon"] form#order-form[novalidate],
+:root[data-hs="neon"] .card:not(.order-type .card, .fil-opt .card){ border: 1.5px solid #4493f8; box-shadow: 0 0 12px rgba(68,147,248,.45), inset 0 0 12px rgba(68,147,248,.15); }
+:root[data-hs="neon"] .btn-primary, :root[data-hs="neon"] .send-btn{ background: transparent; border: 2px solid #cfe6ff; color: #fff; text-shadow: 0 0 8px #4493f8; box-shadow: 0 0 10px #4493f8, inset 0 0 10px rgba(68,147,248,.5); }
+
+/* ---------- Wireframe 3D ---------- */
+:root[data-hs="wire"] .lk-bg{ background: #04070e; }
+:root[data-hs="wire"] .lk-bg::before{ left: -50%; right: -50%; bottom: 0; height: 50%; background-image: linear-gradient(rgba(68,147,248,.45) 1px, transparent 1px), linear-gradient(90deg, rgba(68,147,248,.45) 1px, transparent 1px); background-size: 60px 60px; transform: perspective(420px) rotateX(68deg); transform-origin: 50% 100%; animation: lkFloor 3s linear infinite; -webkit-mask-image: linear-gradient(to top, #000 10%, transparent 85%); mask-image: linear-gradient(to top, #000 10%, transparent 85%); }
+:root[data-hs="wire"] h1, :root[data-hs="wire"] h2{ font-weight: 300; letter-spacing: .01em; }
+:root[data-hs="wire"] .tile, :root[data-hs="wire"] .total-card, :root[data-hs="wire"] .success-panel, :root[data-hs="wire"] form#order-form[novalidate],
+:root[data-hs="wire"] .card:not(.order-type .card, .fil-opt .card){ border: 1px solid rgba(127,182,255,.5); border-radius: 4px; background: rgba(4,7,14,.75); }
+:root[data-hs="wire"] .btn-primary, :root[data-hs="wire"] .send-btn, :root[data-hs="wire"] .btn{ border-radius: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+/* ---------- Glassmorphism ---------- */
+:root[data-hs="glass"] .lk-bg{ background: #0a1024; }
+:root[data-hs="glass"] .lk-bg span{ border-radius: 50%; filter: blur(60px); opacity: .45; animation: lkFloat 14s ease-in-out infinite alternate; }
+:root[data-hs="glass"] .lk-bg span:nth-child(1){ width: 520px; height: 520px; left: -140px; top: -120px; background: #2f6bff; }
+:root[data-hs="glass"] .lk-bg span:nth-child(2){ width: 420px; height: 420px; right: -120px; top: 20%; background: #8a5cff; animation-duration: 17s; }
+:root[data-hs="glass"] .lk-bg span:nth-child(3){ width: 380px; height: 380px; left: 30%; bottom: -160px; background: #16c2d8; animation-duration: 12s; }
+:root[data-hs="glass"] .lk-bg span:nth-child(4){ display: none; }
+:root[data-hs="glass"] .topbar{ background: rgba(255,255,255,.06); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+:root[data-hs="glass"] .tile, :root[data-hs="glass"] .total-card, :root[data-hs="glass"] .success-panel, :root[data-hs="glass"] form#order-form[novalidate],
+:root[data-hs="glass"] .card:not(.order-type .card, .fil-opt .card){ background: linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.04)); border: 1px solid rgba(255,255,255,.2); border-radius: 18px; -webkit-backdrop-filter: blur(22px) saturate(150%); backdrop-filter: blur(22px) saturate(150%); box-shadow: 0 18px 50px rgba(0,0,0,.3); }
+:root[data-hs="glass"] .btn-primary, :root[data-hs="glass"] .send-btn{ background: #fff; color: #0a1024; border-color: transparent; border-radius: 12px; }
+
+/* ---------- Kinetic type ---------- */
+:root[data-hs="kinetic"] .lk-bg{ background: #0d1117; }
+:root[data-hs="kinetic"] .lk-marq{ position: absolute; inset: -20%; display: flex; flex-direction: column; justify-content: center; gap: 2px; opacity: .06; transform: rotate(-8deg); }
+:root[data-hs="kinetic"] .lk-marq div{ white-space: nowrap; font: 900 clamp(56px, 10vw, 120px)/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-transform: uppercase; letter-spacing: -.02em; color: #e6edf3; animation: lkMarq 50s linear infinite; }
+:root[data-hs="kinetic"] .lk-marq div:nth-child(even){ animation-direction: reverse; color: transparent; -webkit-text-stroke: 2px #e6edf3; }
+:root[data-hs="kinetic"] h1, :root[data-hs="kinetic"] h2{ font-weight: 800; letter-spacing: -.035em; }
+:root[data-hs="kinetic"] .btn-primary, :root[data-hs="kinetic"] .send-btn{ background: #e6edf3; color: #0d1117; border-color: transparent; }
+
+/* ---------- Isometric ---------- */
+:root[data-hs="iso"] .lk-bg{ background: #0c1220; }
+:root[data-hs="iso"] .lk-bg::before{ inset: -20%; background-image: repeating-linear-gradient(30deg, rgba(68,147,248,.12) 0 1px, transparent 1px 40px), repeating-linear-gradient(150deg, rgba(68,147,248,.12) 0 1px, transparent 1px 40px); }
+:root[data-hs="iso"] h1{ font-weight: 800; text-shadow: 1px 1px 0 #1d3f78, 2px 2px 0 #1d3f78, 3px 3px 0 #15305d; }
+:root[data-hs="iso"] .tile, :root[data-hs="iso"] .total-card, :root[data-hs="iso"] .success-panel, :root[data-hs="iso"] form#order-form[novalidate],
+:root[data-hs="iso"] .card:not(.order-type .card, .fil-opt .card){ box-shadow: 0 6px 0 #0a1528; border-color: #22314f; }
+:root[data-hs="iso"] .btn-primary, :root[data-hs="iso"] .send-btn{ box-shadow: 0 5px 0 #2a5fb8; }
+
+/* ---------- ASCII art ---------- */
+:root[data-hs="ascii"] .lk-bg{ background: #04060a url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='216' height='72'><text x='0' y='12' font-family='monospace' font-size='12' fill='%234493f8' fill-opacity='.22' xml:space='preserve'>.:-=+*#%@%#*+=-:. .:-=+*#%@%#*+</text><text x='0' y='36' font-family='monospace' font-size='12' fill='%234493f8' fill-opacity='.16' xml:space='preserve'>=+*#%@%#*+=-:. .:-=+*#%@%#*+=-:</text><text x='0' y='60' font-family='monospace' font-size='12' fill='%234493f8' fill-opacity='.1' xml:space='preserve'>%#*+=-:. .:-=+*#%@%#*+=-:. .:-=</text></svg>"); }
+:root[data-hs="ascii"] h1, :root[data-hs="ascii"] h2{ font-family: "VT323", ui-monospace, monospace; font-weight: 400; letter-spacing: 0; }
+:root[data-hs="ascii"] h1{ font-size: max(2.2em, 34px); }
+:root[data-hs="ascii"] .tile, :root[data-hs="ascii"] .total-card, :root[data-hs="ascii"] .success-panel, :root[data-hs="ascii"] form#order-form[novalidate],
+:root[data-hs="ascii"] .card:not(.order-type .card, .fil-opt .card){ border: 1px dashed rgba(68,147,248,.6); border-radius: 0; }
+:root[data-hs="ascii"] .btn-primary, :root[data-hs="ascii"] .send-btn, :root[data-hs="ascii"] .btn{ border-radius: 0; }
+
+/* ---------- Gradient mesh ---------- */
+:root[data-hs="mesh"] .lk-bg{ background: #0b0f24; }
+:root[data-hs="mesh"] .lk-bg span{ width: 70vmax; height: 70vmax; border-radius: 50%; filter: blur(60px); mix-blend-mode: screen; opacity: .42; animation: lkFloat 18s ease-in-out infinite alternate; }
+:root[data-hs="mesh"] .lk-bg span:nth-child(1){ background: #2f6bff; left: -25vmax; top: -30vmax; }
+:root[data-hs="mesh"] .lk-bg span:nth-child(2){ background: #7c4dff; right: -30vmax; top: -25vmax; animation-duration: 21s; }
+:root[data-hs="mesh"] .lk-bg span:nth-child(3){ background: #00b8c7; left: -20vmax; bottom: -40vmax; animation-duration: 15s; }
+:root[data-hs="mesh"] .lk-bg span:nth-child(4){ background: #ff5fa2; right: -30vmax; bottom: -45vmax; opacity: .35; animation-duration: 24s; }
+:root[data-hs="mesh"] .tile, :root[data-hs="mesh"] .total-card, :root[data-hs="mesh"] .success-panel, :root[data-hs="mesh"] form#order-form[novalidate],
+:root[data-hs="mesh"] .card:not(.order-type .card, .fil-opt .card){ background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); border-radius: 20px; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+:root[data-hs="mesh"] .btn-primary, :root[data-hs="mesh"] .send-btn{ background: #fff; color: #0b0f24; border-color: transparent; border-radius: 999px; }
+
+/* ---------- Split-flap ---------- */
+:root[data-hs="flap"] .lk-bg{ background: radial-gradient(ellipse at 50% 20%, #1d2028, #0a0b0e 70%); }
+:root[data-hs="flap"] h1, :root[data-hs="flap"] h2{ font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; text-transform: uppercase; letter-spacing: .04em; }
+:root[data-hs="flap"] .tile, :root[data-hs="flap"] .total-card, :root[data-hs="flap"] .success-panel, :root[data-hs="flap"] form#order-form[novalidate],
+:root[data-hs="flap"] .card:not(.order-type .card, .fil-opt .card){ border-radius: 6px; border: 1px solid #2a2d34; box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 4px 10px rgba(0,0,0,.5); }
+:root[data-hs="flap"] .btn-primary, :root[data-hs="flap"] .send-btn, :root[data-hs="flap"] .btn{ border-radius: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; text-transform: uppercase; letter-spacing: .05em; }
+
+/* ---------- Retro VHS ---------- */
+:root[data-hs="vhs"] .lk-bg{ background: linear-gradient(#050a16, #0a1630 70%, #0f2147); }
+:root[data-hs="vhs"] .lk-bg::before{ left: 50%; bottom: -22vmin; width: 70vmin; height: 70vmin; transform: translateX(-50%); border-radius: 50%; background: linear-gradient(#cfe6ff, #4493f8 55%, #1b3fa8); opacity: .25; -webkit-mask-image: repeating-linear-gradient(to bottom, #000 0 14px, transparent 14px 20px); mask-image: repeating-linear-gradient(to bottom, #000 0 14px, transparent 14px 20px); }
+:root[data-hs="vhs"] .lk-bg::after{ inset: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 1px, transparent 1px 3px); }
+:root[data-hs="vhs"] h1, :root[data-hs="vhs"] h2{ font-style: italic; text-transform: uppercase; font-weight: 800; letter-spacing: -.01em; text-shadow: 2px 0 #1e5bff, -2px 0 #8fd3ff; }
+:root[data-hs="vhs"] .btn-primary, :root[data-hs="vhs"] .send-btn, :root[data-hs="vhs"] .btn{ border-radius: 0; text-transform: uppercase; font-style: italic; }
+:root[data-hs="vhs"] .btn-primary, :root[data-hs="vhs"] .send-btn{ box-shadow: 3px 0 #1e5bff, -3px 0 #8fd3ff; }
+
+/* ---------- Blueprint ---------- */
+:root[data-hs="blue"] .lk-bg{
+  background:
+    linear-gradient(rgba(255,255,255,.16) 1px, transparent 1px) 0 0 / 100px 100px,
+    linear-gradient(90deg, rgba(255,255,255,.16) 1px, transparent 1px) 0 0 / 100px 100px,
+    linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px) 0 0 / 20px 20px,
+    linear-gradient(90deg, rgba(255,255,255,.055) 1px, transparent 1px) 0 0 / 20px 20px,
+    #082457;
+}
+:root[data-hs="blue"] h1, :root[data-hs="blue"] h2{ font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; text-transform: uppercase; letter-spacing: .03em; }
+:root[data-hs="blue"] .tile, :root[data-hs="blue"] .total-card, :root[data-hs="blue"] .success-panel, :root[data-hs="blue"] form#order-form[novalidate],
+:root[data-hs="blue"] .card:not(.order-type .card, .fil-opt .card){ border: 1.5px solid rgba(234,242,255,.8); border-radius: 0; background: rgba(8,36,87,.9); }
+:root[data-hs="blue"] .btn-primary, :root[data-hs="blue"] .send-btn{ background: #eaf2ff; color: #082457; border-color: transparent; }
+:root[data-hs="blue"] .btn-primary, :root[data-hs="blue"] .send-btn, :root[data-hs="blue"] .btn{ border-radius: 0; text-transform: uppercase; letter-spacing: .05em; }
+
+@keyframes lkSpin{ to{ transform: rotate(360deg); } }
+@keyframes lkSlide{ to{ background-position: 300% 0; } }
+@keyframes lkFloor{ to{ background-position: 0 60px; } }
+@keyframes lkMarq{ from{ transform: translateX(0); } to{ transform: translateX(-50%); } }
+@keyframes lkDrift{ to{ background-position: 70px 130px; } }
+@keyframes lkFloat{ to{ transform: translate(60px, 50px) scale(1.08); } }
+@media (prefers-reduced-motion: reduce){ .lk-bg, .lk-bg *, .lk-bg::before, .lk-bg::after{ animation: none !important; } }

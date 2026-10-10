@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>/* Home page look: a random one of these on every load. Add ?style=<name> to the URL to force one. */(function(){var L=['glow','particles','holo','neon','wire','glass','kinetic','iso','ascii','mesh','flap','vhs','blue'],s;try{s=new URLSearchParams(location.search).get('style');}catch(e){}if(L.indexOf(s)<0)s=L[Math.floor(Math.random()*L.length)];document.documentElement.setAttribute('data-hs',s);if(s==='ascii'||s==='vhs'){var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=VT323&display=swap';document.head.appendChild(l);}})();</script>
+<script>/* Home page look: a random one of these on every load, saved so the other customer pages (/looks.js) match. Add ?style=<name> to the URL to force one. */(function(){var L=['glow','particles','holo','neon','wire','glass','kinetic','iso','ascii','mesh','flap','vhs','blue'],s;try{s=new URLSearchParams(location.search).get('style');}catch(e){}if(L.indexOf(s)<0)s=L[Math.floor(Math.random()*L.length)];document.documentElement.setAttribute('data-hs',s);try{sessionStorage.setItem('vx-look',s);localStorage.setItem('vx-look',s);}catch(e){}if(s==='ascii'||s==='vhs'){var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=VT323&display=swap';document.head.appendChild(l);}})();</script>
 <script>document.documentElement.classList.add('js');(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <script>(function(){var blocked=false;try{localStorage.setItem("__t","1");localStorage.removeItem("__t");}catch(e){blocked=true;}if(!blocked)return;document.addEventListener("DOMContentLoaded",function(){var b=document.createElement("div");b.textContent="Cookies/site data are blocked in this browser, so you will be signed out every visit. Enable them in your browser settings to stay signed in.";b.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#1f2328;color:#fff;padding:10px 16px;font:13px -apple-system,sans-serif;text-align:center;";document.body.appendChild(b);});})();</script>
 <meta charset="UTF-8">
@@ -742,6 +742,7 @@
   :root[data-hs]:not([data-hs="glow"]) .strip-item,
   :root[data-hs]:not([data-hs="glow"]) .recent-activity-item{ background: var(--b-card); border: var(--b-border); border-radius: var(--b-radius); box-shadow: var(--b-shadow, none); -webkit-backdrop-filter: var(--b-blur, none); backdrop-filter: var(--b-blur, none); }
   :root[data-hs]:not([data-hs="glow"]) .featured-img{ background: linear-gradient(135deg, color-mix(in srgb, var(--b-acc) 22%, transparent), color-mix(in srgb, var(--b-acc) 4%, transparent)); }
+  :root[data-hs]:not([data-hs="glow"]) .skeleton{ background: linear-gradient(90deg, var(--canvas-inset) 25%, rgba(255,255,255,.08) 37%, var(--canvas-inset) 63%); background-size: 400% 100%; }
   :root[data-hs]:not([data-hs="glow"]) .featured-name,
   :root[data-hs]:not([data-hs="glow"]) .recent-activity-text{ color: var(--b-fg); }
   :root[data-hs]:not([data-hs="glow"]) .strip-icon{ color: var(--b-acc); background: color-mix(in srgb, var(--b-acc) 14%, transparent); border-color: color-mix(in srgb, var(--b-acc) 28%, transparent); border-radius: min(10px, var(--b-radius)); }
