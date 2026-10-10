@@ -329,6 +329,12 @@
   }
   .hero-bg span{ position: absolute; display: block; }
   .glow-parallax{ inset: 0; }
+  /* scroll drift: --sp goes 0 -> 1 from the top to the bottom of the page (set in the hero script).
+     Uses the separate translate property so it stacks on top of the pulse animations. */
+  .glow-main{ translate: calc(var(--sp, 0) * 14vw) calc(var(--sp, 0) * -24vh); }
+  .glow-side{ translate: calc(var(--sp, 0) * 32vw) calc(var(--sp, 0) * -34vh); }
+  .glow-orb{ translate: calc(var(--sp, 0) * -10vw) calc(var(--sp, 0) * -48vh); }
+  .glow-wash{ translate: 0 calc(var(--sp, 0) * -8vh); }
   .glow-wash{
     inset: 0;
     background: linear-gradient(180deg,
@@ -1052,6 +1058,7 @@
   (function(){
     const hero = document.getElementById('hero');
     const topbar = document.querySelector('.topbar');
+    const bg = hero.querySelector('.hero-bg');
     if (!hero) return;
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     function measure(){ hero.style.setProperty('--hero-top', (hero.getBoundingClientRect().top + scrollY) + 'px'); }
@@ -1066,6 +1073,10 @@
       ticking = false;
       const y = scrollY;
       if (topbar) topbar.classList.toggle('scrolled', y > 8);
+      if (bg && !reduce){
+        const max = document.documentElement.scrollHeight - innerHeight;
+        bg.style.setProperty('--sp', max > 0 ? Math.min(1, y / max).toFixed(4) : '0');
+      }
     }
     addEventListener('scroll', () => { if (!ticking){ ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
     onScroll();
