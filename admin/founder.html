@@ -885,6 +885,7 @@
     display: inline-flex; align-items: center; gap: 6px;
   }
 
+
   /* ---- Debug modal tabs ---- */
   .debug-tabs{
     display:flex;
@@ -1481,6 +1482,70 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   /* ---- Errors tab ---- */
   .er-tab-badge{ display:inline-block; min-width:16px; padding:0 5px; margin-left:4px; border-radius:20px; font-size:10.5px; font-weight:700; line-height:16px; text-align:center; background: var(--err); color:#fff; }
   .er-tab-badge[hidden]{ display:none; }
+
+  /* ---------- Founder inbox ---------- */
+  .ml-setup h3{ margin:0 0 6px; font-size:15px; }
+  .ml-setup p, .ml-setup li{ font-size:13.5px; line-height:1.55; }
+  .ml-setup ol{ margin:8px 0 12px; padding-left:20px; }
+  .ml-setup a{ color: var(--accent); }
+  .ml-key-row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .ml-key-row input{ flex:1 1 240px; min-width:0; font:inherit; font-size:13.5px; padding:8px 11px; border-radius:6px; background: var(--bg); color: var(--ink); border:1px solid rgba(var(--border-tint),0.18); }
+  .ml-small{ font-size:12.5px; color: var(--ink-dim); margin:8px 0 0; }
+  .ml-primary{ background: var(--accent) !important; color:#fff !important; border-color: transparent !important; }
+  #ml-unread:empty{ display:none; }
+  .ml-layout{ display:grid; grid-template-columns: minmax(260px, 360px) 1fr; gap:14px; align-items:start; }
+  .ml-list{ background: var(--bg-raised); border:1px solid rgba(var(--border-tint),0.12); border-radius:12px; overflow:hidden; max-height: calc(100vh - 220px); overflow-y:auto; }
+  .ml-item{ display:block; width:100%; text-align:left; font:inherit; color: var(--ink); background:none; border:0; border-bottom:1px solid rgba(var(--border-tint),0.08); padding:11px 14px 11px 22px; cursor:pointer; position:relative; }
+  .ml-item:hover{ background: var(--btn-hover-bg); }
+  .ml-item.active{ background: var(--accent-dim); }
+  .ml-item.unread::before{ content:""; position:absolute; left:9px; top:17px; width:7px; height:7px; border-radius:50%; background: var(--accent); }
+  .ml-item-top{ display:flex; gap:8px; align-items:baseline; }
+  .ml-item-who{ flex:1; min-width:0; font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ml-item.unread .ml-item-who, .ml-item.unread .ml-item-subj{ font-weight:700; }
+  .ml-item-when{ font-size:11.5px; color: var(--ink-dim); white-space:nowrap; }
+  .ml-item-subj{ font-size:13px; margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ml-item-snip{ font-size:12.5px; color: var(--ink-dim); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ml-reader{ background: var(--bg-raised); border:1px solid rgba(var(--border-tint),0.12); border-radius:12px; padding:16px 18px; min-height:320px; min-width:0; }
+  .ml-back{ display:none; }
+  .ml-r-subj{ font-size:18px; font-weight:700; margin:0 0 10px; overflow-wrap:anywhere; }
+  .ml-r-meta{ font-size:13px; color: var(--ink-dim); line-height:1.6; overflow-wrap:anywhere; }
+  .ml-r-meta b{ color: var(--ink); font-weight:600; }
+  .ml-r-actions{ display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+  .ml-r-atts{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
+  .ml-att{ font:inherit; font-size:12.5px; padding:6px 10px; border-radius:8px; cursor:pointer; background: var(--bg); color: var(--ink); border:1px solid rgba(var(--border-tint),0.18); display:inline-flex; gap:6px; align-items:center; max-width:100%; }
+  .ml-att span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ml-att .ml-x{ font-size:15px; line-height:1; padding:0 2px; }
+  .ml-body-frame{ width:100%; border:0; border-radius:8px; background:#fff; min-height:120px; display:block; }
+  .ml-text{ white-space:pre-wrap; overflow-wrap:anywhere; font:inherit; font-size:14px; line-height:1.6; margin:0; padding:14px; border-radius:8px; background: var(--bg); }
+  .ml-settings{ margin-top:16px; font-size:13.5px; }
+  .ml-settings summary{ cursor:pointer; color: var(--ink-dim); }
+  .ml-settings-body{ display:grid; gap:10px; margin-top:10px; max-width:520px; }
+  .ml-settings-body label{ display:grid; gap:4px; font-size:12.5px; color: var(--ink-dim); }
+  .ml-settings-body input{ font:inherit; font-size:13.5px; padding:8px 11px; border-radius:6px; background: var(--bg); color: var(--ink); border:1px solid rgba(var(--border-tint),0.18); }
+  .ml-compose-wrap{ position:fixed; inset:0; z-index:300; background: rgba(1,4,9,.45); display:flex; align-items:center; justify-content:center; padding:16px; }
+  .ml-compose-wrap[hidden]{ display:none; }
+  .ml-compose{ width:min(680px, 100%); max-height:calc(100vh - 32px); overflow:auto; background: var(--bg-raised); border:1px solid rgba(var(--border-tint),0.15); border-radius:14px; padding:16px 18px; box-shadow:0 20px 60px rgba(0,0,0,.35); display:grid; gap:8px; }
+  .ml-compose-head{ display:flex; justify-content:space-between; align-items:center; }
+  .ml-x{ background:none; border:0; color: var(--ink-dim); font-size:22px; cursor:pointer; line-height:1; }
+  .ml-field{ display:grid; grid-template-columns:62px 1fr; align-items:center; gap:8px; font-size:13px; color: var(--ink-dim); border-bottom:1px solid rgba(var(--border-tint),0.12); padding-bottom:6px; }
+  .ml-field[hidden]{ display:none; }
+  .ml-field input{ font:inherit; font-size:14px; border:0; background:transparent; color: var(--ink); padding:6px 0; min-width:0; }
+  .ml-field input:focus{ outline:none; }
+  .ml-link{ justify-self:start; background:none; border:0; color: var(--accent); font:inherit; font-size:12.5px; cursor:pointer; padding:0; }
+  .ml-compose textarea{ font:inherit; font-size:14px; line-height:1.55; padding:10px 12px; border-radius:8px; background: var(--bg); color: var(--ink); border:1px solid rgba(var(--border-tint),0.15); resize:vertical; min-height:200px; }
+  .ml-compose textarea:focus{ outline:none; border-color: var(--accent); }
+  .ml-atts{ display:flex; flex-wrap:wrap; gap:6px; }
+  .ml-compose-foot{ display:flex; align-items:center; gap:10px; }
+  .ml-compose-foot .ml-small{ flex:1; margin:0; }
+  .ml-attach{ cursor:pointer; }
+  @media (max-width: 860px){
+    .ml-layout{ grid-template-columns: 1fr; }
+    .ml-list{ max-height:none; }
+    .ml-layout .ml-reader{ display:none; }
+    .ml-layout.reading .ml-list{ display:none; }
+    .ml-layout.reading .ml-reader{ display:block; }
+    .ml-back{ display:inline-flex; margin-bottom:10px; }
+  }
   .er-toolbar{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:10px; }
   .er-toolbar input[type=search]{
     flex:1 1 220px; min-width:0; font:inherit; font-size:13.5px; padding:7px 11px; border-radius:6px;
@@ -1750,6 +1815,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   <div class="page-tabs">
     <div class="page-tabs-inner">
       <button type="button" class="debug-tab active" data-tab="home">Home</button>
+      <button type="button" class="debug-tab" data-tab="inbox">Inbox <span class="er-tab-badge" id="mail-tab-badge" hidden></span></button>
       <button type="button" class="debug-tab" data-tab="admin">Admin</button>
       <button type="button" class="debug-tab" data-tab="settings">Settings</button>
       <button type="button" class="debug-tab" data-tab="alerts">Discord</button>
@@ -2064,6 +2130,71 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       </div>
     </div>
 
+    <div class="debug-section" id="debug-section-inbox">
+      <div class="er-card ml-setup" id="ml-setup" hidden>
+        <h3>Connect the inbox</h3>
+        <p>Mail sent to any <b>@voxprints.com</b> address already arrives at Resend. To read it here, the inbox needs its own <b>full-access</b> Resend key (the saved one can only send):</p>
+        <ol>
+          <li>Open <a href="https://resend.com/api-keys" target="_blank" rel="noopener">resend.com/api-keys</a> and click <b>Create API key</b>.</li>
+          <li>Name it <i>voxprints-inbox</i>, set permission to <b>Full access</b>, and create it.</li>
+          <li>Copy the key and paste it below. It's stored privately and only founders can use it.</li>
+        </ol>
+        <div class="ml-key-row">
+          <input type="password" id="ml-key" placeholder="re_…" autocomplete="off">
+          <button type="button" class="save-btn" id="ml-key-save">Save key</button>
+        </div>
+        <p class="ml-small" id="ml-setup-msg"></p>
+      </div>
+
+      <div class="er-toolbar">
+        <div class="er-range" id="ml-boxes" role="group" aria-label="Folder">
+          <button type="button" class="er-chip active" data-box="inbox">Inbox <span id="ml-unread"></span></button>
+          <button type="button" class="er-chip" data-box="sent">Sent</button>
+          <button type="button" class="er-chip" data-box="archived">Archived</button>
+        </div>
+        <input type="search" id="ml-search" placeholder="Search mail" autocomplete="off">
+        <button type="button" class="save-btn" id="ml-refresh">Refresh</button>
+        <button type="button" class="save-btn ml-primary" id="ml-new">New email</button>
+      </div>
+      <p class="er-sub" id="ml-sub">Mail for <b id="ml-addr">josh@voxprints.com</b>. New mail is checked every 2 minutes.</p>
+
+      <div class="ml-layout" id="ml-layout">
+        <div class="ml-list" id="ml-list"><p class="er-empty">Loading…</p></div>
+        <div class="ml-reader" id="ml-reader"><p class="er-empty ml-pick">Pick an email to read it.</p></div>
+      </div>
+
+      <details class="ml-settings">
+        <summary>Inbox settings</summary>
+        <div class="ml-settings-body">
+          <label>Name people see when you email them
+            <input type="text" id="ml-from-name" maxlength="80" placeholder="Josh from Voxprints" autocomplete="off">
+          </label>
+          <label>Replace the inbox key
+            <input type="password" id="ml-key2" placeholder="re_… (leave blank to keep the current one)" autocomplete="off">
+          </label>
+          <div class="ml-key-row"><button type="button" class="save-btn" id="ml-settings-save">Save</button><span class="ml-small" id="ml-settings-msg"></span></div>
+        </div>
+      </details>
+
+      <div class="ml-compose-wrap" id="ml-compose-wrap" hidden>
+        <form class="ml-compose" id="ml-compose" autocomplete="off">
+          <div class="ml-compose-head"><b id="ml-c-title">New email</b><button type="button" class="ml-x" id="ml-c-close" aria-label="Close">&times;</button></div>
+          <label class="ml-field"><span>From</span><input type="text" id="ml-c-from" disabled></label>
+          <label class="ml-field"><span>To</span><input type="text" id="ml-c-to" placeholder="name@example.com, another@example.com"></label>
+          <label class="ml-field" id="ml-c-cc-row" hidden><span>Cc</span><input type="text" id="ml-c-cc"></label>
+          <button type="button" class="ml-link" id="ml-c-addcc">Add Cc</button>
+          <label class="ml-field"><span>Subject</span><input type="text" id="ml-c-subject" maxlength="300"></label>
+          <textarea id="ml-c-body" rows="12" placeholder="Write your message…"></textarea>
+          <div class="ml-atts" id="ml-c-atts"></div>
+          <div class="ml-compose-foot">
+            <label class="er-btn ml-attach">Attach files<input type="file" id="ml-c-file" multiple hidden></label>
+            <span class="ml-small" id="ml-c-msg"></span>
+            <button type="submit" class="save-btn ml-primary" id="ml-c-send">Send</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <div class="debug-section" id="debug-section-errors">
       <div class="er-toolbar">
         <div class="er-range" id="er-range" role="group" aria-label="Time range">
@@ -2244,6 +2375,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     loadHomeGreeting(session.user.email);
     loadHomeBrief(false);
     loadErrorBadge();
+    mlLoadSettings();
+    setInterval(() => { if (!document.hidden) mlLoadSettings(); }, 120000);
   });
 
   /* ---------- home greeting ---------- */
@@ -3352,6 +3485,262 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     setTimeout(() => { if (creditMsgEl.textContent.startsWith('Saved')) creditMsgEl.textContent = ''; }, 3000);
   });
 
+  /* ---------- Founder inbox (mail for josh@voxprints.com, via Resend; see migrations/founder-inbox-migration.sql) ---------- */
+  const ml = { box: 'inbox', list: [], current: null, settings: null, replyTo: null, files: [], searchTimer: 0 };
+  function mlParse(a){
+    const s = String(a || '').trim(), m = s.match(/^"?([^"<]*?)"?\s*<([^>]+)>$/);
+    return m ? { name: m[1].trim() || m[2].trim(), email: m[2].trim() } : { name: s, email: s };
+  }
+  const mlList = v => (Array.isArray(v) ? v : []).map(x => String(x));
+  function mlWhen(ts, long){
+    const d = new Date(ts), now = new Date();
+    if (long) return d.toLocaleString([], { weekday:'short', day:'numeric', month:'short', year:'numeric', hour:'numeric', minute:'2-digit' });
+    return d.toDateString() === now.toDateString() ? d.toLocaleTimeString([], { hour:'numeric', minute:'2-digit' }) : d.toLocaleDateString([], { day:'numeric', month:'short' });
+  }
+  function mlBadge(n){
+    const b = hb('mail-tab-badge'); b.hidden = !n; b.textContent = n > 99 ? '99+' : String(n);
+    hb('ml-unread').textContent = n ? '(' + n + ')' : '';
+  }
+  async function mlLoadSettings(){
+    const { data, error } = await supabase.rpc('founder_mail_settings');
+    if (error || !data) return null;
+    ml.settings = data;
+    mlBadge(data.unread);
+    hb('ml-setup').hidden = !!data.has_key;
+    const addrEl = hb('ml-addr'); if (addrEl) addrEl.textContent = data.address;
+    if (document.activeElement !== hb('ml-from-name')) hb('ml-from-name').value = data.from_name;
+    return data;
+  }
+  async function mlOpenTab(){
+    await mlLoadSettings();
+    await mlLoadList();
+    if (ml.settings && ml.settings.has_key) mlRefresh(true);
+  }
+  async function mlRefresh(quiet){
+    const btn = hb('ml-refresh'); btn.disabled = true; if (!quiet) btn.textContent = 'Checking…';
+    const { data, error } = await supabase.rpc('founder_mail_refresh');
+    btn.disabled = false; btn.textContent = 'Refresh';
+    if (error){ if (!quiet) hb('ml-sub').textContent = 'Could not check for mail: ' + error.message; return; }
+    if (data && data.ok === false){ if (!quiet) hb('ml-sub').textContent = 'Could not check for mail: ' + data.error; return; }
+    if (data && data.added){ await mlLoadList(); mlLoadSettings(); }
+  }
+  async function mlLoadList(){
+    const { data, error } = await supabase.rpc('founder_mail_list', { p_box: ml.box, p_search: hb('ml-search').value.trim() || null });
+    if (error){ hb('ml-list').innerHTML = '<p class="er-empty">Could not load mail: ' + escapeHtml(error.message) + '</p>'; return; }
+    ml.list = data || [];
+    mlRender();
+  }
+  function mlRender(){
+    if (!ml.list.length){
+      const q = hb('ml-search').value.trim();
+      hb('ml-list').innerHTML = '<p class="er-empty">' + (q ? 'Nothing matches that search.' : ml.box === 'inbox' ? 'No mail yet. Anything sent to ' + escapeHtml(ml.settings ? ml.settings.address : 'your address') + ' will show up here.' : ml.box === 'sent' ? 'Nothing sent from here yet.' : 'Nothing archived.') + '</p>';
+      return;
+    }
+    hb('ml-list').innerHTML = ml.list.map(m => {
+      const who = m.box === 'sent' ? 'To: ' + mlList(m.to).map(a => mlParse(a).name).join(', ') : mlParse(m.from).name;
+      return '<button type="button" class="ml-item' + (m.box === 'inbox' && !m.read ? ' unread' : '') + (ml.current && ml.current.id === m.id ? ' active' : '') + '" data-id="' + escapeHtml(m.id) + '">' +
+        '<div class="ml-item-top"><span class="ml-item-who">' + escapeHtml(who || '(unknown)') + '</span><span class="ml-item-when">' + (m.attachments ? '📎 ' : '') + escapeHtml(mlWhen(m.created_at)) + '</span></div>' +
+        '<div class="ml-item-subj">' + escapeHtml(m.subject || '(no subject)') + '</div>' +
+        '<div class="ml-item-snip">' + escapeHtml(m.snippet || '') + '</div></button>';
+    }).join('');
+  }
+  function mlFrame(html){
+    const doc = '<!doctype html><html><head><meta charset="utf-8"><base target="_blank">' +
+      '<meta http-equiv="Content-Security-Policy" content="script-src \'none\'; object-src \'none\'; form-action \'none\'">' +
+      '<style>body{margin:0;padding:14px;font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#1f2328;background:#fff;overflow-wrap:anywhere}img{max-width:100%;height:auto}table{max-width:100%}pre{white-space:pre-wrap}</style></head><body>' + html + '</body></html>';
+    const f = document.createElement('iframe');
+    f.className = 'ml-body-frame';
+    f.setAttribute('sandbox', 'allow-same-origin allow-popups allow-popups-to-escape-sandbox');
+    f.setAttribute('referrerpolicy', 'no-referrer');
+    f.title = 'Email content';
+    f.srcdoc = doc;
+    const fit = () => { try { f.style.height = Math.min(4000, f.contentDocument.documentElement.scrollHeight + 4) + 'px'; } catch (e) {} };
+    f.addEventListener('load', () => { fit(); setTimeout(fit, 400); setTimeout(fit, 1500); });
+    return f;
+  }
+  async function mlOpen(id){
+    hb('ml-layout').classList.add('reading');
+    hb('ml-reader').innerHTML = '<p class="er-empty">Loading…</p>';
+    const { data: m, error } = await supabase.rpc('founder_mail_get', { p_id: id });
+    if (error || !m){ hb('ml-reader').innerHTML = '<p class="er-empty">Could not open that email' + (error ? ': ' + escapeHtml(error.message) : '.') + '</p>'; return; }
+    ml.current = m;
+    const li = ml.list.find(x => x.id === id); if (li && !li.read){ li.read = true; mlLoadSettings(); }
+    mlRender();
+    const to = mlList(m.to).join(', '), cc = mlList(m.cc).join(', ');
+    const atts = Array.isArray(m.attachments) ? m.attachments : [];
+    const r = hb('ml-reader');
+    r.innerHTML =
+      '<button type="button" class="er-btn ml-back" data-ml="back">&larr; Back</button>' +
+      '<h3 class="ml-r-subj">' + escapeHtml(m.subject || '(no subject)') + '</h3>' +
+      '<div class="ml-r-meta"><div><b>' + escapeHtml(m.from) + '</b></div><div>To: ' + escapeHtml(to) + '</div>' + (cc ? '<div>Cc: ' + escapeHtml(cc) + '</div>' : '') + '<div>' + escapeHtml(mlWhen(m.created_at, true)) + '</div></div>' +
+      '<div class="ml-r-actions">' +
+        (m.box === 'inbox' ? '<button type="button" class="save-btn ml-primary" data-ml="reply">Reply</button><button type="button" class="er-btn" data-ml="replyall">Reply all</button>' : '') +
+        '<button type="button" class="er-btn" data-ml="forward">Forward</button>' +
+        (m.box === 'inbox' ? '<button type="button" class="er-btn" data-ml="unread">Mark unread</button>' : '') +
+        '<button type="button" class="er-btn" data-ml="archive">' + (m.archived ? 'Move back' : 'Archive') + '</button>' +
+      '</div>' +
+      (atts.length ? '<div class="ml-r-atts">' + atts.map((a, i) => '<button type="button" class="ml-att" data-att="' + i + '">📎 <span>' + escapeHtml(a.filename || 'attachment') + '</span>' + (a.size ? ' <small>' + Math.max(1, Math.round(Number(a.size) / 1024)) + ' KB</small>' : '') + '</button>').join('') + '</div>' : '') +
+      '<div id="ml-body"></div>';
+    const bodyEl = hb('ml-body');
+    if (m.html) bodyEl.appendChild(mlFrame(m.html));
+    else bodyEl.innerHTML = '<pre class="ml-text">' + escapeHtml(m.text || '(empty message)') + '</pre>';
+  }
+  function mlQuote(m){
+    const text = m.text || (m.html ? m.html.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|tr|h\d)>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>') : '');
+    return '\n\n\nOn ' + mlWhen(m.created_at, true) + ', ' + m.from + ' wrote:\n' + text.trim().split('\n').map(l => '> ' + l).join('\n');
+  }
+  function mlCompose(mode){
+    const m = ml.current, me = (ml.settings && ml.settings.address || '').toLowerCase();
+    ml.replyTo = null; ml.files = [];
+    let to = '', cc = '', subject = '', body = '', title = 'New email';
+    if (m && (mode === 'reply' || mode === 'replyall')){
+      const rt = mlList(m.reply_to);
+      to = mlParse(rt[0] || m.from).email;
+      if (mode === 'replyall'){
+        const others = mlList(m.to).concat(mlList(m.cc)).map(a => mlParse(a).email).filter(e => e && e.toLowerCase() !== me && e.toLowerCase() !== to.toLowerCase());
+        cc = [...new Set(others)].join(', ');
+      }
+      subject = /^re:/i.test(m.subject || '') ? m.subject : 'Re: ' + (m.subject || '');
+      body = mlQuote(m); ml.replyTo = m.id; title = 'Reply';
+    } else if (m && mode === 'forward'){
+      subject = /^fwd?:/i.test(m.subject || '') ? m.subject : 'Fwd: ' + (m.subject || '');
+      const text = m.text || (m.html || '').replace(/<[^>]+>/g, ' ').replace(/\s+\n/g, '\n');
+      body = '\n\n---------- Forwarded message ----------\nFrom: ' + m.from + '\nDate: ' + mlWhen(m.created_at, true) + '\nSubject: ' + (m.subject || '') + '\nTo: ' + mlList(m.to).join(', ') + '\n\n' + text.trim();
+      title = 'Forward';
+    }
+    hb('ml-c-title').textContent = title;
+    hb('ml-c-from').value = (ml.settings ? ml.settings.from_name + ' <' + ml.settings.address + '>' : '');
+    hb('ml-c-to').value = to; hb('ml-c-cc').value = cc; hb('ml-c-cc-row').hidden = !cc; hb('ml-c-addcc').hidden = !!cc;
+    hb('ml-c-subject').value = subject; hb('ml-c-body').value = body;
+    hb('ml-c-msg').textContent = mode === 'forward' && m && (m.attachments || []).length ? 'Attachments from the original aren’t forwarded. Download and re-attach them if needed.' : '';
+    mlRenderFiles();
+    hb('ml-compose-wrap').hidden = false;
+    const ta = hb('ml-c-body');
+    if (to){ ta.focus(); ta.setSelectionRange(0, 0); ta.scrollTop = 0; } else hb('ml-c-to').focus();
+  }
+  function mlRenderFiles(){
+    hb('ml-c-atts').innerHTML = ml.files.map((f, i) => '<span class="ml-att"><span>' + escapeHtml(f.name) + '</span> <small>' + Math.max(1, Math.round(f.size / 1024)) + ' KB</small><button type="button" class="ml-x" data-rmfile="' + i + '" aria-label="Remove">&times;</button></span>').join('');
+  }
+  const mlAddrs = v => v.split(/[,;\n]+/).map(x => mlParse(x).email.trim()).filter(Boolean);
+  const mlB64 = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(f); });
+  function mlCloseCompose(){
+    if (hb('ml-c-send').disabled) return;
+    hb('ml-compose-wrap').hidden = true;
+  }
+
+  hb('ml-boxes').addEventListener('click', e => {
+    const b = e.target.closest('.er-chip'); if (!b) return;
+    document.querySelectorAll('#ml-boxes .er-chip').forEach(c => c.classList.toggle('active', c === b));
+    ml.box = b.dataset.box; ml.current = null;
+    hb('ml-layout').classList.remove('reading');
+    hb('ml-reader').innerHTML = '<p class="er-empty ml-pick">Pick an email to read it.</p>';
+    mlLoadList();
+  });
+  hb('ml-search').addEventListener('input', () => { clearTimeout(ml.searchTimer); ml.searchTimer = setTimeout(mlLoadList, 250); });
+  hb('ml-refresh').addEventListener('click', async () => { await mlRefresh(false); await mlLoadList(); });
+  hb('ml-new').addEventListener('click', () => mlCompose('new'));
+  hb('ml-list').addEventListener('click', e => { const it = e.target.closest('.ml-item'); if (it) mlOpen(it.dataset.id); });
+  hb('ml-reader').addEventListener('click', async e => {
+    const att = e.target.closest('[data-att]');
+    if (att && ml.current){
+      const a = (ml.current.attachments || [])[Number(att.dataset.att)]; if (!a) return;
+      if (!a.id){ alert('This attachment was sent from here and isn’t stored for download.'); return; }
+      const w = window.open('', '_blank');
+      const { data, error } = await supabase.rpc('founder_mail_attachment', { p_id: ml.current.id, p_attachment_id: a.id });
+      if (error || !data || data.error){ if (w) w.close(); alert('Could not download it: ' + (error ? error.message : (data && data.error) || 'unknown error')); return; }
+      if (w) w.location = data.url; else location.href = data.url;
+      return;
+    }
+    const b = e.target.closest('[data-ml]'); if (!b) return;
+    const act = b.dataset.ml, m = ml.current;
+    if (act === 'back'){ hb('ml-layout').classList.remove('reading'); return; }
+    if (!m) return;
+    if (act === 'reply' || act === 'replyall' || act === 'forward'){ mlCompose(act); return; }
+    if (act === 'unread'){
+      await supabase.rpc('founder_mail_set', { p_id: m.id, p_read: false, p_archived: null });
+      ml.current = null; hb('ml-layout').classList.remove('reading');
+      hb('ml-reader').innerHTML = '<p class="er-empty ml-pick">Marked as unread.</p>';
+      await mlLoadList(); mlLoadSettings(); return;
+    }
+    if (act === 'archive'){
+      await supabase.rpc('founder_mail_set', { p_id: m.id, p_read: null, p_archived: !m.archived });
+      ml.current = null; hb('ml-layout').classList.remove('reading');
+      hb('ml-reader').innerHTML = '<p class="er-empty ml-pick">' + (m.archived ? 'Moved back.' : 'Archived.') + '</p>';
+      await mlLoadList(); mlLoadSettings();
+    }
+  });
+  hb('ml-c-close').addEventListener('click', mlCloseCompose);
+  hb('ml-compose-wrap').addEventListener('click', e => { if (e.target === hb('ml-compose-wrap')) mlCloseCompose(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !hb('ml-compose-wrap').hidden) mlCloseCompose(); });
+  hb('ml-c-addcc').addEventListener('click', () => { hb('ml-c-cc-row').hidden = false; hb('ml-c-addcc').hidden = true; hb('ml-c-cc').focus(); });
+  hb('ml-c-file').addEventListener('change', e => {
+    ml.files = ml.files.concat(Array.from(e.target.files || []));
+    e.target.value = '';
+    const total = ml.files.reduce((t, f) => t + f.size, 0);
+    hb('ml-c-msg').textContent = total > 10 * 1024 * 1024 ? 'Attachments add up to more than 10 MB. Remove some before sending.' : '';
+    mlRenderFiles();
+  });
+  hb('ml-c-atts').addEventListener('click', e => { const r = e.target.closest('[data-rmfile]'); if (!r) return; ml.files.splice(Number(r.dataset.rmfile), 1); mlRenderFiles(); });
+  hb('ml-compose').addEventListener('submit', async e => {
+    e.preventDefault();
+    const msg = hb('ml-c-msg'), btn = hb('ml-c-send');
+    const to = mlAddrs(hb('ml-c-to').value), cc = mlAddrs(hb('ml-c-cc').value);
+    const bad = to.concat(cc).find(a => !/^[^@\s<>",;]+@[^@\s<>",;]+\.[^@\s<>",;]+$/.test(a));
+    if (!to.length){ msg.textContent = 'Add who it’s to.'; return; }
+    if (bad){ msg.textContent = '“' + bad + '” doesn’t look like an email address.'; return; }
+    if (!hb('ml-c-subject').value.trim()){ msg.textContent = 'Add a subject.'; return; }
+    if (ml.files.reduce((t, f) => t + f.size, 0) > 10 * 1024 * 1024){ msg.textContent = 'Attachments add up to more than 10 MB.'; return; }
+    btn.disabled = true; btn.textContent = 'Sending…'; msg.textContent = '';
+    try {
+      const atts = [];
+      for (const f of ml.files) atts.push({ filename: f.name, content: await mlB64(f) });
+      const { data, error } = await supabase.rpc('founder_mail_send', {
+        p_to: to, p_cc: cc, p_subject: hb('ml-c-subject').value.trim(), p_text: hb('ml-c-body').value,
+        p_reply_to_id: ml.replyTo, p_attachments: atts
+      });
+      if (error || !data || data.error){ msg.textContent = 'Not sent: ' + (error ? error.message : (data && data.error) || 'unknown error'); return; }
+      btn.disabled = false; mlCloseCompose();
+      hb('ml-sub').textContent = 'Sent to ' + to.join(', ') + '.';
+      setTimeout(() => { if (ml.settings) hb('ml-sub').innerHTML = 'Mail for <b id="ml-addr">' + escapeHtml(ml.settings.address) + '</b>. New mail is checked every 2 minutes.'; }, 5000);
+      if (ml.box === 'sent') mlLoadList();
+    } catch (err) {
+      msg.textContent = 'Not sent: ' + (err && err.message || err);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Send';
+    }
+  });
+  async function mlSaveKey(input, msgEl){
+    const key = input.value.trim();
+    if (!key) return true;
+    if (!/^re_[A-Za-z0-9_]{10,}$/.test(key)){ msgEl.textContent = 'That doesn’t look like a Resend key (they start with re_).'; return false; }
+    const { error } = await supabase.from('private_config').upsert([{ key: 'resend_inbox_api_key', value: key, updated_at: new Date().toISOString() }]);
+    if (error){ msgEl.textContent = 'Could not save: ' + error.message; return false; }
+    input.value = '';
+    return true;
+  }
+  hb('ml-key-save').addEventListener('click', async () => {
+    const msgEl = hb('ml-setup-msg'), btn = hb('ml-key-save');
+    if (!hb('ml-key').value.trim()){ msgEl.textContent = 'Paste the key first.'; return; }
+    btn.disabled = true; msgEl.textContent = 'Saving and checking…';
+    const ok = await mlSaveKey(hb('ml-key'), msgEl);
+    if (ok){
+      const { data } = await supabase.rpc('founder_mail_refresh');
+      msgEl.textContent = data && data.ok ? 'Connected.' : 'Saved, but Resend said: ' + ((data && data.error) || 'unknown error') + '. Check the key has Full access.';
+      await mlLoadSettings(); await mlLoadList();
+    }
+    btn.disabled = false;
+  });
+  hb('ml-settings-save').addEventListener('click', async () => {
+    const msgEl = hb('ml-settings-msg'); msgEl.textContent = '';
+    const name = hb('ml-from-name').value.trim().replace(/[<>"]/g, '');
+    const { error } = await supabase.from('private_config').upsert([{ key: 'mail_from_name', value: name, updated_at: new Date().toISOString() }]);
+    if (error){ msgEl.textContent = 'Could not save: ' + error.message; return; }
+    if (!(await mlSaveKey(hb('ml-key2'), msgEl))) return;
+    msgEl.textContent = 'Saved.';
+    mlLoadSettings();
+  });
+
+
   /* ---- Debug modal tabs ---- */
   document.querySelectorAll('.debug-tab').forEach(tab => {
     tab.addEventListener('click', () => {
@@ -3364,6 +3753,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       if (tab.dataset.tab === 'email'){ loadResendState(); loadTestSendOrders(); loadEmailLog(); }
       if (tab.dataset.tab === 'ai') loadAiState();
       if (tab.dataset.tab === 'errors') loadErrors();
+      if (tab.dataset.tab === 'inbox') mlOpenTab();
       if (tab.dataset.tab === 'home'){ playHomeAnimation(); loadHomeBrief(false); }
     });
   });
