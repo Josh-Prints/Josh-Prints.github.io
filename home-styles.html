@@ -214,14 +214,14 @@ h1 > span{ display:block; }
 /* ================= 13. Split-flap ================= */
 .s-flap{ background:radial-gradient(ellipse at 50% 30%, #1d2028, #0a0b0e 70%); color:#f3f3f0; --mono:ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
 .s-flap .tb{ font-family:var(--mono); }
-.s-flap .brand b{ color:#ffd54a; }
-.s-flap .cta{ background:#ffd54a; color:#111; border-radius:4px; font-family:var(--mono); }
-.s-flap .pill{ font-family:var(--mono); text-transform:uppercase; letter-spacing:.12em; font-size:11px; color:#ffd54a; background:#000; border:1px solid #3a3d44; border-radius:4px; }
+.s-flap .brand b{ color:#4493f8; }
+.s-flap .cta{ background:#4493f8; color:#fff; border-radius:4px; font-family:var(--mono); }
+.s-flap .pill{ font-family:var(--mono); text-transform:uppercase; letter-spacing:.12em; font-size:11px; color:#4493f8; background:#000; border:1px solid #3a3d44; border-radius:4px; }
 .s-flap .pill::before{ content:""; width:7px; height:7px; border-radius:50%; background:#3ddc84; box-shadow:0 0 8px #3ddc84; }
 .s-flap h1{ font-family:var(--mono); font-weight:700; letter-spacing:0; line-height:1; }
 .s-flap h1 > span{ display:flex; flex-wrap:wrap; justify-content:center; column-gap:.45em; row-gap:.18em; margin-bottom:.22em; }
 .s-flap .l1{ font-size:clamp(30px, 7vw, 66px); }
-.s-flap .l2{ font-size:clamp(17px, 3.6vw, 36px); color:#ffd54a; }
+.s-flap .l2{ font-size:clamp(17px, 3.6vw, 36px); color:#4493f8; }
 .s-flap .word{ display:flex; gap:.08em; }
 .s-flap .tile{ position:relative; width:.82em; height:1.3em; display:grid; place-items:center; border-radius:.09em; background:linear-gradient(#2b2e36 0 50%, #1f2228 50%); box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 3px 6px rgba(0,0,0,.6); }
 .s-flap .tile::after{ content:""; position:absolute; left:0; right:0; top:50%; height:1px; background:#08090b; }
@@ -229,7 +229,7 @@ h1 > span{ display:block; }
 @keyframes flapT{ 50%{ transform:scaleY(.6); filter:brightness(1.4); } }
 .s-flap p{ color:#a9adb6; font-family:var(--mono); font-size:15px; }
 .s-flap .acts a{ border-radius:4px; font-family:var(--mono); text-transform:uppercase; letter-spacing:.06em; font-size:14px; }
-.s-flap .b1{ background:#ffd54a; color:#111; }
+.s-flap .b1{ background:#4493f8; color:#fff; }
 .s-flap .b2{ border-color:#3a3d44; color:#f3f3f0; background:#16181d; }
 .s-flap .subs{ font-family:var(--mono); }
 
@@ -328,7 +328,7 @@ h1 > span{ display:block; }
 .s-ascii{ --b-bg:#04060a; --b-bg2:#060910; --b-fg:#cfe3ff; --b-muted:#8fa6c8; --b-acc:#4493f8; --b-card:#04060a; --b-border:1px dashed rgba(68,147,248,.6); --b-radius:0; --b-head:"VT323", monospace; --b-hw:400; --b-ls:0; }
 .s-ascii .below h2{ font-size:clamp(34px, 5vw, 48px); } .s-ascii .ds, .s-ascii .sub{ font-size:19px; line-height:1.25; } .s-ascii .nm{ font-size:19px; font-weight:400; } .s-ascii .kick{ font-size:17px; font-weight:400; }
 .s-mesh{ --b-bg:linear-gradient(170deg, #0b0f24, #1a1240); --b-bg2:linear-gradient(170deg, #1a1240, #0b0f24); --b-fg:#fff; --b-muted:rgba(255,255,255,.75); --b-acc:#cfe0ff; --b-card:rgba(255,255,255,.07); --b-border:1px solid rgba(255,255,255,.14); --b-radius:22px; --b-blur:blur(12px); --b-hw:700; }
-.s-flap{ --b-bg:#0a0b0e; --b-bg2:#121419; --b-fg:#f3f3f0; --b-muted:#a9adb6; --b-acc:#ffd54a; --b-card:#1b1e24; --b-border:1px solid #2a2d34; --b-radius:6px; --b-font:ui-monospace, "SF Mono", Menlo, monospace; --b-tt:uppercase; --b-ls:.02em; }
+.s-flap{ --b-bg:#0a0b0e; --b-bg2:#121419; --b-fg:#f3f3f0; --b-muted:#a9adb6; --b-acc:#4493f8; --b-card:#1b1e24; --b-border:1px solid #2a2d34; --b-radius:6px; --b-font:ui-monospace, "SF Mono", Menlo, monospace; --b-tt:uppercase; --b-ls:.02em; }
 .s-vhs{ --b-bg:#12081f; --b-bg2:#1a0b2e; --b-fg:#f4ecff; --b-muted:#cdbfe6; --b-acc:#5fb0ff; --b-kick:#ff2d6f; --b-card:rgba(0,0,0,.35); --b-border:1px solid rgba(244,236,255,.25); --b-radius:0; --b-hw:800; --b-tt:uppercase; }
 .s-vhs .below h2{ font-style:italic; text-shadow:2px 0 #ff2d6f, -2px 0 #2de2ff; }
 .s-blue{ --b-bg:linear-gradient(rgba(255,255,255,.2) 1px, transparent 1px) 0 0 / 100px 100px, linear-gradient(90deg, rgba(255,255,255,.2) 1px, transparent 1px) 0 0 / 100px 100px, linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px) 0 0 / 20px 20px, linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px) 0 0 / 20px 20px, #0d3b8c; --b-bg2:var(--b-bg); --b-fg:#eaf2ff; --b-muted:#cfe0ff; --b-acc:#9fd0ff; --b-card:rgba(13,59,140,.88); --b-border:1.5px solid #eaf2ff; --b-radius:0; --b-tt:uppercase; --b-ls:.03em; }
