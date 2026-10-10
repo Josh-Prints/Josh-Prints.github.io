@@ -494,6 +494,8 @@
   }
 
   button[type="submit"]:hover{ filter: brightness(1.06); }
+  .legal-note{ margin: 10px 0 0; font-size: 12.5px; color: var(--ink-dim); text-align: center; }
+  .legal-note a{ color: var(--ink-dim); }
   button[type="submit"]:active{ transform: translateY(1px); }
   button[type="submit"]:disabled{ cursor: default; filter: grayscale(0.3) brightness(0.9); }
 
@@ -978,6 +980,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       <span class="progress-fill" id="progress-fill"></span>
       <span class="btn-label" id="btn-label">Send order</span>
     </button>
+    <p class="legal-note">By sending an order you agree to our <a href="/terms.html" target="_blank">terms</a> and <a href="/privacy.html" target="_blank">privacy policy</a>.</p>
 
     <div class="status" id="status" role="alert" aria-live="assertive"></div>
   </form>
