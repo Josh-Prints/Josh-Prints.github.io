@@ -323,12 +323,12 @@
 
   /* glowing background: big soft glow upper-left, faint wash, vignette, corner orb; all slowly pulse */
   .hero-bg{
-    position: absolute; left: 0; right: 0; bottom: 0; top: calc(-1 * var(--hero-top, 64px));
-    z-index: 0; overflow: hidden; pointer-events: none;
+    position: fixed; inset: 0;
+    z-index: -1; overflow: hidden; pointer-events: none;
     opacity: var(--glow-k, 1);
   }
   .hero-bg span{ position: absolute; display: block; }
-  .glow-parallax{ inset: 0; will-change: transform; }
+  .glow-parallax{ inset: 0; }
   .glow-wash{
     inset: 0;
     background: linear-gradient(180deg,
@@ -360,7 +360,7 @@
     inset: 0;
     background:
       radial-gradient(130% 95% at 42% 22%, transparent 45%, color-mix(in srgb, var(--canvas) 70%, transparent) 100%),
-      linear-gradient(180deg, transparent 58%, var(--canvas) 100%);
+      linear-gradient(180deg, transparent 70%, var(--canvas) 100%);
   }
   .glow-orb{
     right: 2%; bottom: 3%;
@@ -485,7 +485,6 @@
 
   @media (prefers-reduced-motion: reduce){
     .hero-bg span{ animation: none !important; }
-    .glow-parallax{ transform: none !important; }
     .js [data-reveal]{ opacity: 1; transform: none; transition: none; }
   }
 
@@ -544,7 +543,9 @@
   .strip{
     border-top: 1px solid var(--border-muted);
     border-bottom: 1px solid var(--border-muted);
-    background: var(--canvas-inset);
+    background: color-mix(in srgb, var(--canvas-inset) 75%, transparent);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
     position: relative; overflow: hidden;
   }
   .strip::before{
@@ -1047,11 +1048,10 @@
     window.vxReveal();
   })();
 
-  /* Hero: keep the glow reaching up behind the see-through top bar, sticky bar shadow, glow parallax, stat count-up. */
+  /* Hero: full-screen height under the top bar, sticky bar shadow, stat count-up. */
   (function(){
     const hero = document.getElementById('hero');
     const topbar = document.querySelector('.topbar');
-    const glow = document.getElementById('glow-parallax');
     if (!hero) return;
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     function measure(){ hero.style.setProperty('--hero-top', (hero.getBoundingClientRect().top + scrollY) + 'px'); }
@@ -1066,7 +1066,6 @@
       ticking = false;
       const y = scrollY;
       if (topbar) topbar.classList.toggle('scrolled', y > 8);
-      if (glow && !reduce && y < innerHeight * 1.5) glow.style.transform = 'translate3d(0,' + (y * 0.35).toFixed(1) + 'px,0)';
     }
     addEventListener('scroll', () => { if (!ticking){ ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
     onScroll();
