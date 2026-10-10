@@ -54,9 +54,34 @@ h1 > span{ display:block; }
 .vbar .back{ display:grid; place-items:center; width:40px; height:38px; border-radius:10px; font-size:18px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); }
 .vbar button:hover{ background:rgba(255,255,255,.16); }
 .vbar select{ padding:0 10px; font-size:14px; font-weight:600; min-width:0; max-width:52vw; }
-.vbar .when{ font-size:12px; color:#9aa4b2; padding:0 8px 0 4px; white-space:nowrap; }
 .vbar #today{ width:auto; padding:0 12px; font-size:13px; font-weight:600; }
-@media (max-width:480px){ .vbar .when{ display:none; } }
+
+/* ================= 0. Glow (the current live home page) ================= */
+.s-glow{ background:#0d1117; color:#e6edf3; }
+.s-glow .gbg{ position:fixed; inset:0; overflow:hidden; pointer-events:none; }
+.s-glow .gbg span{ position:absolute; display:block; }
+.s-glow .gw{ inset:0; background:linear-gradient(180deg, rgba(68,147,248,.13) 0%, rgba(68,147,248,.07) 38%, transparent 72%); animation:gPulseF 10s ease-in-out infinite alternate; translate:0 calc(var(--sp, 0) * -8vh); }
+.s-glow .gm{ left:36%; top:17%; width:min(1250px, 95vw); height:min(900px, 105vh); background:radial-gradient(closest-side, rgba(68,147,248,.34) 0%, rgba(68,147,248,.23) 30%, rgba(68,147,248,.09) 62%, transparent 100%); transform:translate(-50%,-50%); animation:gPulse 8s ease-in-out infinite alternate; translate:calc(var(--sp, 0) * 14vw) calc(var(--sp, 0) * -24vh); }
+.s-glow .gs{ left:25%; top:58%; width:min(420px, 60vw); height:min(320px, 40vh); background:radial-gradient(closest-side, rgba(68,147,248,.12), transparent); transform:translate(-50%,-50%); animation:gPulse 10s ease-in-out -3s infinite alternate; translate:calc(var(--sp, 0) * 32vw) calc(var(--sp, 0) * -34vh); }
+.s-glow .gv{ inset:0; background:radial-gradient(130% 95% at 42% 22%, transparent 45%, rgba(13,17,23,.7) 100%), linear-gradient(180deg, transparent 70%, #0d1117 100%); }
+.s-glow .go{ right:2%; bottom:3%; width:160px; height:160px; border-radius:50%; background:radial-gradient(closest-side, rgba(68,147,248,.34), rgba(68,147,248,.12) 60%, transparent); filter:blur(14px); animation:gPulseO 6s ease-in-out -1.5s infinite alternate; translate:calc(var(--sp, 0) * -10vw) calc(var(--sp, 0) * -48vh); }
+@keyframes gPulse{ from{ opacity:.75; transform:translate(-50%,-50%) scale(1); } to{ opacity:1; transform:translate(-50%,-50%) scale(1.06); } }
+@keyframes gPulseF{ from{ opacity:.75; } to{ opacity:1; } }
+@keyframes gPulseO{ from{ opacity:.7; transform:scale(1); } to{ opacity:1; transform:scale(1.08); } }
+.s-glow .toplogo{ width:clamp(84px, 20vw, 104px); margin:0 auto 18px; filter:drop-shadow(0 0 26px rgba(68,147,248,.45)); animation:gFloat 5.5s ease-in-out infinite alternate; }
+.s-glow .toplogo .lg{ width:100%; height:auto; display:block; }
+@keyframes gFloat{ to{ transform:translateY(-7px); } }
+.s-glow .tb{ background:rgba(13,17,23,.72); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); border-bottom:1px solid rgba(33,38,45,.45); }
+.s-glow .pill{ color:#4493f8; background:rgba(68,147,248,.1); border:1px solid rgba(68,147,248,.32); box-shadow:0 0 22px rgba(68,147,248,.16); }
+.s-glow .pill::before{ content:""; width:6px; height:6px; border-radius:50%; background:#4493f8; box-shadow:0 0 8px #4493f8; }
+.s-glow h1{ font-weight:500; letter-spacing:-.025em; }
+.s-glow .l2{ color:#4493f8; }
+.s-glow p{ color:#8b949e; }
+.s-glow .b1{ background:#4493f8; color:#fff; box-shadow:0 6px 22px rgba(68,147,248,.28); }
+.s-glow .b2{ border-color:#4493f8; color:#4493f8; }
+.s-glow .b2:hover{ background:rgba(68,147,248,.1); }
+.s-glow .below{ position:relative; z-index:1; }
+.s-glow{ --b-bg:transparent; --b-bg2:rgba(22,27,34,.75); --b-fg:#e6edf3; --b-muted:#8b949e; --b-acc:#4493f8; --b-card:#0d1117; --b-border:1px solid #21262d; --b-radius:14px; --b-hw:500; --b-blur:blur(8px); }
 
 /* ================= 1. Particles ================= */
 .s-particles{ background:radial-gradient(1100px 700px at 50% 25%, #13233f, #0d1117 70%); color:#e6edf3; }
@@ -258,7 +283,7 @@ h1 > span{ display:block; }
 .s-vhs .subs{ font-family:"VT323", monospace; font-size:19px; }
 
 /* ================= 18. Blueprint ================= */
-.s-blue{ background-color:#0d3b8c; background-image:linear-gradient(rgba(255,255,255,.2) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.2) 1px, transparent 1px), linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px); background-size:100px 100px, 100px 100px, 20px 20px, 20px 20px; color:#eaf2ff; --mono:ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-family:var(--mono); }
+.s-blue{ background-color:#082457; background-image:linear-gradient(rgba(255,255,255,.16) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.16) 1px, transparent 1px), linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.055) 1px, transparent 1px); background-size:100px 100px, 100px 100px, 20px 20px, 20px 20px; color:#eaf2ff; --mono:ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-family:var(--mono); }
 .s-blue svg.draw{ position:absolute; right:4%; top:50%; transform:translateY(-50%); width:min(420px, 46vw); opacity:.75; }
 .s-blue svg.draw .ln{ fill:none; stroke:#eaf2ff; stroke-width:1.6; stroke-dasharray:600; stroke-dashoffset:600; animation:drawIn 9s ease-in-out infinite; }
 .s-blue svg.draw .hid{ stroke-dasharray:6 6; stroke-dashoffset:0; animation:none; opacity:.7; }
@@ -268,8 +293,8 @@ h1 > span{ display:block; }
 .s-blue .tblock span{ padding:5px 10px; border:.5px solid rgba(234,242,255,.6); }
 .s-blue .tb{ text-transform:uppercase; letter-spacing:.08em; font-size:13px; }
 .s-blue .brand b{ color:#9fd0ff; }
-.s-blue .cta{ border-radius:0; background:#eaf2ff; color:#0d3b8c; text-transform:uppercase; }
-.s-blue .core{ background:rgba(13,59,140,.78); padding:26px; border:1.5px solid #eaf2ff; max-width:700px; }
+.s-blue .cta{ border-radius:0; background:#eaf2ff; color:#082457; text-transform:uppercase; }
+.s-blue .core{ background:rgba(8,36,87,.82); padding:26px; border:1.5px solid #eaf2ff; max-width:700px; }
 .s-blue .core::before, .s-blue .core::after{ content:""; position:absolute; width:18px; height:18px; border:1.5px solid #eaf2ff; }
 .s-blue .core::before{ top:-10px; left:-10px; border-right:none; border-bottom:none; } .s-blue .core::after{ bottom:-10px; right:-10px; border-left:none; border-top:none; }
 .s-blue h1{ font-family:var(--mono); text-transform:uppercase; font-weight:600; letter-spacing:.02em; font-size:clamp(30px, 5.4vw, 56px); }
@@ -278,7 +303,7 @@ h1 > span{ display:block; }
 .s-blue .pill{ border:1px solid #eaf2ff; border-radius:0; text-transform:uppercase; letter-spacing:.16em; font-size:11px; }
 .s-blue p{ color:#cfe0ff; font-size:15px; }
 .s-blue .acts a{ border-radius:0; text-transform:uppercase; letter-spacing:.06em; font-size:13px; }
-.s-blue .b1{ background:#eaf2ff; color:#0d3b8c; }
+.s-blue .b1{ background:#eaf2ff; color:#082457; }
 .s-blue .b2{ border:1.5px dashed #eaf2ff; color:#eaf2ff; }
 @media (max-width:760px){ .s-blue .tblock{ display:none; } .s-blue svg.draw{ right:-10%; opacity:.35; width:80vw; } }
 
@@ -331,7 +356,7 @@ h1 > span{ display:block; }
 .s-flap{ --b-bg:#0a0b0e; --b-bg2:#121419; --b-fg:#f3f3f0; --b-muted:#a9adb6; --b-acc:#4493f8; --b-card:#1b1e24; --b-border:1px solid #2a2d34; --b-radius:6px; --b-font:ui-monospace, "SF Mono", Menlo, monospace; --b-tt:uppercase; --b-ls:.02em; }
 .s-vhs{ --b-bg:#08101f; --b-bg2:#0a1630; --b-fg:#eaf3ff; --b-muted:#b5c8e6; --b-acc:#5fb0ff; --b-kick:#1e5bff; --b-card:rgba(0,0,0,.35); --b-border:1px solid rgba(234,243,255,.25); --b-radius:0; --b-hw:800; --b-tt:uppercase; }
 .s-vhs .below h2{ font-style:italic; text-shadow:2px 0 #1e5bff, -2px 0 #8fd3ff; }
-.s-blue{ --b-bg:linear-gradient(rgba(255,255,255,.2) 1px, transparent 1px) 0 0 / 100px 100px, linear-gradient(90deg, rgba(255,255,255,.2) 1px, transparent 1px) 0 0 / 100px 100px, linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px) 0 0 / 20px 20px, linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px) 0 0 / 20px 20px, #0d3b8c; --b-bg2:var(--b-bg); --b-fg:#eaf2ff; --b-muted:#cfe0ff; --b-acc:#9fd0ff; --b-card:rgba(13,59,140,.88); --b-border:1.5px solid #eaf2ff; --b-radius:0; --b-tt:uppercase; --b-ls:.03em; }
+.s-blue{ --b-bg:linear-gradient(rgba(255,255,255,.16) 1px, transparent 1px) 0 0 / 100px 100px, linear-gradient(90deg, rgba(255,255,255,.16) 1px, transparent 1px) 0 0 / 100px 100px, linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px) 0 0 / 20px 20px, linear-gradient(90deg, rgba(255,255,255,.055) 1px, transparent 1px) 0 0 / 20px 20px, #082457; --b-bg2:var(--b-bg); --b-fg:#eaf2ff; --b-muted:#cfe0ff; --b-acc:#9fd0ff; --b-card:rgba(8,36,87,.9); --b-border:1.5px solid #eaf2ff; --b-radius:0; --b-tt:uppercase; --b-ls:.03em; }
 
 @media (prefers-reduced-motion: reduce){ [data-r]{ opacity:1; transform:none; transition:none; } .page *, .page *::before, .page *::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; } }
 </style>
@@ -349,8 +374,7 @@ h1 > span{ display:block; }
   <button id="prev" aria-label="Previous style">&#8249;</button>
   <select id="pick" aria-label="Choose a style"></select>
   <button id="next" aria-label="Next style">&#8250;</button>
-  <span class="when" id="when"></span>
-  <button id="today">Today</button>
+  <button id="today" title="Random style">&#127922; Random</button>
 </div>
 
 <script>
@@ -400,6 +424,7 @@ function isoStack(cells){
 
 const cubeFaces = '<i></i><i></i><i></i><i></i><i></i><i></i>';
 const STYLES = [
+  { id:'glow', name:'Glow', deco:'<div class="gbg"><span class="gw"></span><span class="gm"></span><span class="gs"></span><span class="gv"></span><span class="go"></span></div>', top:`<div class="toplogo">${LOGO}</div>` },
   { id:'particles', name:'Particles', deco:'<canvas></canvas>' },
   { id:'holo', name:'Holographic', deco:'<div class="hb"></div><div class="card"></div><div class="foil"></div>' },
   { id:'neon', name:'Neon glow', deco:'<div class="wall"></div><div class="floorglow"></div>' },
@@ -434,7 +459,7 @@ function heroHTML(s){
       <a class="cta" href="#">Order</a>
     </header>
     <main class="content"><div class="core">
-      <div class="pill">${s.pill || 'Now taking orders'}</div>
+      ${s.top || ''}<div class="pill">${s.pill || 'Now taking orders'}</div>
       <h1><span class="l1">VoxPrints</span><span class="l2">A 3D Printing Company</span></h1>
       <p>Founded by Joshua Paterson and co-owned with James Webley.</p>
       <div class="acts"><a class="b1" href="#">Start an order ${ARROW}</a><a class="b2" href="#">Browse designs</a></div>
@@ -480,6 +505,12 @@ function pageHTML(s){
 
 /* ---------- per-style live bits (only the visible style runs) ---------- */
 const RUN = {
+  glow(sec){
+    const bg = sec.querySelector('.gbg');
+    const onScroll = () => { const max = document.documentElement.scrollHeight - innerHeight; bg.style.setProperty('--sp', max > 0 ? Math.min(1, scrollY / max).toFixed(4) : '0'); };
+    onScroll(); addEventListener('scroll', onScroll, { passive:true });
+    return () => removeEventListener('scroll', onScroll);
+  },
   particles(sec){
     const cv = sec.querySelector('canvas'), ctx = cv.getContext('2d');
     let w, h, dpr, pts = [], raf, mouse = { x:-9999, y:-9999 };
@@ -573,7 +604,7 @@ const RUN = {
 };
 
 /* ---------- viewer ---------- */
-const stage = document.getElementById('stage'), pick = document.getElementById('pick'), when = document.getElementById('when');
+const stage = document.getElementById('stage'), pick = document.getElementById('pick');
 stage.innerHTML = STYLES.map(pageHTML).join('');
 const pages = [...stage.querySelectorAll('.page')];
 const sections = pages.map(p => p.querySelector('.hero'));
@@ -582,10 +613,8 @@ function observeReveals(root){ root.querySelectorAll('[data-r]:not(.in)').forEac
 observeReveals(stage);
 STYLES.forEach((s, i) => pick.add(new Option(`${i + 1}. ${s.name}`, i)));
 
-// which style is "today": cycles through the list in order, one per day
-const DAY0 = Date.UTC(2026, 0, 1);
-function dayIndex(d){ return Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - DAY0) / 864e5); }
-const todayIdx = ((dayIndex(new Date()) % STYLES.length) + STYLES.length) % STYLES.length;
+// a random style on every load (like the home page will do), and the dice button picks another
+function randomOther(){ if (STYLES.length < 2) return 0; let r; do { r = Math.floor(Math.random() * STYLES.length); } while (r === cur); return r; }
 
 let cur = -1, stop = null;
 function show(i){
@@ -594,18 +623,11 @@ function show(i){
   pages.forEach((s, k) => s.classList.toggle('on', k === i));
   cur = i; pick.value = i;
   const fn = RUN[STYLES[i].id]; if (fn) stop = fn(sections[i]) || null;
-  const ahead = (i - todayIdx + STYLES.length) % STYLES.length;
-  if (ahead === 0) when.textContent = 'Shows today';
-  else {
-    const d = new Date(); d.setDate(d.getDate() + ahead);
-    when.textContent = 'Shows ' + d.toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short' });
-  }
-  history.replaceState(null, '', '#' + STYLES[i].id);
   scrollTo(0, 0);
 }
 document.getElementById('prev').onclick = () => show(cur - 1);
 document.getElementById('next').onclick = () => show(cur + 1);
-document.getElementById('today').onclick = () => show(todayIdx);
+document.getElementById('today').onclick = () => show(randomOther());
 pick.onchange = () => show(+pick.value);
 addEventListener('keydown', e => { if (e.key === 'ArrowRight') show(cur + 1); if (e.key === 'ArrowLeft') show(cur - 1); });
 let tx = null, ty = null;
@@ -617,8 +639,7 @@ stage.addEventListener('touchend', e => {
   tx = null;
 });
 stage.addEventListener('click', e => { if (e.target.closest('a')) e.preventDefault(); });
-const fromHash = STYLES.findIndex(s => s.id === location.hash.slice(1));
-show(fromHash >= 0 ? fromHash : todayIdx);
+show(randomOther());
 </script>
 <script type="module">
   // Fill the featured grid with the real pinned designs (same query as the home page).
