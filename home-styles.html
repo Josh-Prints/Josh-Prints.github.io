@@ -16,8 +16,8 @@ body{ background:#0d1117; color:#e6edf3; font-family:-apple-system,BlinkMacSyste
 a{ color:inherit; text-decoration:none; }
 
 /* ================= shared hero skeleton ================= */
-.hero{ position:relative; min-height:100svh; display:none; flex-direction:column; overflow:hidden; padding-bottom:76px; isolation:isolate; }
-.hero.on{ display:flex; }
+.page{ display:none; } .page.on{ display:block; }
+.hero{ position:relative; min-height:100svh; display:flex; flex-direction:column; overflow:hidden; padding-bottom:40px; isolation:isolate; }
 .deco, .over{ position:absolute; inset:0; pointer-events:none; overflow:hidden; }
 .deco{ z-index:0; } .over{ z-index:5; }
 .tb{ position:relative; z-index:3; display:flex; align-items:center; gap:14px; padding:14px max(16px, calc((100% - 1040px) / 2)); }
@@ -457,7 +457,70 @@ h1 > span{ display:block; }
 .s-brut .subs{ font-weight:700; }
 @media (max-width:760px){ .s-brut .stk.a, .s-brut .stk.c{ display:none; } .s-brut .stk.b{ width:76px; height:76px; font-size:10px; top:76px; right:3%; } .s-brut .stk.d{ display:none; } .s-brut .core{ padding:26px 16px; } }
 
-@media (prefers-reduced-motion: reduce){ .hero *, .hero *::before, .hero *::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; } }
+/* ================= below the hero (shared layout, themed by --b-* variables per style) ================= */
+.below{ background:var(--b-bg); color:var(--b-fg); font-family:var(--b-font, inherit); padding-bottom:96px; }
+.sec{ padding:72px 16px; }
+.sec.how{ background:var(--b-bg2, var(--b-bg)); }
+.wrap{ max-width:1040px; margin:0 auto; }
+.shd{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:26px; }
+.shd.c{ flex-direction:column; align-items:center; text-align:center; margin-bottom:38px; }
+.kick{ font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--b-kick, var(--b-acc)); margin-bottom:8px; }
+.below h2{ margin:0; font-family:var(--b-head, inherit); font-weight:var(--b-hw, 600); text-transform:var(--b-tt, none); letter-spacing:var(--b-ls, -.02em); font-size:clamp(24px, 3.4vw, 34px); line-height:1.15; }
+.sub{ color:var(--b-muted); margin:12px 0 0; max-width:560px; font-size:15.5px; line-height:1.55; }
+.all{ color:var(--b-acc); font-size:14px; font-weight:600; white-space:nowrap; }
+.fgrid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:18px; }
+.ftile, .hcard{ background:var(--b-card); border:var(--b-border); border-radius:var(--b-radius); box-shadow:var(--b-shadow, none); -webkit-backdrop-filter:var(--b-blur, none); backdrop-filter:var(--b-blur, none); }
+.ftile{ overflow:hidden; transition:transform .35s cubic-bezier(.23,1,.32,1); }
+.ftile:hover{ transform:translateY(-5px); }
+.ftile .im{ aspect-ratio:4/3; display:grid; place-items:center; overflow:hidden; background:linear-gradient(135deg, color-mix(in srgb, var(--b-acc) 22%, transparent), color-mix(in srgb, var(--b-acc) 4%, transparent)); color:var(--b-acc); }
+.ftile .im img{ width:100%; height:100%; object-fit:cover; display:block; }
+.ftile .im svg{ width:42%; height:auto; opacity:.8; }
+.ftile .tx{ padding:12px 14px; }
+.nm{ font-weight:600; font-size:14px; margin-bottom:2px; }
+.pr{ font-family:ui-monospace, "SF Mono", Menlo, monospace; font-size:13px; color:var(--b-acc); }
+.cards{ display:grid; grid-template-columns:repeat(6, 1fr); gap:18px; }
+.hcard{ grid-column:span 2; padding:22px; text-align:left; transition:transform .35s cubic-bezier(.23,1,.32,1); }
+.hcard:nth-child(4){ grid-column:2 / span 2; }
+.hcard:hover{ transform:translateY(-5px); }
+.ic2{ width:42px; height:42px; display:grid; place-items:center; border-radius:min(10px, var(--b-radius)); color:var(--b-acc); background:color-mix(in srgb, var(--b-acc) 14%, transparent); margin-bottom:14px; }
+.ic2 svg{ width:20px; height:20px; }
+.lab{ font-family:ui-monospace, "SF Mono", Menlo, monospace; font-size:12px; color:var(--b-acc); margin-bottom:6px; }
+.ds{ font-size:14.5px; line-height:1.55; color:var(--b-muted); }
+.foot{ text-align:center; color:var(--b-muted); font-size:13px; padding:28px 16px 0; }
+[data-r]{ opacity:0; transform:translateY(26px); transition:opacity .7s ease, transform .9s cubic-bezier(.23,1,.32,1); transition-delay:var(--dl, 0s); }
+[data-r].in{ opacity:1; transform:none; }
+@media (max-width:860px){ .fgrid{ grid-template-columns:repeat(2, 1fr); } .cards{ grid-template-columns:repeat(2, 1fr); } .hcard, .hcard:nth-child(4){ grid-column:auto; } .hcard:nth-child(5){ grid-column:1 / -1; } }
+@media (max-width:600px){ .sec{ padding:56px 16px; } .cards{ grid-template-columns:1fr; } .hcard:nth-child(5){ grid-column:auto; } .fgrid{ gap:12px; } }
+
+.s-particles{ --b-bg:#0d1117; --b-bg2:#111821; --b-fg:#e6edf3; --b-muted:#8b949e; --b-acc:#4493f8; --b-card:#161b22; --b-border:1px solid #30363d; --b-radius:14px; }
+.s-liquid{ --b-bg:#060a18; --b-bg2:linear-gradient(#060a18, #0b1434); --b-fg:#eef3ff; --b-muted:#a9b6d3; --b-acc:#5ee7ff; --b-card:rgba(255,255,255,.04); --b-border:1px solid rgba(110,200,255,.22); --b-radius:28px; }
+.s-holo{ --b-bg:#07070d; --b-bg2:#0b0b14; --b-fg:#f2f4ff; --b-muted:#b7b9cc; --b-acc:#e0b3ff; --b-card:#0e0e18; --b-border:1px solid rgba(224,179,255,.28); --b-radius:18px; --b-shadow:0 0 30px rgba(158,197,255,.08); }
+.s-neon{ --b-bg:#04050a; --b-bg2:#070a14; --b-fg:#e9f3ff; --b-muted:#9fb2cc; --b-acc:#9fdcff; --b-card:rgba(10,16,32,.85); --b-border:1.5px solid #4493f8; --b-radius:16px; --b-shadow:0 0 14px rgba(68,147,248,.45), inset 0 0 12px rgba(68,147,248,.18); }
+.s-neon .below h2{ text-shadow:0 0 12px #4493f8; }
+.s-wire{ --b-bg:#04070e; --b-bg2:#060b16; --b-fg:#dbe7ff; --b-muted:#8fa3c4; --b-acc:#7fb6ff; --b-card:rgba(4,7,14,.6); --b-border:1px solid rgba(127,182,255,.5); --b-radius:4px; --b-hw:300; }
+.s-glass{ --b-bg:linear-gradient(#0a1024, #171b40); --b-bg2:linear-gradient(#171b40, #0a1024); --b-fg:#fff; --b-muted:rgba(255,255,255,.75); --b-acc:#a9cbff; --b-card:rgba(255,255,255,.08); --b-border:1px solid rgba(255,255,255,.18); --b-radius:20px; --b-shadow:0 12px 34px rgba(0,0,0,.25); --b-blur:blur(16px); }
+.s-kinetic{ --b-bg:#0d1117; --b-bg2:#111821; --b-fg:#e6edf3; --b-muted:#8b949e; --b-acc:#4493f8; --b-card:#161b22; --b-border:1px solid #30363d; --b-radius:6px; --b-hw:800; --b-ls:-.04em; }
+.s-iso{ --b-bg:#0c1220; --b-bg2:#0f1729; --b-fg:#e6edf3; --b-muted:#93a1b8; --b-acc:#79b4ff; --b-card:#141d31; --b-border:1px solid #22314f; --b-radius:10px; --b-shadow:0 6px 0 #0a1528; --b-hw:800; }
+.s-clay{ --b-bg:#dfe6f4; --b-bg2:#e7edf9; --b-fg:#26314c; --b-muted:#5a6785; --b-acc:#3b7be8; --b-card:#eef3fd; --b-border:0 solid transparent; --b-radius:24px; --b-shadow:10px 10px 24px rgba(80,100,160,.2), -10px -10px 24px rgba(255,255,255,.85); --b-hw:800; }
+.s-ascii{ --b-bg:#04060a; --b-bg2:#060910; --b-fg:#cfe3ff; --b-muted:#8fa6c8; --b-acc:#4493f8; --b-card:#04060a; --b-border:1px dashed rgba(68,147,248,.6); --b-radius:0; --b-head:"VT323", monospace; --b-hw:400; --b-ls:0; }
+.s-ascii .below h2{ font-size:clamp(34px, 5vw, 48px); } .s-ascii .ds, .s-ascii .sub{ font-size:19px; line-height:1.25; } .s-ascii .nm{ font-size:19px; font-weight:400; } .s-ascii .kick{ font-size:17px; font-weight:400; }
+.s-mesh{ --b-bg:linear-gradient(170deg, #0b0f24, #1a1240); --b-bg2:linear-gradient(170deg, #1a1240, #0b0f24); --b-fg:#fff; --b-muted:rgba(255,255,255,.75); --b-acc:#cfe0ff; --b-card:rgba(255,255,255,.07); --b-border:1px solid rgba(255,255,255,.14); --b-radius:22px; --b-blur:blur(12px); --b-hw:700; }
+.s-comic{ --b-bg:#fff; --b-bg2:radial-gradient(rgba(0,0,0,.18) 1.5px, transparent 1.8px) 0 0 / 10px 10px, #ffd93b; --b-fg:#111; --b-muted:#333; --b-acc:#2f6fe4; --b-kick:#ff3b3b; --b-card:#fff; --b-border:4px solid #111; --b-radius:8px; --b-shadow:6px 6px 0 #111; --b-head:"Bangers", Impact, sans-serif; --b-hw:400; --b-tt:uppercase; --b-ls:.03em; }
+.s-comic .below h2{ font-size:clamp(34px, 5vw, 52px); } .s-comic .kick{ font-family:"Bangers", Impact, sans-serif; font-size:18px; font-weight:400; }
+.s-comic .ftile:nth-child(odd){ rotate:-1deg; } .s-comic .ftile:nth-child(even){ rotate:1deg; } .s-comic .ds, .s-comic .sub{ font-family:"Comic Neue", "Comic Sans MS", sans-serif; font-weight:700; }
+.s-flap{ --b-bg:#0a0b0e; --b-bg2:#121419; --b-fg:#f3f3f0; --b-muted:#a9adb6; --b-acc:#ffd54a; --b-card:#1b1e24; --b-border:1px solid #2a2d34; --b-radius:6px; --b-font:ui-monospace, "SF Mono", Menlo, monospace; --b-tt:uppercase; --b-ls:.02em; }
+.s-vhs{ --b-bg:#12081f; --b-bg2:#1a0b2e; --b-fg:#f4ecff; --b-muted:#cdbfe6; --b-acc:#5fb0ff; --b-kick:#ff2d6f; --b-card:rgba(0,0,0,.35); --b-border:1px solid rgba(244,236,255,.25); --b-radius:0; --b-hw:800; --b-tt:uppercase; }
+.s-vhs .below h2{ font-style:italic; text-shadow:2px 0 #ff2d6f, -2px 0 #2de2ff; }
+.s-half{ --b-bg:#f3efe6; --b-bg2:#ebe5d8; --b-fg:#111; --b-muted:#444; --b-acc:#2f6fe4; --b-kick:#111; --b-card:#fff; --b-border:2px solid #111; --b-radius:16px; --b-hw:900; --b-ls:-.04em; }
+.s-bau{ --b-bg:#f1ebdd; --b-bg2:#e8e0cd; --b-fg:#151515; --b-muted:#333; --b-acc:#1d4fbf; --b-kick:#e1352b; --b-card:#fff; --b-border:3px solid #151515; --b-radius:0; --b-hw:700; --b-tt:uppercase; }
+.s-pixel{ --b-bg:#1a1c2c; --b-bg2:#29366f; --b-fg:#f4f4f4; --b-muted:#c2c3c7; --b-acc:#41a6f6; --b-kick:#ffcd75; --b-card:#333c57; --b-border:0 solid transparent; --b-radius:0; --b-shadow:4px 0 #000, -4px 0 #000, 0 4px #000, 0 -4px #000; --b-hw:400; --b-ls:0; }
+.s-pixel .below h2{ font-size:clamp(16px, 2.6vw, 24px); line-height:1.5; } .s-pixel .ds, .s-pixel .sub{ font-size:10px; line-height:1.9; } .s-pixel .nm, .s-pixel .pr, .s-pixel .lab, .s-pixel .all{ font-size:10px; font-family:inherit; } .s-pixel .kick{ font-size:9px; }
+.s-blue{ --b-bg:linear-gradient(rgba(255,255,255,.2) 1px, transparent 1px) 0 0 / 100px 100px, linear-gradient(90deg, rgba(255,255,255,.2) 1px, transparent 1px) 0 0 / 100px 100px, linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px) 0 0 / 20px 20px, linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px) 0 0 / 20px 20px, #0d3b8c; --b-bg2:var(--b-bg); --b-fg:#eaf2ff; --b-muted:#cfe0ff; --b-acc:#9fd0ff; --b-card:rgba(13,59,140,.88); --b-border:1.5px solid #eaf2ff; --b-radius:0; --b-tt:uppercase; --b-ls:.03em; }
+.s-deco{ --b-bg:#0c0b0a; --b-bg2:#13110e; --b-fg:#f3e7c9; --b-muted:#d9cba5; --b-acc:#d4af37; --b-card:#0f0e0c; --b-border:1px solid rgba(212,175,55,.6); --b-radius:0; --b-head:"Limelight", Georgia, serif; --b-hw:400; --b-tt:uppercase; --b-ls:.08em; }
+.s-deco .ds, .s-deco .sub{ font-weight:700; font-size:16px; } .s-deco .kick{ letter-spacing:.3em; }
+.s-brut{ --b-bg:radial-gradient(#111 1px, transparent 1.4px) 0 0 / 22px 22px, #fff4d6; --b-bg2:#ffe9a8; --b-fg:#111; --b-muted:#222; --b-acc:#4d7cff; --b-kick:#111; --b-card:#fff; --b-border:3px solid #111; --b-radius:0; --b-shadow:6px 6px 0 #111; --b-hw:700; --b-ls:-.04em; }
+
+@media (prefers-reduced-motion: reduce){ [data-r]{ opacity:1; transform:none; transition:none; } .page *, .page *::before, .page *::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; } }
 </style>
 </head>
 <body>
@@ -571,7 +634,7 @@ const STYLES = [
 ];
 
 function heroHTML(s){
-  return `<section class="hero s-${s.id}" data-id="${s.id}">
+  return `<section class="hero">
     <div class="deco">${s.deco || ''}</div>
     ${s.over ? `<div class="over">${s.over}</div>` : ''}
     <header class="tb">
@@ -587,6 +650,41 @@ function heroHTML(s){
       <div class="subs"><a href="#">Estimate cost</a><a href="#">Track an order</a></div>
     </div></main>
   </section>`;
+}
+
+const ICONS = {
+  bulb:'<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+  search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
+  box:'<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
+  calc:'<rect width="16" height="20" x="4" y="2" rx="2"/><path d="M8 6h8"/><path d="M16 14v4"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/>',
+};
+const ico = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k]}</svg>`;
+const HOW = [
+  ['bulb', 'custom_model', "Have an idea but no file? Describe it and we'll design and print it."],
+  ['search', 'browse', 'Want something quick? Browse ready-to-order designs.'],
+  ['upload', 'custom_print', 'Already have an STL, OBJ, 3MF, or STEP file? Upload it and get a quote.'],
+  ['box', 'status', 'Every order gets a private tracking link, no account needed.'],
+  ['calc', 'estimate', "Not sure what it'll cost? Try the free estimator before you order."],
+];
+let DESIGNS = [1, 2, 3, 4, 5, 6].map(n => ({ name:'Design ' + n, price:null, img:null }));
+const tileHTML = (d, i) => `<a class="ftile" href="#" data-r style="--dl:${(i % 3) * .08}s"><div class="im">${d.img ? `<img src="${d.img}" alt="" loading="lazy">` : LOGO}</div><div class="tx"><div class="nm">${d.name.replace(/</g, '&lt;')}</div>${d.price != null ? `<div class="pr">$${Number(d.price).toFixed(2)}</div>` : ''}</div></a>`;
+
+function pageHTML(s){
+  return `<div class="page s-${s.id}" data-id="${s.id}">
+    ${heroHTML(s)}
+    <div class="below">
+      <section class="sec feat"><div class="wrap">
+        <div class="shd" data-r><div><div class="kick">Ready to order</div><h2>Featured designs</h2></div><a class="all" href="#">Browse all &rarr;</a></div>
+        <div class="fgrid">${DESIGNS.map(tileHTML).join('')}</div>
+      </div></section>
+      <section class="sec how"><div class="wrap">
+        <div class="shd c" data-r><div class="kick">How it works</div><h2>From idea to printed part</h2><p class="sub">Pick the way that suits you. Every order is quoted, tracked and messaged from start to finish.</p></div>
+        <div class="cards">${HOW.map(([k, l, d], i) => `<div class="hcard" data-r style="--dl:${i * .08}s"><div class="ic2">${ico(k)}</div><div class="lab">${l}</div><div class="ds">${d}</div></div>`).join('')}</div>
+      </div></section>
+      <div class="foot">&copy; Voxprints &middot; Custom 3D printing</div>
+    </div>
+  </div>`;
 }
 
 /* ---------- per-style live bits (only the visible style runs) ---------- */
@@ -653,7 +751,7 @@ const RUN = {
     const tiles = [];
     sec.querySelectorAll('h1 > span').forEach(line => {
       const text = (line.dataset.t || (line.dataset.t = line.textContent)).toUpperCase();
-      line.innerHTML = text.split(' ').map(word => `<span class="word">${[...word].map(c => `<span class="tile" data-c="${c}"> </span>`).join('')}</span>`).join('');
+      line.innerHTML = text.split(' ').map(word => `<span class="word">${[...word].map(c => `<span class="ftile" data-c="${c}"> </span>`).join('')}</span>`).join('');
       line.querySelectorAll('.tile').forEach(t => tiles.push(t));
     });
     let timers = [];
@@ -693,8 +791,12 @@ const RUN = {
 
 /* ---------- viewer ---------- */
 const stage = document.getElementById('stage'), pick = document.getElementById('pick'), when = document.getElementById('when');
-stage.innerHTML = STYLES.map(heroHTML).join('');
-const sections = [...stage.querySelectorAll('.hero')];
+stage.innerHTML = STYLES.map(pageHTML).join('');
+const pages = [...stage.querySelectorAll('.page')];
+const sections = pages.map(p => p.querySelector('.hero'));
+const revealIO = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting){ e.target.classList.add('in'); revealIO.unobserve(e.target); } }), { threshold:.12, rootMargin:'0px 0px -30px 0px' }) : null;
+function observeReveals(root){ root.querySelectorAll('[data-r]:not(.in)').forEach(el => revealIO ? revealIO.observe(el) : el.classList.add('in')); }
+observeReveals(stage);
 STYLES.forEach((s, i) => pick.add(new Option(`${i + 1}. ${s.name}`, i)));
 
 // which style is "today": cycles through the list in order, one per day
@@ -706,7 +808,7 @@ let cur = -1, stop = null;
 function show(i){
   i = (i + STYLES.length) % STYLES.length;
   if (stop){ stop(); stop = null; }
-  sections.forEach((s, k) => s.classList.toggle('on', k === i));
+  pages.forEach((s, k) => s.classList.toggle('on', k === i));
   cur = i; pick.value = i;
   const fn = RUN[STYLES[i].id]; if (fn) stop = fn(sections[i]) || null;
   const ahead = (i - todayIdx + STYLES.length) % STYLES.length;
@@ -734,6 +836,21 @@ stage.addEventListener('touchend', e => {
 stage.addEventListener('click', e => { if (e.target.closest('a')) e.preventDefault(); });
 const fromHash = STYLES.findIndex(s => s.id === location.hash.slice(1));
 show(fromHash >= 0 ? fromHash : todayIdx);
+</script>
+<script type="module">
+  // Fill the featured grid with the real pinned designs (same query as the home page).
+  try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    const sb = createClient('https://paycasfatsakidsriwqt.supabase.co', 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv');
+    const { data } = await sb.from('designs').select('name, price, image_path').eq('active', true).eq('pinned', true).order('created_at', { ascending:false }).limit(6);
+    if (data && data.length){
+      const list = data.map(d => ({ name:d.name || 'Design', price:d.price, img:d.image_path ? sb.storage.from('order-files').getPublicUrl(d.image_path).data.publicUrl : null }));
+      document.querySelectorAll('.page .fgrid').forEach(g => {
+        g.innerHTML = list.map(tileHTML).join('');
+        g.querySelectorAll('[data-r]').forEach(el => el.classList.add('in'));
+      });
+    }
+  } catch (e) { /* keep placeholders */ }
 </script>
 </body>
 </html>
