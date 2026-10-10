@@ -45,6 +45,7 @@ h1 > span{ display:block; }
   .core p{ font-size:16px; }
 }
 @keyframes spin{ to{ transform:rotate(360deg); } }
+@keyframes slide{ to{ background-position:300% 0; } }
 @keyframes floaty{ from{ transform:translate(0,0) scale(1); } to{ transform:translate(var(--fx,30px), var(--fy,-40px)) scale(var(--fs,1.08)); } }
 
 /* ================= viewer bar ================= */
@@ -273,7 +274,7 @@ h1 > span{ display:block; }
 .s-vhs .cta{ border-radius:0; font-weight:400; font-size:20px; padding:3px 14px; box-shadow:2px 0 #1e5bff, -2px 0 #8fd3ff; }
 .s-vhs h1{ font-weight:800; font-style:italic; text-transform:uppercase; letter-spacing:-.01em; text-shadow:3px 0 #1e5bff, -3px 0 #8fd3ff; animation:vjit 3.5s infinite; }
 .s-vhs .l2{ color:#5fb0ff; }
-@keyframes vjit{ 0%,90%,100%{ transform:none; } 91%{ transform:translateX(-7px) skewX(-10deg); } 93%{ transform:translateX(6px); text-shadow:7px 0 #ff2d6f, -7px 0 #2de2ff; } 95%{ transform:translateX(-2px); } }
+@keyframes vjit{ 0%,90%,100%{ transform:none; } 91%{ transform:translateX(-7px) skewX(-10deg); } 93%{ transform:translateX(6px); text-shadow:7px 0 #1e5bff, -7px 0 #8fd3ff; } 95%{ transform:translateX(-2px); } }
 .s-vhs .pill{ font-family:"VT323", monospace; font-size:20px; border-radius:0; background:rgba(0,0,0,.5); color:#fff; padding:2px 12px; }
 .s-vhs .pill::before{ content:""; width:10px; height:10px; border-radius:50%; background:#5fb0ff; animation:blink 1s steps(1) infinite; }
 .s-vhs p{ color:#b5c8e6; }
