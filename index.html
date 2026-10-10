@@ -464,19 +464,6 @@
     transition: color 0.2s ease;
   }
   .hero-sublinks a:hover{ color: var(--accent); }
-  .hero-stats{
-    display: flex; justify-content: center; gap: clamp(28px, 9vw, 110px);
-    margin-top: 40px;
-    animation: fadeInUp 0.6s ease both;
-  }
-  .hero-stat{ display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .hero-stat-num{
-    display: inline-flex; align-items: center; gap: 8px;
-    font-size: 21px; font-weight: 700; color: var(--accent);
-    font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
-  }
-  .hero-stat-num .ico{ width: 17px; height: 17px; vertical-align: 0; }
-  .hero-stat-label{ font-size: 12.5px; color: var(--fg-muted); }
 
   /* ---- scroll reveal ---- */
   .js [data-reveal]{
@@ -538,7 +525,6 @@
   .hero p{ animation-delay: .55s; }
   .hero-actions{ animation-delay: .65s; }
   .hero-sublinks{ animation-delay: .75s; }
-  .hero-stats{ animation-delay: .85s; }
 
   @media (prefers-reduced-motion: reduce){
     .hero-logo *, .hero-logo{ animation: none !important; transition: none !important; }
@@ -695,14 +681,11 @@
     .strip-inner{ padding: 60px 16px; }
     .featured{ padding: 56px 16px 40px; }
     .topbar{ padding: 12px 16px; }
-    .hero{ padding: 44px 16px 64px; }
+    .hero{ padding: 44px 16px 24px; }
     .hero p{ font-size: 16px; }
     .hero-actions{ flex-direction: column; align-items: stretch; }
     .hero-actions .btn{ width: 100%; }
-    .hero-stats{ gap: 10px; justify-content: space-between; margin-top: 40px; }
-    .hero-stat{ flex: 1; }
-    .hero-stat-num{ font-size: 18px; gap: 6px; }
-    .hero-stat-label{ font-size: 11.5px; }
+    .hero{ min-height: 0; }
   }
 
   /* ---- recent activity ---- */
@@ -870,19 +853,6 @@
       <a href="estimate.html"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#calculator"/></svg> Estimate cost</a>
       <a href="order.html"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#package"/></svg> Track an order</a>
     </div>
-    <div class="hero-stats">
-      <div class="hero-stat">
-        <div class="hero-stat-num"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#sparkles"/></svg><span data-count="100" data-suffix="%">100%</span></div>
-        <div class="hero-stat-label">Custom made</div>
-      </div>
-      <div class="hero-stat">
-        <div class="hero-stat-num"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#upload"/></svg><span data-count="500" data-suffix="MB">500MB</span></div>
-        <div class="hero-stat-label">File uploads</div>
-      </div>
-      <div class="hero-stat">
-        <div class="hero-stat-num"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#package"/></svg><span data-count="24" data-suffix="/7">24/7</span></div>
-        <div class="hero-stat-label">Order tracking</div>
-      </div>
     </div>
     </div>
   </div>
@@ -1054,7 +1024,7 @@
     window.vxReveal();
   })();
 
-  /* Hero: full-screen height under the top bar, sticky bar shadow, stat count-up. */
+  /* Hero: full-screen height under the top bar, sticky bar shadow, glow drift. */
   (function(){
     const hero = document.getElementById('hero');
     const topbar = document.querySelector('.topbar');
@@ -1080,18 +1050,6 @@
     }
     addEventListener('scroll', () => { if (!ticking){ ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
     onScroll();
-
-    const nums = hero.querySelectorAll('[data-count]');
-    if (reduce || !nums.length) return;
-    nums.forEach(el => { el.textContent = '0' + el.dataset.suffix; });
-    setTimeout(() => {
-      const start = performance.now(), dur = 1400;
-      (function step(now){
-        const t = Math.min(1, (now - start) / dur), e = 1 - Math.pow(1 - t, 4);
-        nums.forEach(el => { el.textContent = Math.round(+el.dataset.count * e) + el.dataset.suffix; });
-        if (t < 1) requestAnimationFrame(step);
-      })(start);
-    }, 900);
   })();
 </script>
 
