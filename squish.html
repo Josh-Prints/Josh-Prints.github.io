@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Squish — Voxprints games</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
+<script src="/looks.js"></script>
+<script src="/error-log.js"></script>
+<style>
+  :root{
+    --canvas: #ffffff; --canvas-inset: #f6f8fa; --border: #d1d9e0; --border-muted: #d8dee4;
+    --fg: #1f2328; --fg-muted: #59636e; --accent: #0969da; --accent-emphasis: #0550ae;
+    --btn-primary-hover: #0860ca; --btn-hover-bg: #f3f4f6;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --canvas: #0d1117; --canvas-inset: #161b22; --border: #30363d; --border-muted: #21262d;
+      --fg: #e6edf3; --fg-muted: #8b949e; --accent: #4493f8; --accent-emphasis: #79c0ff;
+      --btn-primary-hover: #5aa6ff; --btn-hover-bg: #21262d;
+    }
+  }
+  :root[data-theme="dark"]{
+    --canvas: #0d1117; --canvas-inset: #161b22; --border: #30363d; --border-muted: #21262d;
+    --fg: #e6edf3; --fg-muted: #8b949e; --accent: #4493f8; --accent-emphasis: #79c0ff;
+    --btn-primary-hover: #5aa6ff; --btn-hover-bg: #21262d;
+  }
+  *{ box-sizing: border-box; }
+  html, body{ height: 100%; }
+  body{
+    margin: 0; display: flex; flex-direction: column; overflow: hidden;
+    background: var(--canvas); color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+  }
+  .topbar{ display: flex; align-items: center; gap: 12px; padding: 10px max(14px, calc((100% - 1040px) / 2)); border-bottom: 1px solid var(--border-muted); }
+  .topbar a{ color: var(--fg); text-decoration: none; font-weight: 600; font-size: 14px; }
+  .topbar .back{ display: inline-flex; align-items: center; gap: 6px; }
+  .topbar .title{ margin-right: auto; font-weight: 800; letter-spacing: -.01em; }
+  .tbtn{ font: inherit; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 8px; cursor: pointer; background: var(--canvas-inset); color: var(--fg); border: 1px solid var(--border); }
+
+  .stage{ flex: 1; min-height: 0; display: flex; align-items: stretch; justify-content: center; gap: 18px; padding: 12px; }
+  .side{ width: 150px; display: flex; flex-direction: column; justify-content: center; gap: 18px; }
+  .stat{ text-align: center; }
+  .stat .label{ font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--fg-muted); }
+  .stat .value{ font-size: 34px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .board{ position: relative; height: 100%; aspect-ratio: 400 / 720; max-width: 100%; }
+  canvas{ display: block; width: 100%; height: 100%; touch-action: none; }
+  .help{ font-size: 13px; color: var(--fg-muted); line-height: 1.5; text-align: center; }
+  .help b{ color: var(--fg); }
+
+  .mobile-stats{ display: none; gap: 16px; justify-content: center; padding: 6px 0 0; }
+  .mobile-stats .stat .value{ font-size: 22px; }
+  .mobile-stats .stat .label{ font-size: 10.5px; }
+
+  .over{ position: absolute; inset: 0; display: grid; place-items: center; background: rgba(5,7,12,.72); border-radius: 18px; }
+  .over[hidden]{ display: none; }
+  .over-card{ text-align: center; color: #fff; padding: 24px; }
+  .over-card h2{ margin: 0 0 6px; font-size: 32px; letter-spacing: -.02em; }
+  .over-card p{ margin: 0 0 18px; color: #c9d1d9; }
+  .play{ font: inherit; font-size: 16px; font-weight: 700; padding: 11px 26px; border-radius: 999px; cursor: pointer; border: 0; background: var(--accent); color: #fff; }
+
+  @media (max-width: 720px){
+    .side{ display: none; }
+    .mobile-stats{ display: flex; }
+    .stage{ padding: 6px 8px 10px; }
+  }
+</style>
+<link rel="stylesheet" href="/looks.css">
+</head>
+<body>
+  <div class="topbar">
+    <a class="back" href="/games.html">&larr; Games</a>
+    <span class="title">Squish</span>
+    <button type="button" class="tbtn" id="restart">Restart</button>
+  </div>
+  <div class="mobile-stats">
+    <div class="stat"><div class="label">Score</div><div class="value" id="m-score">0</div></div>
+    <div class="stat"><div class="label">Best</div><div class="value" id="m-best">0</div></div>
+  </div>
+  <div class="stage">
+    <div class="side">
+      <div class="stat"><div class="label">Score</div><div class="value" id="score">0</div></div>
+      <div class="stat"><div class="label">Best</div><div class="value" id="best">0</div></div>
+    </div>
+    <div class="board" id="board">
+      <canvas id="cv" aria-label="Squish game board"></canvas>
+      <div class="over" id="over" hidden>
+        <div class="over-card">
+          <h2>Squished!</h2>
+          <p id="over-text"></p>
+          <button type="button" class="play" id="again">Play again</button>
+        </div>
+      </div>
+    </div>
+    <div class="side">
+      <p class="help"><b>Aim:</b> drag left and right.<br><b>Power:</b> pull down before letting go, a little for a gentle drop, a lot to squeeze into gaps.<br><b>Merge:</b> touch two matching numbers to double them.<br>Don't let the pile cross the dotted line.</p>
+    </div>
+  </div>
+
+<script>
+/* Squish: a soft-body merge game. Blobs are rings of points held together by springs, an
+   internal "pressure" that keeps their area, and a gentle pull back towards round. Blobs push
+   each other out of the way, so they squash to fill the gaps. Two touching blobs with the same
+   number merge into one with double the number. */
+(function(){
+  'use strict';
+  var W = 400, H = 720;                    // world units (canvas is scaled to fit)
+  var WALL = 16, FLOOR = H - 16, TOP = 112; // inner container edges; TOP is the danger line
+  var LAUNCH_Y = 70;                        // where the next blob waits
+  var G = 1300;                             // gravity
+  var DT = 1 / 120, ITER = 4;
+
+  var COLORS = {
+    1: '#ff4d5e', 2: '#ffd93d', 4: '#6bea5c', 8: '#ff9d2e', 16: '#3d8bff', 32: '#a855f7',
+    64: '#ff5fb0', 128: '#ff7b30', 256: '#dcf53b', 512: '#34e26e', 1024: '#38f2ff', 2048: '#ffc83a',
+    4096: '#d046ff', 8192: '#ff2f6d', 16384: '#ffffff'
+  };
+  function colorOf(v){ return COLORS[v] || '#e6edf3'; }
+  function radiusOf(v){ return 25 + 9.6 * Math.log2(v); }
+
+  var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  var scoreEl = document.getElementById('score'), bestEl = document.getElementById('best');
+  var mScoreEl = document.getElementById('m-score'), mBestEl = document.getElementById('m-best');
+  var overEl = document.getElementById('over');
+  var accent = '#4493f8';
+
+  var blobs, queue, active, aimX, power, charging, score, best = 0, over, cooldown, danger, pops, nextId;
+  try { best = Number(localStorage.getItem('squish-best')) || 0; } catch (e) {}
+
+  function rnd(){ var r = Math.random(); return r < 0.42 ? 1 : r < 0.78 ? 2 : r < 0.95 ? 4 : 8; }
+
+  function makeBlob(v, x, y){
+    var r = radiusOf(v), n = Math.max(16, Math.min(48, Math.round(2 * Math.PI * r / 9)));
+    var b = { id: nextId++, v: v, n: n, x: new Float64Array(n), y: new Float64Array(n), px: new Float64Array(n), py: new Float64Array(n),
+      a0: Math.PI * r * r, aT: Math.PI * r * r, rest: 2 * Math.PI * r / n, age: 0, merged: false, cx: x, cy: y, minX: 0, maxX: 0, minY: 0, maxY: 0, flash: 0 };
+    for (var i = 0; i < n; i++){
+      var a = i / n * Math.PI * 2;
+      b.x[i] = b.px[i] = x + Math.cos(a) * r;
+      b.y[i] = b.py[i] = y + Math.sin(a) * r;
+    }
+    return b;
+  }
+
+  function reset(){
+    blobs = []; queue = []; nextId = 1;
+    for (var i = 0; i < 5; i++) queue.push(rnd());
+    score = 0; over = false; cooldown = 0; danger = 0; pops = [];
+    aimX = W / 2; power = 0; charging = false;
+    spawnActive();
+    overEl.hidden = true;
+    updateHud();
+  }
+  function spawnActive(){
+    var v = queue.shift(); queue.push(rnd());
+    active = makeBlob(v, aimX, LAUNCH_Y);
+    clampActive();
+  }
+  function clampActive(){
+    if (!active) return;
+    var r = radiusOf(active.v);
+    aimX = Math.max(WALL + r + 2, Math.min(W - WALL - r - 2, aimX));
+    var dx = aimX - active.cx;
+    for (var i = 0; i < active.n; i++){ active.x[i] += dx; active.px[i] = active.x[i]; active.py[i] = active.y[i]; }
+    active.cx = aimX;
+  }
+  function fire(){
+    if (!active || over) return;
+    var speed = 180 + power * 1500;           // px/s downwards
+    for (var i = 0; i < active.n; i++){ active.py[i] = active.y[i] - speed * DT; active.px[i] = active.x[i]; }
+    active.age = 0;
+    blobs.push(active);
+    active = null; power = 0; charging = false;
+    cooldown = 0.35;
+  }
+
+  function updateHud(){
+    if (score > best){ best = score; try { localStorage.setItem('squish-best', String(best)); } catch (e) {} }
+    scoreEl.textContent = mScoreEl.textContent = score;
+    bestEl.textContent = mBestEl.textContent = best;
+  }
+
+  /* ---------- physics ---------- */
+  function bounds(b){
+    var x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, sx = 0, sy = 0;
+    for (var i = 0; i < b.n; i++){
+      var x = b.x[i], y = b.y[i]; sx += x; sy += y;
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+    b.minX = x0; b.maxX = x1; b.minY = y0; b.maxY = y1; b.cx = sx / b.n; b.cy = sy / b.n;
+  }
+  function area(b){
+    var s = 0, n = b.n;
+    for (var i = 0, j = n - 1; i < n; j = i++) s += (b.x[j] + b.x[i]) * (b.y[j] - b.y[i]);
+    return -s / 2;   // points go round by increasing angle (clockwise on screen); flip so the area is positive
+  }
+
+  function integrate(b){
+    var damp = 0.996, g = G * DT * DT;
+    for (var i = 0; i < b.n; i++){
+      var vx = (b.x[i] - b.px[i]) * damp, vy = (b.y[i] - b.py[i]) * damp;
+      b.px[i] = b.x[i]; b.py[i] = b.y[i];
+      b.x[i] += vx; b.y[i] += vy + g;
+    }
+  }
+
+  function edges(b){
+    var n = b.n, L = b.rest;
+    for (var i = 0; i < n; i++){
+      var j = (i + 1) % n, dx = b.x[j] - b.x[i], dy = b.y[j] - b.y[i], d = Math.sqrt(dx * dx + dy * dy) || 1e-6;
+      var k = (d - L) / d * 0.5 * 0.9;
+      b.x[i] += dx * k; b.y[i] += dy * k; b.x[j] -= dx * k; b.y[j] -= dy * k;
+    }
+  }
+
+  function pressure(b){
+    var n = b.n, A = area(b), per = 0, i, j;
+    for (i = 0; i < n; i++){ j = (i + 1) % n; per += Math.hypot(b.x[j] - b.x[i], b.y[j] - b.y[i]); }
+    var push = (b.a0 - A) / per * 0.7;
+    for (i = 0; i < n; i++){
+      var p = (i - 1 + n) % n; j = (i + 1) % n;
+      var tx = b.x[j] - b.x[p], ty = b.y[j] - b.y[p], tl = Math.hypot(tx, ty) || 1e-6;
+      // outward normal for this winding
+      b.x[i] += (ty / tl) * push; b.y[i] += (-tx / tl) * push;
+    }
+  }
+
+  function shapeMatch(b, k){
+    var n = b.n, cx = 0, cy = 0, i;
+    for (i = 0; i < n; i++){ cx += b.x[i]; cy += b.y[i]; }
+    cx /= n; cy /= n;
+    var r = Math.sqrt(b.a0 / Math.PI), sc = 0, ss = 0;
+    for (i = 0; i < n; i++){
+      var a = i / n * Math.PI * 2, ox = Math.cos(a), oy = Math.sin(a), qx = b.x[i] - cx, qy = b.y[i] - cy;
+      sc += ox * qx + oy * qy; ss += ox * qy - oy * qx;
+    }
+    var ang = Math.atan2(ss, sc), ca = Math.cos(ang), sa = Math.sin(ang);
+    for (i = 0; i < n; i++){
+      var a2 = i / n * Math.PI * 2, gx = cx + r * (Math.cos(a2) * ca - Math.sin(a2) * sa), gy = cy + r * (Math.cos(a2) * sa + Math.sin(a2) * ca);
+      b.x[i] += (gx - b.x[i]) * k; b.y[i] += (gy - b.y[i]) * k;
+    }
+  }
+
+  function walls(b){
+    for (var i = 0; i < b.n; i++){
+      if (b.x[i] < WALL){ b.x[i] = WALL; b.py[i] += (b.y[i] - b.py[i]) * 0.1; }
+      else if (b.x[i] > W - WALL){ b.x[i] = W - WALL; b.py[i] += (b.y[i] - b.py[i]) * 0.1; }
+      if (b.y[i] > FLOOR){ b.y[i] = FLOOR; b.px[i] += (b.x[i] - b.px[i]) * 0.2; }
+    }
+  }
+
+  function inside(b, x, y){
+    var c = false, n = b.n;
+    for (var i = 0, j = n - 1; i < n; j = i++){
+      var yi = b.y[i], yj = b.y[j];
+      if ((yi > y) !== (yj > y) && x < (b.x[j] - b.x[i]) * (y - yi) / (yj - yi) + b.x[i]) c = !c;
+    }
+    return c;
+  }
+  // push points of A that are inside B out through B's nearest edge; returns true if they touched
+  function resolve(A, B){
+    var hit = false;
+    for (var i = 0; i < A.n; i++){
+      var x = A.x[i], y = A.y[i];
+      if (x < B.minX || x > B.maxX || y < B.minY || y > B.maxY || !inside(B, x, y)) continue;
+      hit = true;
+      var best = 1e9, bk = 0, bt = 0, bqx = 0, bqy = 0;
+      for (var k = 0; k < B.n; k++){
+        var k2 = (k + 1) % B.n, ex = B.x[k2] - B.x[k], ey = B.y[k2] - B.y[k], el = ex * ex + ey * ey || 1e-6;
+        var t = ((x - B.x[k]) * ex + (y - B.y[k]) * ey) / el; t = t < 0 ? 0 : t > 1 ? 1 : t;
+        var qx = B.x[k] + ex * t, qy = B.y[k] + ey * t, d = (qx - x) * (qx - x) + (qy - y) * (qy - y);
+        if (d < best){ best = d; bk = k; bt = t; bqx = qx; bqy = qy; }
+      }
+      var dx = bqx - x, dy = bqy - y;
+      A.x[i] += dx * 0.5; A.y[i] += dy * 0.5;
+      var k3 = (bk + 1) % B.n, w0 = (1 - bt) * 0.5, w1 = bt * 0.5;
+      B.x[bk] -= dx * w0; B.y[bk] -= dy * w0; B.x[k3] -= dx * w1; B.y[k3] -= dy * w1;
+    }
+    return hit;
+  }
+
+  var mergeQ = [];
+  function collide(){
+    var n = blobs.length;
+    for (var i = 0; i < n; i++) bounds(blobs[i]);
+    for (i = 0; i < n; i++){
+      var A = blobs[i];
+      for (var j = i + 1; j < n; j++){
+        var B = blobs[j];
+        if (A.maxX < B.minX - 2 || B.maxX < A.minX - 2 || A.maxY < B.minY - 2 || B.maxY < A.minY - 2) continue;
+        var h1 = resolve(A, B), h2 = resolve(B, A);
+        if ((h1 || h2) && A.v === B.v && !A.merged && !B.merged){ A.merged = B.merged = true; mergeQ.push([A, B]); }
+      }
+    }
+  }
+
+  function doMerges(){
+    if (!mergeQ.length) return;
+    mergeQ.forEach(function(pair){
+      var A = pair[0], B = pair[1]; bounds(A); bounds(B);
+      var aA = Math.abs(area(A)), aB = Math.abs(area(B));
+      var cx = (A.cx * aA + B.cx * aB) / (aA + aB), cy = (A.cy * aA + B.cy * aB) / (aA + aB);
+      var nb = makeBlob(A.v * 2, cx, cy);
+      // start at the size of the bigger parent and grow, so the new blob doesn't shove everything at once
+      var startA = Math.max(aA, aB), rr = Math.sqrt(startA / Math.PI), vx = 0, vy = 0;
+      for (var i = 0; i < A.n; i++){ vx += A.x[i] - A.px[i]; vy += A.y[i] - A.py[i]; }
+      vx /= A.n * 2; vy /= A.n * 2;
+      for (i = 0; i < nb.n; i++){
+        var a = i / nb.n * Math.PI * 2;
+        nb.x[i] = cx + Math.cos(a) * rr; nb.y[i] = cy + Math.sin(a) * rr;
+        nb.px[i] = nb.x[i] - vx; nb.py[i] = nb.y[i] - vy;
+      }
+      nb.a0 = startA; nb.age = 1; nb.flash = 1;
+      blobs = blobs.filter(function(b){ return b !== A && b !== B; });
+      blobs.push(nb);
+      score += nb.v;
+      pops.push({ x: cx, y: cy, r: rr, t: 0, c: colorOf(nb.v) });
+    });
+    mergeQ = [];
+    updateHud();
+  }
+
+  function step(){
+    var i, b;
+    for (i = 0; i < blobs.length; i++){
+      b = blobs[i];
+      b.age += DT;
+      if (b.a0 < b.aT) b.a0 = Math.min(b.aT, b.a0 + b.aT * 0.03);
+      if (b.flash > 0) b.flash = Math.max(0, b.flash - DT * 3);
+      integrate(b);
+    }
+    for (var it = 0; it < ITER; it++){
+      for (i = 0; i < blobs.length; i++){ b = blobs[i]; edges(b); if (it === 0) pressure(b); }
+      collide();
+      for (i = 0; i < blobs.length; i++){ b = blobs[i]; if (it === ITER - 1) shapeMatch(b, 0.02); walls(b); }
+    }
+    doMerges();
+  }
+
+  /* ---------- game rules ---------- */
+  function rules(dt){
+    if (over) return;
+    if (!active){
+      cooldown -= dt;
+      if (cooldown <= 0) spawnActive();
+    }
+    if (charging) power = Math.min(1, power);
+    var high = false;
+    for (var i = 0; i < blobs.length; i++){
+      var b = blobs[i];
+      if (b.age > 1.2 && b.minY < TOP){ high = true; break; }
+    }
+    danger = high ? danger + dt : Math.max(0, danger - dt * 2);
+    if (danger > 2.4){
+      over = true;
+      document.getElementById('over-text').textContent = 'Score ' + score + (score >= best && score > 0 ? ' · new best!' : ' · best ' + best);
+      overEl.hidden = false;
+    }
+  }
+
+  /* ---------- drawing ---------- */
+  var scale = 1, dpr = 1;
+  function size(){
+    var r = cv.getBoundingClientRect();
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    scale = cv.width / W;
+    try { accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || accent; } catch (e) {}
+  }
+
+  function blobPath(b){
+    var n = b.n;
+    ctx.beginPath();
+    var mx = (b.x[n - 1] + b.x[0]) / 2, my = (b.y[n - 1] + b.y[0]) / 2;
+    ctx.moveTo(mx, my);
+    for (var i = 0; i < n; i++){
+      var j = (i + 1) % n;
+      ctx.quadraticCurveTo(b.x[i], b.y[i], (b.x[i] + b.x[j]) / 2, (b.y[i] + b.y[j]) / 2);
+    }
+    ctx.closePath();
+  }
+  function drawBlob(b, alpha){
+    bounds(b);
+    ctx.globalAlpha = alpha;
+    blobPath(b);
+    ctx.fillStyle = colorOf(b.v); ctx.fill();
+    ctx.lineWidth = 3.4; ctx.strokeStyle = '#05060a'; ctx.lineJoin = 'round'; ctx.stroke();
+    if (b.flash > 0){ ctx.globalAlpha = alpha * b.flash * 0.6; ctx.fillStyle = '#fff'; blobPath(b); ctx.fill(); ctx.globalAlpha = alpha; }
+    var r = Math.sqrt(Math.abs(area(b)) / Math.PI);
+    var fs = Math.max(13, Math.min(40, r * (String(b.v).length > 3 ? 0.42 : 0.55)));
+    ctx.font = '800 ' + fs + 'px ui-rounded, "SF Pro Rounded", "Trebuchet MS", system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(5,6,10,.88)';
+    ctx.fillText(String(b.v), b.cx, b.cy + 1);
+    ctx.globalAlpha = 1;
+  }
+
+  function draw(){
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+
+    // container
+    ctx.fillStyle = '#05060a';
+    roundRect(0, 0, W, H, 24); ctx.fill();
+    ctx.lineWidth = 6; ctx.strokeStyle = accent; ctx.globalAlpha = 0.55;
+    roundRect(3, 3, W - 6, H - 6, 22); ctx.stroke(); ctx.globalAlpha = 1;
+
+    // danger line
+    ctx.save();
+    ctx.setLineDash([8, 10]); ctx.lineWidth = 2;
+    ctx.strokeStyle = danger > 0 ? 'rgba(255,77,94,' + (0.5 + 0.5 * Math.abs(Math.sin(performance.now() / 120))) + ')' : 'rgba(255,255,255,.18)';
+    ctx.beginPath(); ctx.moveTo(WALL, TOP); ctx.lineTo(W - WALL, TOP); ctx.stroke();
+    ctx.restore();
+
+    // queue (next blobs) along the top
+    var qx = W / 2 - 92;
+    for (var i = 0; i < queue.length; i++){
+      var v = queue[i], w = 34, h = 26, x = qx + i * 38;
+      ctx.globalAlpha = i === 0 ? 1 : 0.85;
+      ctx.fillStyle = colorOf(v);
+      roundRect(x, 14, w, h, 13); ctx.fill();
+      ctx.lineWidth = 2.5; ctx.strokeStyle = '#05060a'; ctx.stroke();
+      ctx.fillStyle = 'rgba(5,6,10,.85)'; ctx.font = '800 14px ui-rounded, "Trebuchet MS", system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(v), x + w / 2, 14 + h / 2 + 1);
+    }
+    ctx.globalAlpha = 1;
+
+    for (i = 0; i < blobs.length; i++) drawBlob(blobs[i], 1);
+
+    // waiting blob + aim guide
+    if (active && !over){
+      var r = radiusOf(active.v);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,' + (0.25 + power * 0.5) + ')';
+      ctx.setLineDash([3, 9]); ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(aimX, LAUNCH_Y + r + 6); ctx.lineTo(aimX, Math.min(FLOOR, LAUNCH_Y + r + 60 + power * 360)); ctx.stroke();
+      ctx.restore();
+      drawBlob(active, 0.95);
+      if (charging){
+        ctx.fillStyle = 'rgba(255,255,255,.85)';
+        roundRect(aimX - 26, LAUNCH_Y - r - 14, 52 * power, 5, 3); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1.5; roundRect(aimX - 26, LAUNCH_Y - r - 14, 52, 5, 3); ctx.stroke();
+      }
+    }
+
+    // merge pops
+    pops = pops.filter(function(p){ return p.t < 1; });
+    pops.forEach(function(p){
+      ctx.globalAlpha = 1 - p.t; ctx.strokeStyle = p.c; ctx.lineWidth = 4 * (1 - p.t);
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 + p.t * 0.7), 0, Math.PI * 2); ctx.stroke();
+      p.t += 0.045;
+    });
+    ctx.globalAlpha = 1;
+  }
+  function roundRect(x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+
+  /* ---------- input ---------- */
+  var startY = 0, pointerDown = false;
+  function toWorld(e){ var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; }
+  cv.addEventListener('pointerdown', function(e){
+    if (over) return;
+    cv.setPointerCapture(e.pointerId);
+    var p = toWorld(e); pointerDown = true; charging = true; startY = p.y; power = 0;
+    aimX = p.x; clampActive();
+  });
+  cv.addEventListener('pointermove', function(e){
+    var p = toWorld(e);
+    if (!pointerDown && e.pointerType !== 'mouse') return;
+    aimX = p.x; clampActive();
+    if (pointerDown) power = Math.max(0, Math.min(1, (p.y - startY) / (H * 0.32)));
+  });
+  function release(){ if (!pointerDown) return; pointerDown = false; fire(); }
+  cv.addEventListener('pointerup', release);
+  cv.addEventListener('pointercancel', function(){ pointerDown = false; charging = false; power = 0; });
+  var keys = {};
+  addEventListener('keydown', function(e){
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === ' '){ e.preventDefault(); keys[e.key] = true; }
+    if (e.key === ' ' && !e.repeat && !over){ charging = true; power = 0; }
+  });
+  addEventListener('keyup', function(e){
+    keys[e.key] = false;
+    if (e.key === ' ' && charging && !pointerDown) fire();
+  });
+
+  document.getElementById('restart').addEventListener('click', reset);
+  document.getElementById('again').addEventListener('click', reset);
+
+  /* ---------- loop ---------- */
+  var acc = 0, last = performance.now();
+  function frame(now){
+    var dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (keys.ArrowLeft){ aimX -= 260 * dt; clampActive(); }
+    if (keys.ArrowRight){ aimX += 260 * dt; clampActive(); }
+    if (keys[' '] && charging) power = Math.min(1, power + dt * 0.9);
+    acc += dt;
+    var steps = 0;
+    while (acc >= DT && steps < 8){ if (!over) step(); acc -= DT; steps++; }
+    if (steps === 8) acc = 0;
+    rules(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  addEventListener('resize', size);
+  if ('ResizeObserver' in window) new ResizeObserver(size).observe(cv);
+  reset(); size(); requestAnimationFrame(frame);
+
+  // for automated tests
+  window.__squish = { get blobs(){ return blobs; }, get score(){ return score; }, get over(){ return over; },
+    aim: function(x){ aimX = x; clampActive(); }, shoot: function(p){ power = p; fire(); }, ready: function(){ return !!active; } };
+})();
+</script>
+</body>
+</html>
