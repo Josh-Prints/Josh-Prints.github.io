@@ -128,11 +128,11 @@
             <li>Your ball rolls over the dunes on its own.</li>
             <li><b>Hold down</b> (touch, click or Space) to get heavy and dive into the hills. <b>Let go</b> to fly off the tops.</li>
             <li>Land smoothly on a <b>downhill slope</b> to get a speed boost. Land three in a row for a fever combo.</li>
-            <li>Grab the <b>coins</b> on the ground and in the air. Land hard (Ouch!) and you'll drop some.</li>
+            <li>Grab the <b>coins</b> on the ground, and the ones that appear along your flight when you launch high (a quick hold dips you into them). Land hard (Ouch!) and you'll drop some.</li>
             <li>A sandstorm is following you. Keep your speed up or it catches you.</li>
           </ul>
           <button type="button" class="play" data-act="new">Play</button>
-          <div class="ver">Version 2026-10-13e</div>
+          <div class="ver">Version 2026-10-13f</div>
         </div>
       </div>
       <div class="over" id="over" hidden>
@@ -197,21 +197,32 @@ function placeCoins(a, b){
   if (r < 0.4){
     const n = 5 + Math.floor(Math.random() * 5), t0 = rand(0.15, 0.4);
     for (let i = 0; i < n; i++){ const x = a.x + (b.x - a.x) * (t0 + i * 0.06); coins.push({ x, y: groundY(x) - R - 2, a: Math.random() * 6 }); }
-  } else if (r < 0.75 && b.peak){
-    // high in the sky, where a big launch takes you: the top of a flight path (curved like a real flight at that
-    // speed) well above the hilltop, two coins thick
-    const k = Math.min(1, b.x / 30000);
-    const apexX = b.x + (b.x - a.x) * rand(0.2, 0.6), apexY = b.y - rand(300, 450) * (1 + k * 0.7);
-    const vx = rand(900, 1250) * (1 + k * 0.6), n = 8 + Math.floor(Math.random() * 4), dt = 0.06;
-    for (let i = 0; i < n; i++){
-      const t = (i - (n - 1) / 2) * dt, px = apexX + vx * t, py = apexY + 0.5 * G * t * t;
-      const tvy = G * t, tl = Math.hypot(vx, tvy), ox = tvy / tl, oy = -vx / tl;   // sideways to the path, pointing up
-      const d = COIN_R * 1.15;
-      coins.push({ x: px + ox * d, y: py + oy * d, a: Math.random() * 6 });
-      coins.push({ x: px - ox * d, y: py - oy * d, a: Math.random() * 6 });
-    }
   }
   coins.sort((p, q) => p.x - q.x);   // kept in order along the course (collecting and drawing rely on it)
+}
+// Sky coins: once per flight, when you've launched high enough, work out where you're going to fly and lay a
+// two-coin-thick line just under that path, so the slightest dip catches them and doing nothing sails over.
+let skyDone = false;
+function skyCoins(){
+  const b = ball;
+  extendTerrain(b.x + 3200);   // make sure the hills ahead exist
+  let x = b.x, y = b.y, vx = b.vx, vy = b.vy, t = 0;
+  const line = [];
+  while (t < 1.6){
+    vy += G * DT * 4; x += vx * DT * 4; y += vy * DT * 4; t += DT * 4;
+    if (y > groundY(x) - R - 70) break;   // stop before the path gets near the ground
+    if (t > 0.3 && line.length < 22) line.push([x, y, vx, vy]);
+  }
+  if (line.length < 8) return false;
+  for (let i = 0; i < line.length; i += 2){
+    // the band sits just below your path: its inner row is just out of reach, so the slightest dip catches it
+    const [px, py, lvx, lvy] = line[i], tl = Math.hypot(lvx, lvy) || 1, ox = lvy / tl, oy = -lvx / tl, d = COIN_R * 1.15;
+    const below = R + COIN_R + d + 3, bx = px - ox * below, by = py - oy * below;
+    coins.push({ x: bx + ox * d, y: by + oy * d, a: Math.random() * 6, sky: true });
+    coins.push({ x: bx - ox * d, y: by - oy * d, a: Math.random() * 6, sky: true });
+  }
+  coins.sort((p, q) => p.x - q.x);
+  return true;
 }
 function seg(x){
   let i = 0; while (i < pts.length - 2 && pts[i + 1].x <= x) i++;
@@ -273,10 +284,11 @@ function step(){
       }
       b.vx -= vn * nx; b.vy -= vn * ny;   // slide along the ground
     }
-    grounded = true; airT = 0;
+    grounded = true; airT = 0; skyDone = false;
   } else {
     if (b.y < gy - 2){ if (grounded) airT = 0; grounded = false; }
     airT += DT;
+    if (!skyDone && airT > 0.12 && b.vx > 380 && groundY(b.x) - b.y > 90 && !holding) skyDone = skyCoins() || airT > 0.6;
   }
   // collect coins
   const reach = (R + COIN_R) * (R + COIN_R);
@@ -325,7 +337,10 @@ function draw(){
   // camera: ball a third of the way across; zoom out when it flies high
   const sc0 = base, viewW0 = W / sc0;
   camX += ((ball.x - viewW0 * 0.32) - camX) * 0.2;
-  const top = Math.min(ball.y - 140, BASE - 300), want = Math.min(1, (H / sc0 - 60) / (VIEW_H + 40 - top));
+  // keep the ball and any sky coins just ahead of it in view
+  let skyTop = 1e9;
+  for (const c of coins){ if (c.x > ball.x + 900) break; if (c.sky && !c.got && c.x > ball.x) skyTop = Math.min(skyTop, c.y); }
+  const top = Math.min(ball.y - 140, skyTop - 60, BASE - 300), want = Math.min(1, (H / sc0 - 60) / (VIEW_H + 40 - top));
   zoom += (want - zoom) * 0.08;
   const s = sc0 * zoom, bottomY = BASE + 130;   // world y shown at the bottom edge
   const X = wx => (wx - camX) * s, Y = wy => H - (bottomY - wy) * s;
@@ -501,7 +516,7 @@ size(); hud(); requestAnimationFrame(frame);
 // for automated tests
 window.__dune = {
   get ball(){ return ball; }, get score(){ return score; }, get over(){ return over; }, get combo(){ return combo; }, get storm(){ return storm; },
-  get landings(){ return landings; }, get coins(){ return coinCount; }, get coinList(){ return coins; },
+  get landings(){ return landings; }, get coins(){ return coinCount; }, get coinList(){ return coins; }, get airT(){ return airT; },
   start: newGame, hold: on => press(on), ground: x => groundY(x), slope: x => groundSlope(x),
 };
 
