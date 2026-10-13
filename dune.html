@@ -132,7 +132,7 @@
             <li>A sandstorm is following you. Keep your speed up or it catches you.</li>
           </ul>
           <button type="button" class="play" data-act="new">Play</button>
-          <div class="ver">Version 2026-10-13d</div>
+          <div class="ver">Version 2026-10-13e</div>
         </div>
       </div>
       <div class="over" id="over" hidden>
@@ -198,17 +198,14 @@ function placeCoins(a, b){
     const n = 5 + Math.floor(Math.random() * 5), t0 = rand(0.15, 0.4);
     for (let i = 0; i < n; i++){ const x = a.x + (b.x - a.x) * (t0 + i * 0.06); coins.push({ x, y: groundY(x) - R - 2, a: Math.random() * 6 }); }
   } else if (r < 0.75 && b.peak){
-    // follow the path the ball flies when it launches off this hilltop at a typical speed for this far in:
-    // leave along the slope near the top, then fall under normal gravity (not holding)
-    // a strong launch, and only the high part of the flight (skipping the bit near the hill), two coins thick
-    const k = Math.min(1, b.x / 30000), sp = rand(760, 1000) * (1 + k * 0.9);
-    const lx = a.x + (b.x - a.x) * 0.8, sl = groundSlope(lx), nl = Math.hypot(1, sl);
-    const x = lx, y = groundY(lx) - R, vx = sp / nl, vy = sp * sl / nl - 120;
-    const skip = 0.28 + Math.random() * 0.08, gap = 0.07, n = 7 + Math.floor(Math.random() * 4);
+    // high in the sky, where a big launch takes you: the top of a flight path (curved like a real flight at that
+    // speed) well above the hilltop, two coins thick
+    const k = Math.min(1, b.x / 30000);
+    const apexX = b.x + (b.x - a.x) * rand(0.2, 0.6), apexY = b.y - rand(300, 450) * (1 + k * 0.7);
+    const vx = rand(900, 1250) * (1 + k * 0.6), n = 8 + Math.floor(Math.random() * 4), dt = 0.06;
     for (let i = 0; i < n; i++){
-      const t = skip + i * gap, px = x + vx * t, py = y + vy * t + 0.5 * G * t * t;
-      const tvx = vx, tvy = vy + G * t, tl = Math.hypot(tvx, tvy) || 1;
-      const ox = tvy / tl, oy = -tvx / tl;   // sideways to the path, pointing up
+      const t = (i - (n - 1) / 2) * dt, px = apexX + vx * t, py = apexY + 0.5 * G * t * t;
+      const tvy = G * t, tl = Math.hypot(vx, tvy), ox = tvy / tl, oy = -vx / tl;   // sideways to the path, pointing up
       const d = COIN_R * 1.15;
       coins.push({ x: px + ox * d, y: py + oy * d, a: Math.random() * 6 });
       coins.push({ x: px - ox * d, y: py - oy * d, a: Math.random() * 6 });
