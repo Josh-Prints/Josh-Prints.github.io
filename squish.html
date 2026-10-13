@@ -120,7 +120,7 @@
           <h2>Squish</h2>
           <ul>
             <li>Bubbles at the top <b>float</b> until you shoot them.</li>
-            <li><b>Drag away from a bubble</b> to aim it any way, even up. The further you pull, the faster it flies.</li>
+            <li><b>Pull a bubble back like a slingshot</b> and let go. It flies the opposite way, even up. The further you pull, the faster it goes. Right click, or let go close to the bubble, to cancel.</li>
             <li>Matching numbers merge and double when one of them has been shot into the other. If one was still floating, the new bubble floats too.</li>
             <li>The pile presses on the two discs in the side walls. If both get squashed flat for a few seconds, it's game over.</li>
           </ul>
@@ -151,8 +151,9 @@
 <script type="module">
 /* Squish: a soft-body merge game.
    Up to 5 bubbles float in the shelf above the dotted line; new ones drift in from the sides.
-   Drag a bubble to move it around the shelf (bubbles with the same number merge when they touch),
-   or pull it down past the line to aim: the further you pull, the faster it's fired into the pile.
+   Pull a floating bubble back like a slingshot and let go: it flies the opposite way, faster the
+   further you pulled. Matching numbers merge when one of them has been shot. The pile presses on two
+   discs in the side walls; if both stay squashed flat for a few seconds the game ends.
    Bubbles are rings of points held by springs with an internal pressure that keeps their size, so
    they squash to fill gaps. Signed-in players get saved progress and leaderboard entries. */
 
@@ -567,7 +568,7 @@ function draw(){
   if (grab){
     const b = grab.b; bounds(b);
     if (grab.aiming){
-      const dx = grab.px - b.cx, dy = grab.py - b.cy, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
+      const dx = b.cx - grab.px, dy = b.cy - grab.py, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
       const pw = grab.power;
       // rubber band to the finger
       ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.lineWidth = 2;
@@ -608,7 +609,8 @@ function pick(p){
   return found;
 }
 cv.addEventListener('pointerdown', e => {
-  if (over || !started) return;
+  if (grab && e.button === 2){ grab = null; return; }   // right click cancels a pull
+  if (over || !started || e.button === 2) return;
   const p = toWorld(e), b = pick(p);
   if (!b) return;
   cv.setPointerCapture(e.pointerId);
@@ -621,7 +623,7 @@ cv.addEventListener('pointermove', e => {
   const p = toWorld(e); grab.px = p.x; grab.py = p.y; lastInput = performance.now();
   const b = grab.b; bounds(b);
   const r = Math.sqrt(b.a0 / Math.PI);
-  // pull away from the bubble in any direction to aim; let go close to it to cancel
+  // pull back from the bubble like a slingshot, in any direction; let go close to it to cancel
   const len = Math.hypot(p.x - grab.ax, p.y - grab.ay);
   grab.aiming = len > r + 6;
   grab.power = grab.aiming ? Math.max(0, Math.min(1, (len - r) / 330)) : 0;
@@ -631,13 +633,18 @@ function release(e){
   const g = grab; grab = null;
   if (!g.aiming || g.power < 0.03 || !blobs.includes(g.b)) return;
   const b = g.b; bounds(b);
-  const dx = g.px - b.cx, dy = g.py - b.cy, len = Math.hypot(dx, dy) || 1;
+  // slingshot: it flies the opposite way to the pull
+  const dx = b.cx - g.px, dy = b.cy - g.py, len = Math.hypot(dx, dy) || 1;
   const speed = 220 + g.power * 950;   // top speed ~1170 (was ~1890)
   setVel(b, dx / len * speed, dy / len * speed);
   b.state = 'fly'; b.age = 0; dirty = true;
 }
 cv.addEventListener('pointerup', release);
 cv.addEventListener('pointercancel', () => { grab = null; });
+cv.addEventListener('contextmenu', e => e.preventDefault());
+// a second button pressed mid-pull doesn't send a new pointerdown, so watch mouse buttons too
+cv.addEventListener('mousedown', e => { if (e.button === 2) grab = null; });
+addEventListener('keydown', e => { if (e.key === 'Escape') grab = null; });
 
 document.getElementById('restart').addEventListener('click', () => { net.clearSave(); newGame(); });
 document.querySelectorAll('[data-act="new"]').forEach(b => b.addEventListener('click', () => { net.clearSave(); newGame(); }));
@@ -671,7 +678,7 @@ window.__squish = {
   drop(v, x, y){ blobs.push(makeBlob(v, x, y, 'pile')); },
   shoot(i, tx, ty, power){
     const s = blobs.filter(b => b.state === 'shelf'); const b = s[i % Math.max(1, s.length)]; if (!b) return false;
-    bounds(b); grab = { b, aiming: true, px: tx, py: ty, ax: b.cx, ay: b.cy, power }; release(); return true;
+    bounds(b); grab = { b, aiming: true, px: 2 * b.cx - tx, py: 2 * b.cy - ty, ax: b.cx, ay: b.cy, power }; release(); return true;
   },
 };
 
