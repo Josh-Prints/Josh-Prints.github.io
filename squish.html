@@ -264,17 +264,18 @@ function area(b){
 function integrate(b){
   const floaty = b.state === 'shelf' || b.state === 'enter';
   const damp = floaty ? 0.985 : 0.996;
-  let ay = floaty ? 0 : G;
-  if (floaty){
-    // gentle buoyancy towards the middle of the shelf
-    let cy = 0; for (let i = 0; i < b.n; i++) cy += b.y[i]; cy /= b.n;
+  let ax = 0, ay = floaty ? 0 : G;
+  if (floaty && !(grab && grab.b === b)){
+    // floating bubbles drift towards the centre of the shelf (entering ones keep their sideways push)
+    let cx = 0, cy = 0; for (let i = 0; i < b.n; i++){ cx += b.x[i]; cy += b.y[i]; } cx /= b.n; cy /= b.n;
     ay = ((CEIL + SHELF) * 0.5 - cy) * 7;
+    if (b.state === 'shelf') ax = (W * 0.5 - cx) * 2.2;
   }
-  const g = ay * DT * DT;
+  const gx = ax * DT * DT, g = ay * DT * DT;
   for (let i = 0; i < b.n; i++){
     const vx = (b.x[i] - b.px[i]) * damp, vy = (b.y[i] - b.py[i]) * damp;
     b.px[i] = b.x[i]; b.py[i] = b.y[i];
-    b.x[i] += vx; b.y[i] += vy + g;
+    b.x[i] += vx + gx; b.y[i] += vy + g;
   }
 }
 function edges(b){
