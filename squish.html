@@ -235,7 +235,10 @@ function edgeFloater(left){
 function rndNot(not){ let v = rnd(); for (let k = 0; k < 20 && v === not; k++) v = rnd(); return v; }
 let pendingV = null;   // the next bubble's number, waiting for room in the strip
 function spawn(){
-  const left = Math.random() < 0.5, nb = edgeFloater(left);
+  // arrive on the side with more free room (random if they're about even)
+  const L = edgeFloater(true), R = edgeFloater(false);
+  const gapL = L ? L.minX - WALL : W, gapR = R ? W - WALL - R.maxX : W;
+  const left = Math.abs(gapL - gapR) < 12 ? Math.random() < 0.5 : gapL > gapR, nb = left ? L : R;
   if (pendingV === null || (nb && nb.v === pendingV)) pendingV = rndNot(nb ? nb.v : null);
   if (!roomFor(pendingV)) return false;
   const v = pendingV, r = radiusOf(v); pendingV = null;
@@ -559,6 +562,18 @@ function separate(){
       bounds(A); bounds(B);
       const rA = Math.sqrt(A.a0 / Math.PI), rB = Math.sqrt(B.a0 / Math.PI), need = (rA + rB) * 0.62;
       let dx = B.cx - A.cx, dy = B.cy - A.cy, d = Math.hypot(dx, dy);
+      // one bubble's centre inside the other: it has been swallowed (squashed shapes can hide this from the
+      // distance check), so slide the smaller one out whole before the skins wrap around it
+      const small = A.a0 <= B.a0 ? A : B, big = small === A ? B : A;
+      if (inside(big, small.cx, small.cy)){
+        let ux = small.cx - big.cx, uy = small.cy - big.cy, l = Math.hypot(ux, uy);
+        if (l < 1){ ux = small.cx < W / 2 ? -1 : 1; uy = 0; l = 1; }
+        ux /= l; uy /= l;
+        const mv = Math.max(2, Math.sqrt(small.a0 / Math.PI) * 0.15);
+        for (let k = 0; k < small.n; k++){ small.x[k] += ux * mv; small.y[k] += uy * mv; small.px[k] += ux * mv; small.py[k] += uy * mv; }
+        for (let k = 0; k < big.n; k++){ big.x[k] -= ux * mv * 0.3; big.y[k] -= uy * mv * 0.3; big.px[k] -= ux * mv * 0.3; big.py[k] -= uy * mv * 0.3; }
+        continue;
+      }
       if (d >= need) continue;
       if (d < 1e-3){ dx = 0; dy = 1; d = 1; }
       const push = (need - d) * 0.3, wA = B.a0 / (A.a0 + B.a0), wB = 1 - wA, ux = dx / d, uy = dy / d;
@@ -664,10 +679,9 @@ function step(){
     bounds(b);
     const r = Math.sqrt(b.aT / Math.PI);
     if (b.state === 'enter' && b.cx > WALL + r && b.cx < W - WALL - r) b.state = 'shelf';
-    else if (b.state === 'enter' && b.age > 1.2){
-      const dx = Math.max(WALL + r, Math.min(W - WALL - r, b.cx)) - b.cx;
-      for (let i = 0; i < b.n; i++){ b.x[i] += dx; b.px[i] = b.x[i]; }
-      b.state = 'shelf';
+    else if (b.state === 'enter' && b.age > 3 && (b.cx < WALL || b.cx > W - WALL)){
+      // couldn't squeeze in (the strip filled up meanwhile): take it back out and try again later
+      b.dead = true; if (pendingV === null) pendingV = b.v;
     }
     if (b.state !== 'enter' && (b.minX < WALL - 1 || b.maxX > W - WALL + 1)){
       const dx = b.minX < WALL - 1 ? WALL - b.minX : W - WALL - b.maxX;
