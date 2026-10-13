@@ -168,7 +168,7 @@ const ROW_Y = 66;                  // centre of the floating strip
 const BAND_H = 24;                 // half its height: floating bubbles are squashed flat into it
 const BAND_GAP = 8;                // ...and only as many as fit across the strip side by side
 const G = 1300;
-const DT = 1 / 120, ITER = 4;
+const DT = 1 / 120, ITER = 5;
 // the two pressure discs on the side walls: the pile pushes them into the wall, they spring back out.
 // If both stay pushed all the way in for SQUEEZE_END seconds, the game is over.
 const DISC_Y = SHELF + 40, DISC_R = 26, DISC_OUT = 16, DISC_GIVE = 0.7, DISC_BACK = 2, DISC_IN = 0.2, SQUEEZE_END = 2.5;
@@ -353,6 +353,8 @@ function bounds(b){
     if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
   }
   b.minX = x0; b.maxX = x1; b.minY = y0; b.maxY = y1; b.cx = sx / b.n; b.cy = sy / b.n;
+  let r2 = 0; for (let i = 0; i < b.n; i++){ const dx = b.x[i] - b.cx, dy = b.y[i] - b.cy, d = dx * dx + dy * dy; if (d > r2) r2 = d; }
+  b.rad = Math.sqrt(r2);   // bounding circle around the centre
 }
 function area(b){
   let s = 0;
@@ -387,12 +389,41 @@ function edges(b){
     b.x[i] += dx * k; b.y[i] += dy * k; b.x[j] -= dx * k; b.y[j] -= dy * k;
   }
   // bending: points two apart keep some distance, so the skin bends into soft corners but can't fold into creases or tails
-  const L2 = L * 1.55;
+  const L2 = L * 1.7;
   for (let i = 0; i < n; i++){
     const j = (i + 2) % n, dx = b.x[j] - b.x[i], dy = b.y[j] - b.y[i], d = Math.sqrt(dx * dx + dy * dy) || 1e-6;
     if (d >= L2) continue;
-    const k = (d - L2) / d * 0.25;
+    const k = (d - L2) / d * 0.5;
     b.x[i] += dx * k; b.y[i] += dy * k; b.x[j] -= dx * k; b.y[j] -= dy * k;
+  }
+}
+// light smoothing: each point eases towards the middle of its two neighbours, which irons out knots and folds
+function smooth(b, k){
+  const n = b.n;
+  for (let i = 0; i < n; i++){
+    const p = i === 0 ? n - 1 : i - 1, j = i === n - 1 ? 0 : i + 1;
+    b.x[i] += ((b.x[p] + b.x[j]) * 0.5 - b.x[i]) * k; b.y[i] += ((b.y[p] + b.y[j]) * 0.5 - b.y[i]) * k;
+  }
+}
+// untwist: if the skin has crossed over itself in a small loop (edge i→i+1 crossing a nearby edge j→j+1),
+// reversing the points between the two edges undoes the loop
+function untwist(b){
+  const n = b.n, X = b.x, Y = b.y, PX = b.px, PY = b.py;
+  for (let i = 0; i < n; i++){
+    const i1 = (i + 1) % n, x1 = X[i], y1 = Y[i], x2 = X[i1], y2 = Y[i1];
+    for (let m = 2; m <= 5; m++){
+      const j = (i + m) % n, j1 = (j + 1) % n, x3 = X[j], y3 = Y[j], x4 = X[j1], y4 = Y[j1];
+      const den = (x2 - x1) * (y4 - y3) - (y2 - y1) * (x4 - x3);
+      if (!den) continue;
+      const t = ((x3 - x1) * (y4 - y3) - (y3 - y1) * (x4 - x3)) / den, u = ((x3 - x1) * (y2 - y1) - (y3 - y1) * (x2 - x1)) / den;
+      if (!(t > 0 && t < 1 && u > 0 && u < 1)) continue;
+      for (let a = 0, bb = m - 1; a < bb; a++, bb--){   // reverse points i+1 .. i+m
+        const p = (i + 1 + a) % n, q = (i + 1 + bb) % n;
+        let tmp = X[p]; X[p] = X[q]; X[q] = tmp; tmp = Y[p]; Y[p] = Y[q]; Y[q] = tmp;
+        tmp = PX[p]; PX[p] = PX[q]; PX[q] = tmp; tmp = PY[p]; PY[p] = PY[q]; PY[q] = tmp;
+      }
+      break;
+    }
   }
 }
 function pressure(b){
@@ -463,20 +494,35 @@ function inside(b, x, y){
   }
   return c;
 }
+// Each bubble has a thin skin that others are kept outside of: points of A that are inside B, or closer to B's
+// outline than SKIN, are pushed back out (A's point and B's nearest edge each take half the move). The skin also
+// stops an edge sliding between two points of the other bubble, which is how soft bubbles used to clip through.
+const SKIN = 1.6;
 function resolve(A, B){
   let hit = false;
+  const x0 = B.minX - SKIN, x1 = B.maxX + SKIN, y0 = B.minY - SKIN, y1 = B.maxY + SKIN, rr = (B.rad + SKIN) * (B.rad + SKIN);
   for (let i = 0; i < A.n; i++){
     const x = A.x[i], y = A.y[i];
-    if (x < B.minX || x > B.maxX || y < B.minY || y > B.maxY || !inside(B, x, y)) continue;
-    hit = true;
-    let bestD = 1e9, bk = 0, bt = 0, bqx = 0, bqy = 0;
-    for (let k = 0; k < B.n; k++){
-      const k2 = (k + 1) % B.n, ex = B.x[k2] - B.x[k], ey = B.y[k2] - B.y[k], el = ex * ex + ey * ey || 1e-6;
-      let t = ((x - B.x[k]) * ex + (y - B.y[k]) * ey) / el; t = t < 0 ? 0 : t > 1 ? 1 : t;
-      const qx = B.x[k] + ex * t, qy = B.y[k] + ey * t, d = (qx - x) * (qx - x) + (qy - y) * (qy - y);
+    if (x < x0 || x > x1 || y < y0 || y > y1) continue;
+    if ((x - B.cx) * (x - B.cx) + (y - B.cy) * (y - B.cy) > rr) continue;   // outside B's bounding circle
+    // one pass over B's edges: inside/outside (ray crossing) and the nearest point on the outline
+    let ins = false, bestD = 1e9, bk = 0, bt = 0, bqx = 0, bqy = 0;
+    const bx = B.x, by = B.y, bn = B.n;
+    for (let k = 0; k < bn; k++){
+      const k2 = k + 1 === bn ? 0 : k + 1, ax0 = bx[k], ay0 = by[k], ax1 = bx[k2], ay1 = by[k2];
+      if ((ay0 > y) !== (ay1 > y) && x < (ax1 - ax0) * (y - ay0) / (ay1 - ay0) + ax0) ins = !ins;
+      const ex = ax1 - ax0, ey = ay1 - ay0, el = ex * ex + ey * ey || 1e-6;
+      let t = ((x - ax0) * ex + (y - ay0) * ey) / el; t = t < 0 ? 0 : t > 1 ? 1 : t;
+      const qx = ax0 + ex * t, qy = ay0 + ey * t, d = (qx - x) * (qx - x) + (qy - y) * (qy - y);
       if (d < bestD){ bestD = d; bk = k; bt = t; bqx = qx; bqy = qy; }
     }
-    const dx = bqx - x, dy = bqy - y;
+    const d = Math.sqrt(bestD);
+    if (!ins && d >= SKIN) continue;
+    hit = true;
+    let nx, ny;
+    if (d > 1e-4){ nx = (ins ? bqx - x : x - bqx) / d; ny = (ins ? bqy - y : y - bqy) / d; }
+    else { nx = x - B.cx; ny = y - B.cy; const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l; }
+    const move = ins ? d + SKIN : SKIN - d, dx = nx * move, dy = ny * move;
     A.x[i] += dx * 0.5; A.y[i] += dy * 0.5;
     const k3 = (bk + 1) % B.n, w0 = (1 - bt) * 0.5, w1 = bt * 0.5;
     B.x[bk] -= dx * w0; B.y[bk] -= dy * w0; B.x[k3] -= dx * w1; B.y[k3] -= dy * w1;
@@ -590,9 +636,9 @@ function step(){
   }
   applyGrab();
   for (let it = 0; it < ITER; it++){
-    for (const b of blobs){ edges(b); pressure(b); }
+    for (const b of blobs){ edges(b); smooth(b, 0.06); pressure(b); }
     collide();
-    for (const b of blobs){ if (it === ITER - 1) shapeMatch(b, b.state === 'enter' ? 0.06 : b.state === 'shelf' ? 0.01 : SQUISH_SHAPE); walls(b); discPush(b); }
+    for (const b of blobs){ if (it === ITER - 1){ untwist(b); } if (it === ITER - 1) shapeMatch(b, b.state === 'enter' ? 0.06 : b.state === 'shelf' ? 0.01 : SQUISH_SHAPE); walls(b); discPush(b); }
     separate();
   }
   doMerges();
@@ -669,12 +715,28 @@ function drawBlob(b){
   ctx.lineWidth = 3.4; ctx.strokeStyle = '#05060a'; ctx.lineJoin = 'round'; ctx.stroke();
   if (b.flash > 0){ ctx.globalAlpha = b.flash * 0.6; ctx.fillStyle = '#fff'; blobPath(b); ctx.fill(); ctx.globalAlpha = 1; }
   if (grab && grab.b === b){ ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,.9)'; blobPath(b); ctx.stroke(); }
-  const r = Math.sqrt(Math.abs(area(b)) / Math.PI);
-  const fs = Math.max(13, Math.min(42, r * (String(b.v).length > 3 ? 0.42 : 0.55)));
-  ctx.font = '800 ' + fs + 'px ui-rounded, "SF Pro Rounded", "Trebuchet MS", system-ui, sans-serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = 'rgba(5,6,10,.88)';
-  ctx.fillText(String(b.v), b.cx, b.cy + 1);
+  const r = Math.sqrt(b.a0 / Math.PI);
+  const fs = Math.round(Math.max(13, Math.min(42, r * (String(b.v).length > 3 ? 0.42 : 0.55))));
+  const img = label(b.v, fs);
+  ctx.drawImage(img, b.cx - img.width / (2 * img.k), b.cy + 1 - img.height / (2 * img.k), img.width / img.k, img.height / img.k);
+}
+// numbers are drawn once per value/size into a little canvas and reused (drawing text every frame is slow)
+const labels = new Map();
+function label(v, fs){
+  const k = Math.max(1, Math.ceil(scale * (window.devicePixelRatio || 1) > 2 ? 3 : 2)), key = v + '|' + fs + '|' + k;
+  let c = labels.get(key);
+  if (c) return c;
+  const font = '800 ' + fs + 'px ui-rounded, "SF Pro Rounded", "Trebuchet MS", system-ui, sans-serif';
+  c = document.createElement('canvas');
+  const m = c.getContext('2d'); m.font = font;
+  const w = Math.ceil(m.measureText(String(v)).width) + 6, h = Math.ceil(fs * 1.3);
+  c.width = w * k; c.height = h * k; c.k = k;
+  const g = c.getContext('2d'); g.scale(k, k);
+  g.font = font; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = 'rgba(5,6,10,.88)';
+  g.fillText(String(v), w / 2, h / 2);
+  if (labels.size > 300) labels.clear();
+  labels.set(key, c);
+  return c;
 }
 function drawDiscs(){
   const flash = danger > 0 ? 0.5 + 0.5 * Math.abs(Math.sin(performance.now() / 120)) : 0;
