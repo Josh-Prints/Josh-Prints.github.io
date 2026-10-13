@@ -52,6 +52,8 @@
   a.card.game:hover{ transform: translateY(-4px); }
   .squish-art{ background: #05060a !important; }
   .squish-art svg{ width: 78%; height: auto; opacity: 1; }
+  .dune-art{ padding: 0 !important; overflow: hidden; }
+  .dune-art svg{ width: 100%; height: 100%; opacity: 1; display: block; }
   .card.game h2{ font-size: 17px; margin: 0; }
   .card.game p{ margin: 2px 0 0; font-size: 13.5px; color: var(--fg-muted); }
   .foot{ margin-top: 40px; color: var(--fg-muted); font-size: 13px; display: flex; gap: 18px; flex-wrap: wrap; }
@@ -106,11 +108,11 @@
         <h2>Squish</h2>
         <p>Shoot squishy blobs, merge matching numbers. Play now &rarr;</p>
       </a>
-      <div class="card game" style="--d:0.06s">
-        <div class="game-art"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg></div>
-        <h2>Game 2</h2>
-        <p>Coming soon</p>
-      </div>
+      <a class="card game play" href="/dune.html" style="--d:0.06s">
+        <div class="game-art dune-art"><svg viewBox="0 0 120 80" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="dsky" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2a2350"/><stop offset=".7" stop-color="#d9785a"/><stop offset="1" stop-color="#ffc27a"/></linearGradient></defs><rect width="120" height="80" fill="url(#dsky)"/><circle cx="86" cy="46" r="10" fill="#ffd98a"/><path d="M0 58 Q20 40 42 54 T86 52 T120 50 V80 H0 Z" fill="#eaa95c"/><path d="M0 64 Q22 50 44 62 T90 60 T120 58 V80 H0 Z" fill="#f6c97c"/><path d="M8 40 Q22 26 34 34" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="1 5"/><circle cx="38" cy="36" r="5" fill="#3d8bff" stroke="#05060a" stroke-width="1.5"/></svg></div>
+        <h2>Dune</h2>
+        <p>Dive into the dunes, fly off the tops, outrun the storm. Play now &rarr;</p>
+      </a>
       <div class="card game" style="--d:0.12s">
         <div class="game-art"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg></div>
         <h2>Game 3</h2>

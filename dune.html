@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Dune — Voxprints games</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
+<script src="/looks.js"></script>
+<script src="/error-log.js"></script>
+<style>
+  :root{
+    --canvas: #ffffff; --canvas-inset: #f6f8fa; --border: #d1d9e0; --border-muted: #d8dee4;
+    --fg: #1f2328; --fg-muted: #59636e; --accent: #0969da; --accent-emphasis: #0550ae;
+    --btn-primary-hover: #0860ca; --btn-hover-bg: #f3f4f6;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --canvas: #0d1117; --canvas-inset: #161b22; --border: #30363d; --border-muted: #21262d;
+      --fg: #e6edf3; --fg-muted: #8b949e; --accent: #4493f8; --accent-emphasis: #79c0ff;
+      --btn-primary-hover: #5aa6ff; --btn-hover-bg: #21262d;
+    }
+  }
+  :root[data-theme="dark"]{
+    --canvas: #0d1117; --canvas-inset: #161b22; --border: #30363d; --border-muted: #21262d;
+    --fg: #e6edf3; --fg-muted: #8b949e; --accent: #4493f8; --accent-emphasis: #79c0ff;
+    --btn-primary-hover: #5aa6ff; --btn-hover-bg: #21262d;
+  }
+  *{ box-sizing: border-box; }
+  html, body{ height: 100%; }
+  body{
+    margin: 0; display: flex; flex-direction: column; overflow: hidden;
+    background: var(--canvas); color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .topbar{ display: flex; align-items: center; gap: 10px; padding: 10px max(14px, calc((100% - 1100px) / 2)); border-bottom: 1px solid var(--border-muted); }
+  .topbar a{ color: var(--fg); text-decoration: none; font-weight: 600; font-size: 14px; }
+  .topbar .title{ margin-right: auto; font-weight: 800; letter-spacing: -.01em; }
+  .tbtn{ font: inherit; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 8px; cursor: pointer; background: var(--canvas-inset); color: var(--fg); border: 1px solid var(--border); }
+  .tbtn.lb-toggle{ display: none; }
+
+  .stage{ flex: 1; min-height: 0; display: flex; align-items: stretch; justify-content: center; gap: 20px; padding: 12px; }
+  .side{ width: 170px; display: flex; flex-direction: column; justify-content: center; gap: 16px; min-height: 0; }
+  .side.right{ width: 260px; justify-content: flex-start; overflow-y: auto; padding-top: 4px; }
+  .stat{ text-align: center; }
+  .stat .label{ font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--fg-muted); }
+  .stat .value{ font-size: 32px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .board{ position: relative; flex: 1; min-width: 0; max-width: 1100px; height: 100%; border-radius: 18px; overflow: hidden; }
+  canvas{ display: block; width: 100%; height: 100%; touch-action: none; -webkit-user-select: none; user-select: none; }
+
+  .panel{ background: var(--canvas-inset); border: 1px solid var(--border-muted); border-radius: 14px; padding: 14px; }
+  .panel h3{ margin: 0 0 10px; font-size: 14px; }
+  .panel p{ margin: 0 0 10px; font-size: 13px; color: var(--fg-muted); line-height: 1.5; }
+  .pbtn{ display: flex; width: 100%; align-items: center; justify-content: center; gap: 8px; font: inherit; font-size: 13.5px; font-weight: 600; padding: 9px 12px; border-radius: 9px; cursor: pointer; background: var(--canvas); color: var(--fg); border: 1px solid var(--border); margin-top: 8px; }
+  .pbtn.primary{ background: var(--accent); color: #fff; border-color: transparent; }
+  .pinput{ width: 100%; font: inherit; font-size: 16px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--canvas); color: var(--fg); margin-top: 8px; }
+  .pmsg{ font-size: 12.5px; color: var(--fg-muted); margin-top: 6px; min-height: 1em; }
+  .me-row{ display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; font-size: 13px; }
+  .me-row b{ font-variant-numeric: tabular-nums; }
+  .link{ background: none; border: 0; padding: 0; font: inherit; font-size: 12.5px; color: var(--fg-muted); text-decoration: underline; cursor: pointer; margin-top: 10px; }
+
+  .tabs{ display: flex; gap: 6px; margin-bottom: 10px; }
+  .tab{ flex: 1; font: inherit; font-size: 12.5px; font-weight: 700; padding: 7px 8px; border-radius: 999px; cursor: pointer; background: var(--canvas); color: var(--fg-muted); border: 1px solid var(--border); }
+  .tab.on{ background: var(--accent); color: #fff; border-color: transparent; }
+  .lb{ list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .lb li{ display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: center; font-size: 13.5px; padding: 6px 8px; border-radius: 8px; }
+  .lb li.me{ background: color-mix(in srgb, var(--accent) 16%, transparent); font-weight: 700; }
+  .lb .rk{ color: var(--fg-muted); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .lb .nm{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb .vl{ font-weight: 700; font-variant-numeric: tabular-nums; }
+  .lb-empty{ font-size: 13px; color: var(--fg-muted); padding: 6px 2px; }
+
+  .mobile-stats{ display: none; gap: 18px; justify-content: center; padding: 6px 0 0; }
+  .mobile-stats .stat .value{ font-size: 21px; }
+  .mobile-stats .stat .label{ font-size: 10.5px; }
+
+  .over{ position: absolute; inset: 0; display: grid; place-items: center; background: rgba(5,7,12,.74); border-radius: 18px; padding: 18px; }
+  .over[hidden]{ display: none; }
+  .over-card{ text-align: center; color: #fff; max-width: 300px; }
+  .over-card h2{ margin: 0 0 6px; font-size: 30px; letter-spacing: -.02em; }
+  .over-card .ver{ margin-top: 10px; font-size: 11px; color: #8b949e; }
+  .over-card p{ margin: 0 0 14px; color: #c9d1d9; font-size: 14.5px; line-height: 1.5; }
+  .over-card ul{ text-align: left; margin: 0 0 16px; padding-left: 18px; color: #c9d1d9; font-size: 14px; line-height: 1.5; }
+  .play{ font: inherit; font-size: 16px; font-weight: 700; padding: 11px 26px; border-radius: 999px; cursor: pointer; border: 0; background: var(--accent); color: #fff; margin: 4px; }
+  .play.ghost{ background: rgba(255,255,255,.12); }
+
+  @media (max-width: 980px){
+    .side.left{ display: none; }
+    .mobile-stats{ display: flex; }
+    .tbtn.lb-toggle{ display: inline-block; }
+    .side.right{ display: none; }
+    .side.right.open{ display: flex; position: fixed; z-index: 50; inset: 56px 10px 10px; width: auto; background: var(--canvas); border: 1px solid var(--border); border-radius: 16px; padding: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+    .stage{ padding: 6px 8px 10px; }
+  }
+  .over{ border-radius: 0; }
+  @media (max-width: 980px){ .board{ border-radius: 14px; } }
+</style>
+<link rel="stylesheet" href="/looks.css">
+</head>
+<body>
+  <div class="topbar">
+    <a href="/games.html">&larr; Games</a>
+    <span class="title">Dune</span>
+    <button type="button" class="tbtn lb-toggle" id="lb-toggle">Leaderboard</button>
+    <button type="button" class="tbtn" id="mute" aria-pressed="false">Sound on</button>
+    <button type="button" class="tbtn" id="restart">New run</button>
+  </div>
+  <div class="mobile-stats">
+    <div class="stat"><div class="label">Score</div><div class="value" data-stat="score">0</div></div>
+    <div class="stat"><div class="label">Best</div><div class="value" data-stat="best">0</div></div>
+    <div class="stat"><div class="label">Distance</div><div class="value" data-stat="dist">0 m</div></div>
+  </div>
+  <div class="stage">
+    <div class="side left">
+      <div class="stat"><div class="label">Score</div><div class="value" data-stat="score">0</div></div>
+      <div class="stat"><div class="label">Best</div><div class="value" data-stat="best">0</div></div>
+      <div class="stat"><div class="label">Distance</div><div class="value" data-stat="dist">0 m</div></div>
+    </div>
+    <div class="board" id="board">
+      <canvas id="cv" aria-label="Dune game"></canvas>
+      <div class="over" id="start">
+        <div class="over-card">
+          <h2>Dune</h2>
+          <ul>
+            <li>Your ball rolls over the dunes on its own.</li>
+            <li><b>Hold down</b> (touch, click or Space) to get heavy and dive into the hills. <b>Let go</b> to fly off the tops.</li>
+            <li>Land smoothly on a <b>downhill slope</b> to get a speed boost. Land three in a row for a fever combo.</li>
+            <li>A sandstorm is following you. Keep your speed up or it catches you.</li>
+          </ul>
+          <button type="button" class="play" data-act="new">Play</button>
+          <div class="ver">Version 2026-10-13a</div>
+        </div>
+      </div>
+      <div class="over" id="over" hidden>
+        <div class="over-card">
+          <h2>Caught by the storm!</h2>
+          <p id="over-text"></p>
+          <button type="button" class="play" data-act="new">Ride again</button>
+        </div>
+      </div>
+    </div>
+    <div class="side right" id="side-right">
+      <div class="panel" id="account"><p>Loading…</p></div>
+      <div class="panel">
+        <h3>Leaderboard</h3>
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab on" data-kind="score">Top scores</button>
+          <button type="button" class="tab" data-kind="time">Most played</button>
+        </div>
+        <ol class="lb" id="lb"><li class="lb-empty">Loading…</li></ol>
+      </div>
+    </div>
+  </div>
+
+<script type="module">
+/* Dune: roll a ball over endless sand dunes.
+   Hold (touch, mouse or Space) to get heavy and dive into the hills; let go to fly. Land smoothly on a
+   downslope for a speed boost; chain good landings for a combo. A sandstorm follows you, and if it
+   catches you the run is over. */
+
+/* ======================= world ======================= */
+const VIEW_H = 600;         // world units tall at normal zoom (ground sits near the bottom)
+const BASE = 470;           // average ground height (y grows downwards)
+const R = 15;               // ball radius
+const G = 900, G_HOLD = 3200, DT = 1 / 120;
+const MIN_VX = 110;
+
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let accent = '#4493f8';
+
+let pts = [], ball, holding = false, started = false, over = false, score = 0, best = 0, dist = 0;
+let combo = 0, fever = 0, storm = 0, stormV = 0, playSecs = 0, airT = 0, grounded = false, camX = 0, zoom = 1;
+let pops = [], dust = [], trail = [], landings = [];
+try { best = Number(localStorage.getItem('dune-best')) || 0; } catch (e) {}
+
+function rand(a, b){ return a + Math.random() * (b - a); }
+// hills: alternating valleys and peaks joined by smooth cosine curves; they get wider and taller as you go
+function extendTerrain(toX){
+  while (pts[pts.length - 1].x < toX){
+    const last = pts[pts.length - 1], k = Math.min(1, last.x / 30000), peak = last.peak === false;
+    const w = rand(380, 600) * (1 + k * 0.9), amp = rand(80, 130) * (1 + k * 1.3);
+    pts.push({ x: last.x + w, y: peak ? BASE - amp : BASE + amp * 0.35, peak });
+  }
+  while (pts.length > 4 && pts[2].x < camX - 600) pts.shift();
+}
+function seg(x){
+  let i = 0; while (i < pts.length - 2 && pts[i + 1].x <= x) i++;
+  return i;
+}
+function groundY(x){
+  const i = seg(x), a = pts[i], b = pts[i + 1], t = Math.max(0, Math.min(1, (x - a.x) / (b.x - a.x)));
+  return a.y + (b.y - a.y) * (1 - Math.cos(Math.PI * t)) / 2;
+}
+function groundSlope(x){
+  const i = seg(x), a = pts[i], b = pts[i + 1], t = Math.max(0, Math.min(1, (x - a.x) / (b.x - a.x)));
+  return (b.y - a.y) * Math.PI * Math.sin(Math.PI * t) / (2 * (b.x - a.x));
+}
+
+function newGame(){
+  pts = [{ x: -800, y: BASE - 40, peak: true }, { x: -300, y: BASE + 30, peak: false }, { x: 120, y: BASE - 120, peak: true }];
+  camX = -200; extendTerrain(3000);
+  ball = { x: 0, y: groundY(0) - R, vx: 260, vy: 0 };
+  holding = false; over = false; started = true; score = 0; dist = 0; combo = 0; fever = 0; playSecs = 0; airT = 0;
+  storm = -700; stormV = 150; pops = []; dust = []; trail = [];
+  document.getElementById('start').hidden = true; document.getElementById('over').hidden = true;
+  hud(); sfx.unlock();
+}
+
+function pop(text, color){ pops.push({ text, color, t: 0, x: ball.x, y: ball.y - 40 }); }
+
+function step(){
+  const b = ball;
+  b.vy += (holding ? G_HOLD : G) * DT;
+  b.x += b.vx * DT; b.y += b.vy * DT;
+  const gy = groundY(b.x) - R;
+  if (b.y >= gy){
+    const s = groundSlope(b.x), nl = Math.hypot(s, 1), nx = s / nl, ny = -1 / nl;   // ground normal, pointing up
+    b.y = gy;
+    const vn = b.vx * nx + b.vy * ny, sp = Math.hypot(b.vx, b.vy);
+    if (vn < 0){
+      if (!grounded && airT > 0.35){
+        // how cleanly it met the slope: 0 = skimming along it, 1 = straight into it
+        const q = -vn / Math.max(1, sp);
+        landings.push({ q: +q.toFixed(2), s: +s.toFixed(2), air: +airT.toFixed(2) }); if (landings.length > 50) landings.shift();
+        // landing on a downhill within ~30 degrees of the slope is a perfect landing; slamming into an uphill hurts
+        if (q < 0.5 && s > 0.08){
+          combo++; const boost = 1.10 + Math.min(combo, 8) * 0.015;
+          b.vx *= boost; b.vy *= boost;
+          score += 50 * combo * (fever > 0 ? 2 : 1);
+          pop(combo >= 3 ? 'Perfect ×' + combo : 'Perfect!', '#ffd166'); sfx.perfect(combo);
+          if (combo >= 3) fever = 4;
+        } else if (q > 0.7 && s < 0.08){
+          combo = 0; b.vx *= 0.72; b.vy *= 0.72; pop('Ouch', '#ff6b6b'); sfx.thud(sp);
+          for (let k = 0; k < 10; k++) dust.push({ x: b.x, y: b.y + R, vx: rand(-120, 120), vy: rand(-200, -40), t: 0 });
+        } else { if (s < 0.08) combo = 0; sfx.land(sp); }
+      }
+      b.vx -= vn * nx; b.vy -= vn * ny;   // slide along the ground
+    }
+    grounded = true; airT = 0;
+  } else {
+    if (b.y < gy - 2){ if (grounded) airT = 0; grounded = false; }
+    airT += DT;
+  }
+  if (b.vx < MIN_VX) b.vx = MIN_VX;   // always creeps forward, even when heavy on an uphill
+  b.vx = Math.min(b.vx, 2600);
+  if (fever > 0) fever -= DT;
+
+  dist = Math.max(dist, b.x);
+  // the storm speeds up over time, and catches up quicker the further behind it falls
+  stormV = 230 + playSecs * 3.5;
+  const gap = b.x - storm;
+  storm += (gap > 1400 ? stormV + (gap - 1400) * 0.8 : stormV) * DT;
+  if (storm > b.x - R) endGame();
+}
+
+function endGame(){
+  if (over) return;
+  over = true; holding = false;
+  score = Math.round(score);
+  if (score > best){ best = score; try { localStorage.setItem('dune-best', String(best)); } catch (e) {} }
+  document.getElementById('over-text').textContent = 'Score ' + score.toLocaleString() + ' · ' + Math.round(dist / 10) + ' m' + (net.user ? '' : ' · sign in to get on the leaderboard');
+  document.getElementById('over').hidden = false;
+  sfx.over(); hud(); net.record(true);
+}
+
+/* ======================= drawing ======================= */
+let W = 1, H = 1, base = 1;
+function size(){
+  const r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.max(1, Math.round(r.width * dpr)); cv.height = Math.max(1, Math.round(r.height * dpr));
+  W = cv.width; H = cv.height;
+  base = Math.min(H / VIEW_H, W / (W < H ? 460 : 820));   // pixels per world unit at normal zoom (phones in portrait see a bit less ahead)
+}
+const SAND = ['#f6c97c', '#eaa95c', '#d9893f'];
+function draw(){
+  // camera: ball a third of the way across; zoom out when it flies high
+  const sc0 = base, viewW0 = W / sc0;
+  camX += ((ball.x - viewW0 * 0.32) - camX) * 0.2;
+  const top = Math.min(ball.y - 140, BASE - 300), want = Math.min(1, (H / sc0 - 60) / (VIEW_H + 40 - top));
+  zoom += (want - zoom) * 0.08;
+  const s = sc0 * zoom, bottomY = BASE + 130;   // world y shown at the bottom edge
+  const X = wx => (wx - camX) * s, Y = wy => H - (bottomY - wy) * s;
+  const viewW = W / s;
+  extendTerrain(camX + viewW + 600);
+
+  // sky
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#141a3a'); sky.addColorStop(0.55, '#5b3a6e'); sky.addColorStop(0.85, '#f08a5d'); sky.addColorStop(1, '#ffc27a');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+  // sun
+  const sunX = W * 0.72, sunY = H * 0.62;
+  const glow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, H * 0.35);
+  glow.addColorStop(0, 'rgba(255,214,140,.55)'); glow.addColorStop(1, 'rgba(255,214,140,0)');
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#ffd98a'; ctx.beginPath(); ctx.arc(sunX, sunY, H * 0.07, 0, Math.PI * 2); ctx.fill();
+  // far dunes (parallax)
+  for (const [f, col, off] of [[0.25, 'rgba(120,60,90,.55)', 150], [0.5, 'rgba(176,96,86,.6)', 95]]){
+    ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(0, H);
+    for (let px = 0; px <= W + 8; px += 8){
+      const wx = camX * f + px / s;
+      const wy = BASE - off + Math.sin(wx / 230) * 38 + Math.sin(wx / 97 + 1.3) * 14;
+      ctx.lineTo(px, Y(wy + (bottomY - BASE) * (1 - f) * 0));
+    }
+    ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+  }
+  // the storm, a wall of sand coming in from the left
+  const sx = X(storm);
+  if (sx > -200){
+    const g = ctx.createLinearGradient(sx - 240, 0, sx + 40, 0);
+    g.addColorStop(0, 'rgba(150,95,50,.95)'); g.addColorStop(0.8, 'rgba(190,130,70,.75)'); g.addColorStop(1, 'rgba(190,130,70,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, Math.max(0, sx + 40), H);
+  }
+  // ground with layered sand bands
+  const step = 6;
+  const groundPath = (dy) => { ctx.beginPath(); ctx.moveTo(-4, H); for (let px = -4; px <= W + step; px += step) ctx.lineTo(px, Y(groundY(camX + px / s) + dy)); ctx.lineTo(W + step, H); ctx.closePath(); };
+  groundPath(0); ctx.fillStyle = SAND[0]; ctx.fill();
+  groundPath(26); ctx.fillStyle = SAND[1]; ctx.fill();
+  groundPath(70); ctx.fillStyle = SAND[2]; ctx.fill();
+  ctx.lineWidth = Math.max(2, 3 * s); ctx.strokeStyle = 'rgba(255,240,200,.85)';
+  ctx.beginPath(); for (let px = -4; px <= W + step; px += step){ const y = Y(groundY(camX + px / s)); px === -4 ? ctx.moveTo(px, y) : ctx.lineTo(px, y); } ctx.stroke();
+
+  // trail
+  trail.push({ x: ball.x, y: ball.y, f: fever > 0 });
+  if (trail.length > 40) trail.shift();
+  for (let i = 1; i < trail.length; i++){
+    const a = trail[i - 1], b2 = trail[i], al = i / trail.length;
+    ctx.strokeStyle = b2.f ? 'rgba(255,209,102,' + (al * 0.9) + ')' : 'rgba(255,255,255,' + (al * 0.35) + ')';
+    ctx.lineWidth = R * 2 * s * al * (b2.f ? 0.9 : 0.5); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(X(a.x), Y(a.y)); ctx.lineTo(X(b2.x), Y(b2.y)); ctx.stroke();
+  }
+  // dust
+  dust = dust.filter(d => d.t < 0.8);
+  for (const d of dust){ d.t += 1 / 60; d.vy += 600 / 60; d.x += d.vx / 60; d.y += d.vy / 60; ctx.fillStyle = 'rgba(233,180,110,' + (1 - d.t / 0.8) + ')'; ctx.beginPath(); ctx.arc(X(d.x), Y(d.y), 3 * s + 1, 0, Math.PI * 2); ctx.fill(); }
+  // ball: squashes a little when heavy
+  const bx = X(ball.x), by = Y(ball.y), rr = R * s;
+  ctx.save(); ctx.translate(bx, by);
+  if (holding) ctx.scale(1.12, 0.9);
+  const bg = ctx.createRadialGradient(-rr * 0.35, -rr * 0.4, rr * 0.1, 0, 0, rr);
+  bg.addColorStop(0, '#ffffff'); bg.addColorStop(0.35, fever > 0 ? '#ffd166' : accent); bg.addColorStop(1, fever > 0 ? '#e07a1f' : '#1d4f9e');
+  ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI * 2); ctx.fill();
+  ctx.lineWidth = Math.max(1.5, 2 * s); ctx.strokeStyle = 'rgba(5,6,10,.6)'; ctx.stroke();
+  ctx.restore();
+  // pops
+  pops = pops.filter(p => p.t < 1);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (const p of pops){
+    p.t += 1 / 60;
+    ctx.globalAlpha = 1 - p.t; ctx.fillStyle = p.color;
+    ctx.font = '800 ' + Math.round(Math.max(16, 22 * s)) + 'px ui-rounded, "SF Pro Rounded", system-ui, sans-serif';
+    ctx.fillText(p.text, X(p.x), Y(p.y) - p.t * 40);
+  }
+  ctx.globalAlpha = 1;
+  // storm warning
+  if (started && !over && ball.x - storm < 500){
+    ctx.fillStyle = 'rgba(255,107,107,' + (0.6 + 0.4 * Math.sin(performance.now() / 120)) + ')';
+    ctx.font = '800 ' + Math.round(Math.max(14, H * 0.03)) + 'px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('Storm behind you!', 16, 24);
+  }
+  // hold hint
+  if (holding){ ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(0, H - 6, W, 6); }
+}
+
+function hud(){
+  if (score > best && !over) { /* best updates at the end */ }
+  const set = (k, v) => document.querySelectorAll('[data-stat="' + k + '"]').forEach(e => e.textContent = v);
+  set('score', Math.round(score).toLocaleString()); set('best', Math.max(best, Math.round(score)).toLocaleString());
+  set('dist', Math.round(Math.max(0, dist) / 10) + ' m');
+}
+
+/* ======================= sound (Web Audio, no files) ======================= */
+const sfx = (() => {
+  let ac = null, master = null, muted = false;
+  try { muted = localStorage.getItem('dune-mute') === '1'; } catch (e) {}
+  function ctxA(){
+    if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); master = ac.createGain(); master.gain.value = 0.5; master.connect(ac.destination); } catch (e) { ac = null; } }
+    if (ac && ac.state === 'suspended') ac.resume();
+    return ac;
+  }
+  function tone(f, f2, len, vol, type, delay){
+    const a = !muted && ctxA(); if (!a) return;
+    const t = a.currentTime + (delay || 0), o = a.createOscillator(), g = a.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + len);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + len + 0.02);
+  }
+  return {
+    get muted(){ return muted; },
+    unlock(){ if (!muted) ctxA(); },
+    toggle(){ muted = !muted; try { localStorage.setItem('dune-mute', muted ? '1' : '0'); } catch (e) {} if (!muted) ctxA(); return muted; },
+    perfect(c){ const f = 520 * Math.pow(2, Math.min(c - 1, 10) / 12); tone(f, f * 1.5, 0.16, 0.16, 'triangle'); tone(f * 1.5, f * 2, 0.12, 0.08, 'sine', 0.06); },
+    land(sp){ tone(160, 90, 0.08, Math.min(0.08, sp / 20000), 'sine'); },
+    thud(){ tone(140, 50, 0.22, 0.2, 'sine'); },
+    over(){ [0, 0.15, 0.3].forEach((d, i) => tone(300 / (i + 1), 260 / (i + 1.4), 0.25, 0.14, 'triangle', d)); },
+  };
+})();
+
+/* ======================= loop & input ======================= */
+let acc = 0, last = performance.now(), lastInput = 0;
+function frame(now){
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (started && !over){
+    acc += dt; let n = 0;
+    while (acc >= DT && n < 10){ step(); acc -= DT; n++; }
+    if (n === 10) acc = 0;
+    playSecs += dt; if (!document.hidden && now - lastInput < 120000) net.pendingSecs += dt;
+    score += Math.max(0, ball.vx) * dt * 0.02 * (fever > 0 ? 2 : 1);
+    hud();
+  }
+  draw();
+  requestAnimationFrame(frame);
+}
+const press = on => { if (!started || over) return; holding = on; lastInput = performance.now(); if (on) sfx.unlock(); };
+cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); press(true); });
+cv.addEventListener('pointerup', () => press(false));
+cv.addEventListener('pointercancel', () => press(false));
+cv.addEventListener('contextmenu', e => e.preventDefault());
+addEventListener('keydown', e => { if (e.code === 'Space' || e.code === 'ArrowDown'){ e.preventDefault(); if (!e.repeat) press(true); } });
+addEventListener('keyup', e => { if (e.code === 'Space' || e.code === 'ArrowDown') press(false); });
+addEventListener('blur', () => press(false));
+document.querySelectorAll('[data-act="new"]').forEach(b => b.addEventListener('click', newGame));
+document.getElementById('restart').addEventListener('click', () => { if (started && !over) net.record(false); newGame(); });
+const muteBtn = document.getElementById('mute');
+function showMute(){ muteBtn.textContent = sfx.muted ? 'Sound off' : 'Sound on'; muteBtn.setAttribute('aria-pressed', String(sfx.muted)); }
+muteBtn.addEventListener('click', () => { sfx.toggle(); showMute(); });
+showMute();
+addEventListener('resize', size);
+if ('ResizeObserver' in window) new ResizeObserver(size).observe(cv);
+// a calm demo ride behind the start screen
+pts = [{ x: -800, y: BASE - 40, peak: true }, { x: -300, y: BASE + 30, peak: false }, { x: 120, y: BASE - 120, peak: true }];
+extendTerrain(3000); ball = { x: 0, y: groundY(0) - R, vx: 0, vy: 0 };
+size(); hud(); requestAnimationFrame(frame);
+
+// for automated tests
+window.__dune = {
+  get ball(){ return ball; }, get score(){ return score; }, get over(){ return over; }, get combo(){ return combo; }, get storm(){ return storm; },
+  get landings(){ return landings; },
+  start: newGame, hold: on => press(on), ground: x => groundY(x), slope: x => groundSlope(x),
+};
+
+/* ======================= accounts & leaderboards ======================= */
+const net = {
+  sb: null, user: null, pendingSecs: 0, kind: 'score',
+  async record(finished){
+    if (!this.sb || !this.user) return;
+    const secs = Math.round(this.pendingSecs); this.pendingSecs -= secs;
+    const { data } = await this.sb.rpc('game_record', { p_game: 'dune', p_score: Math.round(score), p_seconds: secs, p_finished: !!finished });
+    if (data) this.renderMe(data);
+    this.loadBoard();
+  },
+  async loadBoard(){
+    const el = document.getElementById('lb');
+    if (!this.sb){ el.innerHTML = '<li class="lb-empty">Leaderboard unavailable right now.</li>'; return; }
+    const { data, error } = await this.sb.rpc('game_leaderboard', { p_game: 'dune', p_kind: this.kind, p_limit: 10 });
+    if (error){ el.innerHTML = '<li class="lb-empty">Couldn’t load the leaderboard.</li>'; return; }
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const val = v => this.kind === 'time' ? fmtLong(v) : Number(v).toLocaleString();
+    el.innerHTML = (data || []).length
+      ? data.map(r => '<li class="' + (r.me ? 'me' : '') + '"><span class="rk">' + r.rank + '</span><span class="nm">' + esc(r.name) + '</span><span class="vl">' + val(r.value) + '</span></li>').join('')
+      : '<li class="lb-empty">No one yet. Be the first!</li>';
+  },
+  renderMe(st){
+    if (!this.user) return;
+    const box = document.getElementById('me-stats'); if (!box || !st) return;
+    box.innerHTML = '<span>Best score</span><b>' + Number(st.best_score || 0).toLocaleString() + (st.score_rank ? ' <small>#' + st.score_rank + '</small>' : '') + '</b>' +
+      '<span>Time played</span><b>' + fmtLong(st.total_seconds || 0) + (st.time_rank ? ' <small>#' + st.time_rank + '</small>' : '') + '</b>' +
+      '<span>Runs</span><b>' + (st.games_played || 0) + '</b>';
+    const nm = document.getElementById('me-name'); if (nm) nm.textContent = st.name;
+    const setName = document.getElementById('name-box'); if (setName) setName.hidden = st.name !== 'Player';
+  },
+  renderAccount(){
+    const box = document.getElementById('account');
+    if (!this.sb){ box.innerHTML = '<p>Sign-in is unavailable right now. You can still play.</p>'; return; }
+    if (this.user){
+      box.innerHTML = '<h3>Playing as <span id="me-name">…</span></h3><div class="me-row" id="me-stats"></div>' +
+        '<div id="name-box" hidden><p style="margin-top:10px">Pick a name for the leaderboard:</p><input class="pinput" id="name-in" maxlength="40" placeholder="Your name"><button type="button" class="pbtn primary" id="name-save">Save name</button><div class="pmsg" id="name-msg"></div></div>' +
+        '<button type="button" class="link" id="sign-out">Sign out</button>';
+      document.getElementById('sign-out').onclick = async () => { await this.sb.auth.signOut(); };
+      document.getElementById('name-save').onclick = async () => {
+        const name = document.getElementById('name-in').value.trim(), msg = document.getElementById('name-msg');
+        if (!name){ msg.textContent = 'Type a name first.'; return; }
+        const { error } = await this.sb.from('customer_profiles').upsert({ id: this.user.id, email: this.user.email, full_name: name });
+        if (error){ msg.textContent = 'Couldn’t save: ' + error.message; return; }
+        const { data } = await this.sb.rpc('game_my_stats', { p_game: 'dune' }); this.renderMe(data); this.loadBoard();
+      };
+      this.sb.rpc('game_my_stats', { p_game: 'dune' }).then(({ data }) => this.renderMe(data));
+      return;
+    }
+    box.innerHTML = '<h3>Get on the leaderboard</h3><p>Sign in to save your best runs and time played.</p>' +
+      '<button type="button" class="pbtn" id="g-in"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>Sign in with Google</button>' +
+      '<input class="pinput" id="em-in" type="email" placeholder="or your email" autocomplete="email">' +
+      '<button type="button" class="pbtn" id="em-send">Email me a code</button>' +
+      '<div id="code-box" hidden><input class="pinput" id="code-in" inputmode="numeric" maxlength="6" placeholder="6-digit code"><button type="button" class="pbtn primary" id="code-go">Sign in</button></div>' +
+      '<div class="pmsg" id="em-msg"></div>';
+    document.getElementById('g-in').onclick = () => { this.sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } }); };
+    let pendingEmail = '';
+    document.getElementById('em-send').onclick = async () => {
+      const email = document.getElementById('em-in').value.trim(), msg = document.getElementById('em-msg');
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ msg.textContent = 'Type your email first.'; return; }
+      msg.textContent = 'Sending…';
+      const { error } = await this.sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+      if (error){ msg.textContent = error.message; return; }
+      pendingEmail = email; document.getElementById('code-box').hidden = false; msg.textContent = 'Check your email for a 6-digit code.';
+    };
+    document.getElementById('code-go').onclick = async () => {
+      const token = document.getElementById('code-in').value.trim(), msg = document.getElementById('em-msg');
+      const { error } = await this.sb.auth.verifyOtp({ email: pendingEmail, token, type: 'email' });
+      msg.textContent = error ? 'That code didn’t work. Try again.' : '';
+    };
+  }
+};
+function fmtLong(s){ s = Math.round(Number(s) || 0); const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60; return h ? h + 'h ' + m + 'm' : m ? m + 'm ' + (s % 60) + 's' : s + 's'; }
+
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
+  net.kind = t.dataset.kind; net.loadBoard();
+}));
+document.getElementById('lb-toggle').addEventListener('click', () => document.getElementById('side-right').classList.toggle('open'));
+document.addEventListener('click', e => {
+  const side = document.getElementById('side-right');
+  if (side.classList.contains('open') && !side.contains(e.target) && e.target.id !== 'lb-toggle') side.classList.remove('open');
+});
+setInterval(() => { if (net.pendingSecs >= 5) net.record(false); }, 30000);
+document.addEventListener('visibilitychange', () => { if (document.hidden){ press(false); if (net.pendingSecs >= 1) net.record(false); } });
+
+(async () => {
+  try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    net.sb = createClient('https://paycasfatsakidsriwqt.supabase.co', 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv');
+  } catch (e) { net.sb = null; }
+  if (!net.sb){ net.renderAccount(); net.loadBoard(); return; }
+  const { data } = await net.sb.auth.getSession();
+  net.user = data && data.session ? data.session.user : null;
+  net.renderAccount(); net.loadBoard();
+  net.sb.auth.onAuthStateChange((_ev, session) => {
+    const u = session ? session.user : null;
+    if ((u && u.id) === (net.user && net.user.id)) return;
+    net.user = u; net.renderAccount(); net.loadBoard();
+  });
+})();
+</script>
+</body>
+</html>

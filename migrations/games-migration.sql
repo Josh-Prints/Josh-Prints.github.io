@@ -92,3 +92,10 @@ revoke all on function public.game_my_stats(text) from public, anon;
 grant execute on function public.game_record(text, bigint, int, boolean) to authenticated;
 grant execute on function public.game_my_stats(text) to authenticated;
 grant execute on function public.game_leaderboard(text, text, int) to anon, authenticated;
+
+-- Dune (added later): allow 'dune' rows and scores.
+alter table public.game_stats drop constraint if exists game_stats_game_check;
+alter table public.game_stats add constraint game_stats_game_check check (game in ('squish', 'dune'));
+alter table public.game_saves drop constraint if exists game_saves_game_check;
+alter table public.game_saves add constraint game_saves_game_check check (game in ('squish', 'dune'));
+-- game_record: the game check reads  if p_game not in ('squish', 'dune') then raise exception 'unknown game'; end if;
