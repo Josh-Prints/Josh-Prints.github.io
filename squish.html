@@ -121,7 +121,7 @@
           <ul>
             <li>Bubbles at the top <b>float</b> until you shoot them.</li>
             <li><b>Drag away from a bubble</b> to aim it any way, even up. The further you pull, the faster it flies.</li>
-            <li>Matching numbers that touch merge and double. If one of them was still floating, the new bubble floats too.</li>
+            <li>Matching numbers merge and double when one of them has been shot into the other. If one was still floating, the new bubble floats too.</li>
             <li>Keep the pile below the dotted line.</li>
           </ul>
           <div id="start-buttons"><button type="button" class="play" data-act="new">Play</button></div>
@@ -356,6 +356,8 @@ function resolve(A, B){
   return hit;
 }
 let mergeQ = [];
+const MERGE_COOLDOWN = 0.3;   // seconds a freshly merged bubble waits before it can merge again
+const wasShot = b => b.state === 'fly' || b.state === 'pile';
 function collide(){
   const n = blobs.length;
   for (let i = 0; i < n; i++) bounds(blobs[i]);
@@ -365,7 +367,8 @@ function collide(){
       const B = blobs[j];
       if (A.maxX < B.minX - 2 || B.maxX < A.minX - 2 || A.maxY < B.minY - 2 || B.maxY < A.minY - 2) continue;
       const h1 = resolve(A, B), h2 = resolve(B, A);
-      if ((h1 || h2) && A.v === B.v && !A.merged && !B.merged && A.state !== 'enter' && B.state !== 'enter'){ A.merged = B.merged = true; mergeQ.push([A, B]); }
+      // matching numbers merge only if at least one of them has been shot, and neither has just merged
+      if ((h1 || h2) && A.v === B.v && !A.merged && !B.merged && (wasShot(A) || wasShot(B)) && !(A.cool > 0) && !(B.cool > 0)){ A.merged = B.merged = true; mergeQ.push([A, B]); }
     }
   }
 }
@@ -387,7 +390,7 @@ function doMerges(){
       nb.x[i] = cx + Math.cos(a) * rr; nb.y[i] = cy + Math.sin(a) * rr;
       nb.px[i] = nb.x[i] - vx; nb.py[i] = nb.y[i] - vy;
     }
-    nb.a0 = startA; nb.age = 2; nb.flash = 1;
+    nb.a0 = startA; nb.age = 2; nb.flash = 1; nb.cool = MERGE_COOLDOWN;
     if (grab && (grab.b === A || grab.b === B)) grab = null;
     blobs = blobs.filter(b => b !== A && b !== B);
     blobs.push(nb);
@@ -414,6 +417,7 @@ function step(){
     b.age += DT;
     if (b.a0 < b.aT) b.a0 = Math.min(b.aT, b.a0 + b.aT * 0.03);
     if (b.flash > 0) b.flash = Math.max(0, b.flash - DT * 3);
+    if (b.cool > 0) b.cool -= DT;
     integrate(b);
   }
   applyGrab();
