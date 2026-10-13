@@ -132,7 +132,7 @@
             <li>A sandstorm is following you. Keep your speed up or it catches you.</li>
           </ul>
           <button type="button" class="play" data-act="new">Play</button>
-          <div class="ver">Version 2026-10-13b</div>
+          <div class="ver">Version 2026-10-13c</div>
         </div>
       </div>
       <div class="over" id="over" hidden>
@@ -198,8 +198,16 @@ function placeCoins(a, b){
     const n = 5 + Math.floor(Math.random() * 5), t0 = rand(0.15, 0.4);
     for (let i = 0; i < n; i++){ const x = a.x + (b.x - a.x) * (t0 + i * 0.06); coins.push({ x, y: groundY(x) - R - 2, a: Math.random() * 6 }); }
   } else if (r < 0.75 && b.peak){
-    const n = 6 + Math.floor(Math.random() * 4), cx = b.x, h = rand(120, 230) * (1 + Math.min(1, b.x / 30000)), span = (b.x - a.x) * 0.9;
-    for (let i = 0; i < n; i++){ const u = i / (n - 1), x = cx - span / 2 + span * u; coins.push({ x, y: b.y - 40 - h * 4 * u * (1 - u), a: Math.random() * 6 }); }
+    // follow the path the ball flies when it launches off this hilltop at a typical speed for this far in:
+    // leave along the slope near the top, then fall under normal gravity (not holding)
+    const k = Math.min(1, b.x / 30000), sp = rand(560, 820) * (1 + k * 0.9);
+    const lx = a.x + (b.x - a.x) * 0.85, sl = groundSlope(lx), nl = Math.hypot(1, sl);
+    let x = lx, y = groundY(lx) - R, vx = sp / nl, vy = sp * sl / nl;
+    const skip = 0.12 + Math.random() * 0.1, gap = 0.075, n = 7 + Math.floor(Math.random() * 4);
+    for (let i = 0; i < n; i++){
+      const t = skip + i * gap;
+      coins.push({ x: x + vx * t, y: y + vy * t + 0.5 * G * t * t, a: Math.random() * 6 });
+    }
   }
   coins.sort((p, q) => p.x - q.x);   // kept in order along the course (collecting and drawing rely on it)
 }
