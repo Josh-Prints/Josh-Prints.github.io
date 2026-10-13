@@ -123,7 +123,7 @@
             <li>Bubbles at the top <b>float</b> until you shoot them.</li>
             <li><b>Drag away from a bubble</b> to aim it any way, even up. The further you pull, the faster it flies. Right click, or let go close to the bubble, to cancel.</li>
             <li>Matching numbers merge and double when one of them has been shot into the other, or when a new bubble drifts into a match as it arrives. If one was still floating, the new bubble floats too.</li>
-            <li>The pile presses on the two discs in the side walls. If both get squashed flat for a few seconds, it's game over.</li>
+            <li>The pile presses on the two discs in the side walls. If both get squashed flat for a few seconds, or the pile reaches the floating strip, it's game over.</li>
           </ul>
           <div id="start-buttons"><button type="button" class="play" data-act="new">Play</button></div>
         </div>
@@ -151,7 +151,8 @@
 
 <script type="module">
 /* Squish: a soft-body merge game.
-   Up to 5 bubbles float in the shelf above the dotted line; new ones drift in from the sides.
+   Floating bubbles are squashed side by side into a strip at the top; new ones drift in from the sides
+   while there's room (two big ones fill it, small ones fit four).
    Drag away from a floating bubble to aim and let go: it flies towards where you pulled, faster the
    further you pulled. Matching numbers merge when one of them has been shot or has just spawned. The pile presses on two
    discs in the side walls; if both stay squashed flat for a few seconds the game ends.
@@ -161,14 +162,16 @@
 /* ======================= physics + game ======================= */
 const W = 400, H = 760;
 const WALL = 14, CEIL = 14, FLOOR = H - 14;
-const SHELF = 196;                 // the dotted line; the shelf is above it, the pile below
-const SHELF_MAX = 4;
-const ROW_Y = (CEIL + 196) * 0.5;   // height of the floating row
+const SHELF = 128;                 // the dotted line; the shelf is above it, the pile below
+const SHELF_MAX = 4;               // never more than this many floating at once...
+const ROW_Y = 66;                  // centre of the floating strip
+const BAND_H = 24;                 // half its height: floating bubbles are squashed flat into it
+const BAND_GAP = 8;                // ...and only as many as fit across the strip side by side
 const G = 1300;
 const DT = 1 / 120, ITER = 4;
 // the two pressure discs on the side walls: the pile pushes them into the wall, they spring back out.
 // If both stay pushed all the way in for SQUEEZE_END seconds, the game is over.
-const DISC_Y = SHELF + 40, DISC_R = 26, DISC_OUT = 16, DISC_GIVE = 0.5, DISC_BACK = 3, DISC_IN = 0.2, SQUEEZE_END = 2.5;
+const DISC_Y = SHELF + 40, DISC_R = 26, DISC_OUT = 16, DISC_GIVE = 0.7, DISC_BACK = 2, DISC_IN = 0.2, SQUEEZE_END = 2.5;
 
 const COLORS = {
   1: '#ff4d5e', 2: '#ffd93d', 4: '#6bea5c', 8: '#ff9d2e', 16: '#3d8bff', 32: '#a855f7',
@@ -195,7 +198,7 @@ function rnd(){
 function makeBlob(v, x, y, state){
   const r = radiusOf(v), n = Math.max(16, Math.min(48, Math.round(2 * Math.PI * r / 9)));
   const b = { id: nextId++, v, n, state: state || 'shelf', x: new Float64Array(n), y: new Float64Array(n), px: new Float64Array(n), py: new Float64Array(n),
-    a0: Math.PI * r * r, aT: Math.PI * r * r, rest: 2 * Math.PI * r / n, age: 0, merged: false, cx: x, cy: y, minX: 0, maxX: 0, minY: 0, maxY: 0, flash: 0 };
+    a0: Math.PI * r * r, aT: Math.PI * r * r, rest: 2 * Math.PI * r / n * 1.04, age: 0, merged: false, cx: x, cy: y, minX: 0, maxX: 0, minY: 0, maxY: 0, flash: 0 };
   for (let i = 0; i < n; i++){
     const a = i / n * Math.PI * 2;
     b.x[i] = b.px[i] = x + Math.cos(a) * r;
@@ -205,6 +208,18 @@ function makeBlob(v, x, y, state){
 }
 function setVel(b, vx, vy){ for (let i = 0; i < b.n; i++){ b.px[i] = b.x[i] - vx * DT; b.py[i] = b.y[i] - vy * DT; } }
 function shelfCount(){ return blobs.filter(b => b.state === 'shelf' || b.state === 'enter').length; }
+// how wide a bubble is once it's squashed into the floating strip (its area spread over the strip's height)
+function bandWidth(v){
+  const r = radiusOf(v);
+  return r <= BAND_H ? 2 * r : (Math.PI * r * r - Math.PI * BAND_H * BAND_H) / (2 * BAND_H) + 2 * BAND_H;
+}
+// a bubble of value v only arrives if there's room for it in the strip: two big ones fill it, small ones fit four
+function roomFor(v){
+  if (shelfCount() >= SHELF_MAX) return false;
+  let used = 0;
+  for (const b of blobs) if (b.state === 'shelf' || b.state === 'enter') used += bandWidth(b.v) + BAND_GAP;
+  return used + bandWidth(v) <= W - 2 * WALL;
+}
 
 // the floating bubble nearest the given side (where a new one will arrive next to)
 function edgeFloater(left){
@@ -218,14 +233,18 @@ function edgeFloater(left){
 }
 // a random value that isn't `not` (so two of the same don't arrive next to each other)
 function rndNot(not){ let v = rnd(); for (let k = 0; k < 20 && v === not; k++) v = rnd(); return v; }
+let pendingV = null;   // the next bubble's number, waiting for room in the strip
 function spawn(){
   const left = Math.random() < 0.5, nb = edgeFloater(left);
-  const v = rndNot(nb ? nb.v : null), r = radiusOf(v);
+  if (pendingV === null || (nb && nb.v === pendingV)) pendingV = rndNot(nb ? nb.v : null);
+  if (!roomFor(pendingV)) return false;
+  const v = pendingV, r = radiusOf(v); pendingV = null;
   const b = makeBlob(v, left ? -r - 2 : W + r + 2, ROW_Y, 'enter');
   setVel(b, left ? 260 : -260, 0);
   sfx.spawn();
   b.fresh = true;   // a newly spawned bubble merges with a match it bumps into on its way in
   blobs.push(b);
+  return true;
 }
 
 
@@ -285,10 +304,11 @@ const sfx = (() => {
 function newGame(){
   blobs = []; score = 0; over = false; danger = 0; pops = []; grab = null; playSecs = 0; spawnT = 0;
   for (const d of discs) d.e = 1;
-  let prev = null;
-  for (let i = 0; i < SHELF_MAX; i++){
-    const v = rndNot(prev), r = radiusOf(v); prev = v;
-    blobs.push(makeBlob(v, WALL + r + 6 + (W - 2 * WALL - 2 * r - 12) * (i + 0.5) / SHELF_MAX, ROW_Y, 'shelf'));
+  // start with three in the strip, no two matching side by side; more drift in while there's room
+  let prev = null; pendingV = null;
+  for (let i = 0; i < 3; i++){
+    const v = rndNot(prev); prev = v;
+    blobs.push(makeBlob(v, W * (i + 1) / 4, ROW_Y, 'shelf'));
   }
   started = true; dirty = true;
   document.getElementById('over').hidden = true;
@@ -349,7 +369,7 @@ function integrate(b){
     // Entering bubbles get a steady push inwards so they always make it inside.
     let cx = 0, cy = 0; for (let i = 0; i < b.n; i++){ cx += b.x[i]; cy += b.y[i]; } cx /= b.n; cy /= b.n;
     ay = (ROW_Y - cy) * 26;
-    if (b.state === 'shelf') ax = (W * 0.5 - cx) * 1.2;
+    if (b.state === 'shelf') ax = (W * 0.5 - cx) * 3;   // pressed together in the middle
     else ax = (cx < W / 2 ? 1 : -1) * 900;
   }
   const gx = ax * DT * DT, g = ay * DT * DT;
@@ -363,7 +383,15 @@ function edges(b){
   const n = b.n, L = b.rest;
   for (let i = 0; i < n; i++){
     const j = (i + 1) % n, dx = b.x[j] - b.x[i], dy = b.y[j] - b.y[i], d = Math.sqrt(dx * dx + dy * dy) || 1e-6;
-    const k = (d - L) / d * 0.45;
+    const k = (d < L ? (d - L) * 0.45 : (d - L) * 0.2) / d;   // skin resists squeezing more than stretching, so blobs can go boxy
+    b.x[i] += dx * k; b.y[i] += dy * k; b.x[j] -= dx * k; b.y[j] -= dy * k;
+  }
+  // bending: points two apart keep some distance, so the skin bends into soft corners but can't fold into creases or tails
+  const L2 = L * 1.55;
+  for (let i = 0; i < n; i++){
+    const j = (i + 2) % n, dx = b.x[j] - b.x[i], dy = b.y[j] - b.y[i], d = Math.sqrt(dx * dx + dy * dy) || 1e-6;
+    if (d >= L2) continue;
+    const k = (d - L2) / d * 0.25;
     b.x[i] += dx * k; b.y[i] += dy * k; b.x[j] -= dx * k; b.y[j] -= dy * k;
   }
 }
@@ -401,7 +429,12 @@ function walls(b){
       else if (b.x[i] > W - WALL){ b.x[i] = W - WALL; b.py[i] += (b.y[i] - b.py[i]) * 0.1; }
     }
     if (b.y[i] < CEIL) b.y[i] = CEIL;
-    if (shelfFloor && b.y[i] > SHELF - 2){ b.y[i] -= (b.y[i] - (SHELF - 2)) * 0.25; b.px[i] += (b.x[i] - b.px[i]) * 0.15; }
+    if (shelfFloor){
+      // floating bubbles are squashed into the strip; soft, so an overfull strip bulges instead of fighting itself
+      // (no sideways friction here, so they slide along the strip and press together)
+      if (b.y[i] > ROW_Y + BAND_H) b.y[i] -= (b.y[i] - (ROW_Y + BAND_H)) * 0.4;
+      else if (b.y[i] < ROW_Y - BAND_H) b.y[i] += (ROW_Y - BAND_H - b.y[i]) * 0.4;
+    }
     if (b.y[i] > FLOOR){ b.y[i] = FLOOR; b.px[i] += (b.x[i] - b.px[i]) * 0.2; }
   }
 }
@@ -452,15 +485,15 @@ function resolve(A, B){
 }
 // How squishy settled bubbles are: how hard they pull back towards a round shape (lower = squishier).
 // Their volume is held by pressure, so they squash and bulge rather than shrink.
-const SQUISH_SHAPE = 0.006;
+const SQUISH_SHAPE = 0.0015;
 // Keeps bubbles from ending up inside one another (e.g. when a merge grows over a neighbour, or a fast shot
 // punches through): if two centres get much closer than their sizes allow, the pair is eased apart as wholes.
 function separate(){
   const n = blobs.length;
   for (let i = 0; i < n; i++){
-    const A = blobs[i]; if (A.state === 'enter') continue;
+    const A = blobs[i]; if (A.state === 'enter' && (A.cx < WALL || A.cx > W - WALL)) continue;
     for (let j = i + 1; j < n; j++){
-      const B = blobs[j]; if (B.state === 'enter') continue;
+      const B = blobs[j]; if (B.state === 'enter' && (B.cx < WALL || B.cx > W - WALL)) continue;
       if (A.maxX < B.minX || B.maxX < A.minX || A.maxY < B.minY || B.maxY < A.minY) continue;
       bounds(A); bounds(B);
       const rA = Math.sqrt(A.a0 / Math.PI), rB = Math.sqrt(B.a0 / Math.PI), need = (rA + rB) * 0.62;
@@ -559,7 +592,7 @@ function step(){
   for (let it = 0; it < ITER; it++){
     for (const b of blobs){ edges(b); pressure(b); }
     collide();
-    for (const b of blobs){ if (it === ITER - 1) shapeMatch(b, b.state === 'shelf' || b.state === 'enter' ? 0.03 : SQUISH_SHAPE); walls(b); discPush(b); }
+    for (const b of blobs){ if (it === ITER - 1) shapeMatch(b, b.state === 'enter' ? 0.06 : b.state === 'shelf' ? 0.01 : SQUISH_SHAPE); walls(b); discPush(b); }
     separate();
   }
   doMerges();
@@ -586,9 +619,11 @@ function step(){
 function rules(dt){
   if (over || !started) return;
   spawnT -= dt;
-  if (spawnT <= 0 && shelfCount() < SHELF_MAX){ spawn(); spawnT = 0.55; }
+  if (spawnT <= 0){ spawnT = spawn() ? 0.55 : 0.15; }
   // both side discs squashed flat into the walls for long enough ends the game
-  const squashed = discs.every(d => d.e < DISC_IN);
+  // (a settled pile bubble reaching right up into the floating strip counts too, so a soft pile can't flow past them)
+  const intoStrip = blobs.some(b => b.state === 'pile' && b.age > 1.2 && b.minY < ROW_Y + BAND_H);
+  const squashed = discs.every(d => d.e < DISC_IN) || intoStrip;
   const was = danger;
   danger = squashed ? danger + dt : Math.max(0, danger - dt * 2);
   if (squashed && Math.floor(danger / 0.5) !== Math.floor(was / 0.5)) sfx.warn();   // ticks while both discs are in
@@ -793,7 +828,7 @@ function frame(now){
 addEventListener('resize', size);
 if ('ResizeObserver' in window) new ResizeObserver(size).observe(cv);
 // a calm demo board behind the start screen
-for (let i = 0; i < SHELF_MAX; i++){ const v = [1, 2, 4, 2][i], r = radiusOf(v); blobs.push(makeBlob(v, WALL + r + 6 + (W - 2 * WALL - 2 * r - 12) * (i + 0.5) / SHELF_MAX, CEIL + (SHELF - CEIL) * 0.5, 'shelf')); }
+[2, 1, 4].forEach((v, i) => blobs.push(makeBlob(v, W * (i + 1) / 4, ROW_Y, 'shelf')));
 size(); hud(); requestAnimationFrame(frame);
 
 // for automated tests
