@@ -380,7 +380,11 @@ function resolve(A, B){
   return hit;
 }
 let mergeQ = [];
-const MERGE_COOLDOWN = 0.3;   // seconds a freshly merged bubble waits before it can merge again
+const MERGE_COOLDOWN = 0.3;   // seconds a freshly merged bubble waits before it can merge again...
+const MERGE_COOLDOWN_MAX = 3; // ...times how many merges in a row made it (0.3 s, 0.6 s, 0.9 s, ...), up to this
+const CHAIN_WINDOW = 2;       // a merge counts as "in a row" if it happens within this long after the cooldown ends
+// how many merges in a row a bubble is the result of (0 once its chain has gone cold)
+const chainOf = b => b.chain && b.sinceMerge < b.coolTotal + CHAIN_WINDOW ? b.chain : 0;
 const wasShot = b => b.state === 'fly' || b.state === 'pile';
 function collide(){
   const n = blobs.length;
@@ -414,7 +418,9 @@ function doMerges(){
       nb.x[i] = cx + Math.cos(a) * rr; nb.y[i] = cy + Math.sin(a) * rr;
       nb.px[i] = nb.x[i] - vx; nb.py[i] = nb.y[i] - vy;
     }
-    nb.a0 = startA; nb.age = 2; nb.flash = 1; nb.cool = MERGE_COOLDOWN;
+    nb.a0 = startA; nb.age = 2; nb.flash = 1;
+    nb.chain = Math.max(chainOf(A), chainOf(B)) + 1;
+    nb.cool = nb.coolTotal = Math.min(MERGE_COOLDOWN_MAX, MERGE_COOLDOWN * nb.chain); nb.sinceMerge = 0;
     if (grab && (grab.b === A || grab.b === B)) grab = null;
     blobs = blobs.filter(b => b !== A && b !== B);
     blobs.push(nb);
@@ -442,6 +448,7 @@ function step(){
     if (b.a0 < b.aT) b.a0 = Math.min(b.aT, b.a0 + b.aT * 0.03);
     if (b.flash > 0) b.flash = Math.max(0, b.flash - DT * 3);
     if (b.cool > 0) b.cool -= DT;
+    if (b.chain) b.sinceMerge += DT;
     integrate(b);
   }
   applyGrab();
