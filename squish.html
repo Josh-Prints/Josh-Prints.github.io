@@ -454,6 +454,29 @@ function pressure(b){
     b.x[i] += (ty / tl) * push; b.y[i] += (-tx / tl) * push;
   }
 }
+// floating bubbles are held to a clean pill shape that fills the strip's height (a plain circle when small enough
+// to fit), so they can't settle into peanuts, necks or dents; neighbours can still press their ends a little
+function capsuleMatch(b, k){
+  const n = b.n; let cx = 0, cy = 0;
+  for (let i = 0; i < n; i++){ cx += b.x[i]; cy += b.y[i]; }
+  cx /= n; cy /= n;
+  const r = Math.sqrt(b.a0 / Math.PI), h = Math.min(r, BAND_H);
+  const a = r <= BAND_H ? r : (b.a0 - Math.PI * h * h) / (4 * h) + h;   // half-width with the same area
+  const c = a - h;
+  for (let i = 0; i < n; i++){
+    let dx = b.x[i] - cx, dy = b.y[i] - cy; const l = Math.hypot(dx, dy);
+    if (l < 1e-6) continue;
+    dx /= l; dy /= l;
+    // distance from the centre to the pill's outline in this direction
+    let sd = Math.abs(dy) > 1e-6 ? h / Math.abs(dy) : 1e9;
+    if (Math.abs(sd * dx) > c){
+      const cc = dx < 0 ? -c : c;
+      sd = cc * dx + Math.sqrt(Math.max(0, h * h - cc * cc * dy * dy));
+    }
+    const gx = cx + dx * sd, gy = cy + dy * sd;
+    b.x[i] += (gx - b.x[i]) * k; b.y[i] += (gy - b.y[i]) * k;
+  }
+}
 function shapeMatch(b, k){
   const n = b.n; let cx = 0, cy = 0;
   for (let i = 0; i < n; i++){ cx += b.x[i]; cy += b.y[i]; }
@@ -666,7 +689,7 @@ function step(){
   for (let it = 0; it < ITER; it++){
     for (const b of blobs){ edges(b); smooth(b, 0.06); pressure(b); }
     collide();
-    for (const b of blobs){ if (it === ITER - 1){ untwist(b); if ((b.id + stepNo) % 2 === 0) selfRepel(b); } if (it === ITER - 1) shapeMatch(b, b.state === 'enter' ? 0.06 : b.state === 'shelf' ? 0.01 : SQUISH_SHAPE); walls(b); discPush(b); }
+    for (const b of blobs){ if (it === ITER - 1){ untwist(b); if ((b.id + stepNo) % 2 === 0) selfRepel(b); } if (b.state === 'shelf') capsuleMatch(b, 0.2); else if (it === ITER - 1) shapeMatch(b, b.state === 'enter' ? 0.06 : SQUISH_SHAPE); walls(b); discPush(b); }
     separate();
   }
   doMerges();
