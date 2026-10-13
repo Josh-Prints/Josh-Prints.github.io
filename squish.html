@@ -122,7 +122,7 @@
             <li>Bubbles at the top <b>float</b> until you shoot them.</li>
             <li><b>Drag away from a bubble</b> to aim it any way, even up. The further you pull, the faster it flies.</li>
             <li>Matching numbers merge and double when one of them has been shot into the other. If one was still floating, the new bubble floats too.</li>
-            <li>Keep the pile below the dotted line.</li>
+            <li>The pile presses on the two discs in the side walls. If both get squashed flat for a few seconds, it's game over.</li>
           </ul>
           <div id="start-buttons"><button type="button" class="play" data-act="new">Play</button></div>
         </div>
@@ -164,6 +164,9 @@ const SHELF_MAX = 5;
 const ROW_Y = (CEIL + 196) * 0.5;   // height of the floating row
 const G = 1300;
 const DT = 1 / 120, ITER = 4;
+// the two pressure discs on the side walls: the pile pushes them into the wall, they spring back out.
+// If both stay pushed all the way in for SQUEEZE_END seconds, the game is over.
+const DISC_Y = SHELF + 40, DISC_R = 26, DISC_OUT = 16, DISC_GIVE = 0.5, DISC_BACK = 3, DISC_IN = 0.2, SQUEEZE_END = 2.5;
 
 const COLORS = {
   1: '#ff4d5e', 2: '#ffd93d', 4: '#6bea5c', 8: '#ff9d2e', 16: '#3d8bff', 32: '#a855f7',
@@ -177,6 +180,7 @@ const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
 let accent = '#4493f8';
 
 let blobs = [], score = 0, best = 0, over = false, started = false, danger = 0, pops = [], nextId = 1;
+const discs = [{ side: -1, e: 1 }, { side: 1, e: 1 }];   // e: 1 = fully out, 0 = pushed flat into the wall
 let spawnT = 0, playSecs = 0, grab = null, dirty = false;
 try { best = Number(localStorage.getItem('squish-best')) || 0; } catch (e) {}
 
@@ -209,6 +213,7 @@ function spawn(){
 
 function newGame(){
   blobs = []; score = 0; over = false; danger = 0; pops = []; grab = null; playSecs = 0; spawnT = 0;
+  for (const d of discs) d.e = 1;
   for (let i = 0; i < SHELF_MAX; i++){
     const v = rnd(), r = radiusOf(v);
     blobs.push(makeBlob(v, WALL + r + 6 + (W - 2 * WALL - 2 * r - 12) * (i + 0.5) / SHELF_MAX, ROW_Y, 'shelf'));
@@ -221,6 +226,7 @@ function newGame(){
 }
 function restore(st){
   blobs = []; nextId = 1; grab = null; pops = []; danger = 0; over = false;
+  for (const d of discs) d.e = 1;
   (st.blobs || []).forEach(o => {
     if (!COLORS[o.v] && o.v !== 16384) return;
     const s = o.s === 'pile' ? 'pile' : 'shelf';
@@ -327,6 +333,23 @@ function walls(b){
     if (b.y[i] > FLOOR){ b.y[i] = FLOOR; b.px[i] += (b.x[i] - b.px[i]) * 0.2; }
   }
 }
+const discX = d => d.side < 0 ? WALL + d.e * DISC_OUT - DISC_R : W - WALL - d.e * DISC_OUT + DISC_R;
+function discPush(b){
+  // points of the pile that overlap a disc are pushed back out; the disc gives way a little each time
+  if (b.state !== 'pile' && b.state !== 'fly') return;
+  if (b.maxY < DISC_Y - DISC_R || b.minY > DISC_Y + DISC_R) return;
+  for (const d of discs){
+    if (d.side < 0 ? b.minX > WALL + DISC_OUT : b.maxX < W - WALL - DISC_OUT) continue;
+    const cx = discX(d);
+    for (let i = 0; i < b.n; i++){
+      const dx = b.x[i] - cx, dy = b.y[i] - DISC_Y, dd = dx * dx + dy * dy;
+      if (dd >= DISC_R * DISC_R) continue;
+      const dl = Math.sqrt(dd) || 1e-6, depth = DISC_R - dl;
+      b.x[i] += dx / dl * depth * (1 - DISC_GIVE); b.y[i] += dy / dl * depth * (1 - DISC_GIVE);
+      d.e = Math.max(0, d.e - depth * Math.abs(dx / dl) * DISC_GIVE / DISC_OUT);   // the disc takes part of the overlap
+    }
+  }
+}
 function inside(b, x, y){
   let c = false;
   for (let i = 0, j = b.n - 1; i < b.n; j = i++){
@@ -424,9 +447,10 @@ function step(){
   for (let it = 0; it < ITER; it++){
     for (const b of blobs){ edges(b); if (it === 0) pressure(b); }
     collide();
-    for (const b of blobs){ if (it === ITER - 1) shapeMatch(b, 0.02); walls(b); }
+    for (const b of blobs){ if (it === ITER - 1) shapeMatch(b, 0.02); walls(b); discPush(b); }
   }
   doMerges();
+  for (const d of discs) d.e = Math.min(1, d.e + DISC_BACK * DT / DISC_OUT);
   for (const b of blobs){
     bounds(b);
     const r = Math.sqrt(b.aT / Math.PI);
@@ -449,10 +473,10 @@ function rules(dt){
   if (over || !started) return;
   spawnT -= dt;
   if (spawnT <= 0 && shelfCount() < SHELF_MAX){ spawn(); spawnT = 0.55; }
-  let high = false;
-  for (const b of blobs) if (b.state === 'pile' && b.age > 1.2 && b.minY < SHELF){ high = true; break; }
-  danger = high ? danger + dt : Math.max(0, danger - dt * 2);
-  if (danger > 2.4) endGame();
+  // both side discs squashed flat into the walls for long enough ends the game
+  const squashed = discs.every(d => d.e < DISC_IN);
+  danger = squashed ? danger + dt : Math.max(0, danger - dt * 2);
+  if (danger > SQUEEZE_END) endGame();
 }
 function endGame(){
   over = true; grab = null;
@@ -500,6 +524,27 @@ function drawBlob(b){
   ctx.fillStyle = 'rgba(5,6,10,.88)';
   ctx.fillText(String(b.v), b.cx, b.cy + 1);
 }
+function drawDiscs(){
+  const flash = danger > 0 ? 0.5 + 0.5 * Math.abs(Math.sin(performance.now() / 120)) : 0;
+  for (const d of discs){
+    const cx = discX(d), inward = d.e < DISC_IN;
+    // the disc, clipped to the inside of the box
+    ctx.save();
+    ctx.beginPath(); ctx.rect(d.side < 0 ? WALL - 4 : 0, 0, d.side < 0 ? W : W - WALL + 4, H); ctx.clip();
+    ctx.beginPath(); ctx.arc(cx, DISC_Y, DISC_R, 0, Math.PI * 2);
+    ctx.fillStyle = inward ? 'rgba(255,77,94,' + (0.35 + 0.5 * flash) + ')' : '#2a2f38'; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = inward ? '#ff4d5e' : 'rgba(255,255,255,.55)'; ctx.stroke();
+    ctx.restore();
+  }
+  if (danger > 0){
+    // countdown ring between the discs while both are squashed in
+    const t = Math.min(1, danger / SQUEEZE_END);
+    ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,77,94,.9)';
+    for (const x of [WALL + 22, W - WALL - 22]){
+      ctx.beginPath(); ctx.arc(x, DISC_Y - DISC_R - 22, 9, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * t); ctx.stroke();
+    }
+  }
+}
 function draw(){
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, cv.width, cv.height);
@@ -512,11 +557,12 @@ function draw(){
   ctx.lineWidth = 6; ctx.strokeStyle = accent; ctx.globalAlpha = 0.55; roundRect(3, 3, W - 6, H - 6, 22); ctx.stroke(); ctx.globalAlpha = 1;
   ctx.save();
   ctx.setLineDash([8, 10]); ctx.lineWidth = 2;
-  ctx.strokeStyle = danger > 0 ? 'rgba(255,77,94,' + (0.5 + 0.5 * Math.abs(Math.sin(performance.now() / 120))) + ')' : 'rgba(255,255,255,.22)';
+  ctx.strokeStyle = 'rgba(255,255,255,.22)';
   ctx.beginPath(); ctx.moveTo(WALL, SHELF); ctx.lineTo(W - WALL, SHELF); ctx.stroke();
   ctx.restore();
 
   for (const b of blobs) if (!(grab && grab.b === b)) drawBlob(b);
+  drawDiscs();
 
   if (grab){
     const b = grab.b; bounds(b);
@@ -621,7 +667,8 @@ size(); hud(); requestAnimationFrame(frame);
 
 // for automated tests
 window.__squish = {
-  get blobs(){ return blobs; }, get score(){ return score; }, get over(){ return over; }, get secs(){ return playSecs; }, start: newGame,
+  get blobs(){ return blobs; }, get score(){ return score; }, get over(){ return over; }, get secs(){ return playSecs; }, get discs(){ return discs.map(d => d.e); }, get danger(){ return danger; }, start: newGame,
+  drop(v, x, y){ blobs.push(makeBlob(v, x, y, 'pile')); },
   shoot(i, tx, ty, power){
     const s = blobs.filter(b => b.state === 'shelf'); const b = s[i % Math.max(1, s.length)]; if (!b) return false;
     bounds(b); grab = { b, aiming: true, px: tx, py: ty, ax: b.cx, ay: b.cy, power }; release(); return true;
