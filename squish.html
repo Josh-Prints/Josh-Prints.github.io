@@ -127,7 +127,7 @@
             <li>The pile presses on the two discs in the side walls. If both get squashed flat for a few seconds, or the pile reaches the floating strip, it's game over.</li>
           </ul>
           <div id="start-buttons"><button type="button" class="play" data-act="new">Play</button></div>
-          <div class="ver">Version 2026-10-13e</div>
+          <div class="ver">Version 2026-10-13f</div>
         </div>
       </div>
       <div class="over" id="over" hidden>
@@ -418,7 +418,7 @@ function integrate(b){
   // firmly back down out of it
   if (b.state === 'pile'){
     let top = 1e9; for (let i = 0; i < b.n; i++) if (b.y[i] < top) top = b.y[i];
-    if (top < ROW_Y + BAND_H + 6) ay += 5200;
+    if (top < ROW_Y + BAND_H + 6) ay += 9000;
   }
   const gx = ax * DT * DT, g = ay * DT * DT;
   for (let i = 0; i < b.n; i++){
@@ -520,6 +520,9 @@ function capsuleMatch(b, k, findOffset){
   const n = b.n; let cx = 0, cy = 0;
   for (let i = 0; i < n; i++){ cx += b.x[i]; cy += b.y[i]; }
   cx /= n; cy /= n;
+  // the pill sits on the strip's centre line (a floater knocked off it is pulled back, not reshaped around
+  // where it ended up, which fought the strip's edges and left it hanging out of the strip like a teardrop)
+  const cyB = cy; cy = ROW_Y;
   const r = Math.sqrt(b.a0 / Math.PI), h = Math.min(r, BAND_H);
   const a = r <= BAND_H ? r : (b.a0 - Math.PI * h * h) / (4 * h) + h;   // half-width with the same area
   const c = a - h, per = 4 * c + 2 * Math.PI * h;
@@ -535,7 +538,7 @@ function capsuleMatch(b, k, findOffset){
     let best = 1e18, bo = 0;
     for (let o = 0; o < n; o++){
       let e = 0;
-      for (let i = 0; i < n; i += 2){ const j = (i + o) % n, dx = b.x[i] - cx - P.px[j], dy = b.y[i] - cy - P.py[j]; e += dx * dx + dy * dy; }
+      for (let i = 0; i < n; i += 2){ const j = (i + o) % n, dx = b.x[i] - cx - P.px[j], dy = b.y[i] - cyB - P.py[j]; e += dx * dx + dy * dy; }
       if (e < best){ best = e; bo = o; }
     }
     b.pillOff = bo;
@@ -607,12 +610,12 @@ function inside(b, x, y){
 // outline than SKIN, are pushed back out (A's point and B's nearest edge each take half the move). The skin also
 // stops an edge sliding between two points of the other bubble, which is how soft bubbles used to clip through.
 const SKIN = 1.6;
-const FRICTION = 0.35;
+const FRICTION = 0.015;
 function resolve(A, B){
   let hit = false;
   // how much of each push goes to A's point vs B's edge (heavier = bigger = moves less)
   // (capped, so a tiny bubble under a huge one still pushes back enough not to be crushed flat)
-  let mA = Math.max(0.2, Math.min(0.8, B.a0 / (A.a0 + B.a0))), fr = FRICTION;
+  let mA = Math.max(0.44, Math.min(0.56, B.a0 / (A.a0 + B.a0))), fr = FRICTION;
   // a floating bubble and a shot/settled one: the floater gives way and there's no grip, so a bubble that ends up
   // in the strip can't get pinched and held up there by the floaters either side of it - it just drops back out
   const fA = A.state === 'shelf' || A.state === 'enter', fB = B.state === 'shelf' || B.state === 'enter';
@@ -725,17 +728,23 @@ function doMerges(){
     const cx = (A.cx * aA + B.cx * aB) / (aA + aB), cy = (A.cy * aA + B.cy * aB) / (aA + aB);
     const floating = A.state === 'shelf' || A.state === 'enter' || B.state === 'shelf' || B.state === 'enter';
     const state = floating ? 'shelf' : 'pile';
-    const nb = makeBlob(A.v * 2, cx, cy, state);
+    // a merge in the floating strip starts at rest, on the strip's centre line (it used to carry the shot
+    // bubble's speed and slam into its neighbours); a merge in the pile keeps half the shot's momentum
+    const my = floating ? ROW_Y : cy;
+    const nb = makeBlob(A.v * 2, cx, my, state);
     const startA = Math.max(aA, aB), rr = Math.sqrt(startA / Math.PI);
     let vx = 0, vy = 0;
-    for (let i = 0; i < A.n; i++){ vx += A.x[i] - A.px[i]; vy += A.y[i] - A.py[i]; }
-    vx /= A.n * 2; vy /= A.n * 2;
+    if (!floating){
+      for (let i = 0; i < A.n; i++){ vx += A.x[i] - A.px[i]; vy += A.y[i] - A.py[i]; }
+      vx /= A.n * 2; vy /= A.n * 2;
+    }
     for (let i = 0; i < nb.n; i++){
       const a = i / nb.n * Math.PI * 2;
-      nb.x[i] = cx + Math.cos(a) * rr; nb.y[i] = cy + Math.sin(a) * rr;
+      nb.x[i] = cx + Math.cos(a) * rr; nb.y[i] = my + Math.sin(a) * rr;
       nb.px[i] = nb.x[i] - vx; nb.py[i] = nb.y[i] - vy;
     }
     nb.a0 = startA; nb.age = 2; nb.flash = 1;
+    if (floating){ capsuleMatch(nb, 1, true); for (let i = 0; i < nb.n; i++){ nb.px[i] = nb.x[i]; nb.py[i] = nb.y[i]; } }   // born as a pill
     nb.chain = Math.max(chainOf(A), chainOf(B)) + 1;
     nb.cool = nb.coolTotal = Math.min(MERGE_COOLDOWN_MAX, MERGE_COOLDOWN * nb.chain); nb.sinceMerge = 0;
     if (grab && (grab.b === A || grab.b === B)) grab = null;
