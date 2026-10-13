@@ -120,7 +120,7 @@
           <h2>Squish</h2>
           <ul>
             <li>Bubbles at the top <b>float</b> until you shoot them.</li>
-            <li><b>Pull a bubble back like a slingshot</b> and let go. It flies the opposite way, even up. The further you pull, the faster it goes. Right click, or let go close to the bubble, to cancel.</li>
+            <li><b>Drag away from a bubble</b> to aim it any way, even up. The further you pull, the faster it flies. Right click, or let go close to the bubble, to cancel.</li>
             <li>Matching numbers merge and double when one of them has been shot into the other. If one was still floating, the new bubble floats too.</li>
             <li>The pile presses on the two discs in the side walls. If both get squashed flat for a few seconds, it's game over.</li>
           </ul>
@@ -151,7 +151,7 @@
 <script type="module">
 /* Squish: a soft-body merge game.
    Up to 5 bubbles float in the shelf above the dotted line; new ones drift in from the sides.
-   Pull a floating bubble back like a slingshot and let go: it flies the opposite way, faster the
+   Drag away from a floating bubble to aim and let go: it flies towards where you pulled, faster the
    further you pulled. Matching numbers merge when one of them has been shot. The pile presses on two
    discs in the side walls; if both stay squashed flat for a few seconds the game ends.
    Bubbles are rings of points held by springs with an internal pressure that keeps their size, so
@@ -568,7 +568,7 @@ function draw(){
   if (grab){
     const b = grab.b; bounds(b);
     if (grab.aiming){
-      const dx = b.cx - grab.px, dy = b.cy - grab.py, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
+      const dx = grab.px - b.cx, dy = grab.py - b.cy, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
       const pw = grab.power;
       // rubber band to the finger
       ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.lineWidth = 2;
@@ -623,7 +623,7 @@ cv.addEventListener('pointermove', e => {
   const p = toWorld(e); grab.px = p.x; grab.py = p.y; lastInput = performance.now();
   const b = grab.b; bounds(b);
   const r = Math.sqrt(b.a0 / Math.PI);
-  // pull back from the bubble like a slingshot, in any direction; let go close to it to cancel
+  // pull away from the bubble in any direction to aim; let go close to it to cancel
   const len = Math.hypot(p.x - grab.ax, p.y - grab.ay);
   grab.aiming = len > r + 6;
   grab.power = grab.aiming ? Math.max(0, Math.min(1, (len - r) / 330)) : 0;
@@ -633,8 +633,7 @@ function release(e){
   const g = grab; grab = null;
   if (!g.aiming || g.power < 0.03 || !blobs.includes(g.b)) return;
   const b = g.b; bounds(b);
-  // slingshot: it flies the opposite way to the pull
-  const dx = b.cx - g.px, dy = b.cy - g.py, len = Math.hypot(dx, dy) || 1;
+  const dx = g.px - b.cx, dy = g.py - b.cy, len = Math.hypot(dx, dy) || 1;
   const speed = 220 + g.power * 950;   // top speed ~1170 (was ~1890)
   setVel(b, dx / len * speed, dy / len * speed);
   b.state = 'fly'; b.age = 0; dirty = true;
@@ -678,7 +677,7 @@ window.__squish = {
   drop(v, x, y){ blobs.push(makeBlob(v, x, y, 'pile')); },
   shoot(i, tx, ty, power){
     const s = blobs.filter(b => b.state === 'shelf'); const b = s[i % Math.max(1, s.length)]; if (!b) return false;
-    bounds(b); grab = { b, aiming: true, px: 2 * b.cx - tx, py: 2 * b.cy - ty, ax: b.cx, ay: b.cy, power }; release(); return true;
+    bounds(b); grab = { b, aiming: true, px: tx, py: ty, ax: b.cx, ay: b.cy, power }; release(); return true;
   },
 };
 
