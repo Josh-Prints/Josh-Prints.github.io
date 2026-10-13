@@ -119,9 +119,9 @@
         <div class="over-card">
           <h2>Squish</h2>
           <ul>
-            <li><b>Drag</b> a bubble at the top to move it. Push matching numbers together to merge them.</li>
-            <li><b>Pull a bubble down</b> past the dotted line to aim. The further you pull, the faster it flies.</li>
-            <li>Matching numbers that touch merge and double.</li>
+            <li>Bubbles at the top <b>float</b> until you shoot them.</li>
+            <li><b>Drag away from a bubble</b> to aim it any way, even up. The further you pull, the faster it flies.</li>
+            <li>Matching numbers that touch merge and double. If one of them was still floating, the new bubble floats too.</li>
             <li>Keep the pile below the dotted line.</li>
           </ul>
           <div id="start-buttons"><button type="button" class="play" data-act="new">Play</button></div>
@@ -319,7 +319,7 @@ function walls(b){
       else if (b.x[i] > W - WALL){ b.x[i] = W - WALL; b.py[i] += (b.y[i] - b.py[i]) * 0.1; }
     }
     if (b.y[i] < CEIL) b.y[i] = CEIL;
-    if (shelfFloor && b.y[i] > SHELF - 2){ b.y[i] = SHELF - 2; b.px[i] += (b.x[i] - b.px[i]) * 0.15; }
+    if (shelfFloor && b.y[i] > SHELF - 2){ b.y[i] -= (b.y[i] - (SHELF - 2)) * 0.25; b.px[i] += (b.x[i] - b.px[i]) * 0.15; }
     if (b.y[i] > FLOOR){ b.y[i] = FLOOR; b.px[i] += (b.x[i] - b.px[i]) * 0.2; }
   }
 }
@@ -371,7 +371,8 @@ function doMerges(){
     bounds(A); bounds(B);
     const aA = Math.abs(area(A)), aB = Math.abs(area(B));
     const cx = (A.cx * aA + B.cx * aB) / (aA + aB), cy = (A.cy * aA + B.cy * aB) / (aA + aB);
-    const state = cy < SHELF ? 'shelf' : 'pile';
+    const floating = A.state === 'shelf' || A.state === 'enter' || B.state === 'shelf' || B.state === 'enter';
+    const state = floating ? 'shelf' : 'pile';
     const nb = makeBlob(A.v * 2, cx, cy, state);
     const startA = Math.max(aA, aB), rr = Math.sqrt(startA / Math.PI);
     let vx = 0, vy = 0;
@@ -398,11 +399,8 @@ function applyGrab(){
   if (!grab) return;
   const b = grab.b; bounds(b);
   const r = Math.sqrt(b.a0 / Math.PI);
-  let tx, ty;
-  if (grab.aiming){ tx = grab.ax; ty = grab.ay; }
-  else { tx = grab.px - grab.ox; ty = grab.py - grab.oy; }
-  tx = Math.max(WALL + r * 0.8, Math.min(W - WALL - r * 0.8, tx));
-  ty = Math.max(CEIL + r * 0.8, Math.min(SHELF - r * 0.85, ty));
+  const tx = Math.max(WALL + r * 0.8, Math.min(W - WALL - r * 0.8, grab.ax));
+  const ty = Math.max(CEIL + r * 0.8, grab.ay);
   const dx = (tx - b.cx) * 0.25, dy = (ty - b.cy) * 0.25;
   for (let i = 0; i < b.n; i++){ b.x[i] += dx; b.y[i] += dy; b.px[i] += dx * 0.85; b.py[i] += dy * 0.85; }
 }
@@ -426,7 +424,7 @@ function step(){
     const r = Math.sqrt(b.aT / Math.PI);
     if (b.state === 'enter' && b.cx > WALL + r && b.cx < W - WALL - r) b.state = 'shelf';
     if (b.state === 'enter' && (b.cx < -3 * r || b.cx > W + 3 * r)) b.dead = true;
-    if (b.state === 'fly' && (b.cy > SHELF + r * 0.4 || b.age > 1.6)){ b.state = 'pile'; b.age = 0; }
+    if (b.state === 'fly' && b.age > 0.4){ b.state = 'pile'; b.age = 0; }
   }
   if (blobs.some(b => b.dead)) blobs = blobs.filter(b => !b.dead);
 }
@@ -553,7 +551,7 @@ cv.addEventListener('pointerdown', e => {
   if (!b) return;
   cv.setPointerCapture(e.pointerId);
   bounds(b);
-  grab = { b, pid: e.pointerId, px: p.x, py: p.y, ox: p.x - b.cx, oy: p.y - b.cy, aiming: false, ax: 0, ay: 0, power: 0 };
+  grab = { b, pid: e.pointerId, px: p.x, py: p.y, aiming: false, ax: b.cx, ay: b.cy, power: 0 };
   lastInput = performance.now();
 });
 cv.addEventListener('pointermove', e => {
@@ -561,17 +559,10 @@ cv.addEventListener('pointermove', e => {
   const p = toWorld(e); grab.px = p.x; grab.py = p.y; lastInput = performance.now();
   const b = grab.b; bounds(b);
   const r = Math.sqrt(b.a0 / Math.PI);
-  if (!grab.aiming && p.y > SHELF + 6){
-    grab.aiming = true;
-    grab.ax = Math.max(WALL + r, Math.min(W - WALL - r, b.cx));
-    grab.ay = Math.min(b.cy, SHELF - r * 0.85);
-  } else if (grab.aiming && p.y < SHELF - 6){
-    grab.aiming = false; grab.ox = 0; grab.oy = 0;
-  }
-  if (grab.aiming){
-    const len = Math.hypot(p.x - grab.ax, p.y - grab.ay);
-    grab.power = Math.max(0, Math.min(1, (len - r) / 330));
-  }
+  // pull away from the bubble in any direction to aim; let go close to it to cancel
+  const len = Math.hypot(p.x - grab.ax, p.y - grab.ay);
+  grab.aiming = len > r + 6;
+  grab.power = grab.aiming ? Math.max(0, Math.min(1, (len - r) / 330)) : 0;
 });
 function release(e){
   if (!grab || (e && e.pointerId !== grab.pid)) return;
@@ -617,10 +608,8 @@ window.__squish = {
   get blobs(){ return blobs; }, get score(){ return score; }, get over(){ return over; }, get secs(){ return playSecs; }, start: newGame,
   shoot(i, tx, ty, power){
     const s = blobs.filter(b => b.state === 'shelf'); const b = s[i % Math.max(1, s.length)]; if (!b) return false;
-    bounds(b); grab = { b, aiming: true, px: tx, py: ty, ax: b.cx, ay: Math.min(b.cy, SHELF - 30), power }; release(); return true;
+    bounds(b); grab = { b, aiming: true, px: tx, py: ty, ax: b.cx, ay: b.cy, power }; release(); return true;
   },
-  drag(i, x, y){ const s = blobs.filter(b => b.state === 'shelf'); const b = s[i]; if (!b) return; bounds(b); grab = { b, aiming: false, px: x, py: y, ox: 0, oy: 0 }; },
-  drop(){ grab = null; }
 };
 
 /* ======================= accounts, saves, leaderboards ======================= */
