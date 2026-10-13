@@ -127,7 +127,7 @@
             <li>The pile presses on the two discs in the side walls. If both get squashed flat for a few seconds, or the pile reaches the floating strip, it's game over.</li>
           </ul>
           <div id="start-buttons"><button type="button" class="play" data-act="new">Play</button></div>
-          <div class="ver">Version 2026-10-13g</div>
+          <div class="ver">Version 2026-10-13h</div>
         </div>
       </div>
       <div class="over" id="over" hidden>
@@ -616,6 +616,9 @@ function resolve(A, B){
   // how much of each push goes to A's point vs B's edge (heavier = bigger = moves less)
   // (capped, so a tiny bubble under a huge one still pushes back enough not to be crushed flat)
   let mA = Math.max(0.47, Math.min(0.53, B.a0 / (A.a0 + B.a0))), fr = FRICTION;
+  // a shot bubble that's bigger than what it hits ploughs through: it barely gives way, the smaller one does
+  if (A.state === 'fly' && A.a0 > B.a0) mA = Math.max(0.15, 0.5 * Math.pow(B.a0 / A.a0, 0.6));
+  else if (B.state === 'fly' && B.a0 > A.a0) mA = 1 - Math.max(0.15, 0.5 * Math.pow(A.a0 / B.a0, 0.6));
   // a floating bubble and a shot/settled one: the floater gives way and there's no grip, so a bubble that ends up
   // in the strip can't get pinched and held up there by the floaters either side of it - it just drops back out
   const fA = A.state === 'shelf' || A.state === 'enter', fB = B.state === 'shelf' || B.state === 'enter';
