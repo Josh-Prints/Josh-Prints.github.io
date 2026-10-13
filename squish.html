@@ -571,7 +571,7 @@ function release(e){
   if (!g.aiming || g.power < 0.03 || !blobs.includes(g.b)) return;
   const b = g.b; bounds(b);
   const dx = g.px - b.cx, dy = g.py - b.cy, len = Math.hypot(dx, dy) || 1;
-  const speed = 240 + g.power * 1650;
+  const speed = 220 + g.power * 950;   // top speed ~1170 (was ~1890)
   setVel(b, dx / len * speed, dy / len * speed);
   b.state = 'fly'; b.age = 0; dirty = true;
 }
