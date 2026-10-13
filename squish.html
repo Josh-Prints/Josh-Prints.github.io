@@ -127,7 +127,7 @@
             <li>The pile presses on the two discs in the side walls. If both get squashed flat for a few seconds, or the pile reaches the floating strip, it's game over.</li>
           </ul>
           <div id="start-buttons"><button type="button" class="play" data-act="new">Play</button></div>
-          <div class="ver">Version 2026-10-13f</div>
+          <div class="ver">Version 2026-10-13g</div>
         </div>
       </div>
       <div class="over" id="over" hidden>
@@ -610,12 +610,12 @@ function inside(b, x, y){
 // outline than SKIN, are pushed back out (A's point and B's nearest edge each take half the move). The skin also
 // stops an edge sliding between two points of the other bubble, which is how soft bubbles used to clip through.
 const SKIN = 1.6;
-const FRICTION = 0.015;
+const FRICTION = 0.007;
 function resolve(A, B){
   let hit = false;
   // how much of each push goes to A's point vs B's edge (heavier = bigger = moves less)
   // (capped, so a tiny bubble under a huge one still pushes back enough not to be crushed flat)
-  let mA = Math.max(0.44, Math.min(0.56, B.a0 / (A.a0 + B.a0))), fr = FRICTION;
+  let mA = Math.max(0.47, Math.min(0.53, B.a0 / (A.a0 + B.a0))), fr = FRICTION;
   // a floating bubble and a shot/settled one: the floater gives way and there's no grip, so a bubble that ends up
   // in the strip can't get pinched and held up there by the floaters either side of it - it just drops back out
   const fA = A.state === 'shelf' || A.state === 'enter', fB = B.state === 'shelf' || B.state === 'enter';
