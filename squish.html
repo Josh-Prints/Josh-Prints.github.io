@@ -251,6 +251,7 @@ function spawn(){
 
 
 /* ---------- sound effects (synthesised with Web Audio, no files) ---------- */
+let silent = false;   // no sounds while a restored board settles
 const sfx = (() => {
   let ac = null, master = null, muted = false, lastThud = 0;
   try { muted = localStorage.getItem('squish-mute') === '1'; } catch (e) {}
@@ -263,7 +264,7 @@ const sfx = (() => {
   }
   // a short pitched blip: frequency glides from f to f2 while the volume fades out
   function tone(f, f2, len, vol, type, delay){
-    const a = !muted && ctx(); if (!a) return;
+    const a = !muted && !silent && ctx(); if (!a) return;
     const t = a.currentTime + (delay || 0), o = a.createOscillator(), g = a.createGain();
     o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + len);
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
@@ -271,7 +272,7 @@ const sfx = (() => {
   }
   // a burst of filtered noise (whooshes and splats)
   function noise(len, vol, f, f2, q){
-    const a = !muted && ctx(); if (!a) return;
+    const a = !muted && !silent && ctx(); if (!a) return;
     const t = a.currentTime, n = Math.ceil(a.sampleRate * len), buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
     for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
     const src = a.createBufferSource(), bp = a.createBiquadFilter(), g = a.createGain();
@@ -325,8 +326,16 @@ function restore(st){
     if (!COLORS[o.v] && o.v !== 16384) return;
     const s = o.s === 'pile' ? 'pile' : 'shelf';
     const b = makeBlob(o.v, Math.max(WALL + 10, Math.min(W - WALL - 10, o.x)), Math.max(CEIL + 10, Math.min(FLOOR - 10, o.y)), s);
+    // newer saves keep each bubble's exact outline, so it comes back squashed exactly as it was
+    if (Array.isArray(o.p) && o.p.length === b.n * 2 && o.p.every(Number.isFinite)){
+      for (let i = 0; i < b.n; i++){
+        b.x[i] = b.px[i] = Math.max(0, Math.min(W, o.p[2 * i]));
+        b.y[i] = b.py[i] = Math.max(0, Math.min(H, o.p[2 * i + 1]));
+      }
+    }
     b.age = 2; blobs.push(b);
   });
+  settle();
   score = Math.max(0, Number(st.score) || 0); playSecs = Math.max(0, Number(st.secs) || 0);
   started = true; dirty = false;
   document.getElementById('start').hidden = true;
@@ -334,7 +343,25 @@ function restore(st){
   hud();
 }
 function snapshot(){
-  return { v: 1, score, secs: Math.round(playSecs), blobs: blobs.filter(b => b.state !== 'enter').map(b => { bounds(b); return { v: b.v, x: Math.round(b.cx), y: Math.round(b.cy), s: b.state === 'shelf' ? 'shelf' : 'pile' }; }) };
+  return { v: 2, score, secs: Math.round(playSecs), blobs: blobs.filter(b => b.state !== 'enter').map(b => {
+    bounds(b);
+    const p = new Array(b.n * 2);
+    for (let i = 0; i < b.n; i++){ p[2 * i] = Math.round(b.x[i]); p[2 * i + 1] = Math.round(b.y[i]); }
+    return { v: b.v, x: Math.round(b.cx), y: Math.round(b.cy), s: b.state === 'shelf' ? 'shelf' : 'pile', p };
+  }) };
+}
+// Let a restored board come to rest before it's shown: run the physics with all motion drained every step, so
+// rounding (or older saves that only kept centres) can't make anything jump or bounce after a reload.
+function settle(){
+  silent = true;
+  for (let k = 0; k < 240; k++){
+    step();
+    for (const b of blobs) for (let i = 0; i < b.n; i++){ b.px[i] = b.x[i]; b.py[i] = b.y[i]; }
+  }
+  for (const b of blobs){ b.age = 2; b.cool = 0; }
+  for (const d of discs) d.e = 1;
+  mergeQ = []; pops = []; danger = 0; silent = false;
+  hud();
 }
 
 function fmtTime(s){ s = Math.floor(s); const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = s % 60; return h ? h + ':' + String(m).padStart(2, '0') + ':' + String(x).padStart(2, '0') : m + ':' + String(x).padStart(2, '0'); }
@@ -363,9 +390,18 @@ function area(b){
   for (let i = 0, j = b.n - 1; i < b.n; j = i++) s += (b.x[j] + b.x[i]) * (b.y[j] - b.y[i]);
   return -s / 2;   // points go round clockwise on screen; flip so the area is positive
 }
+const REST_SPEED = 30;   // px/s below which a settled bubble is eased to a stop
 function integrate(b){
   const floaty = b.state === 'shelf' || b.state === 'enter';
-  const damp = floaty ? 0.985 : 0.998;   // the pile keeps a little wobble
+  // The pile keeps its wobble after a hit, but once a bubble is barely moving it's damped hard so it comes to rest
+  // (otherwise the soft-body constraints keep nudging each other and the pile creeps and jiggles forever).
+  let damp = floaty ? 0.985 : 0.998;
+  if (b.state === 'pile'){
+    let mv = 0; for (let i = 0; i < b.n; i++) mv += Math.abs(b.x[i] - b.px[i]) + Math.abs(b.y[i] - b.py[i]);
+    const speed = mv / b.n / DT;   // average point speed, px/s
+    if (speed < REST_SPEED) damp = 0.9;
+    else if (speed < REST_SPEED * 2) damp = 0.96;
+  }
   let ax = 0, ay = floaty ? 0 : G;
   if (floaty && !(grab && grab.b === b)){
     // floating bubbles line up in a row across the middle of the shelf: a firm pull onto the row's
@@ -947,6 +983,7 @@ size(); hud(); requestAnimationFrame(frame);
 window.__squish = {
   get blobs(){ return blobs; }, get score(){ return score; }, get over(){ return over; }, get secs(){ return playSecs; }, get discs(){ return discs.map(d => d.e); }, get danger(){ return danger; }, start: newGame,
   drop(v, x, y){ blobs.push(makeBlob(v, x, y, 'pile')); },
+  save: () => snapshot(), load: st => restore(st),
   shoot(i, tx, ty, power){
     const s = blobs.filter(b => b.state === 'shelf'); const b = s[i % Math.max(1, s.length)]; if (!b) return false;
     bounds(b); grab = { b, aiming: true, px: tx, py: ty, ax: b.cx, ay: b.cy, power }; release(); return true;
