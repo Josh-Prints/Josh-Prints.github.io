@@ -962,7 +962,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
         <input type="file" id="file_input" accept=".stl,.obj,.3mf,.step,.stp,.iges,.igs,.zip" multiple>
         <div class="glyph"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#upload"/></svg></div>
         <div class="main">Drop a file or tap to browse</div>
-        <div class="sub">STL, OBJ, 3MF, STEP, IGES, up to 500MB</div>
+        <div class="sub">STL, OBJ, 3MF, STEP, IGES, up to 2GB each, 50 files max</div>
       </div>
       <div class="file-list" id="file-list"></div>
       <div class="hint">No file to hand? Leave this blank, it's only needed for Custom Print.</div>
@@ -1120,17 +1120,24 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
     });
   }
 
-  // Files up to 50MB go to Supabase storage; bigger ones go to Cloudflare R2 (see uploadToR2). Above 500MB we refuse up front.
-  const MAX_UPLOAD_MB = 500, SUPABASE_MAX_BYTES = 50 * 1024 * 1024;
+  // Files up to 50MB go to Supabase storage; bigger ones go to Cloudflare R2 (see uploadToR2). Above 2GB, or past
+  // 50 files (the server's limits), we refuse up front.
+  const MAX_UPLOAD_MB = 2048, MAX_FILES = 50, SUPABASE_MAX_BYTES = 50 * 1024 * 1024;
   function addFiles(list){
     const ok = [], tooBig = [];
     Array.from(list).forEach(f => (f.size > MAX_UPLOAD_MB * 1024 * 1024 ? tooBig : ok).push(f));
     // the same file picked or dropped twice only counts once
-    ok.forEach(f => { if (!selectedFiles.some(x => x.name === f.name && x.size === f.size && x.lastModified === f.lastModified)) selectedFiles.push(f); });
+    let extra = 0;
+    ok.forEach(f => {
+      if (selectedFiles.some(x => x.name === f.name && x.size === f.size && x.lastModified === f.lastModified)) return;
+      if (selectedFiles.length >= MAX_FILES){ extra++; return; }
+      selectedFiles.push(f);
+    });
     let note = document.getElementById('file-note');
     if (!note){ note = document.createElement('div'); note.id = 'file-note'; note.setAttribute('role', 'alert'); note.style.cssText = 'color:var(--err);font-size:13px;margin:8px 0;'; fileListEl.parentNode.insertBefore(note, fileListEl); }
     note.textContent = '';
-    if (tooBig.length){ const m = (tooBig.length === 1 ? `"${tooBig[0].name}" is` : `${tooBig.length} files are`) + ` over the ${MAX_UPLOAD_MB}MB limit (${(tooBig[0].size / 1048576).toFixed(0)}MB). Try exporting a smaller or lower-detail version, or message us and we'll sort it out.`; note.textContent = m; showStatus('err', m); }
+    if (tooBig.length){ const m = (tooBig.length === 1 ? `"${tooBig[0].name}" is` : `${tooBig.length} files are`) + ` over the 2GB limit (${(tooBig[0].size / 1048576).toFixed(0)}MB). Try exporting a smaller or lower-detail version, or message us and we'll sort it out.`; note.textContent = m; showStatus('err', m); }
+    else if (extra){ const m = `You can attach up to ${MAX_FILES} files, so ${extra === 1 ? '1 file was' : extra + ' files were'} left out. Zip them together or message us for more.`; note.textContent = m; showStatus('err', m); }
   }
   fileInput.addEventListener('change', () => {
     addFiles(fileInput.files);

@@ -1068,7 +1068,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
     if (document.visibilityState !== 'visible') return;
     if (Date.now() - lastMarkedSeenAt < 60000) return;
     lastMarkedSeenAt = Date.now();
-    supabase.rpc('mark_order_seen', { p_order_id: orderId }).catch(() => {});
+    supabase.rpc('mark_order_seen', { p_order_id: orderId }).then(() => {}, () => {});   // query builders are thenables without .catch
   }
 
   async function loadOrder(){
