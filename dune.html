@@ -110,12 +110,14 @@
     <div class="stat"><div class="label">Score</div><div class="value" data-stat="score">0</div></div>
     <div class="stat"><div class="label">Best</div><div class="value" data-stat="best">0</div></div>
     <div class="stat"><div class="label">Distance</div><div class="value" data-stat="dist">0 m</div></div>
+    <div class="stat"><div class="label">Coins</div><div class="value" data-stat="coins">0</div></div>
   </div>
   <div class="stage">
     <div class="side left">
       <div class="stat"><div class="label">Score</div><div class="value" data-stat="score">0</div></div>
       <div class="stat"><div class="label">Best</div><div class="value" data-stat="best">0</div></div>
       <div class="stat"><div class="label">Distance</div><div class="value" data-stat="dist">0 m</div></div>
+      <div class="stat"><div class="label">Coins</div><div class="value" data-stat="coins">0</div></div>
     </div>
     <div class="board" id="board">
       <canvas id="cv" aria-label="Dune game"></canvas>
@@ -126,10 +128,11 @@
             <li>Your ball rolls over the dunes on its own.</li>
             <li><b>Hold down</b> (touch, click or Space) to get heavy and dive into the hills. <b>Let go</b> to fly off the tops.</li>
             <li>Land smoothly on a <b>downhill slope</b> to get a speed boost. Land three in a row for a fever combo.</li>
+            <li>Grab the <b>coins</b> on the ground and in the air. Land hard (Ouch!) and you'll drop some.</li>
             <li>A sandstorm is following you. Keep your speed up or it catches you.</li>
           </ul>
           <button type="button" class="play" data-act="new">Play</button>
-          <div class="ver">Version 2026-10-13a</div>
+          <div class="ver">Version 2026-10-13b</div>
         </div>
       </div>
       <div class="over" id="over" hidden>
@@ -172,6 +175,8 @@ let accent = '#4493f8';
 let pts = [], ball, holding = false, started = false, over = false, score = 0, best = 0, dist = 0;
 let combo = 0, fever = 0, storm = 0, stormV = 0, playSecs = 0, airT = 0, grounded = false, camX = 0, zoom = 1;
 let pops = [], dust = [], trail = [], landings = [];
+let coins = [], coinCount = 0, flying = [], coinStreak = 0, coinStreakT = 0;
+const COIN_R = 11, COIN_PTS = 10;
 try { best = Number(localStorage.getItem('dune-best')) || 0; } catch (e) {}
 
 function rand(a, b){ return a + Math.random() * (b - a); }
@@ -181,8 +186,22 @@ function extendTerrain(toX){
     const last = pts[pts.length - 1], k = Math.min(1, last.x / 30000), peak = last.peak === false;
     const w = rand(380, 600) * (1 + k * 0.9), amp = rand(80, 130) * (1 + k * 1.3);
     pts.push({ x: last.x + w, y: peak ? BASE - amp : BASE + amp * 0.35, peak });
+    if (last.x > 300) placeCoins(last, pts[pts.length - 1]);
   }
   while (pts.length > 4 && pts[2].x < camX - 600) pts.shift();
+  while (coins.length && coins[0].x < camX - 300) coins.shift();
+}
+// coins: a row hugging the ground on some slopes, an arc in the air over some hilltops
+function placeCoins(a, b){
+  const r = Math.random();
+  if (r < 0.4){
+    const n = 5 + Math.floor(Math.random() * 5), t0 = rand(0.15, 0.4);
+    for (let i = 0; i < n; i++){ const x = a.x + (b.x - a.x) * (t0 + i * 0.06); coins.push({ x, y: groundY(x) - R - 2, a: Math.random() * 6 }); }
+  } else if (r < 0.75 && b.peak){
+    const n = 6 + Math.floor(Math.random() * 4), cx = b.x, h = rand(120, 230) * (1 + Math.min(1, b.x / 30000)), span = (b.x - a.x) * 0.9;
+    for (let i = 0; i < n; i++){ const u = i / (n - 1), x = cx - span / 2 + span * u; coins.push({ x, y: b.y - 40 - h * 4 * u * (1 - u), a: Math.random() * 6 }); }
+  }
+  coins.sort((p, q) => p.x - q.x);   // kept in order along the course (collecting and drawing rely on it)
 }
 function seg(x){
   let i = 0; while (i < pts.length - 2 && pts[i + 1].x <= x) i++;
@@ -199,10 +218,10 @@ function groundSlope(x){
 
 function newGame(){
   pts = [{ x: -800, y: BASE - 40, peak: true }, { x: -300, y: BASE + 30, peak: false }, { x: 120, y: BASE - 120, peak: true }];
-  camX = -200; extendTerrain(3000);
+  coins = []; camX = -200; extendTerrain(3000);
   ball = { x: 0, y: groundY(0) - R, vx: 260, vy: 0 };
   holding = false; over = false; started = true; score = 0; dist = 0; combo = 0; fever = 0; playSecs = 0; airT = 0;
-  storm = -700; stormV = 150; pops = []; dust = []; trail = [];
+  storm = -700; stormV = 150; pops = []; dust = []; trail = []; flying = []; coinCount = 0; coinStreak = 0;
   document.getElementById('start').hidden = true; document.getElementById('over').hidden = true;
   hud(); sfx.unlock();
 }
@@ -232,6 +251,13 @@ function step(){
           if (combo >= 3) fever = 4;
         } else if (q > 0.7 && s < 0.08){
           combo = 0; b.vx *= 0.72; b.vy *= 0.72; pop('Ouch', '#ff6b6b'); sfx.thud(sp);
+          // a hard landing knocks some coins loose: a quarter of them (at least 3, if you have them)
+          const lose = Math.min(coinCount, Math.max(3, Math.ceil(coinCount * 0.25)));
+          if (lose > 0){
+            coinCount -= lose; score = Math.max(0, score - lose * COIN_PTS);
+            for (let k = 0; k < Math.min(lose, 14); k++) flying.push({ x: b.x, y: b.y, vx: rand(-260, 160), vy: rand(-520, -220), t: 0 });
+            pops.push({ text: '−' + lose + ' coins', color: '#ffd166', t: 0, x: b.x, y: b.y - 70 }); sfx.drop();
+          }
           for (let k = 0; k < 10; k++) dust.push({ x: b.x, y: b.y + R, vx: rand(-120, 120), vy: rand(-200, -40), t: 0 });
         } else { if (s < 0.08) combo = 0; sfx.land(sp); }
       }
@@ -242,6 +268,18 @@ function step(){
     if (b.y < gy - 2){ if (grounded) airT = 0; grounded = false; }
     airT += DT;
   }
+  // collect coins
+  const reach = (R + COIN_R) * (R + COIN_R);
+  for (const c of coins){
+    if (c.got || c.x < b.x - 40) continue;
+    if (c.x > b.x + 40) break;
+    const dx = c.x - b.x, dy = c.y - b.y;
+    if (dx * dx + dy * dy < reach){
+      c.got = true; coinCount++; score += COIN_PTS * (fever > 0 ? 2 : 1);
+      coinStreak = coinStreakT > 0 ? coinStreak + 1 : 0; coinStreakT = 0.35; sfx.coin(coinStreak);
+    }
+  }
+  if (coinStreakT > 0) coinStreakT -= DT;
   if (b.vx < MIN_VX) b.vx = MIN_VX;   // always creeps forward, even when heavy on an uphill
   b.vx = Math.min(b.vx, 2600);
   if (fever > 0) fever -= DT;
@@ -259,7 +297,7 @@ function endGame(){
   over = true; holding = false;
   score = Math.round(score);
   if (score > best){ best = score; try { localStorage.setItem('dune-best', String(best)); } catch (e) {} }
-  document.getElementById('over-text').textContent = 'Score ' + score.toLocaleString() + ' · ' + Math.round(dist / 10) + ' m' + (net.user ? '' : ' · sign in to get on the leaderboard');
+  document.getElementById('over-text').textContent = 'Score ' + score.toLocaleString() + ' · ' + Math.round(dist / 10) + ' m · ' + coinCount + ' coins' + (net.user ? '' : ' · sign in to get on the leaderboard');
   document.getElementById('over').hidden = false;
   sfx.over(); hud(); net.record(true);
 }
@@ -329,6 +367,15 @@ function draw(){
     ctx.lineWidth = R * 2 * s * al * (b2.f ? 0.9 : 0.5); ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(X(a.x), Y(a.y)); ctx.lineTo(X(b2.x), Y(b2.y)); ctx.stroke();
   }
+  // coins (spinning)
+  const now = performance.now() / 1000;
+  for (const c of coins){
+    if (c.got) continue;
+    const cx = X(c.x); if (cx < -20) continue; if (cx > W + 20) break;
+    drawCoin(cx, Y(c.y), COIN_R * s, Math.cos(now * 3 + c.a));
+  }
+  flying = flying.filter(f => f.t < 1.2);
+  for (const f of flying){ f.t += 1 / 60; f.vy += 1300 / 60; f.x += f.vx / 60; f.y += f.vy / 60; ctx.globalAlpha = Math.max(0, 1 - f.t / 1.2); drawCoin(X(f.x), Y(f.y), COIN_R * s, Math.cos(now * 9 + f.vx)); ctx.globalAlpha = 1; }
   // dust
   dust = dust.filter(d => d.t < 0.8);
   for (const d of dust){ d.t += 1 / 60; d.vy += 600 / 60; d.x += d.vx / 60; d.y += d.vy / 60; ctx.fillStyle = 'rgba(233,180,110,' + (1 - d.t / 0.8) + ')'; ctx.beginPath(); ctx.arc(X(d.x), Y(d.y), 3 * s + 1, 0, Math.PI * 2); ctx.fill(); }
@@ -361,11 +408,19 @@ function draw(){
   if (holding){ ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(0, H - 6, W, 6); }
 }
 
+function drawCoin(x, y, r, spin){
+  const w = Math.max(0.18, Math.abs(spin));
+  ctx.save(); ctx.translate(x, y); ctx.scale(w, 1);
+  ctx.fillStyle = '#c98a12'; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffd34d'; ctx.beginPath(); ctx.arc(0, 0, r * 0.78, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.65)'; ctx.beginPath(); ctx.arc(-r * 0.25, -r * 0.3, r * 0.22, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
 function hud(){
   if (score > best && !over) { /* best updates at the end */ }
   const set = (k, v) => document.querySelectorAll('[data-stat="' + k + '"]').forEach(e => e.textContent = v);
   set('score', Math.round(score).toLocaleString()); set('best', Math.max(best, Math.round(score)).toLocaleString());
-  set('dist', Math.round(Math.max(0, dist) / 10) + ' m');
+  set('dist', Math.round(Math.max(0, dist) / 10) + ' m'); set('coins', coinCount);
 }
 
 /* ======================= sound (Web Audio, no files) ======================= */
@@ -391,6 +446,8 @@ const sfx = (() => {
     perfect(c){ const f = 520 * Math.pow(2, Math.min(c - 1, 10) / 12); tone(f, f * 1.5, 0.16, 0.16, 'triangle'); tone(f * 1.5, f * 2, 0.12, 0.08, 'sine', 0.06); },
     land(sp){ tone(160, 90, 0.08, Math.min(0.08, sp / 20000), 'sine'); },
     thud(){ tone(140, 50, 0.22, 0.2, 'sine'); },
+    coin(k){ const f = 1250 * Math.pow(2, Math.min(k, 12) / 24); tone(f, f * 1.25, 0.07, 0.07, 'square'); },
+    drop(){ [0, 0.06, 0.12].forEach((d, i) => tone(900 - i * 180, 500 - i * 120, 0.09, 0.06, 'square', d)); },
     over(){ [0, 0.15, 0.3].forEach((d, i) => tone(300 / (i + 1), 260 / (i + 1.4), 0.25, 0.14, 'triangle', d)); },
   };
 })();
@@ -434,7 +491,7 @@ size(); hud(); requestAnimationFrame(frame);
 // for automated tests
 window.__dune = {
   get ball(){ return ball; }, get score(){ return score; }, get over(){ return over; }, get combo(){ return combo; }, get storm(){ return storm; },
-  get landings(){ return landings; },
+  get landings(){ return landings; }, get coins(){ return coinCount; }, get coinList(){ return coins; },
   start: newGame, hold: on => press(on), ground: x => groundY(x), slope: x => groundSlope(x),
 };
 
