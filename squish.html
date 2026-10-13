@@ -161,6 +161,7 @@ const W = 400, H = 760;
 const WALL = 14, CEIL = 14, FLOOR = H - 14;
 const SHELF = 196;                 // the dotted line; the shelf is above it, the pile below
 const SHELF_MAX = 5;
+const ROW_Y = (CEIL + 196) * 0.5;   // height of the floating row
 const G = 1300;
 const DT = 1 / 120, ITER = 4;
 
@@ -201,8 +202,7 @@ function shelfCount(){ return blobs.filter(b => b.state === 'shelf' || b.state =
 
 function spawn(){
   const v = rnd(), r = radiusOf(v), left = Math.random() < 0.5;
-  const y = CEIL + r + 4 + Math.random() * Math.max(0, SHELF - CEIL - 2 * r - 10);
-  const b = makeBlob(v, left ? -r - 2 : W + r + 2, y, 'enter');
+  const b = makeBlob(v, left ? -r - 2 : W + r + 2, ROW_Y, 'enter');
   setVel(b, left ? 260 : -260, 0);
   blobs.push(b);
 }
@@ -211,7 +211,7 @@ function newGame(){
   blobs = []; score = 0; over = false; danger = 0; pops = []; grab = null; playSecs = 0; spawnT = 0;
   for (let i = 0; i < SHELF_MAX; i++){
     const v = rnd(), r = radiusOf(v);
-    blobs.push(makeBlob(v, WALL + r + 6 + (W - 2 * WALL - 2 * r - 12) * (i + 0.5) / SHELF_MAX, CEIL + (SHELF - CEIL) * (i % 2 ? 0.35 : 0.62), 'shelf'));
+    blobs.push(makeBlob(v, WALL + r + 6 + (W - 2 * WALL - 2 * r - 12) * (i + 0.5) / SHELF_MAX, ROW_Y, 'shelf'));
   }
   started = true; dirty = true;
   document.getElementById('over').hidden = true;
@@ -266,10 +266,13 @@ function integrate(b){
   const damp = floaty ? 0.985 : 0.996;
   let ax = 0, ay = floaty ? 0 : G;
   if (floaty && !(grab && grab.b === b)){
-    // floating bubbles drift towards the centre of the shelf (entering ones keep their sideways push)
+    // floating bubbles line up in a row across the middle of the shelf: a firm pull onto the row's
+    // height and a gentle one towards the centre, so they sit side by side instead of bunching up.
+    // Entering bubbles get a steady push inwards so they always make it inside.
     let cx = 0, cy = 0; for (let i = 0; i < b.n; i++){ cx += b.x[i]; cy += b.y[i]; } cx /= b.n; cy /= b.n;
-    ay = ((CEIL + SHELF) * 0.5 - cy) * 7;
-    if (b.state === 'shelf') ax = (W * 0.5 - cx) * 2.2;
+    ay = (ROW_Y - cy) * 26;
+    if (b.state === 'shelf') ax = (W * 0.5 - cx) * 1.2;
+    else ax = (cx < W / 2 ? 1 : -1) * 900;
   }
   const gx = ax * DT * DT, g = ay * DT * DT;
   for (let i = 0; i < b.n; i++){
@@ -424,7 +427,15 @@ function step(){
     bounds(b);
     const r = Math.sqrt(b.aT / Math.PI);
     if (b.state === 'enter' && b.cx > WALL + r && b.cx < W - WALL - r) b.state = 'shelf';
-    if (b.state === 'enter' && (b.cx < -3 * r || b.cx > W + 3 * r)) b.dead = true;
+    else if (b.state === 'enter' && b.age > 1.2){
+      const dx = Math.max(WALL + r, Math.min(W - WALL - r, b.cx)) - b.cx;
+      for (let i = 0; i < b.n; i++){ b.x[i] += dx; b.px[i] = b.x[i]; }
+      b.state = 'shelf';
+    }
+    if (b.state !== 'enter' && (b.minX < WALL - 1 || b.maxX > W - WALL + 1)){
+      const dx = b.minX < WALL - 1 ? WALL - b.minX : W - WALL - b.maxX;
+      for (let i = 0; i < b.n; i++){ b.x[i] += dx; b.px[i] += dx; }
+    }
     if (b.state === 'fly' && b.age > 0.4){ b.state = 'pile'; b.age = 0; }
   }
   if (blobs.some(b => b.dead)) blobs = blobs.filter(b => !b.dead);
