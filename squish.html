@@ -127,7 +127,7 @@
             <li>The pile presses on the two discs in the side walls. If both get squashed flat for a few seconds, or the pile reaches the floating strip, it's game over.</li>
           </ul>
           <div id="start-buttons"><button type="button" class="play" data-act="new">Play</button></div>
-          <div class="ver">Version 2026-10-13c</div>
+          <div class="ver">Version 2026-10-13d</div>
         </div>
       </div>
       <div class="over" id="over" hidden>
@@ -429,11 +429,11 @@ function edges(b){
     b.x[i] += dx * k; b.y[i] += dy * k; b.x[j] -= dx * k; b.y[j] -= dy * k;
   }
   // bending: points two apart keep some distance, so the skin bends into soft corners but can't fold into creases or tails
-  const L2 = L * 1.7;
+  const L2 = L * 1.6;
   for (let i = 0; i < n; i++){
     const j = (i + 2) % n, dx = b.x[j] - b.x[i], dy = b.y[j] - b.y[i], d = Math.sqrt(dx * dx + dy * dy) || 1e-6;
     if (d >= L2) continue;
-    const k = (d - L2) / d * 0.5;
+    const k = (d - L2) / d * 0.35;
     b.x[i] += dx * k; b.y[i] += dy * k; b.x[j] -= dx * k; b.y[j] -= dy * k;
   }
 }
@@ -485,7 +485,7 @@ function pressure(b){
   const n = b.n, A = area(b);
   let per = 0;
   for (let i = 0; i < n; i++){ const j = (i + 1) % n; per += Math.hypot(b.x[j] - b.x[i], b.y[j] - b.y[i]); }
-  const push = (b.a0 - A) / per * 0.5;
+  const push = (b.a0 - A) / per * 0.35;   // softer pressure: squashes further on impact, then springs back
   for (let i = 0; i < n; i++){
     const p = (i - 1 + n) % n, j = (i + 1) % n;
     const tx = b.x[j] - b.x[p], ty = b.y[j] - b.y[p], tl = Math.hypot(tx, ty) || 1e-6;
@@ -601,8 +601,12 @@ function inside(b, x, y){
 // outline than SKIN, are pushed back out (A's point and B's nearest edge each take half the move). The skin also
 // stops an edge sliding between two points of the other bubble, which is how soft bubbles used to clip through.
 const SKIN = 1.6;
+const FRICTION = 0.35;
 function resolve(A, B){
   let hit = false;
+  // how much of each push goes to A's point vs B's edge (heavier = bigger = moves less)
+  // (capped, so a tiny bubble under a huge one still pushes back enough not to be crushed flat)
+  const mA = Math.max(0.2, Math.min(0.8, B.a0 / (A.a0 + B.a0))), mB = 1 - mA;
   const x0 = B.minX - SKIN, x1 = B.maxX + SKIN, y0 = B.minY - SKIN, y1 = B.maxY + SKIN, rr = (B.rad + SKIN) * (B.rad + SKIN);
   for (let i = 0; i < A.n; i++){
     const x = A.x[i], y = A.y[i];
@@ -626,9 +630,17 @@ function resolve(A, B){
     if (d > 1e-4){ nx = (ins ? bqx - x : x - bqx) / d; ny = (ins ? bqy - y : y - bqy) / d; }
     else { nx = x - B.cx; ny = y - B.cy; const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l; }
     const move = ins ? d + SKIN : SKIN - d, dx = nx * move, dy = ny * move;
-    A.x[i] += dx * 0.5; A.y[i] += dy * 0.5;
-    const k3 = (bk + 1) % B.n, w0 = (1 - bt) * 0.5, w1 = bt * 0.5;
+    // the push is shared by size: a big bubble barely gives way to a small one, so small ones can't shove
+    // their way down through the pile
+    A.x[i] += dx * mA; A.y[i] += dy * mA;
+    const k3 = (bk + 1) % B.n, w0 = (1 - bt) * mB, w1 = bt * mB;
     B.x[bk] -= dx * w0; B.y[bk] -= dy * w0; B.x[k3] -= dx * w1; B.y[k3] -= dy * w1;
+    // friction: where they touch, sliding along each other is slowed, so a bubble grips instead of slipping past
+    const tx = -ny, ty = nx;
+    const evx = (B.x[bk] - B.px[bk]) * (1 - bt) + (B.x[k3] - B.px[k3]) * bt, evy = (B.y[bk] - B.py[bk]) * (1 - bt) + (B.y[k3] - B.py[k3]) * bt;
+    const vt = ((A.x[i] - A.px[i]) - evx) * tx + ((A.y[i] - A.py[i]) - evy) * ty, f = vt * FRICTION;
+    A.px[i] += tx * f * mA; A.py[i] += ty * f * mA;
+    B.px[bk] -= tx * f * mB * (1 - bt); B.py[bk] -= ty * f * mB * (1 - bt); B.px[k3] -= tx * f * mB * bt; B.py[k3] -= ty * f * mB * bt;
   }
   return hit;
 }
@@ -750,7 +762,7 @@ function step(){
   }
   applyGrab();
   for (let it = 0; it < ITER; it++){
-    for (const b of blobs){ edges(b); smooth(b, 0.06); pressure(b); }
+    for (const b of blobs){ edges(b); smooth(b, 0.045); pressure(b); }
     collide();
     for (const b of blobs){ if (it === ITER - 1){ untwist(b); if ((b.id + stepNo) % 2 === 0) selfRepel(b); } if (b.state === 'shelf') capsuleMatch(b, 0.2, it === 0); else if (it === ITER - 1) shapeMatch(b, b.state === 'enter' ? 0.06 : SQUISH_SHAPE); walls(b); discPush(b); }
     separate();
@@ -1010,6 +1022,7 @@ size(); hud(); requestAnimationFrame(frame);
 window.__squish = {
   get blobs(){ return blobs; }, get score(){ return score; }, get over(){ return over; }, get secs(){ return playSecs; }, get discs(){ return discs.map(d => d.e); }, get danger(){ return danger; }, start: newGame,
   drop(v, x, y){ blobs.push(makeBlob(v, x, y, 'pile')); },
+  fire(v, x, y, vx, vy){ const b = makeBlob(v, x, y, 'fly'); setVel(b, vx, vy); blobs.push(b); return b.id; },
   save: () => snapshot(), load: st => restore(st),
   shoot(i, tx, ty, power){
     const s = blobs.filter(b => b.state === 'shelf'); const b = s[i % Math.max(1, s.length)]; if (!b) return false;
