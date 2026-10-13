@@ -32,38 +32,64 @@
     margin: 0; display: flex; flex-direction: column; overflow: hidden;
     background: var(--canvas); color: var(--fg);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
-    -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+    -webkit-tap-highlight-color: transparent;
   }
-  .topbar{ display: flex; align-items: center; gap: 12px; padding: 10px max(14px, calc((100% - 1040px) / 2)); border-bottom: 1px solid var(--border-muted); }
+  .topbar{ display: flex; align-items: center; gap: 10px; padding: 10px max(14px, calc((100% - 1100px) / 2)); border-bottom: 1px solid var(--border-muted); }
   .topbar a{ color: var(--fg); text-decoration: none; font-weight: 600; font-size: 14px; }
-  .topbar .back{ display: inline-flex; align-items: center; gap: 6px; }
   .topbar .title{ margin-right: auto; font-weight: 800; letter-spacing: -.01em; }
   .tbtn{ font: inherit; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 8px; cursor: pointer; background: var(--canvas-inset); color: var(--fg); border: 1px solid var(--border); }
+  .tbtn.lb-toggle{ display: none; }
 
-  .stage{ flex: 1; min-height: 0; display: flex; align-items: stretch; justify-content: center; gap: 18px; padding: 12px; }
-  .side{ width: 150px; display: flex; flex-direction: column; justify-content: center; gap: 18px; }
+  .stage{ flex: 1; min-height: 0; display: flex; align-items: stretch; justify-content: center; gap: 20px; padding: 12px; }
+  .side{ width: 210px; display: flex; flex-direction: column; justify-content: center; gap: 16px; min-height: 0; }
+  .side.right{ width: 260px; justify-content: flex-start; overflow-y: auto; padding-top: 4px; }
   .stat{ text-align: center; }
   .stat .label{ font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--fg-muted); }
-  .stat .value{ font-size: 34px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
-  .board{ position: relative; height: 100%; aspect-ratio: 400 / 720; max-width: 100%; }
-  canvas{ display: block; width: 100%; height: 100%; touch-action: none; }
-  .help{ font-size: 13px; color: var(--fg-muted); line-height: 1.5; text-align: center; }
-  .help b{ color: var(--fg); }
+  .stat .value{ font-size: 32px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .board{ position: relative; height: 100%; aspect-ratio: 400 / 760; max-width: 100%; }
+  canvas{ display: block; width: 100%; height: 100%; touch-action: none; -webkit-user-select: none; user-select: none; }
 
-  .mobile-stats{ display: none; gap: 16px; justify-content: center; padding: 6px 0 0; }
-  .mobile-stats .stat .value{ font-size: 22px; }
+  .panel{ background: var(--canvas-inset); border: 1px solid var(--border-muted); border-radius: 14px; padding: 14px; }
+  .panel h3{ margin: 0 0 10px; font-size: 14px; }
+  .panel p{ margin: 0 0 10px; font-size: 13px; color: var(--fg-muted); line-height: 1.5; }
+  .pbtn{ display: flex; width: 100%; align-items: center; justify-content: center; gap: 8px; font: inherit; font-size: 13.5px; font-weight: 600; padding: 9px 12px; border-radius: 9px; cursor: pointer; background: var(--canvas); color: var(--fg); border: 1px solid var(--border); margin-top: 8px; }
+  .pbtn.primary{ background: var(--accent); color: #fff; border-color: transparent; }
+  .pinput{ width: 100%; font: inherit; font-size: 16px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--canvas); color: var(--fg); margin-top: 8px; }
+  .pmsg{ font-size: 12.5px; color: var(--fg-muted); margin-top: 6px; min-height: 1em; }
+  .me-row{ display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; font-size: 13px; }
+  .me-row b{ font-variant-numeric: tabular-nums; }
+  .link{ background: none; border: 0; padding: 0; font: inherit; font-size: 12.5px; color: var(--fg-muted); text-decoration: underline; cursor: pointer; margin-top: 10px; }
+
+  .tabs{ display: flex; gap: 6px; margin-bottom: 10px; }
+  .tab{ flex: 1; font: inherit; font-size: 12.5px; font-weight: 700; padding: 7px 8px; border-radius: 999px; cursor: pointer; background: var(--canvas); color: var(--fg-muted); border: 1px solid var(--border); }
+  .tab.on{ background: var(--accent); color: #fff; border-color: transparent; }
+  .lb{ list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .lb li{ display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: center; font-size: 13.5px; padding: 6px 8px; border-radius: 8px; }
+  .lb li.me{ background: color-mix(in srgb, var(--accent) 16%, transparent); font-weight: 700; }
+  .lb .rk{ color: var(--fg-muted); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .lb .nm{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb .vl{ font-weight: 700; font-variant-numeric: tabular-nums; }
+  .lb-empty{ font-size: 13px; color: var(--fg-muted); padding: 6px 2px; }
+
+  .mobile-stats{ display: none; gap: 18px; justify-content: center; padding: 6px 0 0; }
+  .mobile-stats .stat .value{ font-size: 21px; }
   .mobile-stats .stat .label{ font-size: 10.5px; }
 
-  .over{ position: absolute; inset: 0; display: grid; place-items: center; background: rgba(5,7,12,.72); border-radius: 18px; }
+  .over{ position: absolute; inset: 0; display: grid; place-items: center; background: rgba(5,7,12,.74); border-radius: 18px; padding: 18px; }
   .over[hidden]{ display: none; }
-  .over-card{ text-align: center; color: #fff; padding: 24px; }
-  .over-card h2{ margin: 0 0 6px; font-size: 32px; letter-spacing: -.02em; }
-  .over-card p{ margin: 0 0 18px; color: #c9d1d9; }
-  .play{ font: inherit; font-size: 16px; font-weight: 700; padding: 11px 26px; border-radius: 999px; cursor: pointer; border: 0; background: var(--accent); color: #fff; }
+  .over-card{ text-align: center; color: #fff; max-width: 300px; }
+  .over-card h2{ margin: 0 0 6px; font-size: 30px; letter-spacing: -.02em; }
+  .over-card p{ margin: 0 0 14px; color: #c9d1d9; font-size: 14.5px; line-height: 1.5; }
+  .over-card ul{ text-align: left; margin: 0 0 16px; padding-left: 18px; color: #c9d1d9; font-size: 14px; line-height: 1.5; }
+  .play{ font: inherit; font-size: 16px; font-weight: 700; padding: 11px 26px; border-radius: 999px; cursor: pointer; border: 0; background: var(--accent); color: #fff; margin: 4px; }
+  .play.ghost{ background: rgba(255,255,255,.12); }
 
-  @media (max-width: 720px){
-    .side{ display: none; }
+  @media (max-width: 980px){
+    .side.left{ display: none; }
     .mobile-stats{ display: flex; }
+    .tbtn.lb-toggle{ display: inline-block; }
+    .side.right{ display: none; }
+    .side.right.open{ display: flex; position: fixed; z-index: 50; inset: 56px 10px 10px; width: auto; background: var(--canvas); border: 1px solid var(--border); border-radius: 16px; padding: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.4); }
     .stage{ padding: 6px 8px 10px; }
   }
 </style>
@@ -71,449 +97,660 @@
 </head>
 <body>
   <div class="topbar">
-    <a class="back" href="/games.html">&larr; Games</a>
+    <a href="/games.html">&larr; Games</a>
     <span class="title">Squish</span>
-    <button type="button" class="tbtn" id="restart">Restart</button>
+    <button type="button" class="tbtn lb-toggle" id="lb-toggle">Leaderboard</button>
+    <button type="button" class="tbtn" id="restart">New game</button>
   </div>
   <div class="mobile-stats">
-    <div class="stat"><div class="label">Score</div><div class="value" id="m-score">0</div></div>
-    <div class="stat"><div class="label">Best</div><div class="value" id="m-best">0</div></div>
+    <div class="stat"><div class="label">Score</div><div class="value" data-stat="score">0</div></div>
+    <div class="stat"><div class="label">Best</div><div class="value" data-stat="best">0</div></div>
+    <div class="stat"><div class="label">Time</div><div class="value" data-stat="time">0:00</div></div>
   </div>
   <div class="stage">
-    <div class="side">
-      <div class="stat"><div class="label">Score</div><div class="value" id="score">0</div></div>
-      <div class="stat"><div class="label">Best</div><div class="value" id="best">0</div></div>
+    <div class="side left">
+      <div class="stat"><div class="label">Score</div><div class="value" data-stat="score">0</div></div>
+      <div class="stat"><div class="label">Best</div><div class="value" data-stat="best">0</div></div>
+      <div class="stat"><div class="label">Time</div><div class="value" data-stat="time">0:00</div></div>
     </div>
     <div class="board" id="board">
       <canvas id="cv" aria-label="Squish game board"></canvas>
+      <div class="over" id="start">
+        <div class="over-card">
+          <h2>Squish</h2>
+          <ul>
+            <li><b>Drag</b> a bubble at the top to move it. Push matching numbers together to merge them.</li>
+            <li><b>Pull a bubble down</b> past the dotted line to aim. The further you pull, the faster it flies.</li>
+            <li>Matching numbers that touch merge and double.</li>
+            <li>Keep the pile below the dotted line.</li>
+          </ul>
+          <div id="start-buttons"><button type="button" class="play" data-act="new">Play</button></div>
+        </div>
+      </div>
       <div class="over" id="over" hidden>
         <div class="over-card">
           <h2>Squished!</h2>
           <p id="over-text"></p>
-          <button type="button" class="play" id="again">Play again</button>
+          <button type="button" class="play" data-act="new">Play again</button>
         </div>
       </div>
     </div>
-    <div class="side">
-      <p class="help"><b>Aim:</b> drag left and right.<br><b>Power:</b> pull down before letting go, a little for a gentle drop, a lot to squeeze into gaps.<br><b>Merge:</b> touch two matching numbers to double them.<br>Don't let the pile cross the dotted line.</p>
+    <div class="side right" id="side-right">
+      <div class="panel" id="account"><p>Loading…</p></div>
+      <div class="panel">
+        <h3>Leaderboard</h3>
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab on" data-kind="score">Top scores</button>
+          <button type="button" class="tab" data-kind="time">Most played</button>
+        </div>
+        <ol class="lb" id="lb"><li class="lb-empty">Loading…</li></ol>
+      </div>
     </div>
   </div>
 
-<script>
-/* Squish: a soft-body merge game. Blobs are rings of points held together by springs, an
-   internal "pressure" that keeps their area, and a gentle pull back towards round. Blobs push
-   each other out of the way, so they squash to fill the gaps. Two touching blobs with the same
-   number merge into one with double the number. */
-(function(){
-  'use strict';
-  var W = 400, H = 720;                    // world units (canvas is scaled to fit)
-  var WALL = 16, FLOOR = H - 16, TOP = 112; // inner container edges; TOP is the danger line
-  var LAUNCH_Y = 70;                        // where the next blob waits
-  var G = 1300;                             // gravity
-  var DT = 1 / 120, ITER = 4;
+<script type="module">
+/* Squish: a soft-body merge game.
+   Up to 5 bubbles float in the shelf above the dotted line; new ones drift in from the sides.
+   Drag a bubble to move it around the shelf (bubbles with the same number merge when they touch),
+   or pull it down past the line to aim: the further you pull, the faster it's fired into the pile.
+   Bubbles are rings of points held by springs with an internal pressure that keeps their size, so
+   they squash to fill gaps. Signed-in players get saved progress and leaderboard entries. */
 
-  var COLORS = {
-    1: '#ff4d5e', 2: '#ffd93d', 4: '#6bea5c', 8: '#ff9d2e', 16: '#3d8bff', 32: '#a855f7',
-    64: '#ff5fb0', 128: '#ff7b30', 256: '#dcf53b', 512: '#34e26e', 1024: '#38f2ff', 2048: '#ffc83a',
-    4096: '#d046ff', 8192: '#ff2f6d', 16384: '#ffffff'
-  };
-  function colorOf(v){ return COLORS[v] || '#e6edf3'; }
-  function radiusOf(v){ return 25 + 9.6 * Math.log2(v); }
+/* ======================= physics + game ======================= */
+const W = 400, H = 760;
+const WALL = 14, CEIL = 14, FLOOR = H - 14;
+const SHELF = 196;                 // the dotted line; the shelf is above it, the pile below
+const SHELF_MAX = 5;
+const G = 1300;
+const DT = 1 / 120, ITER = 4;
 
-  var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
-  var scoreEl = document.getElementById('score'), bestEl = document.getElementById('best');
-  var mScoreEl = document.getElementById('m-score'), mBestEl = document.getElementById('m-best');
-  var overEl = document.getElementById('over');
-  var accent = '#4493f8';
+const COLORS = {
+  1: '#ff4d5e', 2: '#ffd93d', 4: '#6bea5c', 8: '#ff9d2e', 16: '#3d8bff', 32: '#a855f7',
+  64: '#ff5fb0', 128: '#ff7b30', 256: '#dcf53b', 512: '#34e26e', 1024: '#38f2ff', 2048: '#ffc83a',
+  4096: '#d046ff', 8192: '#ff2f6d', 16384: '#ffffff'
+};
+const colorOf = v => COLORS[v] || '#e6edf3';
+const radiusOf = v => 24 + 9.4 * Math.log2(v);
 
-  var blobs, queue, active, aimX, power, charging, score, best = 0, over, cooldown, danger, pops, nextId;
-  try { best = Number(localStorage.getItem('squish-best')) || 0; } catch (e) {}
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let accent = '#4493f8';
 
-  function rnd(){ var r = Math.random(); return r < 0.42 ? 1 : r < 0.78 ? 2 : r < 0.95 ? 4 : 8; }
+let blobs = [], score = 0, best = 0, over = false, started = false, danger = 0, pops = [], nextId = 1;
+let spawnT = 0, playSecs = 0, grab = null, dirty = false;
+try { best = Number(localStorage.getItem('squish-best')) || 0; } catch (e) {}
 
-  function makeBlob(v, x, y){
-    var r = radiusOf(v), n = Math.max(16, Math.min(48, Math.round(2 * Math.PI * r / 9)));
-    var b = { id: nextId++, v: v, n: n, x: new Float64Array(n), y: new Float64Array(n), px: new Float64Array(n), py: new Float64Array(n),
-      a0: Math.PI * r * r, aT: Math.PI * r * r, rest: 2 * Math.PI * r / n, age: 0, merged: false, cx: x, cy: y, minX: 0, maxX: 0, minY: 0, maxY: 0, flash: 0 };
-    for (var i = 0; i < n; i++){
-      var a = i / n * Math.PI * 2;
-      b.x[i] = b.px[i] = x + Math.cos(a) * r;
-      b.y[i] = b.py[i] = y + Math.sin(a) * r;
-    }
-    return b;
+function rnd(){
+  const top = blobs.reduce((m, b) => Math.max(m, b.v), 1), r = Math.random();
+  if (top >= 64 && r > 0.93) return 8;
+  return r < 0.42 ? 1 : r < 0.78 ? 2 : 4;
+}
+
+function makeBlob(v, x, y, state){
+  const r = radiusOf(v), n = Math.max(16, Math.min(48, Math.round(2 * Math.PI * r / 9)));
+  const b = { id: nextId++, v, n, state: state || 'shelf', x: new Float64Array(n), y: new Float64Array(n), px: new Float64Array(n), py: new Float64Array(n),
+    a0: Math.PI * r * r, aT: Math.PI * r * r, rest: 2 * Math.PI * r / n, age: 0, merged: false, cx: x, cy: y, minX: 0, maxX: 0, minY: 0, maxY: 0, flash: 0 };
+  for (let i = 0; i < n; i++){
+    const a = i / n * Math.PI * 2;
+    b.x[i] = b.px[i] = x + Math.cos(a) * r;
+    b.y[i] = b.py[i] = y + Math.sin(a) * r;
   }
+  return b;
+}
+function setVel(b, vx, vy){ for (let i = 0; i < b.n; i++){ b.px[i] = b.x[i] - vx * DT; b.py[i] = b.y[i] - vy * DT; } }
+function shelfCount(){ return blobs.filter(b => b.state === 'shelf' || b.state === 'enter').length; }
 
-  function reset(){
-    blobs = []; queue = []; nextId = 1;
-    for (var i = 0; i < 5; i++) queue.push(rnd());
-    score = 0; over = false; cooldown = 0; danger = 0; pops = [];
-    aimX = W / 2; power = 0; charging = false;
-    spawnActive();
-    overEl.hidden = true;
-    updateHud();
-  }
-  function spawnActive(){
-    var v = queue.shift(); queue.push(rnd());
-    active = makeBlob(v, aimX, LAUNCH_Y);
-    clampActive();
-  }
-  function clampActive(){
-    if (!active) return;
-    var r = radiusOf(active.v);
-    aimX = Math.max(WALL + r + 2, Math.min(W - WALL - r - 2, aimX));
-    var dx = aimX - active.cx;
-    for (var i = 0; i < active.n; i++){ active.x[i] += dx; active.px[i] = active.x[i]; active.py[i] = active.y[i]; }
-    active.cx = aimX;
-  }
-  function fire(){
-    if (!active || over) return;
-    var speed = 180 + power * 1500;           // px/s downwards
-    for (var i = 0; i < active.n; i++){ active.py[i] = active.y[i] - speed * DT; active.px[i] = active.x[i]; }
-    active.age = 0;
-    blobs.push(active);
-    active = null; power = 0; charging = false;
-    cooldown = 0.35;
-  }
+function spawn(){
+  const v = rnd(), r = radiusOf(v), left = Math.random() < 0.5;
+  const y = CEIL + r + 4 + Math.random() * Math.max(0, SHELF - CEIL - 2 * r - 10);
+  const b = makeBlob(v, left ? -r - 2 : W + r + 2, y, 'enter');
+  setVel(b, left ? 260 : -260, 0);
+  blobs.push(b);
+}
 
-  function updateHud(){
-    if (score > best){ best = score; try { localStorage.setItem('squish-best', String(best)); } catch (e) {} }
-    scoreEl.textContent = mScoreEl.textContent = score;
-    bestEl.textContent = mBestEl.textContent = best;
+function newGame(){
+  blobs = []; score = 0; over = false; danger = 0; pops = []; grab = null; playSecs = 0; spawnT = 0;
+  for (let i = 0; i < SHELF_MAX; i++){
+    const v = rnd(), r = radiusOf(v);
+    blobs.push(makeBlob(v, WALL + r + 6 + (W - 2 * WALL - 2 * r - 12) * (i + 0.5) / SHELF_MAX, CEIL + (SHELF - CEIL) * (i % 2 ? 0.35 : 0.62), 'shelf'));
   }
+  started = true; dirty = true;
+  document.getElementById('over').hidden = true;
+  document.getElementById('start').hidden = true;
+  hud();
+  net.onNewGame();
+}
+function restore(st){
+  blobs = []; nextId = 1; grab = null; pops = []; danger = 0; over = false;
+  (st.blobs || []).forEach(o => {
+    if (!COLORS[o.v] && o.v !== 16384) return;
+    const s = o.s === 'pile' ? 'pile' : 'shelf';
+    const b = makeBlob(o.v, Math.max(WALL + 10, Math.min(W - WALL - 10, o.x)), Math.max(CEIL + 10, Math.min(FLOOR - 10, o.y)), s);
+    b.age = 2; blobs.push(b);
+  });
+  score = Math.max(0, Number(st.score) || 0); playSecs = Math.max(0, Number(st.secs) || 0);
+  started = true; dirty = false;
+  document.getElementById('start').hidden = true;
+  document.getElementById('over').hidden = true;
+  hud();
+}
+function snapshot(){
+  return { v: 1, score, secs: Math.round(playSecs), blobs: blobs.filter(b => b.state !== 'enter').map(b => { bounds(b); return { v: b.v, x: Math.round(b.cx), y: Math.round(b.cy), s: b.state === 'shelf' ? 'shelf' : 'pile' }; }) };
+}
 
-  /* ---------- physics ---------- */
-  function bounds(b){
-    var x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, sx = 0, sy = 0;
-    for (var i = 0; i < b.n; i++){
-      var x = b.x[i], y = b.y[i]; sx += x; sy += y;
-      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
-    }
-    b.minX = x0; b.maxX = x1; b.minY = y0; b.maxY = y1; b.cx = sx / b.n; b.cy = sy / b.n;
-  }
-  function area(b){
-    var s = 0, n = b.n;
-    for (var i = 0, j = n - 1; i < n; j = i++) s += (b.x[j] + b.x[i]) * (b.y[j] - b.y[i]);
-    return -s / 2;   // points go round by increasing angle (clockwise on screen); flip so the area is positive
-  }
+function fmtTime(s){ s = Math.floor(s); const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = s % 60; return h ? h + ':' + String(m).padStart(2, '0') + ':' + String(x).padStart(2, '0') : m + ':' + String(x).padStart(2, '0'); }
+let lastTimeShown = -1;
+function hud(){
+  if (score > best){ best = score; try { localStorage.setItem('squish-best', String(best)); } catch (e) {} }
+  document.querySelectorAll('[data-stat="score"]').forEach(e => e.textContent = score);
+  document.querySelectorAll('[data-stat="best"]').forEach(e => e.textContent = best);
+  lastTimeShown = Math.floor(playSecs);
+  document.querySelectorAll('[data-stat="time"]').forEach(e => e.textContent = fmtTime(playSecs));
+}
 
-  function integrate(b){
-    var damp = 0.996, g = G * DT * DT;
-    for (var i = 0; i < b.n; i++){
-      var vx = (b.x[i] - b.px[i]) * damp, vy = (b.y[i] - b.py[i]) * damp;
-      b.px[i] = b.x[i]; b.py[i] = b.y[i];
-      b.x[i] += vx; b.y[i] += vy + g;
-    }
+/* ---------- soft bodies ---------- */
+function bounds(b){
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, sx = 0, sy = 0;
+  for (let i = 0; i < b.n; i++){
+    const x = b.x[i], y = b.y[i]; sx += x; sy += y;
+    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
   }
-
-  function edges(b){
-    var n = b.n, L = b.rest;
-    for (var i = 0; i < n; i++){
-      var j = (i + 1) % n, dx = b.x[j] - b.x[i], dy = b.y[j] - b.y[i], d = Math.sqrt(dx * dx + dy * dy) || 1e-6;
-      var k = (d - L) / d * 0.5 * 0.9;
-      b.x[i] += dx * k; b.y[i] += dy * k; b.x[j] -= dx * k; b.y[j] -= dy * k;
-    }
+  b.minX = x0; b.maxX = x1; b.minY = y0; b.maxY = y1; b.cx = sx / b.n; b.cy = sy / b.n;
+}
+function area(b){
+  let s = 0;
+  for (let i = 0, j = b.n - 1; i < b.n; j = i++) s += (b.x[j] + b.x[i]) * (b.y[j] - b.y[i]);
+  return -s / 2;   // points go round clockwise on screen; flip so the area is positive
+}
+function integrate(b){
+  const floaty = b.state === 'shelf' || b.state === 'enter';
+  const damp = floaty ? 0.985 : 0.996;
+  let ay = floaty ? 0 : G;
+  if (floaty){
+    // gentle buoyancy towards the middle of the shelf
+    let cy = 0; for (let i = 0; i < b.n; i++) cy += b.y[i]; cy /= b.n;
+    ay = ((CEIL + SHELF) * 0.5 - cy) * 7;
   }
-
-  function pressure(b){
-    var n = b.n, A = area(b), per = 0, i, j;
-    for (i = 0; i < n; i++){ j = (i + 1) % n; per += Math.hypot(b.x[j] - b.x[i], b.y[j] - b.y[i]); }
-    var push = (b.a0 - A) / per * 0.7;
-    for (i = 0; i < n; i++){
-      var p = (i - 1 + n) % n; j = (i + 1) % n;
-      var tx = b.x[j] - b.x[p], ty = b.y[j] - b.y[p], tl = Math.hypot(tx, ty) || 1e-6;
-      // outward normal for this winding
-      b.x[i] += (ty / tl) * push; b.y[i] += (-tx / tl) * push;
-    }
+  const g = ay * DT * DT;
+  for (let i = 0; i < b.n; i++){
+    const vx = (b.x[i] - b.px[i]) * damp, vy = (b.y[i] - b.py[i]) * damp;
+    b.px[i] = b.x[i]; b.py[i] = b.y[i];
+    b.x[i] += vx; b.y[i] += vy + g;
   }
-
-  function shapeMatch(b, k){
-    var n = b.n, cx = 0, cy = 0, i;
-    for (i = 0; i < n; i++){ cx += b.x[i]; cy += b.y[i]; }
-    cx /= n; cy /= n;
-    var r = Math.sqrt(b.a0 / Math.PI), sc = 0, ss = 0;
-    for (i = 0; i < n; i++){
-      var a = i / n * Math.PI * 2, ox = Math.cos(a), oy = Math.sin(a), qx = b.x[i] - cx, qy = b.y[i] - cy;
-      sc += ox * qx + oy * qy; ss += ox * qy - oy * qx;
-    }
-    var ang = Math.atan2(ss, sc), ca = Math.cos(ang), sa = Math.sin(ang);
-    for (i = 0; i < n; i++){
-      var a2 = i / n * Math.PI * 2, gx = cx + r * (Math.cos(a2) * ca - Math.sin(a2) * sa), gy = cy + r * (Math.cos(a2) * sa + Math.sin(a2) * ca);
-      b.x[i] += (gx - b.x[i]) * k; b.y[i] += (gy - b.y[i]) * k;
-    }
+}
+function edges(b){
+  const n = b.n, L = b.rest;
+  for (let i = 0; i < n; i++){
+    const j = (i + 1) % n, dx = b.x[j] - b.x[i], dy = b.y[j] - b.y[i], d = Math.sqrt(dx * dx + dy * dy) || 1e-6;
+    const k = (d - L) / d * 0.45;
+    b.x[i] += dx * k; b.y[i] += dy * k; b.x[j] -= dx * k; b.y[j] -= dy * k;
   }
-
-  function walls(b){
-    for (var i = 0; i < b.n; i++){
+}
+function pressure(b){
+  const n = b.n, A = area(b);
+  let per = 0;
+  for (let i = 0; i < n; i++){ const j = (i + 1) % n; per += Math.hypot(b.x[j] - b.x[i], b.y[j] - b.y[i]); }
+  const push = (b.a0 - A) / per * 0.7;
+  for (let i = 0; i < n; i++){
+    const p = (i - 1 + n) % n, j = (i + 1) % n;
+    const tx = b.x[j] - b.x[p], ty = b.y[j] - b.y[p], tl = Math.hypot(tx, ty) || 1e-6;
+    b.x[i] += (ty / tl) * push; b.y[i] += (-tx / tl) * push;
+  }
+}
+function shapeMatch(b, k){
+  const n = b.n; let cx = 0, cy = 0;
+  for (let i = 0; i < n; i++){ cx += b.x[i]; cy += b.y[i]; }
+  cx /= n; cy /= n;
+  const r = Math.sqrt(b.a0 / Math.PI); let sc = 0, ss = 0;
+  for (let i = 0; i < n; i++){
+    const a = i / n * Math.PI * 2, ox = Math.cos(a), oy = Math.sin(a), qx = b.x[i] - cx, qy = b.y[i] - cy;
+    sc += ox * qx + oy * qy; ss += ox * qy - oy * qx;
+  }
+  const ang = Math.atan2(ss, sc), ca = Math.cos(ang), sa = Math.sin(ang);
+  for (let i = 0; i < n; i++){
+    const a = i / n * Math.PI * 2, gx = cx + r * (Math.cos(a) * ca - Math.sin(a) * sa), gy = cy + r * (Math.cos(a) * sa + Math.sin(a) * ca);
+    b.x[i] += (gx - b.x[i]) * k; b.y[i] += (gy - b.y[i]) * k;
+  }
+}
+function walls(b){
+  const sides = b.state !== 'enter', shelfFloor = b.state === 'shelf' || b.state === 'enter';
+  for (let i = 0; i < b.n; i++){
+    if (sides){
       if (b.x[i] < WALL){ b.x[i] = WALL; b.py[i] += (b.y[i] - b.py[i]) * 0.1; }
       else if (b.x[i] > W - WALL){ b.x[i] = W - WALL; b.py[i] += (b.y[i] - b.py[i]) * 0.1; }
-      if (b.y[i] > FLOOR){ b.y[i] = FLOOR; b.px[i] += (b.x[i] - b.px[i]) * 0.2; }
+    }
+    if (b.y[i] < CEIL) b.y[i] = CEIL;
+    if (shelfFloor && b.y[i] > SHELF - 2){ b.y[i] = SHELF - 2; b.px[i] += (b.x[i] - b.px[i]) * 0.15; }
+    if (b.y[i] > FLOOR){ b.y[i] = FLOOR; b.px[i] += (b.x[i] - b.px[i]) * 0.2; }
+  }
+}
+function inside(b, x, y){
+  let c = false;
+  for (let i = 0, j = b.n - 1; i < b.n; j = i++){
+    const yi = b.y[i], yj = b.y[j];
+    if ((yi > y) !== (yj > y) && x < (b.x[j] - b.x[i]) * (y - yi) / (yj - yi) + b.x[i]) c = !c;
+  }
+  return c;
+}
+function resolve(A, B){
+  let hit = false;
+  for (let i = 0; i < A.n; i++){
+    const x = A.x[i], y = A.y[i];
+    if (x < B.minX || x > B.maxX || y < B.minY || y > B.maxY || !inside(B, x, y)) continue;
+    hit = true;
+    let bestD = 1e9, bk = 0, bt = 0, bqx = 0, bqy = 0;
+    for (let k = 0; k < B.n; k++){
+      const k2 = (k + 1) % B.n, ex = B.x[k2] - B.x[k], ey = B.y[k2] - B.y[k], el = ex * ex + ey * ey || 1e-6;
+      let t = ((x - B.x[k]) * ex + (y - B.y[k]) * ey) / el; t = t < 0 ? 0 : t > 1 ? 1 : t;
+      const qx = B.x[k] + ex * t, qy = B.y[k] + ey * t, d = (qx - x) * (qx - x) + (qy - y) * (qy - y);
+      if (d < bestD){ bestD = d; bk = k; bt = t; bqx = qx; bqy = qy; }
+    }
+    const dx = bqx - x, dy = bqy - y;
+    A.x[i] += dx * 0.5; A.y[i] += dy * 0.5;
+    const k3 = (bk + 1) % B.n, w0 = (1 - bt) * 0.5, w1 = bt * 0.5;
+    B.x[bk] -= dx * w0; B.y[bk] -= dy * w0; B.x[k3] -= dx * w1; B.y[k3] -= dy * w1;
+  }
+  return hit;
+}
+let mergeQ = [];
+function collide(){
+  const n = blobs.length;
+  for (let i = 0; i < n; i++) bounds(blobs[i]);
+  for (let i = 0; i < n; i++){
+    const A = blobs[i];
+    for (let j = i + 1; j < n; j++){
+      const B = blobs[j];
+      if (A.maxX < B.minX - 2 || B.maxX < A.minX - 2 || A.maxY < B.minY - 2 || B.maxY < A.minY - 2) continue;
+      const h1 = resolve(A, B), h2 = resolve(B, A);
+      if ((h1 || h2) && A.v === B.v && !A.merged && !B.merged && A.state !== 'enter' && B.state !== 'enter'){ A.merged = B.merged = true; mergeQ.push([A, B]); }
     }
   }
+}
+function doMerges(){
+  if (!mergeQ.length) return;
+  for (const [A, B] of mergeQ){
+    bounds(A); bounds(B);
+    const aA = Math.abs(area(A)), aB = Math.abs(area(B));
+    const cx = (A.cx * aA + B.cx * aB) / (aA + aB), cy = (A.cy * aA + B.cy * aB) / (aA + aB);
+    const state = cy < SHELF ? 'shelf' : 'pile';
+    const nb = makeBlob(A.v * 2, cx, cy, state);
+    const startA = Math.max(aA, aB), rr = Math.sqrt(startA / Math.PI);
+    let vx = 0, vy = 0;
+    for (let i = 0; i < A.n; i++){ vx += A.x[i] - A.px[i]; vy += A.y[i] - A.py[i]; }
+    vx /= A.n * 2; vy /= A.n * 2;
+    for (let i = 0; i < nb.n; i++){
+      const a = i / nb.n * Math.PI * 2;
+      nb.x[i] = cx + Math.cos(a) * rr; nb.y[i] = cy + Math.sin(a) * rr;
+      nb.px[i] = nb.x[i] - vx; nb.py[i] = nb.y[i] - vy;
+    }
+    nb.a0 = startA; nb.age = 2; nb.flash = 1;
+    if (grab && (grab.b === A || grab.b === B)) grab = null;
+    blobs = blobs.filter(b => b !== A && b !== B);
+    blobs.push(nb);
+    score += nb.v;
+    pops.push({ x: cx, y: cy, r: rr, t: 0, c: colorOf(nb.v) });
+  }
+  mergeQ = [];
+  dirty = true;
+  hud();
+}
 
-  function inside(b, x, y){
-    var c = false, n = b.n;
-    for (var i = 0, j = n - 1; i < n; j = i++){
-      var yi = b.y[i], yj = b.y[j];
-      if ((yi > y) !== (yj > y) && x < (b.x[j] - b.x[i]) * (y - yi) / (yj - yi) + b.x[i]) c = !c;
-    }
-    return c;
-  }
-  // push points of A that are inside B out through B's nearest edge; returns true if they touched
-  function resolve(A, B){
-    var hit = false;
-    for (var i = 0; i < A.n; i++){
-      var x = A.x[i], y = A.y[i];
-      if (x < B.minX || x > B.maxX || y < B.minY || y > B.maxY || !inside(B, x, y)) continue;
-      hit = true;
-      var best = 1e9, bk = 0, bt = 0, bqx = 0, bqy = 0;
-      for (var k = 0; k < B.n; k++){
-        var k2 = (k + 1) % B.n, ex = B.x[k2] - B.x[k], ey = B.y[k2] - B.y[k], el = ex * ex + ey * ey || 1e-6;
-        var t = ((x - B.x[k]) * ex + (y - B.y[k]) * ey) / el; t = t < 0 ? 0 : t > 1 ? 1 : t;
-        var qx = B.x[k] + ex * t, qy = B.y[k] + ey * t, d = (qx - x) * (qx - x) + (qy - y) * (qy - y);
-        if (d < best){ best = d; bk = k; bt = t; bqx = qx; bqy = qy; }
-      }
-      var dx = bqx - x, dy = bqy - y;
-      A.x[i] += dx * 0.5; A.y[i] += dy * 0.5;
-      var k3 = (bk + 1) % B.n, w0 = (1 - bt) * 0.5, w1 = bt * 0.5;
-      B.x[bk] -= dx * w0; B.y[bk] -= dy * w0; B.x[k3] -= dx * w1; B.y[k3] -= dy * w1;
-    }
-    return hit;
-  }
+function applyGrab(){
+  if (!grab) return;
+  const b = grab.b; bounds(b);
+  const r = Math.sqrt(b.a0 / Math.PI);
+  let tx, ty;
+  if (grab.aiming){ tx = grab.ax; ty = grab.ay; }
+  else { tx = grab.px - grab.ox; ty = grab.py - grab.oy; }
+  tx = Math.max(WALL + r * 0.8, Math.min(W - WALL - r * 0.8, tx));
+  ty = Math.max(CEIL + r * 0.8, Math.min(SHELF - r * 0.85, ty));
+  const dx = (tx - b.cx) * 0.25, dy = (ty - b.cy) * 0.25;
+  for (let i = 0; i < b.n; i++){ b.x[i] += dx; b.y[i] += dy; b.px[i] += dx * 0.85; b.py[i] += dy * 0.85; }
+}
 
-  var mergeQ = [];
-  function collide(){
-    var n = blobs.length;
-    for (var i = 0; i < n; i++) bounds(blobs[i]);
-    for (i = 0; i < n; i++){
-      var A = blobs[i];
-      for (var j = i + 1; j < n; j++){
-        var B = blobs[j];
-        if (A.maxX < B.minX - 2 || B.maxX < A.minX - 2 || A.maxY < B.minY - 2 || B.maxY < A.minY - 2) continue;
-        var h1 = resolve(A, B), h2 = resolve(B, A);
-        if ((h1 || h2) && A.v === B.v && !A.merged && !B.merged){ A.merged = B.merged = true; mergeQ.push([A, B]); }
-      }
-    }
+function step(){
+  for (const b of blobs){
+    b.age += DT;
+    if (b.a0 < b.aT) b.a0 = Math.min(b.aT, b.a0 + b.aT * 0.03);
+    if (b.flash > 0) b.flash = Math.max(0, b.flash - DT * 3);
+    integrate(b);
   }
-
-  function doMerges(){
-    if (!mergeQ.length) return;
-    mergeQ.forEach(function(pair){
-      var A = pair[0], B = pair[1]; bounds(A); bounds(B);
-      var aA = Math.abs(area(A)), aB = Math.abs(area(B));
-      var cx = (A.cx * aA + B.cx * aB) / (aA + aB), cy = (A.cy * aA + B.cy * aB) / (aA + aB);
-      var nb = makeBlob(A.v * 2, cx, cy);
-      // start at the size of the bigger parent and grow, so the new blob doesn't shove everything at once
-      var startA = Math.max(aA, aB), rr = Math.sqrt(startA / Math.PI), vx = 0, vy = 0;
-      for (var i = 0; i < A.n; i++){ vx += A.x[i] - A.px[i]; vy += A.y[i] - A.py[i]; }
-      vx /= A.n * 2; vy /= A.n * 2;
-      for (i = 0; i < nb.n; i++){
-        var a = i / nb.n * Math.PI * 2;
-        nb.x[i] = cx + Math.cos(a) * rr; nb.y[i] = cy + Math.sin(a) * rr;
-        nb.px[i] = nb.x[i] - vx; nb.py[i] = nb.y[i] - vy;
-      }
-      nb.a0 = startA; nb.age = 1; nb.flash = 1;
-      blobs = blobs.filter(function(b){ return b !== A && b !== B; });
-      blobs.push(nb);
-      score += nb.v;
-      pops.push({ x: cx, y: cy, r: rr, t: 0, c: colorOf(nb.v) });
-    });
-    mergeQ = [];
-    updateHud();
+  applyGrab();
+  for (let it = 0; it < ITER; it++){
+    for (const b of blobs){ edges(b); if (it === 0) pressure(b); }
+    collide();
+    for (const b of blobs){ if (it === ITER - 1) shapeMatch(b, 0.02); walls(b); }
   }
-
-  function step(){
-    var i, b;
-    for (i = 0; i < blobs.length; i++){
-      b = blobs[i];
-      b.age += DT;
-      if (b.a0 < b.aT) b.a0 = Math.min(b.aT, b.a0 + b.aT * 0.03);
-      if (b.flash > 0) b.flash = Math.max(0, b.flash - DT * 3);
-      integrate(b);
-    }
-    for (var it = 0; it < ITER; it++){
-      for (i = 0; i < blobs.length; i++){ b = blobs[i]; edges(b); if (it === 0) pressure(b); }
-      collide();
-      for (i = 0; i < blobs.length; i++){ b = blobs[i]; if (it === ITER - 1) shapeMatch(b, 0.02); walls(b); }
-    }
-    doMerges();
-  }
-
-  /* ---------- game rules ---------- */
-  function rules(dt){
-    if (over) return;
-    if (!active){
-      cooldown -= dt;
-      if (cooldown <= 0) spawnActive();
-    }
-    if (charging) power = Math.min(1, power);
-    var high = false;
-    for (var i = 0; i < blobs.length; i++){
-      var b = blobs[i];
-      if (b.age > 1.2 && b.minY < TOP){ high = true; break; }
-    }
-    danger = high ? danger + dt : Math.max(0, danger - dt * 2);
-    if (danger > 2.4){
-      over = true;
-      document.getElementById('over-text').textContent = 'Score ' + score + (score >= best && score > 0 ? ' · new best!' : ' · best ' + best);
-      overEl.hidden = false;
-    }
-  }
-
-  /* ---------- drawing ---------- */
-  var scale = 1, dpr = 1;
-  function size(){
-    var r = cv.getBoundingClientRect();
-    dpr = Math.min(2, window.devicePixelRatio || 1);
-    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
-    scale = cv.width / W;
-    try { accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || accent; } catch (e) {}
-  }
-
-  function blobPath(b){
-    var n = b.n;
-    ctx.beginPath();
-    var mx = (b.x[n - 1] + b.x[0]) / 2, my = (b.y[n - 1] + b.y[0]) / 2;
-    ctx.moveTo(mx, my);
-    for (var i = 0; i < n; i++){
-      var j = (i + 1) % n;
-      ctx.quadraticCurveTo(b.x[i], b.y[i], (b.x[i] + b.x[j]) / 2, (b.y[i] + b.y[j]) / 2);
-    }
-    ctx.closePath();
-  }
-  function drawBlob(b, alpha){
+  doMerges();
+  for (const b of blobs){
     bounds(b);
-    ctx.globalAlpha = alpha;
-    blobPath(b);
-    ctx.fillStyle = colorOf(b.v); ctx.fill();
-    ctx.lineWidth = 3.4; ctx.strokeStyle = '#05060a'; ctx.lineJoin = 'round'; ctx.stroke();
-    if (b.flash > 0){ ctx.globalAlpha = alpha * b.flash * 0.6; ctx.fillStyle = '#fff'; blobPath(b); ctx.fill(); ctx.globalAlpha = alpha; }
-    var r = Math.sqrt(Math.abs(area(b)) / Math.PI);
-    var fs = Math.max(13, Math.min(40, r * (String(b.v).length > 3 ? 0.42 : 0.55)));
-    ctx.font = '800 ' + fs + 'px ui-rounded, "SF Pro Rounded", "Trebuchet MS", system-ui, sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(5,6,10,.88)';
-    ctx.fillText(String(b.v), b.cx, b.cy + 1);
-    ctx.globalAlpha = 1;
+    const r = Math.sqrt(b.aT / Math.PI);
+    if (b.state === 'enter' && b.cx > WALL + r && b.cx < W - WALL - r) b.state = 'shelf';
+    if (b.state === 'enter' && (b.cx < -3 * r || b.cx > W + 3 * r)) b.dead = true;
+    if (b.state === 'fly' && (b.cy > SHELF + r * 0.4 || b.age > 1.6)){ b.state = 'pile'; b.age = 0; }
   }
+  if (blobs.some(b => b.dead)) blobs = blobs.filter(b => !b.dead);
+}
 
-  function draw(){
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, cv.width, cv.height);
-    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+function rules(dt){
+  if (over || !started) return;
+  spawnT -= dt;
+  if (spawnT <= 0 && shelfCount() < SHELF_MAX){ spawn(); spawnT = 0.55; }
+  let high = false;
+  for (const b of blobs) if (b.state === 'pile' && b.age > 1.2 && b.minY < SHELF){ high = true; break; }
+  danger = high ? danger + dt : Math.max(0, danger - dt * 2);
+  if (danger > 2.4) endGame();
+}
+function endGame(){
+  over = true; grab = null;
+  const isBest = score >= best && score > 0;
+  document.getElementById('over-text').textContent = 'Score ' + score + (isBest ? ' · new best!' : ' · best ' + best) + (net.user ? '' : ' · sign in to get on the leaderboard');
+  document.getElementById('over').hidden = false;
+  hud();
+  net.onGameOver();
+}
 
-    // container
-    ctx.fillStyle = '#05060a';
-    roundRect(0, 0, W, H, 24); ctx.fill();
-    ctx.lineWidth = 6; ctx.strokeStyle = accent; ctx.globalAlpha = 0.55;
-    roundRect(3, 3, W - 6, H - 6, 22); ctx.stroke(); ctx.globalAlpha = 1;
+/* ---------- drawing ---------- */
+let scale = 1;
+function size(){
+  const r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.max(1, Math.round(r.width * dpr)); cv.height = Math.max(1, Math.round(r.height * dpr));
+  scale = cv.width / W;
+  try { accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || accent; } catch (e) {}
+}
+function roundRect(x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+function blobPath(b){
+  const n = b.n;
+  ctx.beginPath();
+  ctx.moveTo((b.x[n - 1] + b.x[0]) / 2, (b.y[n - 1] + b.y[0]) / 2);
+  for (let i = 0; i < n; i++){
+    const j = (i + 1) % n;
+    ctx.quadraticCurveTo(b.x[i], b.y[i], (b.x[i] + b.x[j]) / 2, (b.y[i] + b.y[j]) / 2);
+  }
+  ctx.closePath();
+}
+function drawBlob(b){
+  bounds(b);
+  blobPath(b);
+  ctx.fillStyle = colorOf(b.v); ctx.fill();
+  ctx.lineWidth = 3.4; ctx.strokeStyle = '#05060a'; ctx.lineJoin = 'round'; ctx.stroke();
+  if (b.flash > 0){ ctx.globalAlpha = b.flash * 0.6; ctx.fillStyle = '#fff'; blobPath(b); ctx.fill(); ctx.globalAlpha = 1; }
+  if (grab && grab.b === b){ ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,.9)'; blobPath(b); ctx.stroke(); }
+  const r = Math.sqrt(Math.abs(area(b)) / Math.PI);
+  const fs = Math.max(13, Math.min(42, r * (String(b.v).length > 3 ? 0.42 : 0.55)));
+  ctx.font = '800 ' + fs + 'px ui-rounded, "SF Pro Rounded", "Trebuchet MS", system-ui, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(5,6,10,.88)';
+  ctx.fillText(String(b.v), b.cx, b.cy + 1);
+}
+function draw(){
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  ctx.fillStyle = '#05060a'; roundRect(0, 0, W, H, 24); ctx.fill();
+  // shelf tint
+  ctx.save(); roundRect(0, 0, W, H, 24); ctx.clip();
+  ctx.fillStyle = 'rgba(255,255,255,.035)'; ctx.fillRect(0, 0, W, SHELF);
+  ctx.restore();
+  ctx.lineWidth = 6; ctx.strokeStyle = accent; ctx.globalAlpha = 0.55; roundRect(3, 3, W - 6, H - 6, 22); ctx.stroke(); ctx.globalAlpha = 1;
+  ctx.save();
+  ctx.setLineDash([8, 10]); ctx.lineWidth = 2;
+  ctx.strokeStyle = danger > 0 ? 'rgba(255,77,94,' + (0.5 + 0.5 * Math.abs(Math.sin(performance.now() / 120))) + ')' : 'rgba(255,255,255,.22)';
+  ctx.beginPath(); ctx.moveTo(WALL, SHELF); ctx.lineTo(W - WALL, SHELF); ctx.stroke();
+  ctx.restore();
 
-    // danger line
-    ctx.save();
-    ctx.setLineDash([8, 10]); ctx.lineWidth = 2;
-    ctx.strokeStyle = danger > 0 ? 'rgba(255,77,94,' + (0.5 + 0.5 * Math.abs(Math.sin(performance.now() / 120))) + ')' : 'rgba(255,255,255,.18)';
-    ctx.beginPath(); ctx.moveTo(WALL, TOP); ctx.lineTo(W - WALL, TOP); ctx.stroke();
-    ctx.restore();
+  for (const b of blobs) if (!(grab && grab.b === b)) drawBlob(b);
 
-    // queue (next blobs) along the top
-    var qx = W / 2 - 92;
-    for (var i = 0; i < queue.length; i++){
-      var v = queue[i], w = 34, h = 26, x = qx + i * 38;
-      ctx.globalAlpha = i === 0 ? 1 : 0.85;
-      ctx.fillStyle = colorOf(v);
-      roundRect(x, 14, w, h, 13); ctx.fill();
-      ctx.lineWidth = 2.5; ctx.strokeStyle = '#05060a'; ctx.stroke();
-      ctx.fillStyle = 'rgba(5,6,10,.85)'; ctx.font = '800 14px ui-rounded, "Trebuchet MS", system-ui, sans-serif';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(v), x + w / 2, 14 + h / 2 + 1);
-    }
-    ctx.globalAlpha = 1;
-
-    for (i = 0; i < blobs.length; i++) drawBlob(blobs[i], 1);
-
-    // waiting blob + aim guide
-    if (active && !over){
-      var r = radiusOf(active.v);
-      ctx.save();
-      ctx.strokeStyle = 'rgba(255,255,255,' + (0.25 + power * 0.5) + ')';
-      ctx.setLineDash([3, 9]); ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(aimX, LAUNCH_Y + r + 6); ctx.lineTo(aimX, Math.min(FLOOR, LAUNCH_Y + r + 60 + power * 360)); ctx.stroke();
+  if (grab){
+    const b = grab.b; bounds(b);
+    if (grab.aiming){
+      const dx = grab.px - b.cx, dy = grab.py - b.cy, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
+      const pw = grab.power;
+      // rubber band to the finger
+      ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(b.cx, b.cy); ctx.lineTo(grab.px, grab.py); ctx.stroke();
+      // flight guide
+      ctx.save(); ctx.setLineDash([3, 10]); ctx.lineWidth = 4; ctx.lineCap = 'round';
+      ctx.strokeStyle = 'rgba(255,255,255,' + (0.35 + pw * 0.5) + ')';
+      const reach = 80 + pw * 420;
+      ctx.beginPath(); ctx.moveTo(b.cx + ux * 30, b.cy + uy * 30); ctx.lineTo(b.cx + ux * reach, b.cy + uy * reach); ctx.stroke();
       ctx.restore();
-      drawBlob(active, 0.95);
-      if (charging){
-        ctx.fillStyle = 'rgba(255,255,255,.85)';
-        roundRect(aimX - 26, LAUNCH_Y - r - 14, 52 * power, 5, 3); ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1.5; roundRect(aimX - 26, LAUNCH_Y - r - 14, 52, 5, 3); ctx.stroke();
-      }
+      // power ring
+      const r = Math.sqrt(b.a0 / Math.PI) + 8;
+      ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.beginPath(); ctx.arc(b.cx, b.cy, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = pw > 0.85 ? '#ff4d5e' : '#fff'; ctx.beginPath(); ctx.arc(b.cx, b.cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pw); ctx.stroke();
     }
-
-    // merge pops
-    pops = pops.filter(function(p){ return p.t < 1; });
-    pops.forEach(function(p){
-      ctx.globalAlpha = 1 - p.t; ctx.strokeStyle = p.c; ctx.lineWidth = 4 * (1 - p.t);
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 + p.t * 0.7), 0, Math.PI * 2); ctx.stroke();
-      p.t += 0.045;
-    });
-    ctx.globalAlpha = 1;
-  }
-  function roundRect(x, y, w, h, r){
-    ctx.beginPath();
-    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+    drawBlob(b);
   }
 
-  /* ---------- input ---------- */
-  var startY = 0, pointerDown = false;
-  function toWorld(e){ var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; }
-  cv.addEventListener('pointerdown', function(e){
-    if (over) return;
-    cv.setPointerCapture(e.pointerId);
-    var p = toWorld(e); pointerDown = true; charging = true; startY = p.y; power = 0;
-    aimX = p.x; clampActive();
-  });
-  cv.addEventListener('pointermove', function(e){
-    var p = toWorld(e);
-    if (!pointerDown && e.pointerType !== 'mouse') return;
-    aimX = p.x; clampActive();
-    if (pointerDown) power = Math.max(0, Math.min(1, (p.y - startY) / (H * 0.32)));
-  });
-  function release(){ if (!pointerDown) return; pointerDown = false; fire(); }
-  cv.addEventListener('pointerup', release);
-  cv.addEventListener('pointercancel', function(){ pointerDown = false; charging = false; power = 0; });
-  var keys = {};
-  addEventListener('keydown', function(e){
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === ' '){ e.preventDefault(); keys[e.key] = true; }
-    if (e.key === ' ' && !e.repeat && !over){ charging = true; power = 0; }
-  });
-  addEventListener('keyup', function(e){
-    keys[e.key] = false;
-    if (e.key === ' ' && charging && !pointerDown) fire();
-  });
-
-  document.getElementById('restart').addEventListener('click', reset);
-  document.getElementById('again').addEventListener('click', reset);
-
-  /* ---------- loop ---------- */
-  var acc = 0, last = performance.now();
-  function frame(now){
-    var dt = Math.min(0.05, (now - last) / 1000); last = now;
-    if (keys.ArrowLeft){ aimX -= 260 * dt; clampActive(); }
-    if (keys.ArrowRight){ aimX += 260 * dt; clampActive(); }
-    if (keys[' '] && charging) power = Math.min(1, power + dt * 0.9);
-    acc += dt;
-    var steps = 0;
-    while (acc >= DT && steps < 8){ if (!over) step(); acc -= DT; steps++; }
-    if (steps === 8) acc = 0;
-    rules(dt);
-    draw();
-    requestAnimationFrame(frame);
+  pops = pops.filter(p => p.t < 1);
+  for (const p of pops){
+    ctx.globalAlpha = 1 - p.t; ctx.strokeStyle = p.c; ctx.lineWidth = 4 * (1 - p.t);
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 + p.t * 0.7), 0, Math.PI * 2); ctx.stroke();
+    p.t += 0.045;
   }
+  ctx.globalAlpha = 1;
+}
 
-  addEventListener('resize', size);
-  if ('ResizeObserver' in window) new ResizeObserver(size).observe(cv);
-  reset(); size(); requestAnimationFrame(frame);
+/* ---------- input ---------- */
+function toWorld(e){ const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; }
+function pick(p){
+  let found = null, bestD = 1e9;
+  for (const b of blobs){
+    if (b.state !== 'shelf') continue;
+    bounds(b);
+    const r = Math.sqrt(b.a0 / Math.PI), d = Math.hypot(p.x - b.cx, p.y - b.cy);
+    if ((inside(b, p.x, p.y) || d < r + 14) && d < bestD){ bestD = d; found = b; }
+  }
+  return found;
+}
+cv.addEventListener('pointerdown', e => {
+  if (over || !started) return;
+  const p = toWorld(e), b = pick(p);
+  if (!b) return;
+  cv.setPointerCapture(e.pointerId);
+  bounds(b);
+  grab = { b, pid: e.pointerId, px: p.x, py: p.y, ox: p.x - b.cx, oy: p.y - b.cy, aiming: false, ax: 0, ay: 0, power: 0 };
+  lastInput = performance.now();
+});
+cv.addEventListener('pointermove', e => {
+  if (!grab || e.pointerId !== grab.pid) return;
+  const p = toWorld(e); grab.px = p.x; grab.py = p.y; lastInput = performance.now();
+  const b = grab.b; bounds(b);
+  const r = Math.sqrt(b.a0 / Math.PI);
+  if (!grab.aiming && p.y > SHELF + 6){
+    grab.aiming = true;
+    grab.ax = Math.max(WALL + r, Math.min(W - WALL - r, b.cx));
+    grab.ay = Math.min(b.cy, SHELF - r * 0.85);
+  } else if (grab.aiming && p.y < SHELF - 6){
+    grab.aiming = false; grab.ox = 0; grab.oy = 0;
+  }
+  if (grab.aiming){
+    const len = Math.hypot(p.x - grab.ax, p.y - grab.ay);
+    grab.power = Math.max(0, Math.min(1, (len - r) / 330));
+  }
+});
+function release(e){
+  if (!grab || (e && e.pointerId !== grab.pid)) return;
+  const g = grab; grab = null;
+  if (!g.aiming || g.power < 0.03 || !blobs.includes(g.b)) return;
+  const b = g.b; bounds(b);
+  const dx = g.px - b.cx, dy = g.py - b.cy, len = Math.hypot(dx, dy) || 1;
+  const speed = 240 + g.power * 1650;
+  setVel(b, dx / len * speed, dy / len * speed);
+  b.state = 'fly'; b.age = 0; dirty = true;
+}
+cv.addEventListener('pointerup', release);
+cv.addEventListener('pointercancel', () => { grab = null; });
 
-  // for automated tests
-  window.__squish = { get blobs(){ return blobs; }, get score(){ return score; }, get over(){ return over; },
-    aim: function(x){ aimX = x; clampActive(); }, shoot: function(p){ power = p; fire(); }, ready: function(){ return !!active; } };
+document.getElementById('restart').addEventListener('click', () => { net.clearSave(); newGame(); });
+document.querySelectorAll('[data-act="new"]').forEach(b => b.addEventListener('click', () => { net.clearSave(); newGame(); }));
+
+/* ---------- loop ---------- */
+let acc = 0, last = performance.now(), lastInput = 0;
+function frame(now){
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  acc += dt;
+  let steps = 0;
+  while (acc >= DT && steps < 8){ if (started && !over) step(); acc -= DT; steps++; }
+  if (steps === 8) acc = 0;
+  rules(dt);
+  // play time: while a game is running, the tab is visible and someone has touched it in the last 2 minutes
+  if (started && !over && !document.hidden && now - lastInput < 120000){
+    playSecs += dt; net.pendingSecs += dt;
+    if (Math.floor(playSecs) !== lastTimeShown) hud();
+  }
+  draw();
+  requestAnimationFrame(frame);
+}
+addEventListener('resize', size);
+if ('ResizeObserver' in window) new ResizeObserver(size).observe(cv);
+// a calm demo board behind the start screen
+for (let i = 0; i < SHELF_MAX; i++){ const v = [1, 2, 4, 2, 1][i], r = radiusOf(v); blobs.push(makeBlob(v, WALL + r + 6 + (W - 2 * WALL - 2 * r - 12) * (i + 0.5) / SHELF_MAX, CEIL + (SHELF - CEIL) * 0.5, 'shelf')); }
+size(); hud(); requestAnimationFrame(frame);
+
+// for automated tests
+window.__squish = {
+  get blobs(){ return blobs; }, get score(){ return score; }, get over(){ return over; }, get secs(){ return playSecs; }, start: newGame,
+  shoot(i, tx, ty, power){
+    const s = blobs.filter(b => b.state === 'shelf'); const b = s[i % Math.max(1, s.length)]; if (!b) return false;
+    bounds(b); grab = { b, aiming: true, px: tx, py: ty, ax: b.cx, ay: Math.min(b.cy, SHELF - 30), power }; release(); return true;
+  },
+  drag(i, x, y){ const s = blobs.filter(b => b.state === 'shelf'); const b = s[i]; if (!b) return; bounds(b); grab = { b, aiming: false, px: x, py: y, ox: 0, oy: 0 }; },
+  drop(){ grab = null; }
+};
+
+/* ======================= accounts, saves, leaderboards ======================= */
+const net = {
+  sb: null, user: null, pendingSecs: 0, kind: 'score', saveRow: null, profileName: null,
+  onNewGame(){ this.pushSave(true); },
+  onGameOver(){ this.record(true); this.clearSave(); },
+  async clearSave(){ if (this.sb && this.user) await this.sb.from('game_saves').delete().eq('user_id', this.user.id).eq('game', 'squish'); },
+  async pushSave(force){
+    if (!this.sb || !this.user || !started || over || (!dirty && !force)) return;
+    dirty = false;
+    await this.sb.from('game_saves').upsert({ user_id: this.user.id, game: 'squish', state: snapshot(), updated_at: new Date().toISOString() });
+  },
+  async record(finished){
+    if (!this.sb || !this.user) return;
+    const secs = Math.round(this.pendingSecs); this.pendingSecs -= secs;
+    const { data } = await this.sb.rpc('game_record', { p_game: 'squish', p_score: score, p_seconds: secs, p_finished: !!finished });
+    if (data) this.renderMe(data);
+    this.loadBoard();
+  },
+  async loadBoard(){
+    const el = document.getElementById('lb');
+    if (!this.sb){ el.innerHTML = '<li class="lb-empty">Leaderboard unavailable right now.</li>'; return; }
+    const { data, error } = await this.sb.rpc('game_leaderboard', { p_game: 'squish', p_kind: this.kind, p_limit: 10 });
+    if (error){ el.innerHTML = '<li class="lb-empty">Couldn’t load the leaderboard.</li>'; return; }
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const val = v => this.kind === 'time' ? fmtLong(v) : Number(v).toLocaleString();
+    el.innerHTML = (data || []).length
+      ? data.map(r => '<li class="' + (r.me ? 'me' : '') + '"><span class="rk">' + r.rank + '</span><span class="nm">' + esc(r.name) + '</span><span class="vl">' + val(r.value) + '</span></li>').join('')
+      : '<li class="lb-empty">No one yet. Be the first!</li>';
+  },
+  renderMe(st){
+    if (!this.user) return;
+    const box = document.getElementById('me-stats'); if (!box || !st) return;
+    box.innerHTML = '<span>Best score</span><b>' + Number(st.best_score || 0).toLocaleString() + (st.score_rank ? ' <small>#' + st.score_rank + '</small>' : '') + '</b>' +
+      '<span>Time played</span><b>' + fmtLong(st.total_seconds || 0) + (st.time_rank ? ' <small>#' + st.time_rank + '</small>' : '') + '</b>' +
+      '<span>Games</span><b>' + (st.games_played || 0) + '</b>';
+    const nm = document.getElementById('me-name'); if (nm) nm.textContent = st.name;
+    const setName = document.getElementById('name-box'); if (setName) setName.hidden = st.name !== 'Player';
+  },
+  renderAccount(){
+    const box = document.getElementById('account');
+    if (!this.sb){ box.innerHTML = '<p>Sign-in is unavailable right now. You can still play.</p>'; return; }
+    if (this.user){
+      box.innerHTML = '<h3>Playing as <span id="me-name">…</span></h3><div class="me-row" id="me-stats"></div>' +
+        '<div id="name-box" hidden><p style="margin-top:10px">Pick a name for the leaderboard:</p><input class="pinput" id="name-in" maxlength="40" placeholder="Your name"><button type="button" class="pbtn primary" id="name-save">Save name</button><div class="pmsg" id="name-msg"></div></div>' +
+        '<p style="margin:10px 0 0">Your game saves automatically.</p><button type="button" class="link" id="sign-out">Sign out</button>';
+      document.getElementById('sign-out').onclick = async () => { await this.pushSave(true); await this.sb.auth.signOut(); };
+      document.getElementById('name-save').onclick = async () => {
+        const name = document.getElementById('name-in').value.trim(), msg = document.getElementById('name-msg');
+        if (!name){ msg.textContent = 'Type a name first.'; return; }
+        const { error } = await this.sb.from('customer_profiles').upsert({ id: this.user.id, email: this.user.email, full_name: name });
+        if (error){ msg.textContent = 'Couldn’t save: ' + error.message; return; }
+        const { data } = await this.sb.rpc('game_my_stats', { p_game: 'squish' }); this.renderMe(data); this.loadBoard();
+      };
+      this.sb.rpc('game_my_stats', { p_game: 'squish' }).then(({ data }) => this.renderMe(data));
+      return;
+    }
+    box.innerHTML = '<h3>Save your game</h3><p>Sign in to keep your progress and get on the leaderboards.</p>' +
+      '<button type="button" class="pbtn" id="g-in"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>Sign in with Google</button>' +
+      '<input class="pinput" id="em-in" type="email" placeholder="or your email" autocomplete="email">' +
+      '<button type="button" class="pbtn" id="em-send">Email me a code</button>' +
+      '<div id="code-box" hidden><input class="pinput" id="code-in" inputmode="numeric" maxlength="6" placeholder="6-digit code"><button type="button" class="pbtn primary" id="code-go">Sign in</button></div>' +
+      '<div class="pmsg" id="em-msg"></div>';
+    document.getElementById('g-in').onclick = () => { this.pushLocal(); this.sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } }); };
+    let pendingEmail = '';
+    document.getElementById('em-send').onclick = async () => {
+      const email = document.getElementById('em-in').value.trim(), msg = document.getElementById('em-msg');
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ msg.textContent = 'Type your email first.'; return; }
+      msg.textContent = 'Sending…';
+      const { error } = await this.sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+      if (error){ msg.textContent = error.message; return; }
+      pendingEmail = email; document.getElementById('code-box').hidden = false; msg.textContent = 'Check your email for a 6-digit code.';
+    };
+    document.getElementById('code-go').onclick = async () => {
+      const token = document.getElementById('code-in').value.trim(), msg = document.getElementById('em-msg');
+      const { error } = await this.sb.auth.verifyOtp({ email: pendingEmail, token, type: 'email' });
+      msg.textContent = error ? 'That code didn’t work. Try again.' : '';
+    };
+  },
+  // a guest's current game, kept for a moment so it carries over if they sign in with Google (page reload)
+  pushLocal(){ try { if (started && !over) sessionStorage.setItem('squish-carry', JSON.stringify(snapshot())); } catch (e) {} },
+  async loadSave(){
+    let carry = null;
+    try { carry = JSON.parse(sessionStorage.getItem('squish-carry') || 'null'); sessionStorage.removeItem('squish-carry'); } catch (e) {}
+    let saved = null;
+    if (this.user){
+      const { data } = await this.sb.from('game_saves').select('state, updated_at').eq('user_id', this.user.id).eq('game', 'squish').maybeSingle();
+      saved = data && data.state;
+    }
+    const st = (carry && (!saved || (carry.score || 0) >= (saved.score || 0))) ? carry : saved;
+    const btns = document.getElementById('start-buttons');
+    if (st && Array.isArray(st.blobs) && st.blobs.length && !started){
+      btns.innerHTML = '<button type="button" class="play" id="resume">Continue (score ' + (st.score || 0) + ')</button><button type="button" class="play ghost" id="fresh">New game</button>';
+      document.getElementById('resume').onclick = () => { restore(st); this.pushSave(true); };
+      document.getElementById('fresh').onclick = () => { this.clearSave(); newGame(); };
+    }
+  }
+};
+function fmtLong(s){ s = Math.round(Number(s) || 0); const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60; return h ? h + 'h ' + m + 'm' : m ? m + 'm ' + (s % 60) + 's' : s + 's'; }
+
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
+  net.kind = t.dataset.kind; net.loadBoard();
+}));
+document.getElementById('lb-toggle').addEventListener('click', () => document.getElementById('side-right').classList.toggle('open'));
+document.addEventListener('click', e => {
+  const side = document.getElementById('side-right');
+  if (side.classList.contains('open') && !side.contains(e.target) && e.target.id !== 'lb-toggle') side.classList.remove('open');
+});
+
+setInterval(() => { net.pushSave(false); }, 8000);
+setInterval(() => { if (net.pendingSecs >= 5) net.record(false); }, 30000);
+document.addEventListener('visibilitychange', () => { if (document.hidden){ net.pushSave(true); if (net.pendingSecs >= 1) net.record(false); } });
+
+(async () => {
+  try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    net.sb = createClient('https://paycasfatsakidsriwqt.supabase.co', 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv');
+  } catch (e) { net.sb = null; }
+  if (!net.sb){ net.renderAccount(); net.loadBoard(); net.loadSave(); return; }
+  const { data } = await net.sb.auth.getSession();
+  net.user = data && data.session ? data.session.user : null;
+  net.renderAccount(); net.loadBoard(); net.loadSave();
+  net.sb.auth.onAuthStateChange((_ev, session) => {
+    const u = session ? session.user : null;
+    if ((u && u.id) === (net.user && net.user.id)) return;
+    net.user = u; net.renderAccount(); net.loadBoard();
+    if (u && started && !over){ dirty = true; net.pushSave(true); }
+  });
 })();
 </script>
 </body>
