@@ -122,7 +122,7 @@
           <ul>
             <li>Bubbles at the top <b>float</b> until you shoot them.</li>
             <li><b>Drag away from a bubble</b> to aim it any way, even up. The further you pull, the faster it flies. Right click, or let go close to the bubble, to cancel.</li>
-            <li>Matching numbers merge and double when one of them has been shot into the other, or when a new bubble drifts into a match as it arrives. If one was still floating, the new bubble floats too.</li>
+            <li>Matching numbers merge and double whenever they touch, floating or not. If one was still floating, the new bubble floats too.</li>
             <li>The pile presses on the two discs in the side walls. If both get squashed flat for a few seconds, or the pile reaches the floating strip, it's game over.</li>
           </ul>
           <div id="start-buttons"><button type="button" class="play" data-act="new">Play</button></div>
@@ -154,7 +154,7 @@
    Floating bubbles are squashed side by side into a strip at the top; new ones drift in from the sides
    while there's room (two big ones fill it, small ones fit four).
    Drag away from a floating bubble to aim and let go: it flies towards where you pulled, faster the
-   further you pulled. Matching numbers merge when one of them has been shot or has just spawned. The pile presses on two
+   further you pulled. Matching numbers merge whenever they touch. The pile presses on two
    discs in the side walls; if both stay squashed flat for a few seconds the game ends.
    Bubbles are rings of points held by springs with an internal pressure that keeps their size, so
    they squash to fill gaps. Signed-in players get saved progress and leaderboard entries. */
@@ -245,7 +245,6 @@ function spawn(){
   const b = makeBlob(v, left ? -r - 2 : W + r + 2, ROW_Y, 'enter');
   setVel(b, left ? 260 : -260, 0);
   sfx.spawn();
-  b.fresh = true;   // a newly spawned bubble merges with a match it bumps into on its way in
   blobs.push(b);
   return true;
 }
@@ -594,9 +593,6 @@ const MERGE_COOLDOWN_MAX = 3; // ...times how many merges in a row made it (0.3 
 const CHAIN_WINDOW = 2;       // a merge counts as "in a row" if it happens within this long after the cooldown ends
 // how many merges in a row a bubble is the result of (0 once its chain has gone cold)
 const chainOf = b => b.chain && b.sinceMerge < b.coolTotal + CHAIN_WINDOW ? b.chain : 0;
-const wasShot = b => b.state === 'fly' || b.state === 'pile';
-const FRESH_SECS = 2;   // how long after spawning a bubble still merges on its own
-const isFresh = b => b.fresh && b.age < FRESH_SECS;
 function collide(){
   const n = blobs.length;
   for (let i = 0; i < n; i++) bounds(blobs[i]);
@@ -607,8 +603,8 @@ function collide(){
       if (A.maxX < B.minX - 2 || B.maxX < A.minX - 2 || A.maxY < B.minY - 2 || B.maxY < A.minY - 2) continue;
       const h1 = resolve(A, B), h2 = resolve(B, A);
       if ((h1 || h2) && (A.state === 'fly' || B.state === 'fly')) landed(A.state === 'fly' ? A : B);
-      // matching numbers merge only if at least one of them has been shot or has just spawned, and neither has just merged
-      if ((h1 || h2) && A.v === B.v && !A.merged && !B.merged && (wasShot(A) || wasShot(B) || isFresh(A) || isFresh(B)) && !(A.cool > 0) && !(B.cool > 0)){ A.merged = B.merged = true; mergeQ.push([A, B]); }
+      // matching numbers merge whenever they touch, unless one of them has only just merged (cooldown)
+      if ((h1 || h2) && A.v === B.v && !A.merged && !B.merged && !(A.cool > 0) && !(B.cool > 0)){ A.merged = B.merged = true; mergeQ.push([A, B]); }
     }
   }
 }
