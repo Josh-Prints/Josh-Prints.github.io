@@ -68,6 +68,10 @@ body{
 .lb .nm{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lb .vl{ font-weight: 700; font-variant-numeric: tabular-nums; }
 .lb-empty{ font-size: 13px; color: var(--fg-muted); padding: 6px 2px; }
+.loan{ margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-muted); }
+.loan-note{ margin: 8px 0 0 !important; font-size: 12px !important; }
+.loan-btns{ display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.loan-btns .pbtn:disabled{ opacity: .45; cursor: default; }
 .rules{ margin: 0; padding-left: 18px; font-size: 13px; color: var(--fg-muted); line-height: 1.55; }
 .rules li{ margin-bottom: 3px; }
 .paytable{ width: 100%; border-collapse: collapse; font-size: 13px; }

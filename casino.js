@@ -22,12 +22,45 @@ export function newDeck(decks){ const s = []; for (let d = 0; d < (decks || 1); 
 export const bank = {
   get(){ try { const v = localStorage.getItem('casino-bank') ?? localStorage.getItem('bj-bank'); const c = Number(v); return v !== null && c >= 0 && isFinite(c) ? Math.floor(c) : 1000; } catch (e) { return 1000; } },
   set(c){ try { localStorage.setItem('casino-bank', String(Math.max(0, Math.floor(c)))); } catch (e) {} },
-  topup(){ let c = this.get(); if (c < 1000){ c = 1000; this.set(c); } return c; },
+  // guests borrow the same way signed-in players do: 1,000 at a time below 1,000 chips, 10% interest a day
+  loan(){
+    try {
+      const l = JSON.parse(localStorage.getItem('casino-loan'));
+      if (l && l.owed > 0){
+        const days = Math.floor((Date.now() - l.at) / 86400000);
+        if (days > 0){ for (let i = 0; i < days; i++) l.owed = Math.ceil(l.owed * 11 / 10 - 1e-9); l.at += days * 86400000; localStorage.setItem('casino-loan', JSON.stringify(l)); }
+        return l;
+      }
+    } catch (e) {}
+    return { owed: 0, at: null };
+  },
+  saveLoan(l){ try { l.owed > 0 ? localStorage.setItem('casino-loan', JSON.stringify(l)) : localStorage.removeItem('casino-loan'); } catch (e) {} },
+  // is a guest hand still being played? (chips are out on the table)
+  busy(){ try { const b = JSON.parse(localStorage.getItem('bj-guest') || 'null'); return !!localStorage.getItem('tcp-guest') || !!(b && b.phase && b.phase !== 'bet'); } catch (e) { return false; } },
+  borrow(){
+    const c = this.get(); if (c >= 1000 || this.busy()) return c;
+    const l = this.loan(); l.owed += 1000; if (!l.at) l.at = Date.now(); this.saveLoan(l); this.set(c + 1000);
+    casino.refreshLoan(); return c + 1000;
+  },
+  repay(){
+    const c = this.get(), l = this.loan(), amt = Math.min(c, l.owed); if (amt <= 0 || this.busy()) return c;
+    l.owed -= amt; if (!l.owed) l.at = null; this.saveLoan(l); this.set(c - amt);
+    casino.refreshLoan(); return c - amt;
+  },
+  // the games' "Borrow 1,000" button
+  topup(){ return this.borrow(); },
 };
 
 /* ---------- chips shown in the stats ---------- */
+function loanChips(v){
+  const c = $('ln-chips'); if (!c) return;
+  const o = casino.owed || 0;
+  c.textContent = fmt(v); $('ln-owed').textContent = fmt(o); $('ln-net').textContent = fmt(v - o);
+  $('ln-borrow').disabled = v >= 1000; $('ln-repay').disabled = !o || v <= 0;
+}
 let shownChips = null;
 export function showChips(v, pulse){
+  loanChips(v);
   document.querySelectorAll('[data-stat="chips"]').forEach(e => {
     e.textContent = fmt(v);
     if (pulse && shownChips !== null && v > shownChips){ e.classList.remove('pulse'); void e.offsetWidth; e.classList.add('pulse'); }
@@ -160,7 +193,7 @@ export function betBoard({ spots, rack, free, canBet, onChange, maxPer }){
 /* ======================= accounts, leaderboard, time played ======================= */
 export const casino = {
   sb: null, user: null, pendingSecs: 0, kind: 'score', lastInput: 0, listeners: [],
-  async rpc(name, args){ const { data, error } = await this.sb.rpc(name, args || {}); if (error) throw error; return data; },
+  async rpc(name, args){ const { data, error } = await this.sb.rpc(name, args || {}); if (error) throw error; if (name === 'casino_topup') this.refreshLoan(); return data; },
   onUser(fn){ this.listeners.push(fn); },
   markInput(){ this.lastInput = performance.now(); },
   async record(){
@@ -183,20 +216,17 @@ export const casino = {
   renderMe(st){
     if (!this.user || !st) return;
     const box = $('me-stats'); if (!box) return;
-    box.innerHTML = '<span>Score</span><b>' + fmt(st.best_score || 0) + (st.score_rank ? ' <small>#' + st.score_rank + '</small>' : '') + '</b>' +
-      '<span>Chips</span><b id="me-chips">…</b><span>Borrowed</span><b id="me-borrowed">…</b>' +
+    box.innerHTML = '<span>Net worth</span><b>' + fmt(st.best_score || 0) + (st.score_rank ? ' <small>#' + st.score_rank + '</small>' : '') + '</b>' +
       '<span>Time played</span><b>' + fmtLong(st.total_seconds || 0) + (st.time_rank ? ' <small>#' + st.time_rank + '</small>' : '') + '</b>' +
       '<span>Rounds played</span><b>' + fmt(st.games_played || 0) + '</b>';
-    // score = chips minus what you've been topped up; show both parts
-    this.sb.rpc('casino_me').then(({ data }) => { if (!data) return; const c = $('me-chips'), b = $('me-borrowed'); if (c) c.textContent = fmt(data.chips); if (b) b.textContent = fmt(data.borrowed); });
     const nm = $('me-name'); if (nm) nm.textContent = st.name;
     const setName = $('name-box'); if (setName) setName.hidden = st.name !== 'Player';
   },
   renderAccount(){
     const box = $('account'); if (!box) return;
-    if (!this.sb){ box.innerHTML = '<p>Sign-in is unavailable right now. You can still play.</p>'; return; }
+    if (!this.sb){ box.innerHTML = this.loanHtml() + '<p style="margin-top:12px">Sign-in is unavailable right now. You can still play.</p>'; this.wireLoan(); return; }
     if (this.user){
-      box.innerHTML = '<h3>Playing as <span id="me-name">…</span></h3><div class="me-row" id="me-stats"></div>' +
+      box.innerHTML = '<h3>Playing as <span id="me-name">…</span></h3><div class="me-row" id="me-stats"></div>' + this.loanHtml() +
         '<div id="name-box" hidden><p style="margin-top:10px">Pick a name for the leaderboard:</p><input class="pinput" id="name-in" maxlength="40" placeholder="Your name"><button type="button" class="pbtn primary" id="name-save">Save name</button><div class="pmsg" id="name-msg"></div></div>' +
         '<button type="button" class="link" id="sign-out">Sign out</button>';
       $('sign-out').onclick = async () => { await this.sb.auth.signOut(); };
@@ -208,15 +238,17 @@ export const casino = {
         const { data } = await this.sb.rpc('game_my_stats', { p_game: 'casino' }); this.renderMe(data); this.loadBoard();
       };
       this.sb.rpc('game_my_stats', { p_game: 'casino' }).then(({ data }) => this.renderMe(data));
+      this.wireLoan();
       return;
     }
-    box.innerHTML = '<h3>Save your chips</h3><p>Sign in to keep your chips on any device and get on the casino leaderboard.</p>' +
+    box.innerHTML = this.loanHtml() + '<h3 style="margin-top:14px">Save your chips</h3><p>Sign in to keep your chips on any device and get on the casino leaderboard.</p>' +
       '<button type="button" class="pbtn" id="g-in"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>Sign in with Google</button>' +
       '<input class="pinput" id="em-in" type="email" placeholder="or your email" autocomplete="email">' +
       '<button type="button" class="pbtn" id="em-send">Email me a code</button>' +
       '<div id="code-box" hidden><input class="pinput" id="code-in" inputmode="numeric" maxlength="6" placeholder="6-digit code"><button type="button" class="pbtn primary" id="code-go">Sign in</button></div>' +
       '<div class="pmsg" id="em-msg"></div>';
     $('g-in').onclick = () => { this.sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } }); };
+    this.wireLoan();
     let pendingEmail = '';
     $('em-send').onclick = async () => {
       const email = $('em-in').value.trim(), m = $('em-msg');
@@ -233,6 +265,30 @@ export const casino = {
     };
   },
   guestNote(){ document.querySelectorAll('.guest-note').forEach(n => n.hidden = !!this.user); },
+  // the loan block in the account panel: chips, what you owe, net worth, Borrow 1,000 / Pay back
+  owed: 0,
+  async refreshLoan(){
+    const box = $('loan'); if (!box) return;
+    let d;
+    if (signedIn()){ try { d = await this.rpc('casino_me'); } catch (e) { return; } }
+    else d = { chips: bank.get(), owed: bank.loan().owed };
+    this.owed = d.owed; loanChips(d.chips);
+  },
+  loanHtml(){
+    return '<div class="loan" id="loan"><div class="me-row"><span>Chips</span><b id="ln-chips">…</b><span>Owed</span><b id="ln-owed">…</b><span>Net worth</span><b id="ln-net">…</b></div>' +
+      '<p class="loan-note">Below 1,000 chips you can borrow 1,000. Loans grow 10% a day until you pay them back, and the leaderboard counts what you owe.</p>' +
+      '<div class="loan-btns"><button type="button" class="pbtn" id="ln-borrow">Borrow 1,000</button><button type="button" class="pbtn primary" id="ln-repay">Pay back</button></div><div class="pmsg" id="ln-msg"></div></div>';
+  },
+  wireLoan(){
+    const go = async (fn, done) => {
+      const m = $('ln-msg'); if (m) m.textContent = '';
+      try { await fn(); if (m) m.textContent = done; } catch (e) { if (m) m.textContent = /hand/.test(e.message || '') ? 'Finish your hand first.' : /below/.test(e.message || '') ? 'You can borrow once you’re below 1,000 chips.' : 'That didn’t go through.'; }
+      await this.refreshLoan(); this.loadBoard(); this.listeners.forEach(fn => { try { fn(this.user); } catch (e) {} });
+    };
+    $('ln-borrow').onclick = () => go(() => signedIn() ? this.rpc('casino_borrow') : Promise.resolve(bank.borrow()), 'Borrowed 1,000.');
+    $('ln-repay').onclick = () => go(() => signedIn() ? this.rpc('casino_repay', { p_amount: null }) : Promise.resolve(bank.repay()), 'Paid back.');
+    this.refreshLoan();
+  },
   changed(){ this.renderAccount(); this.loadBoard(); this.guestNote(); this.listeners.forEach(fn => { try { fn(this.user); } catch (e) { console.error(e); } }); },
 };
 

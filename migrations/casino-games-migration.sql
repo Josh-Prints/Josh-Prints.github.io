@@ -1150,3 +1150,92 @@ end $$;
 
 revoke all on function public.casino_floor(uuid), public.casino_publish(uuid, bigint, boolean), public.casino_me() from public, anon, authenticated;
 grant execute on function public.casino_me() to authenticated;
+
+
+-- ===== Loans with interest (replaces the auto-reset and the "borrowed" score penalty) =====
+-- Below 1,000 chips you can borrow 1,000. What you owe grows 10% a day, compounding, until repaid.
+-- The leaderboard ranks net worth: chips minus what you owe.
+alter table public.casino_wallet add column if not exists owed bigint not null default 0;
+alter table public.casino_wallet add column if not exists owed_at timestamptz;
+-- the old "borrowed" tally counted free resets; those weren't real loans
+update public.casino_wallet set loans = 0 where loans <> 0;
+
+-- add any interest due: 10% a day, compounding, charged for each full day since the last charge
+create or replace function public.casino_accrue(uid uuid) returns void language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet; days int;
+begin
+  select * into w from public.casino_wallet where user_id = uid for update;
+  if w.owed > 0 and w.owed_at is not null then
+    days := floor(extract(epoch from now() - w.owed_at) / 86400)::int;
+    if days > 0 then
+      update public.casino_wallet set owed = ceil(owed * power(1.10::numeric, days))::bigint, owed_at = owed_at + make_interval(days => days) where user_id = uid;
+    end if;
+  end if;
+end $$;
+
+-- no automatic top-up any more: running low means borrowing
+create or replace function public.casino_floor(uid uuid) returns bigint language sql stable security definer set search_path = public as $$
+  select chips from public.casino_wallet where user_id = uid
+$$;
+
+create or replace function public.casino_row() returns public.casino_wallet language plpgsql security definer set search_path = public as $$
+declare uid uuid := auth.uid(); w public.casino_wallet;
+begin
+  if uid is null then raise exception 'sign in first'; end if;
+  insert into public.casino_wallet (user_id) values (uid) on conflict (user_id) do nothing;
+  perform public.casino_accrue(uid);
+  select * into w from public.casino_wallet where user_id = uid for update;
+  return w;
+end $$;
+
+-- the leaderboard ranks net worth: chips minus what you owe
+create or replace function public.casino_publish(uid uuid, p_chips bigint, played boolean) returns void language plpgsql security definer set search_path = public as $$
+declare o bigint;
+begin
+  select owed into o from public.casino_wallet where user_id = uid;
+  insert into public.game_stats as s (user_id, game, best_score, total_seconds, games_played, last_seen)
+  values (uid, 'casino', least(p_chips - coalesce(o, 0), 100000000000), 0, case when played then 1 else 0 end, now())
+  on conflict (user_id, game) do update set best_score = excluded.best_score,
+    games_played = s.games_played + excluded.games_played, last_seen = now();
+end $$;
+
+create or replace function public.casino_me() returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row();
+begin
+  perform public.casino_publish(w.user_id, w.chips, false);
+  return jsonb_build_object('chips', w.chips, 'owed', w.owed, 'net', w.chips - w.owed, 'rate', 10, 'busy', public.casino_busy(w.user_id));
+end $$;
+
+-- borrow 1,000 chips (only when you're below 1,000 and not in the middle of a hand)
+create or replace function public.casino_borrow() returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row();
+begin
+  if w.chips >= 1000 then raise exception 'you can borrow once you are below 1,000 chips'; end if;
+  if public.casino_busy(w.user_id) then raise exception 'finish your hand first'; end if;
+  update public.casino_wallet set chips = chips + 1000, owed = owed + 1000, owed_at = coalesce(owed_at, now()), updated_at = now() where user_id = w.user_id;
+  return public.casino_me();
+end $$;
+
+-- pay back as much as you can (or p_amount), up to what you owe
+create or replace function public.casino_repay(p_amount bigint default null) returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row(); amt bigint;
+begin
+  if public.casino_busy(w.user_id) then raise exception 'finish your hand first'; end if;
+  amt := least(coalesce(p_amount, w.owed), w.owed, w.chips);
+  if amt <= 0 then return public.casino_me(); end if;
+  update public.casino_wallet set chips = chips - amt, owed = owed - amt, owed_at = case when owed - amt = 0 then null else owed_at end, updated_at = now() where user_id = w.user_id;
+  return public.casino_me();
+end $$;
+
+-- the games' "Borrow 1,000" buttons call this
+create or replace function public.casino_topup() returns jsonb language plpgsql security definer set search_path = public as $$
+begin
+  return public.casino_borrow();
+end $$;
+
+-- everyone's leaderboard number becomes net worth (nobody owes anything yet, so it's just chips)
+update public.game_stats s set best_score = w.chips - w.owed from public.casino_wallet w where s.game = 'casino' and s.user_id = w.user_id;
+
+revoke all on function public.casino_accrue(uuid), public.casino_floor(uuid), public.casino_row(), public.casino_publish(uuid, bigint, boolean), public.casino_me(),
+  public.casino_borrow(), public.casino_repay(bigint), public.casino_topup() from public, anon, authenticated;
+grant execute on function public.casino_me(), public.casino_borrow(), public.casino_repay(bigint), public.casino_topup() to authenticated;
