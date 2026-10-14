@@ -166,12 +166,12 @@ begin
   return public.bj_dealer_play(t);
 end $$;
 
--- below 1,000 chips (and not in the middle of a hand) you can top up by 1,000
+-- below 1,000 chips (and not in the middle of a hand) you can reset back to 1,000
 create or replace function public.bj_topup() returns jsonb language plpgsql security definer set search_path = public as $$
 declare t public.bj_table := public.bj_row();
 begin
   if t.phase = 'bet' and t.chips < 1000 then
-    update public.bj_table set chips = chips + 1000, updated_at = now() where user_id = t.user_id returning * into t;
+    update public.bj_table set chips = 1000, updated_at = now() where user_id = t.user_id returning * into t;
     perform public.bj_publish(t.user_id, t.chips, false);
   end if;
   return public.bj_view(t);

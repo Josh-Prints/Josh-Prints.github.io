@@ -192,7 +192,7 @@
               <span class="betamt" id="betamt"></span>
               <button class="btn main" id="deal">Deal</button>
             </div>
-            <button class="btn main" id="rebuy" hidden>Add 1,000 chips</button>
+            <button class="btn main" id="rebuy" hidden>Reset to 1,000 chips</button>
           </div>
           <div class="acts">
             <div class="row">
@@ -202,7 +202,7 @@
             </div>
           </div>
           <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
-          <div class="ver">Version 2026-10-14a</div>
+          <div class="ver">Version 2026-10-14b</div>
         </div>
       </main>
     </div>
@@ -222,7 +222,7 @@
 <script type="module">
 /* Blackjack. Signed-in players play against the server, which shuffles, deals and settles every hand, so the
    chips leaderboard can't be faked; guests play the same game here in the browser with chips kept on this
-   device. Below 1,000 chips (between hands) you can add 1,000. */
+   device. Below 1,000 chips (between hands) you can reset back to 1,000. */
 const SU = ['♠', '♥', '♦', '♣'], RK = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 const CH = [[5, '#b3262e'], [25, '#1f5a99'], [100, '#222'], [500, '#6b3fa0']];
 const $ = id => document.getElementById(id);
@@ -269,7 +269,7 @@ const local = (() => {
     async hit(){ if (st.phase !== 'play') return view(); st.player.push(st.shoe.pop()); const t = total(st.player).t; if (t > 21) return settle(); if (t === 21) return dealerPlay(); return view(); },
     async stand(){ if (st.phase !== 'play') return view(); return dealerPlay(); },
     async double(){ if (st.phase !== 'play' || st.player.length !== 2 || st.chips < st.wager) return view(); st.chips -= st.wager; st.wager *= 2; st.player.push(st.shoe.pop()); save(); if (total(st.player).t > 21) return settle(); return dealerPlay(); },
-    async topup(){ if (st.phase === 'bet' && st.chips < 1000){ st.chips += 1000; save(); } return view(); },
+    async topup(){ if (st.phase === 'bet' && st.chips < 1000){ st.chips = 1000; save(); } return view(); },
   };
 })();
 // signed-in engine: every move is a call to the server
