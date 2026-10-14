@@ -81,6 +81,10 @@
   .over-card{ text-align: center; color: #fff; max-width: 300px; }
   .over-card h2{ margin: 0 0 6px; font-size: 30px; letter-spacing: -.02em; }
   .over-card .ver{ margin-top: 10px; font-size: 11px; color: #8b949e; }
+  .guest-note{ margin: 12px auto 0; max-width: 300px; padding: 8px 12px; border-radius: 10px; background: rgba(255,193,7,.14); border: 1px solid rgba(255,193,7,.45); color: #ffe7a3; font-size: 13px; line-height: 1.4; }
+  .guest-note[hidden]{ display: none; }
+  .guest-note button{ font: inherit; font-weight: 700; background: none; border: 0; padding: 0; color: #fff; text-decoration: underline; cursor: pointer; }
+  .guest-toast{ position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 5; padding: 8px 14px; border-radius: 999px; background: rgba(22,27,34,.92); border: 1px solid rgba(255,193,7,.5); color: #ffe7a3; font-size: 13px; font-weight: 600; white-space: nowrap; pointer-events: none; transition: opacity .4s; max-width: calc(100% - 20px); overflow: hidden; text-overflow: ellipsis; }
   .over-card p{ margin: 0 0 14px; color: #c9d1d9; font-size: 14.5px; line-height: 1.5; }
   .over-card ul{ text-align: left; margin: 0 0 16px; padding-left: 18px; color: #c9d1d9; font-size: 14px; line-height: 1.5; }
   .play{ font: inherit; font-size: 16px; font-weight: 700; padding: 11px 26px; border-radius: 999px; cursor: pointer; border: 0; background: var(--accent); color: #fff; margin: 4px; }
@@ -104,6 +108,7 @@
     <a href="/games.html">&larr; Games</a>
     <span class="title">Dune</span>
     <button type="button" class="tbtn lb-toggle" id="lb-toggle">Leaderboard</button>
+    <button type="button" class="tbtn" id="dbg" aria-pressed="false" hidden title="Founder debug: show the predicted flight path">Path</button>
     <button type="button" class="tbtn" id="mute" aria-pressed="false">Sound on</button>
     <button type="button" class="tbtn" id="restart">New run</button>
   </div>
@@ -129,11 +134,12 @@
             <li>Your ball rolls over the dunes on its own.</li>
             <li><b>Hold down</b> (touch, click or Space) to get heavy and dive into the hills. <b>Let go</b> to fly off the tops.</li>
             <li>Land smoothly on a <b>downhill slope</b> to get a speed boost. Land three in a row for a fever combo.</li>
-            <li>Grab the <b>coins</b> on the ground, and the ones that appear along your flight when you launch high (a quick hold dips you into them). Land hard (Ouch!) and you'll drop some.</li>
+            <li>Grab the <b>coins</b> on the ground. When you're flying fast, more appear right on your flight path ahead of you. Land hard (Ouch!) and you'll drop some.</li>
             <li>A sandstorm is following you. Keep your speed up or it catches you.</li>
           </ul>
           <button type="button" class="play" data-act="new">Play</button>
-          <div class="ver">Version 2026-10-13f</div>
+          <p class="guest-note" hidden>You're not signed in, so your scores and time played won't be saved to the leaderboard. <button type="button">Sign in</button></p>
+          <div class="ver">Version 2026-10-13g</div>
         </div>
       </div>
       <div class="over" id="over" hidden>
@@ -141,6 +147,7 @@
           <h2>Caught by the storm!</h2>
           <p id="over-text"></p>
           <button type="button" class="play" data-act="new">Ride again</button>
+          <p class="guest-note" hidden>You're not signed in, so your scores and time played won't be saved to the leaderboard. <button type="button">Sign in</button></p>
         </div>
       </div>
     </div>
@@ -201,26 +208,39 @@ function placeCoins(a, b){
   }
   coins.sort((p, q) => p.x - q.x);   // kept in order along the course (collecting and drawing rely on it)
 }
-// Sky coins: once per flight, when you've launched high enough, work out where you're going to fly and lay a
-// two-coin-thick line just under that path, so the slightest dip catches them and doing nothing sails over.
-let skyDone = false;
-function skyCoins(){
-  const b = ball;
-  extendTerrain(b.x + 3200);   // make sure the hills ahead exist
-  let x = b.x, y = b.y, vx = b.vx, vy = b.vy, t = 0;
-  const line = [];
-  while (t < 1.6){
-    vy += G * DT * 4; x += vx * DT * 4; y += vy * DT * 4; t += DT * 4;
-    if (y > groundY(x) - R - 70) break;   // stop before the path gets near the ground
-    if (t > 0.3 && line.length < 22) line.push([x, y, vx, vy]);
+// Where the ball will fly from here if you don't touch anything: stepped exactly the way the game steps it,
+// so it lines up with the real flight. Stops where it would meet the ground.
+function predictPath(maxT, g){
+  let x = ball.x, y = ball.y, vx = ball.vx, vy = ball.vy;
+  const out = [];
+  for (let t = 0; t < maxT; t += DT){
+    vy += (g || G) * DT; x += vx * DT; y += vy * DT;
+    if (y >= groundY(x) - R) break;
+    out.push([x, y, vx, vy]);
   }
-  if (line.length < 8) return false;
-  for (let i = 0; i < line.length; i += 2){
-    // the band sits just below your path: its inner row is just out of reach, so the slightest dip catches it
-    const [px, py, lvx, lvy] = line[i], tl = Math.hypot(lvx, lvy) || 1, ox = lvy / tl, oy = -lvx / tl, d = COIN_R * 1.15;
-    const below = R + COIN_R + d + 3, bx = px - ox * below, by = py - oy * below;
-    coins.push({ x: bx + ox * d, y: by + oy * d, a: Math.random() * 6, sky: true });
-    coins.push({ x: bx - ox * d, y: by - oy * d, a: Math.random() * 6, sky: true });
+  return out;
+}
+// Sky coins: when you're flying fast, put a two-coin-thick line right on your flight path, on the stretch just
+// past the right edge of the screen, so they scroll into view ahead of you and you fly straight through them.
+// Once per flight.
+const SKY_MIN_VX = 700;
+let skyDone = false, skyTry = 0, viewRight = 0;
+function skyCoins(){
+  extendTerrain(ball.x + 3600);   // make sure the hills ahead exist
+  const path = predictPath(3);
+  const line = [];
+  let lastX = -1e9;
+  for (const q of path){
+    if (q[0] < viewRight + 40) continue;              // only off screen
+    if (q[0] > viewRight + 700) break;
+    if (q[1] > groundY(q[0]) - R - 50) break;          // not where it's about to land
+    if (q[0] - lastX >= 34){ line.push(q); lastX = q[0]; }
+  }
+  if (line.length < 5) return false;
+  for (const [px, py, lvx, lvy] of line){
+    const tl = Math.hypot(lvx, lvy) || 1, ox = lvy / tl, oy = -lvx / tl, d = COIN_R * 1.15;
+    coins.push({ x: px + ox * d, y: py + oy * d, a: Math.random() * 6, sky: true });
+    coins.push({ x: px - ox * d, y: py - oy * d, a: Math.random() * 6, sky: true });
   }
   coins.sort((p, q) => p.x - q.x);
   return true;
@@ -239,6 +259,7 @@ function groundSlope(x){
 }
 
 function newGame(){
+  guestToast();
   pts = [{ x: -800, y: BASE - 40, peak: true }, { x: -300, y: BASE + 30, peak: false }, { x: 120, y: BASE - 120, peak: true }];
   coins = []; camX = -200; extendTerrain(3000);
   ball = { x: 0, y: groundY(0) - R, vx: 260, vy: 0 };
@@ -289,7 +310,8 @@ function step(){
   } else {
     if (b.y < gy - 2){ if (grounded) airT = 0; grounded = false; }
     airT += DT;
-    if (!skyDone && airT > 0.12 && b.vx > 380 && groundY(b.x) - b.y > 90 && !holding) skyDone = skyCoins() || airT > 0.6;
+    // sky coins: fast flights only, tried a few times a second until the path ahead has an off-screen stretch
+    if (!skyDone && airT > 0.1 && b.vx > SKY_MIN_VX && !holding && (skyTry -= DT) <= 0){ skyTry = 0.1; skyDone = skyCoins(); }
   }
   // collect coins
   const reach = (R + COIN_R) * (R + COIN_R);
@@ -346,6 +368,7 @@ function draw(){
   const s = sc0 * zoom, bottomY = BASE + 130;   // world y shown at the bottom edge
   const X = wx => (wx - camX) * s, Y = wy => H - (bottomY - wy) * s;
   const viewW = W / s;
+  viewRight = camX + viewW;
   extendTerrain(camX + viewW + 600);
 
   // sky
@@ -430,6 +453,13 @@ function draw(){
     ctx.font = '800 ' + Math.round(Math.max(14, H * 0.03)) + 'px system-ui, sans-serif'; ctx.textAlign = 'left';
     ctx.fillText('Storm behind you!', 16, 24);
   }
+  // founder debug: the predicted flight (white: if you let go; red: if you keep holding)
+  if (debugPath && started && !over){
+    const drawPath = (pts2, col) => { if (pts2.length < 2) return; ctx.save(); ctx.setLineDash([6, 6]); ctx.lineWidth = 2; ctx.strokeStyle = col; ctx.beginPath(); pts2.forEach((q, i) => i ? ctx.lineTo(X(q[0]), Y(q[1])) : ctx.moveTo(X(q[0]), Y(q[1]))); ctx.stroke(); ctx.restore(); };
+    drawPath(predictPath(3), 'rgba(255,255,255,.85)');
+    if (holding) drawPath(predictPath(3, G_HOLD), 'rgba(255,107,107,.85)');
+    ctx.strokeStyle = 'rgba(255,209,102,.6)'; ctx.setLineDash([]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(viewRight) - 1, 0); ctx.lineTo(X(viewRight) - 1, H); ctx.stroke();
+  }
   // hold hint
   if (holding){ ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(0, H - 6, W, 6); }
 }
@@ -503,6 +533,18 @@ addEventListener('keyup', e => { if (e.code === 'Space' || e.code === 'ArrowDown
 addEventListener('blur', () => press(false));
 document.querySelectorAll('[data-act="new"]').forEach(b => b.addEventListener('click', newGame));
 document.getElementById('restart').addEventListener('click', () => { if (started && !over) net.record(false); newGame(); });
+// founder-only debug toggle (shown once the signed-in account is confirmed as the founder)
+let debugPath = false, debugPref = false;
+try { debugPref = localStorage.getItem('dune-debug-path') === '1'; } catch (e) {}
+const dbgBtn = document.getElementById('dbg');
+function showDbg(){ dbgBtn.textContent = debugPath ? 'Path: on' : 'Path: off'; dbgBtn.setAttribute('aria-pressed', String(debugPath)); }
+dbgBtn.addEventListener('click', () => { debugPath = debugPref = !debugPath; try { localStorage.setItem('dune-debug-path', debugPath ? '1' : '0'); } catch (e) {} showDbg(); });
+showDbg();
+async function checkFounder(){
+  let ok = false;
+  if (net.sb && net.user){ try { const { data } = await net.sb.rpc('is_founder'); ok = data === true; } catch (e) {} }
+  dbgBtn.hidden = !ok; debugPath = ok && debugPref; showDbg();
+}
 const muteBtn = document.getElementById('mute');
 function showMute(){ muteBtn.textContent = sfx.muted ? 'Sound off' : 'Sound on'; muteBtn.setAttribute('aria-pressed', String(sfx.muted)); }
 muteBtn.addEventListener('click', () => { sfx.toggle(); showMute(); });
@@ -517,7 +559,7 @@ size(); hud(); requestAnimationFrame(frame);
 // for automated tests
 window.__dune = {
   get ball(){ return ball; }, get score(){ return score; }, get over(){ return over; }, get combo(){ return combo; }, get storm(){ return storm; },
-  get landings(){ return landings; }, get coins(){ return coinCount; }, get coinList(){ return coins; }, get airT(){ return airT; },
+  get landings(){ return landings; }, predict: t => predictPath(t || 3), debug: on => { debugPath = on; }, get viewRight(){ return viewRight; }, get coins(){ return coinCount; }, get coinList(){ return coins; }, get airT(){ return airT; },
   start: newGame, hold: on => press(on), ground: x => groundY(x), slope: x => groundSlope(x),
 };
 
@@ -606,19 +648,38 @@ document.addEventListener('click', e => {
 setInterval(() => { if (net.pendingSecs >= 5) net.record(false); }, 30000);
 document.addEventListener('visibilitychange', () => { if (document.hidden){ press(false); if (net.pendingSecs >= 1) net.record(false); } });
 
+const MSG_TOAST = "Not signed in: this run won't be saved";
+/* ---------- not signed in: progress isn't saved ---------- */
+function updateGuestNote(){
+  const guest = !net.user;
+  document.querySelectorAll('.guest-note').forEach(n => n.hidden = !guest);
+}
+function guestToast(){
+  if (net.user) return;
+  const board = document.getElementById('board'); if (!board) return;
+  const t = document.createElement('div'); t.className = 'guest-toast'; t.textContent = MSG_TOAST;
+  board.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; }, 3500); setTimeout(() => t.remove(), 4000);
+}
+document.querySelectorAll('.guest-note button').forEach(b => b.addEventListener('click', e => {
+  e.stopPropagation();
+  const side = document.getElementById('side-right'); side.classList.add('open');
+  const btn = side.querySelector('#g-in, #em-in'); if (btn) btn.scrollIntoView({ block: 'center' });
+}));
+
 (async () => {
   try {
     const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
     net.sb = createClient('https://paycasfatsakidsriwqt.supabase.co', 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv');
   } catch (e) { net.sb = null; }
-  if (!net.sb){ net.renderAccount(); net.loadBoard(); return; }
+  if (!net.sb){ net.renderAccount(); net.loadBoard(); updateGuestNote(); return; }
   const { data } = await net.sb.auth.getSession();
   net.user = data && data.session ? data.session.user : null;
-  net.renderAccount(); net.loadBoard();
+  net.renderAccount(); net.loadBoard(); checkFounder(); updateGuestNote();
   net.sb.auth.onAuthStateChange((_ev, session) => {
     const u = session ? session.user : null;
     if ((u && u.id) === (net.user && net.user.id)) return;
-    net.user = u; net.renderAccount(); net.loadBoard();
+    net.user = u; net.renderAccount(); net.loadBoard(); checkFounder(); updateGuestNote();
   });
 })();
 </script>

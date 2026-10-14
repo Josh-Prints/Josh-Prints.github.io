@@ -81,6 +81,10 @@
   .over-card{ text-align: center; color: #fff; max-width: 300px; }
   .over-card h2{ margin: 0 0 6px; font-size: 30px; letter-spacing: -.02em; }
   .over-card .ver{ margin-top: 10px; font-size: 11px; color: #8b949e; }
+  .guest-note{ margin: 12px auto 0; max-width: 300px; padding: 8px 12px; border-radius: 10px; background: rgba(255,193,7,.14); border: 1px solid rgba(255,193,7,.45); color: #ffe7a3; font-size: 13px; line-height: 1.4; }
+  .guest-note[hidden]{ display: none; }
+  .guest-note button{ font: inherit; font-weight: 700; background: none; border: 0; padding: 0; color: #fff; text-decoration: underline; cursor: pointer; }
+  .guest-toast{ position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 5; padding: 8px 14px; border-radius: 999px; background: rgba(22,27,34,.92); border: 1px solid rgba(255,193,7,.5); color: #ffe7a3; font-size: 13px; font-weight: 600; white-space: nowrap; pointer-events: none; transition: opacity .4s; max-width: calc(100% - 20px); overflow: hidden; text-overflow: ellipsis; }
   .over-card p{ margin: 0 0 14px; color: #c9d1d9; font-size: 14.5px; line-height: 1.5; }
   .over-card ul{ text-align: left; margin: 0 0 16px; padding-left: 18px; color: #c9d1d9; font-size: 14px; line-height: 1.5; }
   .play{ font: inherit; font-size: 16px; font-weight: 700; padding: 11px 26px; border-radius: 999px; cursor: pointer; border: 0; background: var(--accent); color: #fff; margin: 4px; }
@@ -128,7 +132,8 @@
             <li>The pile presses on the two discs in the side walls. If both get squashed flat for a few seconds, or the pile reaches the floating strip, it's game over.</li>
           </ul>
           <div id="start-buttons"><button type="button" class="play" data-act="new">Play</button></div>
-          <div class="ver">Version 2026-10-13h</div>
+          <p class="guest-note" hidden>You're not signed in, so your game won't be saved and your scores won't go on the leaderboard. <button type="button">Sign in</button></p>
+          <div class="ver">Version 2026-10-13i</div>
         </div>
       </div>
       <div class="over" id="over" hidden>
@@ -136,6 +141,7 @@
           <h2>Squished!</h2>
           <p id="over-text"></p>
           <button type="button" class="play" data-act="new">Play again</button>
+          <p class="guest-note" hidden>You're not signed in, so your game won't be saved and your scores won't go on the leaderboard. <button type="button">Sign in</button></p>
         </div>
       </div>
     </div>
@@ -308,6 +314,7 @@ const sfx = (() => {
 })();
 
 function newGame(){
+  guestToast();
   blobs = []; score = 0; over = false; danger = 0; pops = []; grab = null; playSecs = 0; spawnT = 0;
   for (const d of discs) d.e = 1;
   // start with three in the strip, no two matching side by side; more drift in while there's room
@@ -1167,19 +1174,38 @@ setInterval(() => { net.pushSave(false); }, 8000);
 setInterval(() => { if (net.pendingSecs >= 5) net.record(false); }, 30000);
 document.addEventListener('visibilitychange', () => { if (document.hidden){ net.pushSave(true); if (net.pendingSecs >= 1) net.record(false); } });
 
+const MSG_TOAST = "Not signed in: this game won't be saved";
+/* ---------- not signed in: progress isn't saved ---------- */
+function updateGuestNote(){
+  const guest = !net.user;
+  document.querySelectorAll('.guest-note').forEach(n => n.hidden = !guest);
+}
+function guestToast(){
+  if (net.user) return;
+  const board = document.getElementById('board'); if (!board) return;
+  const t = document.createElement('div'); t.className = 'guest-toast'; t.textContent = MSG_TOAST;
+  board.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; }, 3500); setTimeout(() => t.remove(), 4000);
+}
+document.querySelectorAll('.guest-note button').forEach(b => b.addEventListener('click', e => {
+  e.stopPropagation();
+  const side = document.getElementById('side-right'); side.classList.add('open');
+  const btn = side.querySelector('#g-in, #em-in'); if (btn) btn.scrollIntoView({ block: 'center' });
+}));
+
 (async () => {
   try {
     const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
     net.sb = createClient('https://paycasfatsakidsriwqt.supabase.co', 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv');
   } catch (e) { net.sb = null; }
-  if (!net.sb){ net.renderAccount(); net.loadBoard(); net.loadSave(); return; }
+  if (!net.sb){ net.renderAccount(); net.loadBoard(); net.loadSave(); updateGuestNote(); return; }
   const { data } = await net.sb.auth.getSession();
   net.user = data && data.session ? data.session.user : null;
-  net.renderAccount(); net.loadBoard(); net.loadSave();
+  net.renderAccount(); net.loadBoard(); net.loadSave(); updateGuestNote();
   net.sb.auth.onAuthStateChange((_ev, session) => {
     const u = session ? session.user : null;
     if ((u && u.id) === (net.user && net.user.id)) return;
-    net.user = u; net.renderAccount(); net.loadBoard();
+    net.user = u; net.renderAccount(); net.loadBoard(); updateGuestNote();
     if (u && started && !over){ dirty = true; net.pushSave(true); }
   });
 })();
