@@ -1318,3 +1318,82 @@ $$;
 revoke all on function public.casino_banned(uuid), public.casino_ban_status(), public.casino_ban(uuid, text, boolean), public.casino_ban_info(uuid) from public, anon, authenticated;
 grant execute on function public.casino_ban_status(), public.casino_ban(uuid, text, boolean) to authenticated;
 grant execute on function public.game_leaderboard(text, text, integer) to anon, authenticated;
+
+
+-- ===== Cheat lockouts: the page reports bookmarklet tricks; 5 minutes, then 10, then an hour each time =====
+alter table public.casino_wallet add column if not exists strikes int not null default 0;
+alter table public.casino_wallet add column if not exists locked_until timestamptz;
+
+create table if not exists public.casino_flags (
+  id bigserial primary key,
+  user_id uuid not null,
+  kind text not null,
+  detail text,
+  strike int not null,
+  locked_until timestamptz not null,
+  created_at timestamptz not null default now()
+);
+alter table public.casino_flags enable row level security;
+revoke all on public.casino_flags from public, anon, authenticated;
+create index if not exists casino_flags_user on public.casino_flags (user_id, created_at desc);
+
+create or replace function public.casino_row() returns public.casino_wallet language plpgsql security definer set search_path = public as $$
+declare uid uuid := auth.uid(); w public.casino_wallet;
+begin
+  if uid is null then raise exception 'sign in first'; end if;
+  insert into public.casino_wallet (user_id) values (uid) on conflict (user_id) do nothing;
+  select * into w from public.casino_wallet where user_id = uid;
+  if w.banned_at is not null then raise exception 'banned from the casino' using hint = 'casino_banned'; end if;
+  if w.locked_until > now() then raise exception 'locked out of the casino' using hint = 'casino_locked'; end if;
+  perform public.casino_accrue(uid);
+  select * into w from public.casino_wallet where user_id = uid for update;
+  return w;
+end $$;
+
+create or replace function public.casino_lock_minutes(p_strike int) returns int language sql immutable as $$
+  select case when p_strike <= 1 then 5 when p_strike = 2 then 10 else 60 end;
+$$;
+
+-- the page calls this when it catches a cheat; while already locked out, more reports don't add strikes
+create or replace function public.casino_flag(p_kind text, p_detail text default null) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare uid uuid := auth.uid(); w public.casino_wallet;
+begin
+  if uid is null then raise exception 'sign in first'; end if;
+  insert into public.casino_wallet (user_id) values (uid) on conflict (user_id) do nothing;
+  select * into w from public.casino_wallet where user_id = uid for update;
+  if not coalesce(w.locked_until > now(), false) then
+    update public.casino_wallet set strikes = strikes + 1,
+      locked_until = now() + make_interval(mins => public.casino_lock_minutes(strikes + 1))
+    where user_id = uid returning * into w;
+    insert into public.casino_flags (user_id, kind, detail, strike, locked_until)
+    values (uid, left(coalesce(p_kind, 'unknown'), 40), left(p_detail, 300), w.strikes, w.locked_until);
+  end if;
+  return public.casino_ban_status();
+end $$;
+
+create or replace function public.casino_ban_status() returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object('banned', w.banned_at is not null, 'reason', w.ban_reason, 'at', w.banned_at,
+    'locked', coalesce(w.locked_until > now(), false), 'locked_until', w.locked_until,
+    'seconds_left', greatest(0, ceil(extract(epoch from (w.locked_until - now()))))::int,
+    'strikes', coalesce(w.strikes, 0))
+  from (select auth.uid() uid) u left join public.casino_wallet w on w.user_id = u.uid;
+$$;
+
+create or replace function public.mtcp_say(p_table integer, p_body text) returns jsonb language plpgsql security definer set search_path = public as $$
+declare uid uuid := auth.uid(); b text := btrim(regexp_replace(coalesce(p_body, ''), '\s+', ' ', 'g'));
+begin
+  if uid is null then raise exception 'sign in first'; end if;
+  if public.casino_banned(uid) then raise exception 'banned from the casino' using hint = 'casino_banned'; end if;
+  if exists (select 1 from public.casino_wallet where user_id = uid and locked_until > now()) then raise exception 'locked out of the casino' using hint = 'casino_locked'; end if;
+  if not exists (select 1 from public.mtcp_tables where id = p_table) then raise exception 'no such table'; end if;
+  if char_length(b) = 0 then raise exception 'empty message'; end if;
+  if char_length(b) > 200 then b := left(b, 200); end if;
+  if exists (select 1 from public.mtcp_chat where user_id = uid and created_at > now() - interval '1 second') then raise exception 'slow down'; end if;
+  insert into public.mtcp_chat (table_id, user_id, body) values (p_table, uid, b);
+  return jsonb_build_object('ok', true);
+end $$;
+
+revoke all on function public.casino_flag(text, text), public.casino_lock_minutes(int) from public, anon, authenticated;
+grant execute on function public.casino_flag(text, text) to authenticated;
+grant execute on function public.casino_ban_status() to authenticated;

@@ -193,5 +193,6 @@ body{
 .ban-box a:not(.pbtn){ color: var(--accent); }
 .ban-btns{ display: grid; gap: 0; margin-top: 6px; }
 .ban-btns .pbtn{ text-decoration: none; }
+.lock-time{ font-size: 34px; font-weight: 800; font-variant-numeric: tabular-nums; margin: 0 0 10px; color: #d1242f; }
 /* casino rules link under the shared-chips note */
 .rules-link{ color: var(--accent); font-weight: 600; }

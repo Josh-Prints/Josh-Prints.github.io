@@ -197,6 +197,7 @@
   .ban-box a:not(.pbtn){ color: var(--accent); }
   .ban-btns{ display: grid; gap: 0; margin-top: 6px; }
   .ban-btns .pbtn{ text-decoration: none; }
+  .lock-time{ font-size: 34px; font-weight: 800; font-variant-numeric: tabular-nums; margin: 0 0 10px; color: #d1242f; }
   /* casino rules link under the shared-chips note */
   .rules-link{ color: var(--accent); font-weight: 600; }
 </style>
@@ -242,7 +243,7 @@
         </div>
         <div class="foot-notes">
           <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
-          <div class="ver">Version 2026-10-14d</div>
+          <div class="ver">Version 2026-10-14e</div>
         </div>
       </main>
     </div>
@@ -261,7 +262,7 @@
   </div>
 
 <script type="module">
-import { bank as czBank, showBan, checkBan, isBanError } from '/casino.js?v=4';
+import { bank as czBank, showBan, isBanError, isLockError, guard } from '/casino.js?v=5';
 /* Roulette (single zero). Signed-in players spin on the server, which picks the number and pays out from the
    casino wallet (the same chips as blackjack), so the leaderboard can't be faked; guests play here in the
    browser with the device's casino chips. Below 1,000 chips you can reset back to 1,000. */
@@ -289,8 +290,8 @@ const short = v => v >= 1e6 ? +(v / 1e6).toFixed(1) + 'm' : v >= 1e4 ? Math.roun
 
 /* ---------- two engines with the same shape ---------- */
 const local = (() => {
-  const bank = () => { try { const v = localStorage.getItem('casino-bank') ?? localStorage.getItem('bj-bank'); const c = Number(v); return v !== null && c >= 0 && isFinite(c) ? c : 1000; } catch (e) { return 1000; } };
-  const save = c => { try { localStorage.setItem('casino-bank', String(c)); } catch (e) {} };
+  const bank = () => czBank.get();
+  const save = c => czBank.set(c);
   const rand37 = () => { try { const a = new Uint32Array(1); do crypto.getRandomValues(a); while (a[0] >= 4294967296 - 4294967296 % 37); return a[0] % 37; } catch (e) { return Math.floor(Math.random() * 37); } };
   return {
     async state(){ return { chips: bank() }; },
@@ -305,7 +306,7 @@ const local = (() => {
   };
 })();
 const remote = {
-  async call(name, args){ const { data, error } = await net.sb.rpc(name, args || {}); if (error){ if (isBanError(error)) showBan(null, net.sb); throw error; } return data; },
+  async call(name, args){ const { data, error } = await net.sb.rpc(name, args || {}); if (error){ if (isBanError(error)) showBan(null, net.sb); else if (isLockError(error)) guard.check(); throw error; } return data; },
   state(){ return this.call('casino_state'); }, spin(bets){ return this.call('rl_spin', { p_bets: bets }); }, topup(){ return this.call('casino_topup'); },
 };
 const engine = () => (net.sb && net.user ? remote : local);
@@ -535,7 +536,7 @@ $('rebuy').onclick = async () => { if (busy) return; busy = true; ui(); try { co
 document.addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
   if (e.key === ' ' && document.activeElement === document.body){ e.preventDefault(); spin(); }
-  else if (e.key.toLowerCase() === 'z' || e.key === 'Backspace') $('undo').click();
+  else if (e.key.toLowerCase() === 'z' || e.key === 'Backspace'){ if (!$('undo').disabled) $('undo').onclick(); }
 });
 const muteBtn = $('mute');
 function showMute(){ muteBtn.textContent = sfx.muted ? 'Sound off' : 'Sound on'; muteBtn.setAttribute('aria-pressed', String(sfx.muted)); }
@@ -675,15 +676,16 @@ document.querySelectorAll('.guest-note button').forEach(b => b.addEventListener(
     const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
     net.sb = createClient('https://paycasfatsakidsriwqt.supabase.co', 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv');
   } catch (e) { net.sb = null; }
+  guard.start({ sb: () => net.sb, user: () => net.user, onUnlock: () => { net.renderAccount(); load(); } });
   if (!net.sb){ net.renderAccount(); net.loadBoard(); updateGuestNote(); load(); return; }
   const { data } = await net.sb.auth.getSession();
   net.user = data && data.session ? data.session.user : null;
-  net.renderAccount(); net.loadBoard(); updateGuestNote(); load(); if (net.user) checkBan(net.sb);
+  net.renderAccount(); net.loadBoard(); updateGuestNote(); load(); guard.clear(); guard.check();
   net.sb.auth.onAuthStateChange((_ev, session) => {
     const u = session ? session.user : null;
     if ((u && u.id) === (net.user && net.user.id)) return;
     net.user = u; net.renderAccount(); net.loadBoard(); updateGuestNote(); load();
-    if (u) checkBan(net.sb); else { const b = document.getElementById('cz-ban'); if (b) b.remove(); }
+    if (!u){ const b = document.getElementById('cz-ban'); if (b) b.remove(); } guard.clear(); guard.check();
   });
 })();
 </script>

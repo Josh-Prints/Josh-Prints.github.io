@@ -19,22 +19,41 @@ export function shuffle(arr){ for (let i = arr.length - 1; i > 0; i--){ const j 
 export function newDeck(decks){ const s = []; for (let d = 0; d < (decks || 1); d++) for (let c = 0; c < 52; c++) s.push(c); return shuffle(s); }
 
 /* ---------- guests: one chip bank on this device for every casino game ---------- */
+// Guest chips and loans are signed, so editing them by hand (a bookmarklet, the console) is caught.
+// It's only a speed bump: anything in the browser can be undone. Signed-in chips live on the server.
+const sig = v => { let h = 0x811c9dc5; const t = 'vx' + v + 'c4s1n0'; for (let i = 0; i < t.length; i++){ h ^= t.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
+let lastGoodChips = null;
+function signedRead(key, sigKey, fallback){
+  const v = localStorage.getItem(key), g = localStorage.getItem(sigKey);
+  if (v === null){ if (g !== null) localStorage.removeItem(sigKey); return null; }
+  if (g === null){ localStorage.setItem(sigKey, sig(v)); return v; }   // first run since signing started
+  if (g === sig(v)) return v;
+  guard.flag('edited-storage', key);
+  fallback === null ? localStorage.removeItem(key) : localStorage.setItem(key, fallback);
+  fallback === null ? localStorage.removeItem(sigKey) : localStorage.setItem(sigKey, sig(fallback));
+  return fallback;
+}
 export const bank = {
-  get(){ try { const v = localStorage.getItem('casino-bank') ?? localStorage.getItem('bj-bank'); const c = Number(v); return v !== null && c >= 0 && isFinite(c) ? Math.floor(c) : 1000; } catch (e) { return 1000; } },
-  set(c){ try { localStorage.setItem('casino-bank', String(Math.max(0, Math.floor(c)))); } catch (e) {} },
+  get(){
+    try {
+      const v = signedRead('casino-bank', 'casino-bank-k', lastGoodChips === null ? '1000' : String(lastGoodChips)) ?? localStorage.getItem('bj-bank');
+      const c = Number(v); const out = v !== null && c >= 0 && isFinite(c) ? Math.floor(c) : 1000; lastGoodChips = out; return out;
+    } catch (e) { return 1000; }
+  },
+  set(c){ try { const v = String(Math.max(0, Math.floor(c))); localStorage.setItem('casino-bank', v); localStorage.setItem('casino-bank-k', sig(v)); lastGoodChips = +v; } catch (e) {} },
   // guests borrow the same way signed-in players do: 1,000 at a time below 1,000 chips, 10% interest a day
   loan(){
     try {
-      const l = JSON.parse(localStorage.getItem('casino-loan'));
+      const l = JSON.parse(signedRead('casino-loan', 'casino-loan-k', null));
       if (l && l.owed > 0){
         const days = Math.floor((Date.now() - l.at) / 86400000);
-        if (days > 0){ for (let i = 0; i < days; i++) l.owed = Math.ceil(l.owed * 11 / 10 - 1e-9); l.at += days * 86400000; localStorage.setItem('casino-loan', JSON.stringify(l)); }
+        if (days > 0){ for (let i = 0; i < days; i++) l.owed = Math.ceil(l.owed * 11 / 10 - 1e-9); l.at += days * 86400000; this.saveLoan(l); }
         return l;
       }
     } catch (e) {}
     return { owed: 0, at: null };
   },
-  saveLoan(l){ try { l.owed > 0 ? localStorage.setItem('casino-loan', JSON.stringify(l)) : localStorage.removeItem('casino-loan'); } catch (e) {} },
+  saveLoan(l){ try { if (l.owed > 0){ const v = JSON.stringify(l); localStorage.setItem('casino-loan', v); localStorage.setItem('casino-loan-k', sig(v)); } else { localStorage.removeItem('casino-loan'); localStorage.removeItem('casino-loan-k'); } } catch (e) {} },
   // is a guest hand still being played? (chips are out on the table)
   busy(){ try { const b = JSON.parse(localStorage.getItem('bj-guest') || 'null'); return !!localStorage.getItem('tcp-guest') || !!(b && b.phase && b.phase !== 'bet'); } catch (e) { return false; } },
   borrow(){
@@ -193,6 +212,7 @@ export function betBoard({ spots, rack, free, canBet, onChange, maxPer }){
 /* ======================= bans ======================= */
 // Cheating (bookmarklets, scripts, console tricks, exploiting bugs) gets an account banned. The server
 // refuses every casino call for a banned account; this just tells the player why.
+export const isLockError = e => !!e && (e.hint === 'casino_locked' || /locked out of the casino/.test(e.message || ''));
 export const isBanError = e => !!e && (e.hint === 'casino_banned' || /banned from the casino/.test(e.message || ''));
 export function showBan(reason, sb){
   if (document.getElementById('cz-ban')) return;
@@ -206,17 +226,103 @@ export function showBan(reason, sb){
   const out = document.getElementById('cz-ban-out');
   if (out) out.onclick = async () => { await sb.auth.signOut(); d.remove(); };
 }
-export async function checkBan(sb){
-  if (!sb) return false;
-  const { data } = await sb.rpc('casino_ban_status');
-  if (data && data.banned){ showBan(data.reason, sb); return true; }
-  return false;
-}
+
+/* ======================= cheat lockouts ======================= */
+// Catches common bookmarklet tricks: fake clicks and key presses, scripts pulled in from other sites,
+// a rigged random number generator, and hand-edited guest chips. Each catch locks you out of the casino:
+// 5 minutes the first time, 10 the second, an hour every time after. Signed-in strikes are kept and
+// enforced by the server (casino_flag); guests' are kept on the device.
+const LOCK_MINS = n => n <= 1 ? 5 : n === 2 ? 10 : 60;
+// the real random functions, kept from page load so a swapped-in fake is spotted
+const RNG = { random: Math.random, grv: self.Crypto && Crypto.prototype.getRandomValues };
+const rngSwapped = () => { try { return Math.random !== RNG.random ? 'Math.random' : RNG.grv && (crypto.getRandomValues !== RNG.grv || Crypto.prototype.getRandomValues !== RNG.grv) ? 'getRandomValues' : ''; } catch (e) { return ''; } };
+const SCRIPT_HOSTS = new Set([location.host, 'cdn.jsdelivr.net']);
+export const guard = {
+  sb: () => null, user: () => casino.user, until: 0, strikes: 0, timer: null, started: false, pending: false, onUnlock: [],
+  locked(){ return Date.now() < this.until; },
+  guestState(){ try { const g = JSON.parse(localStorage.getItem('casino-lock')); return g && typeof g.n === 'number' ? g : { n: 0, until: 0 }; } catch (e) { return { n: 0, until: 0 }; } },
+  async flag(kind, detail){
+    if (this.locked() || this.pending) return;
+    const sb = this.sb();
+    if (sb && this.user()){
+      this.pending = true;
+      try { const { data } = await sb.rpc('casino_flag', { p_kind: kind, p_detail: String(detail || '').slice(0, 300) }); if (data) this.apply(data); }
+      catch (e) {} finally { this.pending = false; }
+      return;
+    }
+    const g = this.guestState(); g.n += 1; g.until = Date.now() + LOCK_MINS(g.n) * 60000;
+    try { localStorage.setItem('casino-lock', JSON.stringify(g)); } catch (e) {}
+    this.show(g.until, g.n);
+  },
+  // signed-in status from casino_ban_status()
+  apply(st){ if (st && st.locked && st.seconds_left > 0) this.show(Date.now() + st.seconds_left * 1000, st.strikes); },
+  async check(){
+    const sb = this.sb();
+    if (sb && this.user()){ try { const { data } = await sb.rpc('casino_ban_status'); if (data && data.banned) showBan(data.reason, sb); else this.apply(data); } catch (e) {} return; }
+    const g = this.guestState(); if (g.until > Date.now()) this.show(g.until, g.n);
+  },
+  show(until, strikes){
+    this.until = until; this.strikes = strikes;
+    let d = document.getElementById('cz-lock');
+    if (!d){
+      d = document.createElement('div'); d.id = 'cz-lock'; d.className = 'ban'; d.setAttribute('role', 'alertdialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'cz-lock-h');
+      d.innerHTML = '<div class="ban-box"><svg class="ico" width="28" height="28" aria-hidden="true"><use href="/icons.svg#lock"/></svg>' +
+        '<h2 id="cz-lock-h">Locked out for cheating</h2><div class="lock-time" id="cz-lock-t" aria-live="off">5:00</div>' +
+        '<p>We caught something that looks like a bookmarklet or script changing the game. <span id="cz-lock-n"></span></p>' +
+        '<p>Lockouts are 5 minutes the first time, 10 the second, and an hour every time after that. Keep it up and your account can be banned.</p>' +
+        '<p>Think this is a mistake? Email <a href="mailto:josh@voxprints.com">josh@voxprints.com</a>.</p>' +
+        '<div class="ban-btns"><a class="pbtn" href="/terms.html#casino">Casino rules</a><a class="pbtn" href="/games.html">Back to games</a></div></div>';
+      document.body.appendChild(d);
+    }
+    const nth = ['', 'first', 'second', 'third'][strikes] || strikes + 'th';
+    document.getElementById('cz-lock-n').textContent = 'This is your ' + nth + ' offence' + (strikes >= 2 ? '.' : '. Next time it’s 10 minutes.');
+    clearInterval(this.timer);
+    const tick = () => {
+      const left = Math.max(0, Math.ceil((this.until - Date.now()) / 1000));
+      const t = document.getElementById('cz-lock-t'); if (t) t.textContent = Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0');
+      if (!left){ clearInterval(this.timer); this.timer = null; d.remove(); this.onUnlock.forEach(fn => { try { fn(); } catch (e) {} }); }
+    };
+    tick(); this.timer = setInterval(tick, 1000);
+  },
+  clear(){ this.until = 0; clearInterval(this.timer); const d = document.getElementById('cz-lock'); if (d) d.remove(); },
+  // sb / user: functions returning the Supabase client and signed-in user (or null); onUnlock: reload the table
+  start({ sb, user, onUnlock } = {}){
+    if (sb) this.sb = sb; if (user) this.user = user;
+    if (onUnlock) this.onUnlock.push(onUnlock);
+    if (this.started) return; this.started = true;
+    // 1) fake input: el.click(), dispatchEvent(new MouseEvent(...)), synthetic key presses
+    const skip = t => t && t.closest && t.closest('input, textarea, select, form, [contenteditable], #account, .ban');
+    const onFake = e => {
+      if (e.isTrusted) return;
+      if (this.locked()){ e.stopImmediatePropagation(); e.preventDefault(); return; }
+      if (skip(e.target)) return;
+      e.stopImmediatePropagation(); e.preventDefault();
+      const t = e.target, what = t && t.nodeType === 1 ? t.tagName.toLowerCase() + (t.id ? '#' + t.id : '') : 'document';
+      this.flag('fake-input', e.type + ' on ' + what);
+    };
+    ['click', 'pointerdown', 'mousedown', 'mouseup', 'touchstart', 'keydown', 'keyup'].forEach(k => window.addEventListener(k, onFake, true));
+    // while locked, real key presses don't reach the table either
+    window.addEventListener('keydown', e => { if (this.locked() && e.isTrusted && !skip(e.target)){ e.stopImmediatePropagation(); if (e.key === ' ' || e.key === 'Enter') e.preventDefault(); } }, true);
+    // 2) scripts loaded from other sites (bookmarklets usually pull their code in this way)
+    new MutationObserver(list => {
+      for (const m of list) for (const n of m.addedNodes){
+        if (n.nodeName !== 'SCRIPT' || !n.src) continue;
+        let u; try { u = new URL(n.src, location.href); } catch (e) { continue; }
+        if (/^https?:$/.test(u.protocol) && !SCRIPT_HOSTS.has(u.host)) this.flag('injected-script', u.host + u.pathname);
+      }
+    }).observe(document.documentElement, { childList: true, subtree: true });
+    // 3) a rigged random number generator
+    setInterval(() => { const w = rngSwapped(); if (w) this.flag('rigged-random', w); }, 1500);
+    // 4) hand-edited guest chips (also checked on every read in bank.get)
+    setInterval(() => { if (!this.user()) bank.get(); }, 3000);
+    this.check();
+  },
+};
 
 /* ======================= accounts, leaderboard, time played ======================= */
 export const casino = {
   sb: null, user: null, pendingSecs: 0, kind: 'score', lastInput: 0, listeners: [],
-  async rpc(name, args){ const { data, error } = await this.sb.rpc(name, args || {}); if (error){ if (isBanError(error)) showBan(null, this.sb); throw error; } if (name === 'casino_topup') this.refreshLoan(); return data; },
+  async rpc(name, args){ const { data, error } = await this.sb.rpc(name, args || {}); if (error){ if (isBanError(error)) showBan(null, this.sb); else if (isLockError(error)) guard.check(); throw error; } if (name === 'casino_topup') this.refreshLoan(); return data; },
   onUser(fn){ this.listeners.push(fn); },
   markInput(){ this.lastInput = performance.now(); },
   async record(){
@@ -312,7 +418,7 @@ export const casino = {
     $('ln-repay').onclick = () => go(() => signedIn() ? this.rpc('casino_repay', { p_amount: null }) : Promise.resolve(bank.repay()), 'Paid back.');
     this.refreshLoan();
   },
-  changed(){ if (this.user) checkBan(this.sb); else { const b = document.getElementById('cz-ban'); if (b) b.remove(); } this.renderAccount(); this.loadBoard(); this.guestNote(); this.listeners.forEach(fn => { try { fn(this.user); } catch (e) { console.error(e); } }); },
+  changed(){ const b = document.getElementById('cz-ban'); if (b && !this.user) b.remove(); guard.clear(); guard.check(); this.renderAccount(); this.loadBoard(); this.guestNote(); this.listeners.forEach(fn => { try { fn(this.user); } catch (e) { console.error(e); } }); },
 };
 
 // wire up the page shell: mute button, leaderboard tabs and drawer, time played, guest note, sign-in
@@ -344,6 +450,7 @@ export function startShell(){
   setInterval(() => { if (casino.pendingSecs >= 5) casino.record(); }, 30000);
   document.addEventListener('visibilitychange', () => { if (document.hidden && casino.pendingSecs >= 1) casino.record(); });
 
+  guard.start({ sb: () => casino.sb, user: () => casino.user, onUnlock: () => casino.changed() });
   (async () => {
     try {
       const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
