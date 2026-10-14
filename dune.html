@@ -81,6 +81,32 @@
   .over-card{ text-align: center; color: #fff; max-width: 300px; }
   .over-card h2{ margin: 0 0 6px; font-size: 30px; letter-spacing: -.02em; }
   .over-card .ver{ margin-top: 10px; font-size: 11px; color: #8b949e; }
+  .over-card.menu{ max-width: 340px; }
+  .menu-btns{ display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 6px 0 4px; }
+  .wallet{ display: inline-flex; align-items: center; gap: 7px; font-size: 15px; color: #ffe7a3; margin: 2px 0 12px; }
+  .wallet b{ font-size: 20px; color: #fff; font-variant-numeric: tabular-nums; }
+  .coin-ic{ width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff6c9 0 18%, #ffd34d 19% 62%, #c98a12 63%); box-shadow: 0 0 0 1px rgba(0,0,0,.25); display: inline-block; }
+  .how{ text-align: left; margin: 10px 0 0; color: #c9d1d9; font-size: 14px; }
+  .how summary{ cursor: pointer; text-align: center; color: #8b949e; font-size: 13px; }
+  .how ul{ margin: 8px 0 0; }
+  .earned{ color: #ffe7a3; font-weight: 700; margin: -6px 0 12px !important; }
+  .shop-card{ max-width: 460px; width: 100%; }
+  .shop-head{ display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+  .shop-head h2{ margin: 0; }
+  .shop-head .wallet{ margin: 0; }
+  .shop-tabs{ margin-bottom: 12px; }
+  .shop-grid{ display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; max-height: min(52vh, 440px); overflow-y: auto; padding: 2px; }
+  .item{ display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 6px 8px; border-radius: 12px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: #fff; }
+  .item.equipped{ border-color: #4493f8; background: rgba(68,147,248,.16); }
+  .item canvas{ width: 72px; height: 72px; border-radius: 10px; }
+  .item.theme canvas{ width: 100%; height: 64px; }
+  .item .nm{ font-size: 13px; font-weight: 700; }
+  .item button{ font: inherit; font-size: 12.5px; font-weight: 700; padding: 6px 10px; border-radius: 999px; border: 0; cursor: pointer; background: #4493f8; color: #fff; width: 100%; }
+  .item button.owned{ background: rgba(255,255,255,.14); }
+  .item button:disabled{ opacity: .45; cursor: default; }
+  .item .pr{ display: inline-flex; align-items: center; gap: 4px; }
+  .item .pr .coin-ic{ width: 12px; height: 12px; }
+  .shop-msg{ min-height: 1.2em; font-size: 13px; color: #ffb4b4; margin: 8px 0 0 !important; }
   .guest-note{ margin: 12px auto 0; max-width: 300px; padding: 8px 12px; border-radius: 10px; background: rgba(255,193,7,.14); border: 1px solid rgba(255,193,7,.45); color: #ffe7a3; font-size: 13px; line-height: 1.4; }
   .guest-note[hidden]{ display: none; }
   .guest-note button{ font: inherit; font-weight: 700; background: none; border: 0; padding: 0; color: #fff; text-decoration: underline; cursor: pointer; }
@@ -128,26 +154,49 @@
     <div class="board" id="board">
       <canvas id="cv" aria-label="Dune game"></canvas>
       <div class="over" id="start">
-        <div class="over-card">
+        <div class="over-card menu">
           <h2>Dune</h2>
+          <div class="wallet" title="Coins saved to your account"><span class="coin-ic" aria-hidden="true"></span><b data-wallet>0</b> coins</div>
+          <div class="menu-btns">
+            <button type="button" class="play" data-act="new">Play</button>
+            <button type="button" class="play ghost" data-act="shop">Shop</button>
+          </div>
+          <details class="how"><summary>How to play</summary>
           <ul>
             <li>Your ball rolls over the dunes on its own.</li>
             <li><b>Hold down</b> (touch, click or Space) to get heavy and dive into the hills. <b>Let go</b> to fly off the tops.</li>
             <li>Land smoothly on a <b>downhill slope</b> to get a speed boost. Land three in a row for a fever combo.</li>
-            <li>Grab the <b>coins</b> on the ground. When you're flying fast, more appear right on your flight path ahead of you. Land hard (Ouch!) and you'll drop some.</li>
+            <li>Grab the <b>coins</b> on the ground. When you're flying fast, more sometimes appear right on your flight path ahead of you. Land hard (Ouch!) and you'll drop some.</li>
+            <li>Your coins are saved to your account. Spend them in the <b>shop</b> on ball skins and world themes.</li>
             <li>A sandstorm is following you. Keep your speed up or it catches you.</li>
-          </ul>
-          <button type="button" class="play" data-act="new">Play</button>
-          <p class="guest-note" hidden>You're not signed in, so your scores and time played won't be saved to the leaderboard. <button type="button">Sign in</button></p>
-          <div class="ver">Version 2026-10-13g</div>
+          </ul></details>
+          <p class="guest-note" hidden>You're not signed in, so your coins, purchases and scores won't be saved. <button type="button">Sign in</button></p>
+          <div class="ver">Version 2026-10-14a</div>
+        </div>
+      </div>
+      <div class="over" id="shop" hidden>
+        <div class="over-card shop-card">
+          <div class="shop-head"><h2>Shop</h2><div class="wallet"><span class="coin-ic" aria-hidden="true"></span><b data-wallet>0</b></div></div>
+          <div class="tabs shop-tabs" role="tablist">
+            <button type="button" class="tab on" data-shop="skin">Ball skins</button>
+            <button type="button" class="tab" data-shop="theme">Themes</button>
+          </div>
+          <div class="shop-grid" id="shop-grid"></div>
+          <p class="shop-msg" id="shop-msg"></p>
+          <p class="guest-note" hidden>You're not signed in, so your coins, purchases and scores won't be saved. <button type="button">Sign in</button></p>
+          <button type="button" class="play ghost" data-act="menu">Back</button>
         </div>
       </div>
       <div class="over" id="over" hidden>
         <div class="over-card">
           <h2>Caught by the storm!</h2>
           <p id="over-text"></p>
-          <button type="button" class="play" data-act="new">Ride again</button>
-          <p class="guest-note" hidden>You're not signed in, so your scores and time played won't be saved to the leaderboard. <button type="button">Sign in</button></p>
+          <p class="earned" id="over-earned" hidden></p>
+          <div class="menu-btns">
+            <button type="button" class="play" data-act="new">Ride again</button>
+            <button type="button" class="play ghost" data-act="menu">Menu</button>
+          </div>
+          <p class="guest-note" hidden>You're not signed in, so your coins, purchases and scores won't be saved. <button type="button">Sign in</button></p>
         </div>
       </div>
     </div>
@@ -224,7 +273,8 @@ function predictPath(maxT, g){
 // past the right edge of the screen, so they scroll into view ahead of you and you fly straight through them.
 // Once per flight.
 const SKY_MIN_VX = 700;
-let skyDone = false, skyTry = 0, viewRight = 0;
+let skyDone = false, skyTry = 0, viewRight = 0, lastSkyX = -1e9;
+const SKY_CHANCE = 0.35, SKY_GAP = 3500;
 function skyCoins(){
   extendTerrain(ball.x + 3600);   // make sure the hills ahead exist
   const path = predictPath(3);
@@ -264,8 +314,8 @@ function newGame(){
   coins = []; camX = -200; extendTerrain(3000);
   ball = { x: 0, y: groundY(0) - R, vx: 260, vy: 0 };
   holding = false; over = false; started = true; score = 0; dist = 0; combo = 0; fever = 0; playSecs = 0; airT = 0;
-  storm = -700; stormV = 150; pops = []; dust = []; trail = []; flying = []; coinCount = 0; coinStreak = 0;
-  document.getElementById('start').hidden = true; document.getElementById('over').hidden = true;
+  storm = -700; stormV = 150; pops = []; dust = []; trail = []; flying = []; coinCount = 0; coinStreak = 0; lastSkyX = -1e9; banked = 0;
+  for (const k of ['start', 'shop', 'over']) document.getElementById(k).hidden = true;
   hud(); sfx.unlock();
 }
 
@@ -311,7 +361,12 @@ function step(){
     if (b.y < gy - 2){ if (grounded) airT = 0; grounded = false; }
     airT += DT;
     // sky coins: fast flights only, tried a few times a second until the path ahead has an off-screen stretch
-    if (!skyDone && airT > 0.1 && b.vx > SKY_MIN_VX && !holding && (skyTry -= DT) <= 0){ skyTry = 0.1; skyDone = skyCoins(); }
+    if (!skyDone && airT > 0.1 && b.vx > SKY_MIN_VX && !holding && (skyTry -= DT) <= 0){
+      skyTry = 0.1;
+      // not every fast flight: only about a third of them, and never twice within a stretch of hills
+      if (b.x - lastSkyX < SKY_GAP || Math.random() > SKY_CHANCE) skyDone = true;
+      else if (skyCoins()){ skyDone = true; lastSkyX = b.x; }
+    }
   }
   // collect coins
   const reach = (R + COIN_R) * (R + COIN_R);
@@ -344,7 +399,9 @@ function endGame(){
   if (score > best){ best = score; try { localStorage.setItem('dune-best', String(best)); } catch (e) {} }
   document.getElementById('over-text').textContent = 'Score ' + score.toLocaleString() + ' · ' + Math.round(dist / 10) + ' m · ' + coinCount + ' coins' + (net.user ? '' : ' · sign in to get on the leaderboard');
   document.getElementById('over').hidden = false;
+  const earned = document.getElementById('over-earned'); earned.hidden = true;
   sfx.over(); hud(); net.record(true);
+  bankCoins().then(added => { if (added > 0){ earned.textContent = '+' + added + ' coins saved to your account'; earned.hidden = false; } });
 }
 
 /* ======================= drawing ======================= */
@@ -355,7 +412,74 @@ function size(){
   W = cv.width; H = cv.height;
   base = Math.min(H / VIEW_H, W / (W < H ? 460 : 820));   // pixels per world unit at normal zoom (phones in portrait see a bit less ahead)
 }
-const SAND = ['#f6c97c', '#eaa95c', '#d9893f'];
+/* ---------- shop: ball skins and world themes (prices are checked again by the server) ---------- */
+const SHOP = {
+  skin: [
+    { id: 'classic', name: 'Classic', price: 0 }, { id: 'ruby', name: 'Ruby', price: 150 }, { id: 'ice', name: 'Ice', price: 250 },
+    { id: 'emerald', name: 'Emerald', price: 300 }, { id: 'beach', name: 'Beach ball', price: 400 }, { id: 'gold', name: 'Gold', price: 600 },
+    { id: 'lava', name: 'Lava', price: 800 }, { id: 'galaxy', name: 'Galaxy', price: 1200 }, { id: 'disco', name: 'Disco', price: 1600 },
+  ],
+  theme: [
+    { id: 'sunset', name: 'Sunset', price: 0 }, { id: 'day', name: 'High noon', price: 300 }, { id: 'night', name: 'Moonlight', price: 500 },
+    { id: 'mars', name: 'Mars', price: 900 }, { id: 'aurora', name: 'Aurora', price: 1500 },
+  ],
+};
+const THEMES = {
+  sunset: { sky: [[0, '#141a3a'], [0.55, '#5b3a6e'], [0.85, '#f08a5d'], [1, '#ffc27a']], sun: '#ffd98a', glow: '255,214,140', sunY: 0.62, sunR: 0.07,
+            far: ['rgba(120,60,90,.55)', 'rgba(176,96,86,.6)'], sand: ['#f6c97c', '#eaa95c', '#d9893f'], ridge: 'rgba(255,240,200,.85)', storm: [150, 95, 50] },
+  day:    { sky: [[0, '#2f7fd6'], [0.6, '#79bdf0'], [1, '#d8eefa']], sun: '#fff7d6', glow: '255,250,220', sunY: 0.2, sunR: 0.055,
+            far: ['rgba(214,178,128,.55)', 'rgba(226,190,140,.7)'], sand: ['#f7dca2', '#ecc47e', '#d9a35b'], ridge: 'rgba(255,252,235,.9)', storm: [190, 150, 100] },
+  night:  { sky: [[0, '#04060f'], [0.6, '#0c1834'], [1, '#22355e']], sun: '#e8eefc', glow: '190,210,255', sunY: 0.24, sunR: 0.05, stars: true,
+            far: ['rgba(30,40,80,.7)', 'rgba(48,60,104,.75)'], sand: ['#7f8fb8', '#66749c', '#4c5880'], ridge: 'rgba(210,225,255,.7)', storm: [60, 60, 90] },
+  mars:   { sky: [[0, '#2a0f0a'], [0.55, '#7a2a14'], [1, '#d9772f']], sun: '#ffe2b8', glow: '255,190,140', sunY: 0.5, sunR: 0.035,
+            far: ['rgba(110,30,15,.6)', 'rgba(150,50,25,.65)'], sand: ['#d9673a', '#b84d27', '#8f3618'], ridge: 'rgba(255,200,160,.8)', storm: [120, 40, 20] },
+  aurora: { sky: [[0, '#020812'], [0.6, '#06263a'], [1, '#0d3d4a']], sun: '#e8f4ff', glow: '160,255,220', sunY: 0.2, sunR: 0.03, stars: true, aurora: true,
+            far: ['rgba(20,50,70,.75)', 'rgba(36,70,90,.8)'], sand: ['#e8f1f7', '#c7d6e2', '#a3b5c6'], ridge: 'rgba(255,255,255,.9)', storm: [180, 200, 220] },
+};
+// the equipped look; signed-in players get theirs from their account, and it's remembered on this device too
+let look = { skin: 'classic', theme: 'sunset' };
+try { const l = JSON.parse(localStorage.getItem('dune-look') || 'null'); if (l && THEMES[l.theme]) look = l; } catch (e) {}
+function setLook(l){ look = { skin: l.skin || 'classic', theme: THEMES[l.theme] ? l.theme : 'sunset' }; try { localStorage.setItem('dune-look', JSON.stringify(look)); } catch (e) {} }
+const STARS = Array.from({ length: 90 }, () => [Math.random(), Math.random() * 0.6, Math.random() * 1.2 + 0.4]);
+
+// draw a ball of the given skin at the origin, radius r
+function paintBall(g, r, skin, t, hot){
+  const grad = (c1, c2, c3) => { const q = g.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.1, 0, 0, r); q.addColorStop(0, c1); q.addColorStop(0.38, c2); q.addColorStop(1, c3); return q; };
+  g.beginPath(); g.arc(0, 0, r, 0, Math.PI * 2);
+  if (hot) g.fillStyle = grad('#fff', '#ffd166', '#e07a1f');
+  else if (skin === 'ruby') g.fillStyle = grad('#fff', '#ff4d6d', '#8f0a26');
+  else if (skin === 'ice') g.fillStyle = grad('#fff', '#bdf2ff', '#3aa6d0');
+  else if (skin === 'emerald') g.fillStyle = grad('#fff', '#34e26e', '#0b6b34');
+  else if (skin === 'gold') g.fillStyle = grad('#fffbe6', '#ffd34d', '#a86b00');
+  else if (skin === 'lava') g.fillStyle = grad('#ffb36b', '#c7341a', '#2a0505');
+  else if (skin === 'galaxy') g.fillStyle = grad('#c9a7ff', '#4b1f8f', '#0b0420');
+  else if (skin === 'disco') g.fillStyle = grad('#fff', '#c9d1d9', '#5b6470');
+  else if (skin === 'beach') g.fillStyle = '#fff';
+  else g.fillStyle = grad('#fff', '#4493f8', '#1d4f9e');
+  g.fill();
+  g.save(); g.beginPath(); g.arc(0, 0, r, 0, Math.PI * 2); g.clip();
+  if (!hot && skin === 'beach'){
+    const cols = ['#ff4d5e', '#ffd93d', '#3d8bff', '#34e26e'];
+    for (let i = 0; i < 4; i++){ g.fillStyle = cols[i]; g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, r, t + i * Math.PI / 2, t + i * Math.PI / 2 + Math.PI / 4); g.closePath(); g.fill(); }
+    g.fillStyle = 'rgba(255,255,255,.5)'; g.beginPath(); g.arc(-r * 0.3, -r * 0.35, r * 0.28, 0, Math.PI * 2); g.fill();
+  } else if (!hot && skin === 'lava'){
+    g.strokeStyle = 'rgba(255,170,60,.9)'; g.lineWidth = Math.max(1, r * 0.12);
+    for (let i = 0; i < 3; i++){ const a = t + i * 2.1; g.beginPath(); g.moveTo(Math.cos(a) * r * 0.1, Math.sin(a) * r * 0.1); g.lineTo(Math.cos(a + 0.4) * r * 0.6, Math.sin(a + 0.4) * r * 0.6); g.lineTo(Math.cos(a - 0.2) * r, Math.sin(a - 0.2) * r); g.stroke(); }
+  } else if (!hot && skin === 'galaxy'){
+    g.fillStyle = '#fff';
+    for (let i = 0; i < 9; i++){ const a = t * 0.5 + i * 2.39, d = (i % 3 + 1) / 3.6 * r; g.globalAlpha = 0.5 + (i % 2) * 0.5; g.beginPath(); g.arc(Math.cos(a) * d, Math.sin(a) * d, Math.max(0.6, r * 0.07), 0, Math.PI * 2); g.fill(); }
+    g.globalAlpha = 1;
+  } else if (!hot && skin === 'disco'){
+    const n = 5, c = ['#ff7eb6', '#7afcff', '#feff9c', '#b19cff', '#9cffb0'];
+    for (let i = -n; i < n; i++) for (let j = -n; j < n; j++){
+      const x = i * r / n * 1.05, y = j * r / n * 1.05; if (x * x + y * y > r * r) continue;
+      g.fillStyle = c[(i + j + Math.floor(t * 4) + 20) % c.length]; g.globalAlpha = 0.55; g.fillRect(x, y, r / n * 0.9, r / n * 0.9);
+    }
+    g.globalAlpha = 1;
+  }
+  g.restore();
+}
+
 function draw(){
   // camera: ball a third of the way across; zoom out when it flies high
   const sc0 = base, viewW0 = W / sc0;
@@ -371,18 +495,28 @@ function draw(){
   viewRight = camX + viewW;
   extendTerrain(camX + viewW + 600);
 
+  const TH = THEMES[look.theme] || THEMES.sunset;
   // sky
   const sky = ctx.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, '#141a3a'); sky.addColorStop(0.55, '#5b3a6e'); sky.addColorStop(0.85, '#f08a5d'); sky.addColorStop(1, '#ffc27a');
+  for (const [o, c] of TH.sky) sky.addColorStop(o, c);
   ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
-  // sun
-  const sunX = W * 0.72, sunY = H * 0.62;
+  if (TH.stars){ ctx.fillStyle = '#fff'; for (const [sx2, sy2, sr] of STARS){ ctx.globalAlpha = 0.35 + 0.4 * Math.abs(Math.sin(performance.now() / 900 + sx2 * 20)); ctx.fillRect(((sx2 * W - camX * 0.03 * s) % W + W) % W, sy2 * H, sr, sr); } ctx.globalAlpha = 1; }
+  if (TH.aurora){
+    const tt = performance.now() / 4000;
+    for (const [col, yb, amp] of [['rgba(80,255,170,.16)', 0.18, 40], ['rgba(170,110,255,.12)', 0.26, 55], ['rgba(80,220,255,.10)', 0.12, 30]]){
+      ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(0, 0);
+      for (let px = 0; px <= W + 10; px += 10) ctx.lineTo(px, H * yb + Math.sin(px / 140 + tt * 3 + yb * 20) * amp + Math.sin(px / 53 + tt) * amp * 0.4);
+      ctx.lineTo(W, 0); ctx.closePath(); ctx.fill();
+    }
+  }
+  // sun (or moon)
+  const sunX = W * 0.72, sunY = H * TH.sunY;
   const glow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, H * 0.35);
-  glow.addColorStop(0, 'rgba(255,214,140,.55)'); glow.addColorStop(1, 'rgba(255,214,140,0)');
+  glow.addColorStop(0, 'rgba(' + TH.glow + ',.5)'); glow.addColorStop(1, 'rgba(' + TH.glow + ',0)');
   ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = '#ffd98a'; ctx.beginPath(); ctx.arc(sunX, sunY, H * 0.07, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = TH.sun; ctx.beginPath(); ctx.arc(sunX, sunY, H * TH.sunR, 0, Math.PI * 2); ctx.fill();
   // far dunes (parallax)
-  for (const [f, col, off] of [[0.25, 'rgba(120,60,90,.55)', 150], [0.5, 'rgba(176,96,86,.6)', 95]]){
+  for (const [f, col, off] of [[0.25, TH.far[0], 150], [0.5, TH.far[1], 95]]){
     ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(0, H);
     for (let px = 0; px <= W + 8; px += 8){
       const wx = camX * f + px / s;
@@ -395,16 +529,17 @@ function draw(){
   const sx = X(storm);
   if (sx > -200){
     const g = ctx.createLinearGradient(sx - 240, 0, sx + 40, 0);
-    g.addColorStop(0, 'rgba(150,95,50,.95)'); g.addColorStop(0.8, 'rgba(190,130,70,.75)'); g.addColorStop(1, 'rgba(190,130,70,0)');
+    const sc = TH.storm.join(',');
+    g.addColorStop(0, 'rgba(' + sc + ',.95)'); g.addColorStop(0.8, 'rgba(' + sc + ',.75)'); g.addColorStop(1, 'rgba(' + sc + ',0)');
     ctx.fillStyle = g; ctx.fillRect(0, 0, Math.max(0, sx + 40), H);
   }
   // ground with layered sand bands
   const step = 6;
   const groundPath = (dy) => { ctx.beginPath(); ctx.moveTo(-4, H); for (let px = -4; px <= W + step; px += step) ctx.lineTo(px, Y(groundY(camX + px / s) + dy)); ctx.lineTo(W + step, H); ctx.closePath(); };
-  groundPath(0); ctx.fillStyle = SAND[0]; ctx.fill();
-  groundPath(26); ctx.fillStyle = SAND[1]; ctx.fill();
-  groundPath(70); ctx.fillStyle = SAND[2]; ctx.fill();
-  ctx.lineWidth = Math.max(2, 3 * s); ctx.strokeStyle = 'rgba(255,240,200,.85)';
+  groundPath(0); ctx.fillStyle = TH.sand[0]; ctx.fill();
+  groundPath(26); ctx.fillStyle = TH.sand[1]; ctx.fill();
+  groundPath(70); ctx.fillStyle = TH.sand[2]; ctx.fill();
+  ctx.lineWidth = Math.max(2, 3 * s); ctx.strokeStyle = TH.ridge;
   ctx.beginPath(); for (let px = -4; px <= W + step; px += step){ const y = Y(groundY(camX + px / s)); px === -4 ? ctx.moveTo(px, y) : ctx.lineTo(px, y); } ctx.stroke();
 
   // trail
@@ -432,9 +567,9 @@ function draw(){
   const bx = X(ball.x), by = Y(ball.y), rr = R * s;
   ctx.save(); ctx.translate(bx, by);
   if (holding) ctx.scale(1.12, 0.9);
-  const bg = ctx.createRadialGradient(-rr * 0.35, -rr * 0.4, rr * 0.1, 0, 0, rr);
-  bg.addColorStop(0, '#ffffff'); bg.addColorStop(0.35, fever > 0 ? '#ffd166' : accent); bg.addColorStop(1, fever > 0 ? '#e07a1f' : '#1d4f9e');
-  ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI * 2); ctx.fill();
+  ball.spin = (ball.spin || 0) + (ball.vx || 0) / 60 / R * 0.5;
+  paintBall(ctx, rr, look.skin, ball.spin, fever > 0);
+  ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI * 2);
   ctx.lineWidth = Math.max(1.5, 2 * s); ctx.strokeStyle = 'rgba(5,6,10,.6)'; ctx.stroke();
   ctx.restore();
   // pops
@@ -532,7 +667,7 @@ addEventListener('keydown', e => { if (e.code === 'Space' || e.code === 'ArrowDo
 addEventListener('keyup', e => { if (e.code === 'Space' || e.code === 'ArrowDown') press(false); });
 addEventListener('blur', () => press(false));
 document.querySelectorAll('[data-act="new"]').forEach(b => b.addEventListener('click', newGame));
-document.getElementById('restart').addEventListener('click', () => { if (started && !over) net.record(false); newGame(); });
+document.getElementById('restart').addEventListener('click', () => { if (started && !over){ net.record(false); bankCoins(); } newGame(); });
 // founder-only debug toggle (shown once the signed-in account is confirmed as the founder)
 let debugPath = false, debugPref = false;
 try { debugPref = localStorage.getItem('dune-debug-path') === '1'; } catch (e) {}
@@ -559,7 +694,7 @@ size(); hud(); requestAnimationFrame(frame);
 // for automated tests
 window.__dune = {
   get ball(){ return ball; }, get score(){ return score; }, get over(){ return over; }, get combo(){ return combo; }, get storm(){ return storm; },
-  get landings(){ return landings; }, predict: t => predictPath(t || 3), debug: on => { debugPath = on; }, get viewRight(){ return viewRight; }, get coins(){ return coinCount; }, get coinList(){ return coins; }, get airT(){ return airT; },
+  get landings(){ return landings; }, end: () => endGame(), setLook: l => setLook(l), shop: () => showScreen('shop'), menu: () => showScreen('start'), predict: t => predictPath(t || 3), debug: on => { debugPath = on; }, get viewRight(){ return viewRight; }, get coins(){ return coinCount; }, get coinList(){ return coins; }, get airT(){ return airT; },
   start: newGame, hold: on => press(on), ground: x => groundY(x), slope: x => groundSlope(x),
 };
 
@@ -646,7 +781,94 @@ document.addEventListener('click', e => {
   if (side.classList.contains('open') && !side.contains(e.target) && e.target.id !== 'lb-toggle') side.classList.remove('open');
 });
 setInterval(() => { if (net.pendingSecs >= 5) net.record(false); }, 30000);
-document.addEventListener('visibilitychange', () => { if (document.hidden){ press(false); if (net.pendingSecs >= 1) net.record(false); } });
+document.addEventListener('visibilitychange', () => { if (document.hidden){ press(false); if (net.pendingSecs >= 1) net.record(false); if (started && !over) bankCoins(); } });
+
+
+/* ======================= wallet, menu and shop ======================= */
+let wallet = { coins: 0, owned: new Set(['skin:classic', 'theme:sunset']) }, banked = 0;
+function setWallet(p){
+  if (!p) return;
+  wallet = { coins: Number(p.coins) || 0, owned: new Set(p.owned || []) };
+  if (p.skin || p.theme) setLook({ skin: p.skin, theme: p.theme });
+  document.querySelectorAll('[data-wallet]').forEach(e => e.textContent = wallet.coins.toLocaleString());
+  if (!document.getElementById('shop').hidden) renderShop();
+}
+async function loadWallet(){
+  if (!net.sb || !net.user){ wallet = { coins: 0, owned: new Set(['skin:classic', 'theme:sunset']) }; document.querySelectorAll('[data-wallet]').forEach(e => e.textContent = '0'); if (!look || look.skin !== 'classic' || look.theme !== 'sunset') setLook({ skin: 'classic', theme: 'sunset' }); return; }
+  const { data } = await net.sb.rpc('dune_profile'); setWallet(data);
+}
+// add this run's coins (the ones not added yet) to the account; returns how many were added
+async function bankCoins(){
+  const n = coinCount - banked;
+  if (!net.sb || !net.user || n <= 0) return 0;
+  banked = coinCount;
+  const { data, error } = await net.sb.rpc('dune_add_coins', { p_coins: n });
+  if (error) return 0;
+  setWallet(data);
+  return Number(data.added) || 0;
+}
+
+let shopTab = 'skin';
+function itemPreview(kind, id){
+  const c = document.createElement('canvas'), dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = kind === 'skin' ? 72 : 150, h = kind === 'skin' ? 72 : 64;
+  c.width = w * dpr; c.height = h * dpr; const g = c.getContext('2d'); g.scale(dpr, dpr);
+  if (kind === 'skin'){
+    g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(0, 0, w, h);
+    g.translate(w / 2, h / 2); paintBall(g, 24, id, 0.6, false);
+    g.beginPath(); g.arc(0, 0, 24, 0, Math.PI * 2); g.lineWidth = 2; g.strokeStyle = 'rgba(5,6,10,.6)'; g.stroke();
+  } else {
+    const T = THEMES[id], sky = g.createLinearGradient(0, 0, 0, h);
+    for (const [o, col] of T.sky) sky.addColorStop(o, col);
+    g.fillStyle = sky; g.fillRect(0, 0, w, h);
+    if (T.stars){ g.fillStyle = '#fff'; STARS.slice(0, 25).forEach(([a, b2, r2]) => g.fillRect(a * w, b2 * h * 0.8, r2, r2)); }
+    if (T.aurora){ g.fillStyle = 'rgba(80,255,170,.25)'; g.beginPath(); g.moveTo(0, 0); for (let x = 0; x <= w; x += 6) g.lineTo(x, h * 0.25 + Math.sin(x / 18) * 6); g.lineTo(w, 0); g.fill(); }
+    g.fillStyle = T.sun; g.beginPath(); g.arc(w * 0.72, h * Math.min(0.55, T.sunY), h * T.sunR * 2.2, 0, Math.PI * 2); g.fill();
+    const band = (yy, col) => { g.fillStyle = col; g.beginPath(); g.moveTo(0, h); for (let x = 0; x <= w; x += 5) g.lineTo(x, yy + Math.sin(x / 22) * 6); g.lineTo(w, h); g.fill(); };
+    band(h * 0.62, T.far[1]); band(h * 0.72, T.sand[0]); band(h * 0.82, T.sand[1]); band(h * 0.92, T.sand[2]);
+  }
+  return c;
+}
+function renderShop(){
+  const grid = document.getElementById('shop-grid'); grid.innerHTML = '';
+  document.querySelectorAll('[data-shop]').forEach(t => t.classList.toggle('on', t.dataset.shop === shopTab));
+  for (const it of SHOP[shopTab]){
+    const key = shopTab + ':' + it.id, own = wallet.owned.has(key), on = (shopTab === 'skin' ? look.skin : look.theme) === it.id;
+    const el = document.createElement('div'); el.className = 'item ' + shopTab + (on ? ' equipped' : '');
+    el.appendChild(itemPreview(shopTab, it.id));
+    const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = it.name; el.appendChild(nm);
+    const b = document.createElement('button'); b.type = 'button';
+    if (on){ b.textContent = 'Equipped'; b.className = 'owned'; b.disabled = true; }
+    else if (own){ b.textContent = 'Equip'; b.className = 'owned'; b.onclick = () => equip(key); }
+    else { b.innerHTML = '<span class="pr"><span class="coin-ic"></span>' + it.price.toLocaleString() + '</span>'; b.disabled = !net.user || wallet.coins < it.price; b.onclick = () => buy(key, it); }
+    el.appendChild(b); grid.appendChild(el);
+  }
+  document.getElementById('shop-msg').textContent = '';   // guests see the sign-in note below instead
+}
+async function buy(key, it){
+  const msg = document.getElementById('shop-msg');
+  if (!net.user){ msg.textContent = 'Sign in to buy things.'; return; }
+  msg.textContent = '';
+  const { data, error } = await net.sb.rpc('dune_buy', { p_item: key });
+  if (error){ msg.textContent = /not enough/.test(error.message) ? 'Not enough coins yet.' : 'Couldn’t buy that right now.'; return; }
+  setWallet(data); sfx.perfect(3); equip(key);
+}
+async function equip(key){
+  const [kind, id] = key.split(':');
+  if (!net.user){ if (key === 'skin:classic' || key === 'theme:sunset'){ setLook({ skin: kind === 'skin' ? id : look.skin, theme: kind === 'theme' ? id : look.theme }); renderShop(); } return; }
+  const { data, error } = await net.sb.rpc('dune_equip', { p_item: key });
+  if (error){ document.getElementById('shop-msg').textContent = 'Couldn’t equip that right now.'; return; }
+  setWallet(data); renderShop();
+}
+function showScreen(id){
+  for (const k of ['start', 'shop', 'over']) document.getElementById(k).hidden = k !== id;
+  if (id === 'shop') renderShop();
+}
+document.querySelectorAll('[data-act="shop"]').forEach(b => b.addEventListener('click', () => showScreen('shop')));
+document.querySelectorAll('[data-act="menu"]').forEach(b => b.addEventListener('click', () => showScreen('start')));
+document.querySelectorAll('[data-shop]').forEach(t => t.addEventListener('click', () => { shopTab = t.dataset.shop; renderShop(); }));
+// leaving or restarting mid-run still saves the coins collected so far
+addEventListener('pagehide', () => { if (started && !over) bankCoins(); });
 
 const MSG_TOAST = "Not signed in: this run won't be saved";
 /* ---------- not signed in: progress isn't saved ---------- */
@@ -672,14 +894,14 @@ document.querySelectorAll('.guest-note button').forEach(b => b.addEventListener(
     const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
     net.sb = createClient('https://paycasfatsakidsriwqt.supabase.co', 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv');
   } catch (e) { net.sb = null; }
-  if (!net.sb){ net.renderAccount(); net.loadBoard(); updateGuestNote(); return; }
+  if (!net.sb){ net.renderAccount(); net.loadBoard(); updateGuestNote(); loadWallet(); return; }
   const { data } = await net.sb.auth.getSession();
   net.user = data && data.session ? data.session.user : null;
-  net.renderAccount(); net.loadBoard(); checkFounder(); updateGuestNote();
+  net.renderAccount(); net.loadBoard(); checkFounder(); updateGuestNote(); loadWallet();
   net.sb.auth.onAuthStateChange((_ev, session) => {
     const u = session ? session.user : null;
     if ((u && u.id) === (net.user && net.user.id)) return;
-    net.user = u; net.renderAccount(); net.loadBoard(); checkFounder(); updateGuestNote();
+    net.user = u; net.renderAccount(); net.loadBoard(); checkFounder(); updateGuestNote(); loadWallet();
   });
 })();
 </script>
