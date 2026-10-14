@@ -300,3 +300,132 @@ end $$;
 
 revoke all on function public.tcp_eval(int[]), public.tcp_finish(jsonb, boolean), public.tcp_state(), public.tcp_deal(bigint, bigint), public.tcp_decide(boolean) from public, anon, authenticated;
 grant execute on function public.tcp_state(), public.tcp_deal(bigint, bigint), public.tcp_decide(boolean) to authenticated;
+/* ======================= Craps ======================= */
+-- one roll against the bets on the table: returns {point, bets, pay, res}. Mirrors resolveRoll() in craps.html.
+create or replace function public.craps_resolve(p_point int, p_bets jsonb, d1 int, d2 int) returns jsonb language plpgsql immutable as $$
+declare s int := d1 + d2; hard boolean := d1 = d2; nxt jsonb := p_bets; res jsonb := '{}'; pay bigint := 0; k text; a bigint; n int; m int; np int := p_point; ret bigint; outcome text;
+  ord text[] := array['come4', 'come5', 'come6', 'come8', 'come9', 'come10', 'pass', 'odds', 'dontpass', 'dpodds', 'come', 'field',
+    'place4', 'place5', 'place6', 'place8', 'place9', 'place10', 'hard4', 'hard6', 'hard8', 'hard10', 'any7', 'anycraps', 'yo', 'aces', 'boxcars', 'acedeuce'];
+begin
+  foreach k in array ord loop
+    a := coalesce((p_bets->>k)::bigint, 0);
+    continue when a <= 0;
+    outcome := null; ret := 0;
+    if k ~ '^come[0-9]+$' then
+      n := substr(k, 5)::int;
+      if s = n then outcome := 'win'; ret := 2 * a; elsif s = 7 then outcome := 'lose'; end if;
+    elsif k = 'pass' then
+      if p_point is null then
+        if s in (7, 11) then outcome := 'win'; ret := 2 * a; elsif s in (2, 3, 12) then outcome := 'lose'; end if;
+      elsif s = p_point then outcome := 'win'; ret := 2 * a; elsif s = 7 then outcome := 'lose'; end if;
+    elsif k = 'odds' then
+      if p_point is not null then
+        if s = p_point then outcome := 'win'; ret := a + case when p_point in (4, 10) then 2 * a when p_point in (5, 9) then a * 3 / 2 else a * 6 / 5 end;
+        elsif s = 7 then outcome := 'lose'; end if;
+      end if;
+    elsif k = 'dontpass' then
+      if p_point is null then
+        if s in (2, 3) then outcome := 'win'; ret := 2 * a; elsif s = 12 then outcome := 'push'; ret := a; elsif s in (7, 11) then outcome := 'lose'; end if;
+      elsif s = 7 then outcome := 'win'; ret := 2 * a; elsif s = p_point then outcome := 'lose'; end if;
+    elsif k = 'dpodds' then
+      if p_point is not null then
+        if s = 7 then outcome := 'win'; ret := a + case when p_point in (4, 10) then a / 2 when p_point in (5, 9) then a * 2 / 3 else a * 5 / 6 end;
+        elsif s = p_point then outcome := 'lose'; end if;
+      end if;
+    elsif k = 'come' then
+      if s in (7, 11) then outcome := 'win'; ret := 2 * a; elsif s in (2, 3, 12) then outcome := 'lose';
+      else
+        nxt := (nxt - 'come') || jsonb_build_object('come' || s, coalesce((nxt->>('come' || s))::bigint, 0) + a);
+        res := res || jsonb_build_object('come', 'move');
+      end if;
+    elsif k = 'field' then
+      if s = 2 then outcome := 'win'; ret := 3 * a; elsif s = 12 then outcome := 'win'; ret := 4 * a;
+      elsif s in (3, 4, 9, 10, 11) then outcome := 'win'; ret := 2 * a; else outcome := 'lose'; end if;
+    elsif k like 'place%' then
+      n := substr(k, 6)::int;
+      if p_point is not null then
+        if s = n then
+          pay := pay + case when n in (4, 10) then a * 9 / 5 when n in (5, 9) then a * 7 / 5 else a * 7 / 6 end;
+          res := res || jsonb_build_object(k, 'win');
+        elsif s = 7 then outcome := 'lose'; end if;
+      end if;
+    elsif k like 'hard%' then
+      n := substr(k, 5)::int;
+      if p_point is not null then
+        if s = n and hard then pay := pay + a * case when n in (4, 10) then 7 else 9 end; res := res || jsonb_build_object(k, 'win');
+        elsif s = n or s = 7 then outcome := 'lose'; end if;
+      end if;
+    else
+      m := case k when 'any7' then case when s = 7 then 4 else 0 end
+        when 'anycraps' then case when s in (2, 3, 12) then 7 else 0 end
+        when 'yo' then case when s = 11 then 15 else 0 end
+        when 'aces' then case when s = 2 then 30 else 0 end
+        when 'boxcars' then case when s = 12 then 30 else 0 end
+        when 'acedeuce' then case when s = 3 then 15 else 0 end else 0 end;
+      if m > 0 then outcome := 'win'; ret := a * (m + 1); else outcome := 'lose'; end if;
+    end if;
+    if outcome is not null then
+      pay := pay + ret; res := res || jsonb_build_object(k, outcome); nxt := nxt - k;
+    end if;
+  end loop;
+  if p_point is null then
+    if s in (4, 5, 6, 8, 9, 10) then np := s; end if;
+  elsif s = p_point or s = 7 then np := null;
+  end if;
+  return jsonb_build_object('point', np, 'bets', nxt, 'pay', pay, 'res', res);
+end $$;
+
+create or replace function public.craps_state() returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row(); s jsonb := public.cz_state('craps');
+begin
+  perform public.casino_publish(w.user_id, w.chips, false);
+  return jsonb_build_object('chips', w.chips, 'point', s->'point', 'bets', coalesce(s->'bets', '{}'));
+end $$;
+
+-- p_add: new chips to put down before this roll, {key: amount}
+create or replace function public.craps_roll(p_add jsonb) returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row(); s jsonb := public.cz_state('craps'); pt int; bets jsonb; k text; a bigint; staked bigint := 0;
+  d1 int; d2 int; r jsonb; c bigint; lim int;
+begin
+  pt := nullif(s->>'point', '')::int;
+  bets := coalesce(s->'bets', '{}');
+  if p_add is null or jsonb_typeof(p_add) <> 'object' then raise exception 'invalid bets'; end if;
+  for k, a in select key, (value #>> '{}')::bigint from jsonb_each(p_add) loop
+    if a is null or a < 1 then raise exception 'invalid bet'; end if;
+    if k not in ('pass', 'dontpass', 'odds', 'dpodds', 'come', 'field', 'place4', 'place5', 'place6', 'place8', 'place9', 'place10',
+      'hard4', 'hard6', 'hard8', 'hard10', 'any7', 'anycraps', 'yo', 'aces', 'boxcars', 'acedeuce') then raise exception 'invalid bet'; end if;
+    if k in ('pass', 'dontpass') and pt is not null then raise exception 'line bets go down before a point'; end if;
+    if k = 'come' and pt is null then raise exception 'come bets need a point'; end if;
+    if k = 'odds' then
+      lim := case when pt in (4, 10) then 3 when pt in (5, 9) then 4 else 5 end;
+      if pt is null or coalesce((bets->>'pass')::bigint, 0) = 0 or coalesce((bets->>'odds')::bigint, 0) + a > lim * (bets->>'pass')::bigint then raise exception 'odds over the limit'; end if;
+    end if;
+    if k = 'dpodds' then
+      if pt is null or coalesce((bets->>'dontpass')::bigint, 0) = 0 or coalesce((bets->>'dpodds')::bigint, 0) + a > 6 * (bets->>'dontpass')::bigint then raise exception 'lay odds over the limit'; end if;
+    end if;
+    bets := bets || jsonb_build_object(k, coalesce((bets->>k)::bigint, 0) + a);
+    staked := staked + a;
+  end loop;
+  if staked > w.chips then raise exception 'not enough chips'; end if;
+  if bets = '{}'::jsonb then raise exception 'no bets'; end if;
+  d1 := 1 + public.cz_rand(6); d2 := 1 + public.cz_rand(6);
+  r := public.craps_resolve(pt, bets, d1, d2);
+  perform public.cz_save('craps', jsonb_build_object('point', r->'point', 'bets', r->'bets'));
+  c := public.cz_settle(staked, (r->>'pay')::bigint, true);
+  return jsonb_build_object('chips', c, 'point', r->'point', 'bets', r->'bets', 'dice', jsonb_build_array(d1, d2), 'pay', (r->>'pay')::bigint, 'res', r->'res', 'staked', staked);
+end $$;
+
+-- take the place bets and hardways back
+create or replace function public.craps_takedown() returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row(); s jsonb := public.cz_state('craps'); bets jsonb := coalesce(s->'bets', '{}'); back bigint := 0; k text; c bigint;
+begin
+  for k in select key from jsonb_each(bets) where key ~ '^(place|hard)' loop
+    back := back + (bets->>k)::bigint; bets := bets - k;
+  end loop;
+  perform public.cz_save('craps', jsonb_build_object('point', s->'point', 'bets', bets));
+  c := public.cz_settle(0, back, false);
+  return jsonb_build_object('chips', c, 'point', s->'point', 'bets', bets, 'back', back);
+end $$;
+
+revoke all on function public.craps_resolve(int, jsonb, int, int), public.craps_state(), public.craps_roll(jsonb), public.craps_takedown() from public, anon, authenticated;
+grant execute on function public.craps_state(), public.craps_roll(jsonb), public.craps_takedown() to authenticated;
