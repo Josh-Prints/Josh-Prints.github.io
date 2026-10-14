@@ -95,6 +95,7 @@ body{
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .felt{ --felt:#0c4a3a; --felt-d:#052a21; } }
 :root[data-theme="dark"] .felt{ --felt:#0c4a3a; --felt-d:#052a21; }
 .table{ height: 100%; max-width: 860px; margin: 0 auto; padding: 14px 14px 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; overflow-y: auto; }
+.table > *{ flex-shrink: 0; }
 .felt .ver{ font-size: 11px; color: rgba(246,241,228,.45); text-align: center; }
 .foot-notes{ display: flex; flex-direction: column; align-items: center; gap: 8px; }
 

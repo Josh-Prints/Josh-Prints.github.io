@@ -572,3 +572,202 @@ end $$;
 revoke all on function public.sicbo_back(text, bigint, int[]), public.sicbo_roll(jsonb), public.keno_pay(int, int), public.keno_draw(int[], bigint), public.bigsix_spin(jsonb),
   public.war_rank(int), public.war_settle(jsonb, boolean), public.war_state(), public.war_deal(bigint, bigint), public.war_decide(boolean) from public, anon, authenticated;
 grant execute on function public.sicbo_roll(jsonb), public.keno_draw(int[], bigint), public.bigsix_spin(jsonb), public.war_state(), public.war_deal(bigint, bigint), public.war_decide(boolean) to authenticated;
+/* ======================= Blackjack (full rules) ======================= */
+-- Replaces the first blackjack table (bj_table / bj_*). Six-deck shoe kept in casino_play 'bj2', dealer peeks
+-- and stands on all 17s, 3:2 blackjack, double any two, split to four hands (aces get one card), late
+-- surrender, insurance. bj2_apply() mirrors bjApply() in blackjack.html step for step.
+
+-- hands left half-played on the old table get their bet back
+update public.casino_wallet w set chips = w.chips + b.wager, updated_at = now() from public.bj_table b where b.user_id = w.user_id and b.phase = 'play' and b.wager > 0;
+update public.bj_table set wager = 0, phase = 'bet', player = '{}', dealer = '{}' where phase = 'play';
+
+create or replace function public.bj2_ints(j jsonb) returns int[] language sql immutable as $$
+  select coalesce(array_agg(x::int order by o), '{}') from jsonb_array_elements_text(coalesce(j, '[]')) with ordinality t(x, o)
+$$;
+create or replace function public.bj2_val(c int) returns int language sql immutable as $$ select case when c % 13 = 0 then 11 when c % 13 >= 9 then 10 else c % 13 + 1 end $$;
+create or replace function public.bj2_bj(j jsonb) returns boolean language sql immutable as $$ select jsonb_array_length(j) = 2 and public.bj_total(public.bj2_ints(j)) = 21 $$;
+-- take the last card off the shoe; it lands in s.last
+create or replace function public.bj2_draw(s jsonb) returns jsonb language sql immutable as $$
+  select jsonb_set(jsonb_set(s, '{last}', s->'shoe'->-1), '{shoe}', (s->'shoe') - (-1))
+$$;
+
+create or replace function public.bj2_finish(s jsonb, play boolean) returns jsonb language plpgsql immutable as $$
+declare i int; h jsonb; t int; dt int; live boolean := false; pay bigint := (s->>'pay')::bigint; bet bigint;
+begin
+  if play then
+    for i in 0 .. jsonb_array_length(s->'hands') - 1 loop
+      h := s->'hands'->i;
+      if (h->>'res') is null and public.bj_total(public.bj2_ints(h->'c')) <= 21 then live := true; end if;
+    end loop;
+    if live then
+      while public.bj_total(public.bj2_ints(s->'dealer')) < 17 loop
+        s := public.bj2_draw(s); s := jsonb_set(s, '{dealer}', (s->'dealer') || (s->'last'));
+      end loop;
+    end if;
+  end if;
+  dt := public.bj_total(public.bj2_ints(s->'dealer'));
+  for i in 0 .. jsonb_array_length(s->'hands') - 1 loop
+    h := s->'hands'->i;
+    continue when (h->>'res') is not null;
+    t := public.bj_total(public.bj2_ints(h->'c')); bet := (h->>'bet')::bigint;
+    if t > 21 then h := jsonb_set(h, '{res}', '"bust"');
+    elsif dt > 21 or t > dt then h := jsonb_set(h, '{res}', '"win"'); pay := pay + 2 * bet;
+    elsif t < dt then h := jsonb_set(h, '{res}', '"lose"');
+    else h := jsonb_set(h, '{res}', '"push"'); pay := pay + bet; end if;
+    s := jsonb_set(s, array['hands', i::text], h);
+  end loop;
+  return s || jsonb_build_object('pay', pay, 'phase', 'bet');
+end $$;
+
+create or replace function public.bj2_after_peek(s jsonb) returns jsonb language plpgsql immutable as $$
+declare dbj boolean := public.bj2_bj(s->'dealer'); h jsonb := s->'hands'->0; pbj boolean := public.bj2_bj(s->'hands'->0->'c');
+  ins bigint := coalesce((s->>'ins')::bigint, 0); pay bigint := (s->>'pay')::bigint; bet bigint := (s->'hands'->0->>'bet')::bigint;
+begin
+  if ins > 0 then s := s || jsonb_build_object('insRes', case when dbj then 'win' else 'lose' end); if dbj then pay := pay + 3 * ins; end if; end if;
+  if dbj then
+    h := jsonb_set(h, '{res}', to_jsonb(case when pbj then 'push' else 'lose' end)); if pbj then pay := pay + bet; end if;
+    return public.bj2_finish(jsonb_set(s, '{hands,0}', h) || jsonb_build_object('pay', pay), false);
+  end if;
+  if pbj then
+    h := jsonb_set(h, '{res}', '"blackjack"'); pay := pay + bet + bet * 3 / 2;
+    return public.bj2_finish(jsonb_set(s, '{hands,0}', h) || jsonb_build_object('pay', pay), false);
+  end if;
+  return s || jsonb_build_object('pay', pay, 'phase', 'play');
+end $$;
+
+create or replace function public.bj2_advance(s jsonb) returns jsonb language plpgsql immutable as $$
+declare a int := (s->>'active')::int; n int := jsonb_array_length(s->'hands'); h jsonb;
+begin
+  while a < n and (s->'hands'->a->>'done')::boolean loop
+    a := a + 1;
+    if a < n then
+      h := s->'hands'->a;
+      if jsonb_array_length(h->'c') = 1 then
+        s := public.bj2_draw(s); h := jsonb_set(h, '{c}', (h->'c') || (s->'last'));
+        if (h->>'aces')::boolean or public.bj_total(public.bj2_ints(h->'c')) = 21 then h := jsonb_set(h, '{done}', 'true'); end if;
+        s := jsonb_set(s, array['hands', a::text], h);
+      end if;
+    end if;
+  end loop;
+  s := jsonb_set(s, '{active}', to_jsonb(a));
+  if a >= n then return public.bj2_finish(s, true); end if;
+  return s;
+end $$;
+
+create or replace function public.bj2_options(s jsonb) returns jsonb language plpgsql immutable as $$
+declare h jsonb; two boolean;
+begin
+  if coalesce(s->>'phase', 'bet') <> 'play' then return jsonb_build_object('hit', false, 'stand', false, 'double', false, 'split', false, 'surrender', false); end if;
+  h := s->'hands'->((s->>'active')::int);
+  two := jsonb_array_length(h->'c') = 2;
+  return jsonb_build_object('hit', true, 'stand', true, 'double', two,
+    'split', two and public.bj2_val((h->'c'->>0)::int) = public.bj2_val((h->'c'->>1)::int) and jsonb_array_length(s->'hands') < 4,
+    'surrender', two and jsonb_array_length(s->'hands') = 1);
+end $$;
+
+create or replace function public.bj2_apply(s jsonb, act text) returns jsonb language plpgsql immutable as $$
+declare a int; h jsonb; base bigint; d jsonb; p jsonb; aces boolean; bet bigint; nh jsonb;
+begin
+  s := s || jsonb_build_object('stake', 0, 'pay', 0);
+  if act = 'deal' then
+    base := (s->>'base')::bigint;
+    s := public.bj2_draw(s); p := jsonb_build_array(s->'last');
+    s := public.bj2_draw(s); d := jsonb_build_array(s->'last');
+    s := public.bj2_draw(s); p := p || (s->'last');
+    s := public.bj2_draw(s); d := d || (s->'last');
+    s := s || jsonb_build_object('stake', base, 'dealer', d, 'active', 0, 'ins', 0, 'insRes', null,
+      'hands', jsonb_build_array(jsonb_build_object('c', p, 'bet', base, 'dbl', false, 'done', false, 'split', false, 'aces', false, 'res', null)));
+    if (d->>0)::int % 13 = 0 then return s || jsonb_build_object('phase', 'insurance'); end if;
+    return public.bj2_after_peek(s);
+  end if;
+  if act in ('insure', 'noinsure') then
+    if act = 'insure' then s := s || jsonb_build_object('ins', (s->'hands'->0->>'bet')::bigint / 2, 'stake', (s->'hands'->0->>'bet')::bigint / 2); end if;
+    return public.bj2_after_peek(s);
+  end if;
+  a := (s->>'active')::int; h := s->'hands'->a; bet := (h->>'bet')::bigint;
+  if act = 'hit' then
+    s := public.bj2_draw(s); h := jsonb_set(h, '{c}', (h->'c') || (s->'last'));
+    if public.bj_total(public.bj2_ints(h->'c')) >= 21 then h := jsonb_set(h, '{done}', 'true'); end if;
+  elsif act = 'stand' then h := jsonb_set(h, '{done}', 'true');
+  elsif act = 'double' then
+    s := s || jsonb_build_object('stake', bet); s := public.bj2_draw(s);
+    h := h || jsonb_build_object('bet', 2 * bet, 'dbl', true, 'done', true, 'c', (h->'c') || (s->'last'));
+  elsif act = 'split' then
+    aces := (h->'c'->>0)::int % 13 = 0;
+    nh := jsonb_build_object('c', jsonb_build_array(h->'c'->1), 'bet', bet, 'dbl', false, 'done', false, 'split', true, 'aces', aces, 'res', null);
+    s := s || jsonb_build_object('stake', bet); s := public.bj2_draw(s);
+    h := h || jsonb_build_object('split', true, 'aces', aces, 'c', jsonb_build_array(h->'c'->0, s->'last'));
+    if aces or public.bj_total(public.bj2_ints(h->'c')) = 21 then h := jsonb_set(h, '{done}', 'true'); end if;
+    s := jsonb_set(s, '{hands}', (select jsonb_agg(e order by o) from (
+      select e, o::numeric as o from jsonb_array_elements(s->'hands') with ordinality t(e, o)
+      union all select nh, a + 1.5) x));
+  elsif act = 'surrender' then
+    h := jsonb_set(h, '{res}', '"surrender"');
+    return public.bj2_finish(jsonb_set(s, array['hands', a::text], h) || jsonb_build_object('pay', bet / 2), false);
+  end if;
+  s := jsonb_set(s, array['hands', a::text], h);
+  return public.bj2_advance(s);
+end $$;
+
+-- what the browser may see: the hole card stays hidden until the hand is over
+create or replace function public.bj2_view(s jsonb) returns jsonb language sql immutable as $$
+  select jsonb_build_object('phase', coalesce(s->>'phase', 'bet'),
+    'dealer', case when coalesce(s->>'phase', 'bet') = 'bet' then coalesce(s->'dealer', '[]') else jsonb_build_array(s->'dealer'->0, -1) end,
+    'hands', coalesce(s->'hands', '[]'), 'active', coalesce(s->'active', '0'), 'ins', coalesce(s->'ins', '0'), 'insRes', s->'insRes', 'options', public.bj2_options(s))
+$$;
+
+create or replace function public.bj2_state() returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row(); s jsonb := public.cz_state('bj2');
+begin
+  perform public.casino_publish(w.user_id, w.chips, false);
+  if coalesce(s->>'phase', 'bet') = 'bet' then return jsonb_build_object('chips', w.chips, 'phase', 'bet', 'dealer', '[]'::jsonb, 'hands', '[]'::jsonb, 'active', 0); end if;
+  return jsonb_build_object('chips', w.chips) || public.bj2_view(s);
+end $$;
+
+create or replace function public.bj2_deal(p_bet bigint) returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row(); s jsonb := public.cz_state('bj2'); r jsonb; fresh boolean := false; c bigint;
+begin
+  if coalesce(s->>'phase', 'bet') <> 'bet' then return public.bj2_state(); end if;
+  if p_bet is null or p_bet < 5 or p_bet > w.chips then raise exception 'invalid bet'; end if;
+  if coalesce(jsonb_array_length(s->'shoe'), 0) < 78 then s := s || jsonb_build_object('shoe', to_jsonb(public.cz_deck(6))); fresh := true; end if;
+  r := public.bj2_apply(s || jsonb_build_object('base', p_bet), 'deal');
+  perform public.cz_save('bj2', r - 'last');
+  c := public.cz_settle((r->>'stake')::bigint, (r->>'pay')::bigint, r->>'phase' = 'bet');
+  return jsonb_build_object('chips', c, 'stake', r->'stake', 'pay', r->'pay', 'fresh', fresh) || public.bj2_view(r);
+end $$;
+
+create or replace function public.bj2_act(p_action text) returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row(); s jsonb := public.cz_state('bj2'); r jsonb; c bigint; ph text := coalesce(s->>'phase', 'bet');
+begin
+  if ph = 'insurance' then
+    if p_action not in ('insure', 'noinsure') then return public.bj2_state(); end if;
+  elsif ph = 'play' then
+    if p_action not in ('hit', 'stand', 'double', 'split', 'surrender') or not coalesce((public.bj2_options(s)->>p_action)::boolean, false) then return public.bj2_state(); end if;
+  else return public.bj2_state(); end if;
+  r := public.bj2_apply(s, p_action);
+  if (r->>'stake')::bigint > w.chips then raise exception 'not enough chips'; end if;
+  perform public.cz_save('bj2', r - 'last');
+  c := public.cz_settle((r->>'stake')::bigint, (r->>'pay')::bigint, r->>'phase' = 'bet');
+  return jsonb_build_object('chips', c, 'stake', r->'stake', 'pay', r->'pay') || public.bj2_view(r);
+end $$;
+
+-- no resetting to 1,000 while chips are out on a hand in any game
+create or replace function public.casino_topup() returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row();
+begin
+  if w.chips < 1000
+    and not exists (select 1 from public.bj_table where user_id = w.user_id and phase = 'play')
+    and not exists (select 1 from public.casino_play where user_id = w.user_id and (
+      (game = 'bj2' and coalesce(state->>'phase', 'bet') <> 'bet') or (game in ('vp', 'tcp') and (state ? 'hand' or state ? 'player')) or (game = 'war' and state ? 'p')
+      or (game = 'craps' and coalesce(state->'bets', '{}') <> '{}'::jsonb)))
+  then
+    update public.casino_wallet set chips = 1000, updated_at = now() where user_id = w.user_id returning * into w;
+    perform public.casino_publish(w.user_id, w.chips, false);
+  end if;
+  return jsonb_build_object('chips', w.chips);
+end $$;
+
+revoke all on function public.bj2_ints(jsonb), public.bj2_val(int), public.bj2_bj(jsonb), public.bj2_draw(jsonb), public.bj2_finish(jsonb, boolean), public.bj2_after_peek(jsonb),
+  public.bj2_advance(jsonb), public.bj2_options(jsonb), public.bj2_apply(jsonb, text), public.bj2_view(jsonb), public.bj2_state(), public.bj2_deal(bigint), public.bj2_act(text),
+  public.casino_topup() from public, anon, authenticated;
+grant execute on function public.bj2_state(), public.bj2_deal(bigint), public.bj2_act(text), public.casino_topup() to authenticated;
