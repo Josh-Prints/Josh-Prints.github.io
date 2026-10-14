@@ -157,9 +157,9 @@
       </div>
       <div class="panel">
         <h3>Casino leaderboard</h3>
-        <p>Your chips are shared by every casino game.</p>
+        <p>Your chips are shared by every casino game. Score is your chips minus anything you were topped up when you ran out.</p>
         <div class="tabs" role="tablist">
-          <button type="button" class="tab on" data-kind="score">Chips</button>
+          <button type="button" class="tab on" data-kind="score">Score</button>
           <button type="button" class="tab" data-kind="time">Time played</button>
         </div>
         <ol class="lb" id="lb"><li class="lb-empty">Loading…</li></ol>
@@ -171,7 +171,7 @@
 /* Three Card Poker Live: shared tables where up to six signed-in players play against the same dealer.
    Everything happens on the server (mtcp_* functions): the deck, everyone's cards, the clock and the payouts.
    This page just shows the table, refreshing every second, and sends your bets and Play / Fold. */
-import { $, sleep, reduced, fmt, esc, showChips, msg as showMsg, sfx, casino, startShell, signedIn, cardEl, chipRack, betBoard } from '/casino.js?v=1';
+import { $, sleep, reduced, fmt, esc, showChips, msg as showMsg, sfx, casino, startShell, signedIn, cardEl, chipRack, betBoard } from '/casino.js?v=2';
 
 // the table refreshes every second; only redraw (and re-animate) the message when its wording changes
 let lastMsg = '';

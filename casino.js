@@ -183,9 +183,12 @@ export const casino = {
   renderMe(st){
     if (!this.user || !st) return;
     const box = $('me-stats'); if (!box) return;
-    box.innerHTML = '<span>Chips</span><b>' + fmt(st.best_score || 0) + (st.score_rank ? ' <small>#' + st.score_rank + '</small>' : '') + '</b>' +
+    box.innerHTML = '<span>Score</span><b>' + fmt(st.best_score || 0) + (st.score_rank ? ' <small>#' + st.score_rank + '</small>' : '') + '</b>' +
+      '<span>Chips</span><b id="me-chips">…</b><span>Borrowed</span><b id="me-borrowed">…</b>' +
       '<span>Time played</span><b>' + fmtLong(st.total_seconds || 0) + (st.time_rank ? ' <small>#' + st.time_rank + '</small>' : '') + '</b>' +
       '<span>Rounds played</span><b>' + fmt(st.games_played || 0) + '</b>';
+    // score = chips minus what you've been topped up; show both parts
+    this.sb.rpc('casino_me').then(({ data }) => { if (!data) return; const c = $('me-chips'), b = $('me-borrowed'); if (c) c.textContent = fmt(data.chips); if (b) b.textContent = fmt(data.borrowed); });
     const nm = $('me-name'); if (nm) nm.textContent = st.name;
     const setName = $('name-box'); if (setName) setName.hidden = st.name !== 'Player';
   },

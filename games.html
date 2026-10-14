@@ -203,10 +203,10 @@
       <div class="casino-head">
         <div>
           <h2>Casino leaderboard</h2>
-          <p class="casino-sub">One pile of chips for every casino game. <span id="casino-me"></span></p>
+          <p class="casino-sub">One pile of chips for every casino game, ranked by score: chips minus anything you were topped up when you ran out. <span id="casino-me"></span></p>
         </div>
         <div class="ctabs" role="tablist">
-          <button type="button" class="ctab" aria-selected="true" data-kind="score">Chips</button>
+          <button type="button" class="ctab" aria-selected="true" data-kind="score">Score</button>
           <button type="button" class="ctab" aria-selected="false" data-kind="time">Time played</button>
         </div>
       </div>
@@ -255,7 +255,7 @@ async function me(){
   const { data: s } = sb ? await sb.auth.getSession() : { data: null };
   if (s && s.session){
     const { data } = await sb.rpc('game_my_stats', { p_game: 'casino' });
-    if (data) box.innerHTML = 'You have <b>' + Number(data.best_score || 0).toLocaleString() + '</b> chips' + (data.score_rank ? ' (#' + data.score_rank + ')' : '') + '.';
+    if (data) box.innerHTML = 'Your score is <b>' + Number(data.best_score || 0).toLocaleString() + '</b>' + (data.score_rank ? ' (#' + data.score_rank + ')' : '') + '.';
   } else {
     let c = 1000; try { const v = localStorage.getItem('casino-bank') ?? localStorage.getItem('bj-bank'); if (v !== null && isFinite(+v)) c = +v; } catch (e) {}
     box.innerHTML = 'You have <b>' + c.toLocaleString() + '</b> chips on this device. Sign in at a table to get on the board.';

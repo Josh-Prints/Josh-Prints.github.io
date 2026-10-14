@@ -1111,3 +1111,42 @@ end $$;
 
 revoke all on function public.casino_busy(uuid), public.casino_floor(uuid), public.casino_row(), public.casino_publish(uuid, bigint, boolean), public.cz_settle(bigint, bigint, boolean)
   from public, anon, authenticated;
+
+/* ======================= Resets count as borrowed chips ======================= */
+-- Every top-up to 1,000 is recorded in casino_wallet.loans, and the casino leaderboard ranks by score =
+-- chips - loans. Busting and retrying still lets you play, but each top-up costs its amount on the leaderboard,
+-- so going all-in on long shots over and over isn't free.
+alter table public.casino_wallet add column if not exists loans bigint not null default 0;
+
+create or replace function public.casino_floor(uid uuid) returns bigint language plpgsql security definer set search_path = public as $$
+declare c bigint;
+begin
+  select chips into c from public.casino_wallet where user_id = uid for update;
+  if c is not null and c < 1000 and not public.casino_busy(uid) then
+    update public.casino_wallet set chips = 1000, loans = loans + (1000 - c), updated_at = now() where user_id = uid;
+    c := 1000;
+  end if;
+  return c;
+end $$;
+
+create or replace function public.casino_publish(uid uuid, p_chips bigint, played boolean) returns void language plpgsql security definer set search_path = public as $$
+declare c bigint := p_chips; l bigint; score bigint;
+begin
+  if played then c := coalesce(public.casino_floor(uid), p_chips); end if;
+  select loans into l from public.casino_wallet where user_id = uid;
+  score := least(c - coalesce(l, 0), 100000000000);
+  insert into public.game_stats as s (user_id, game, best_score, total_seconds, games_played, last_seen)
+  values (uid, 'casino', score, 0, case when played then 1 else 0 end, now())
+  on conflict (user_id, game) do update set best_score = excluded.best_score,
+    games_played = s.games_played + excluded.games_played, last_seen = now();
+end $$;
+
+-- the caller's chips, what they've been topped up in total, and their leaderboard score
+create or replace function public.casino_me() returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row();
+begin
+  return jsonb_build_object('chips', w.chips, 'borrowed', w.loans, 'score', w.chips - w.loans);
+end $$;
+
+revoke all on function public.casino_floor(uuid), public.casino_publish(uuid, bigint, boolean), public.casino_me() from public, anon, authenticated;
+grant execute on function public.casino_me() to authenticated;

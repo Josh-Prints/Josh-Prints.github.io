@@ -239,9 +239,9 @@
       <div class="panel" id="account"><p>Loading…</p></div>
       <div class="panel">
         <h3>Casino leaderboard</h3>
-        <p>Your chips are shared by every casino game.</p>
+        <p>Your chips are shared by every casino game. Score is your chips minus anything you were topped up when you ran out.</p>
         <div class="tabs" role="tablist">
-          <button type="button" class="tab on" data-kind="score">Chips</button>
+          <button type="button" class="tab on" data-kind="score">Score</button>
           <button type="button" class="tab" data-kind="time">Time played</button>
         </div>
         <ol class="lb" id="lb"><li class="lb-empty">Loading…</li></ol>
@@ -565,9 +565,12 @@ const net = {
   renderMe(st){
     if (!this.user) return;
     const box = document.getElementById('me-stats'); if (!box || !st) return;
-    box.innerHTML = '<span>Chips</span><b>' + Number(st.best_score || 0).toLocaleString() + (st.score_rank ? ' <small>#' + st.score_rank + '</small>' : '') + '</b>' +
+    box.innerHTML = '<span>Score</span><b>' + Number(st.best_score || 0).toLocaleString() + (st.score_rank ? ' <small>#' + st.score_rank + '</small>' : '') + '</b>' +
+      '<span>Chips</span><b id="me-chips">…</b><span>Borrowed</span><b id="me-borrowed">…</b>' +
       '<span>Time played</span><b>' + fmtLong(st.total_seconds || 0) + (st.time_rank ? ' <small>#' + st.time_rank + '</small>' : '') + '</b>' +
       '<span>Rounds played</span><b>' + (st.games_played || 0) + '</b>';
+    // score = chips minus what you've been topped up; show both parts
+    this.sb.rpc('casino_me').then(({ data }) => { if (!data) return; const c = document.getElementById('me-chips'), d = document.getElementById('me-borrowed'); if (c) c.textContent = Number(data.chips).toLocaleString(); if (d) d.textContent = Number(data.borrowed).toLocaleString(); });
     const nm = document.getElementById('me-name'); if (nm) nm.textContent = st.name;
     const setName = document.getElementById('name-box'); if (setName) setName.hidden = st.name !== 'Player';
   },

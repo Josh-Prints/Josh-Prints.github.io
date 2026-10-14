@@ -109,9 +109,9 @@
       </div>
       <div class="panel">
         <h3>Casino leaderboard</h3>
-        <p>Your chips are shared by every casino game.</p>
+        <p>Your chips are shared by every casino game. Score is your chips minus anything you were topped up when you ran out.</p>
         <div class="tabs" role="tablist">
-          <button type="button" class="tab on" data-kind="score">Chips</button>
+          <button type="button" class="tab on" data-kind="score">Score</button>
           <button type="button" class="tab" data-kind="time">Time played</button>
         </div>
         <ol class="lb" id="lb"><li class="lb-empty">Loading…</li></ol>
@@ -124,7 +124,7 @@
    stands on all 17s, blackjack pays 3 to 2, double on any two cards, split up to four hands (split aces get one
    card each, double after split allowed), late surrender, insurance. bjApply() is the whole rulebook as one
    step function; the server's bj2_apply() follows it step for step for signed-in players. */
-import { $, sleep, reduced, fmt, newDeck, bank, showChips, msg, sfx, casino, startShell, signedIn, cardEl, paintCard, chipRack, betBoard } from '/casino.js?v=1';
+import { $, sleep, reduced, fmt, newDeck, bank, showChips, msg, sfx, casino, startShell, signedIn, cardEl, paintCard, chipRack, betBoard } from '/casino.js?v=2';
 
 const val = c => c % 13 === 0 ? 11 : c % 13 >= 9 ? 10 : c % 13 + 1;
 function tot(h){ let t = 0, a = 0; for (const c of h){ if (c < 0) continue; t += val(c); if (c % 13 === 0) a++; } while (t > 21 && a){ t -= 10; a--; } return { t, soft: a > 0 }; }
