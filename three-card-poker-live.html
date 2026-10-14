@@ -120,7 +120,7 @@
         </section>
         <div class="foot-notes">
           <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
-          <div class="ver">Version 2026-10-14a</div>
+          <div class="ver">Version 2026-10-14b</div>
         </div>
       </main>
     </div>
@@ -169,7 +169,7 @@ const OUT = { win: ['Win', 'win'], lose: ['Lose', 'lose'], push: ['Push', 'push'
 
 let tableId = null, V = null, chips = 0, busy = false, timer = null, lastRound = null, lastPhase = null, lastBet = null, seatCache = {}, dealerKey = '';
 const spots = { ante: document.querySelector('[data-k="ante"]'), pair: document.querySelector('[data-k="pair"]') };
-const rack = chipRack($('rack'), { onPick: () => ui() });
+const rack = chipRack($('rack'), { values: [5, 25, 100, 500, 1000], onPick: () => ui() });
 const myServerBets = () => { const s = mySeat(); return s ? s.ante + s.pair : 0; };
 const board = betBoard({ spots, rack, free: () => chips + myServerBets(), onChange: () => ui() });
 const mySeat = () => V && V.me !== null && V.me !== undefined ? V.seats.find(s => s.seat === V.me) : null;

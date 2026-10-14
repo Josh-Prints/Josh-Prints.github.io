@@ -804,7 +804,8 @@ create table if not exists public.mtcp_seats (
 alter table public.mtcp_tables enable row level security;
 alter table public.mtcp_seats enable row level security;
 revoke all on table public.mtcp_tables, public.mtcp_seats from anon, authenticated;
-insert into public.mtcp_tables (id, name, min_bet) values (1, 'Table 1', 5), (2, 'Table 2', 25), (3, 'High rollers', 100) on conflict (id) do nothing;
+insert into public.mtcp_tables (id, name, min_bet) values (1, 'Table 1', 5), (2, 'Table 2', 25), (3, 'High rollers', 1000) on conflict (id) do nothing;
+update public.mtcp_tables set min_bet = 1000 where id = 3;
 -- six seats per table, always there; taking a seat fills one, leaving empties it
 insert into public.mtcp_seats (table_id, seat) select t, s from generate_series(1, 3) t, generate_series(0, 5) s on conflict do nothing;
 
