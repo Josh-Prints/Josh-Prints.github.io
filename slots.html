@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Slots — Voxprints games</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@600;800&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="/looks.js"></script>
+<script src="/error-log.js"></script>
+<script src="/update-check.js" defer></script>
+<link rel="stylesheet" href="/casino.css?v=1">
+<style>
+  .table{ justify-content: flex-start; gap: 12px; }
+  .machine{ margin-top: auto; } .foot-notes{ margin-bottom: auto; }
+  .machine{ --sh: 82px; width: min(100%, 470px); margin: 0 auto; padding: 14px 16px 16px; border-radius: 22px 22px 16px 16px;
+    background: linear-gradient(180deg, #2a1a0c, #140c05); border: 3px solid var(--brass); box-shadow: inset 0 0 0 2px rgba(0,0,0,.6), 0 18px 40px rgba(0,0,0,.45); }
+  .marquee{ text-align: center; font: 800 28px/1 'Bodoni Moda', Georgia, serif; color: #ffe08a; letter-spacing: .02em; text-shadow: 0 0 12px rgba(255,200,80,.45); margin-bottom: 10px; }
+  .marquee span{ color: var(--ivory); font-weight: 600; }
+  .glass{ display: grid; grid-template-columns: 1fr 1fr; gap: 3px 14px; padding: 8px 12px; margin-bottom: 12px; border-radius: 10px; background: rgba(0,0,0,.35); border: 1px solid rgba(201,162,75,.35); font-size: 15px; }
+  .glass div{ display: flex; align-items: center; gap: 4px; }
+  .glass svg{ width: 20px; height: 20px; flex: none; }
+  .glass b{ margin-left: auto; color: #ffe08a; font-variant-numeric: tabular-nums; }
+  .glass .any{ font-size: 13px; opacity: .8; margin: 0 2px; }
+  .window{ position: relative; padding: 0 22px; border-radius: 12px; background: #0b0b0b; border: 2px solid var(--brass); box-shadow: inset 0 6px 16px rgba(0,0,0,.8); }
+  .reels{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 6px 0; }
+  .reel{ position: relative; height: calc(var(--sh) * 3); overflow: hidden; border-radius: 6px;
+    background: linear-gradient(180deg, #b9b1a0 0%, #f6f1e4 22%, #fffdf6 50%, #f6f1e4 78%, #b9b1a0 100%); }
+  .reel::after{ content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(0,0,0,.35), transparent 22%, transparent 78%, rgba(0,0,0,.35)); }
+  .strip{ position: absolute; left: 0; right: 0; top: 0; will-change: transform; }
+  .strip.fast{ filter: blur(1.4px); }
+  .sym{ height: var(--sh); display: grid; place-items: center; }
+  .sym svg{ width: 72%; height: 72%; }
+  .sym.hit svg{ animation: sl-blink .5s ease-in-out 3; }
+  @keyframes sl-blink{ 50%{ transform: scale(1.14); filter: drop-shadow(0 0 8px #ffd34d); } }
+  .paylines{ position: absolute; left: 22px; right: 22px; top: 6px; bottom: 6px; width: calc(100% - 44px); height: calc(100% - 12px); pointer-events: none; overflow: visible; }
+  .paylines polyline{ fill: none; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; opacity: 0; vector-effect: non-scaling-stroke; transition: opacity .2s; }
+  .paylines polyline.on{ opacity: .9; }
+  .lnum{ position: absolute; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font: 700 12px 'Barlow Condensed', sans-serif; color: #111; transform: translateY(-50%); opacity: .35; }
+  .lnum.on{ opacity: 1; }
+  .lnum.l{ left: 2px; } .lnum.r{ right: 2px; }
+  .meters{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
+  .meter{ text-align: center; padding: 5px 4px; border-radius: 8px; background: #050505; border: 1px solid rgba(201,162,75,.35); }
+  .meter span{ display: block; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; opacity: .65; }
+  .meter b{ font: 700 22px 'Barlow Condensed', sans-serif; color: #ff5a4a; font-variant-numeric: tabular-nums; text-shadow: 0 0 8px rgba(255,80,60,.5); }
+  .meter.win b{ color: #ffe08a; text-shadow: 0 0 8px rgba(255,210,90,.5); }
+  .controls{ display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .stepper{ display: flex; align-items: center; gap: 8px; font-size: 1.1rem; font-weight: 600; }
+  .btn.sm{ min-width: 0; width: 40px; height: 40px; padding: 0; font-size: 1.4rem; line-height: 1; }
+  .btn.spin{ min-width: 150px; padding: 11px 30px; font-size: 1.45rem; }
+  @media (max-width: 640px){
+    .machine{ --sh: 64px; padding: 10px 10px 12px; }
+    .marquee{ font-size: 22px; margin-bottom: 8px; }
+    .glass{ font-size: 13.5px; gap: 2px 10px; padding: 6px 8px; margin-bottom: 8px; }
+    .glass svg{ width: 17px; height: 17px; }
+    .window{ padding: 0 18px; } .paylines{ left: 18px; right: 18px; width: calc(100% - 36px); }
+    .meter b{ font-size: 18px; } .meter span{ font-size: 10px; }
+  }
+  @media (max-height: 940px) and (min-width: 641px){ .machine{ --sh: 68px; } .marquee{ font-size: 24px; margin-bottom: 8px; } .glass{ margin-bottom: 10px; } }
+  @media (max-height: 800px) and (min-width: 641px){ .machine{ --sh: 56px; } .glass{ font-size: 13.5px; } }
+  @media (min-width: 641px){ .controls{ flex-direction: row; flex-wrap: wrap; justify-content: center; } }
+  @media (prefers-reduced-motion: reduce){ .sym.hit svg{ animation: none; filter: drop-shadow(0 0 8px #ffd34d); } }
+</style>
+<link rel="stylesheet" href="/looks.css">
+</head>
+<body>
+  <div class="topbar">
+    <a href="/games.html#gambling" aria-label="Back to games">&larr;<span class="bk"> Games</span></a>
+    <span class="title">Slots</span>
+    <button type="button" class="tbtn lb-toggle" id="lb-toggle">Rules &amp; scores</button>
+    <button type="button" class="tbtn" id="mute" aria-pressed="false">Sound on</button>
+  </div>
+  <div class="mobile-stats">
+    <div class="stat"><div class="label">Chips</div><div class="value" data-stat="chips">0</div></div>
+    <div class="stat"><div class="label">Time</div><div class="value" data-stat="time">0:00</div></div>
+  </div>
+  <div class="stage">
+    <div class="side left">
+      <div class="stat"><div class="label">Chips</div><div class="value" data-stat="chips">0</div></div>
+      <div class="stat"><div class="label">Time</div><div class="value" data-stat="time">0:00</div></div>
+    </div>
+    <div class="board felt" id="board">
+      <main class="table">
+        <div class="machine">
+          <div class="marquee"><span>Lucky</span> Sevens</div>
+          <div class="glass" id="glass"></div>
+          <div class="window" id="window">
+            <div class="reels" id="reels"></div>
+            <svg class="paylines" id="paylines" viewBox="0 0 300 300" preserveAspectRatio="none" aria-hidden="true"></svg>
+          </div>
+          <div class="meters">
+            <div class="meter"><span>Lines</span><b id="m-lines">5</b></div>
+            <div class="meter"><span>Bet per line</span><b id="m-line">1</b></div>
+            <div class="meter"><span>Total bet</span><b id="m-total">5</b></div>
+            <div class="meter win"><span>Win</span><b id="m-win">0</b></div>
+          </div>
+        </div>
+        <div id="msg" class="cz-msg" role="status" aria-live="polite"></div>
+        <div class="controls">
+          <div class="btn-row">
+            <div class="stepper"><button class="btn sm" id="lines-dn" aria-label="Fewer lines">&minus;</button><span>Lines</span><button class="btn sm" id="lines-up" aria-label="More lines">+</button></div>
+            <div class="stepper"><button class="btn sm" id="bet-dn" aria-label="Lower bet">&minus;</button><span>Bet</span><button class="btn sm" id="bet-up" aria-label="Raise bet">+</button></div>
+          </div>
+          <div class="btn-row">
+            <button class="btn" id="max">Max lines</button>
+            <button class="btn main spin" id="spin">Spin</button>
+          </div>
+          <button class="btn main" id="rebuy" hidden>Reset to 1,000 chips</button>
+        </div>
+        <div class="foot-notes">
+          <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
+          <div class="ver">Version 2026-10-14a</div>
+        </div>
+      </main>
+    </div>
+    <div class="side right" id="side-right">
+      <div class="panel" id="account"><p>Loading…</p></div>
+      <div class="panel">
+        <h3>How to play</h3>
+        <ul class="rules">
+          <li>Pick how many lines to play (1 to 5) and the bet on each line. The total bet is lines × bet per line.</li>
+          <li>Lines pay left to right. Line 1 is the middle row, 2 the top, 3 the bottom, 4 and 5 the diagonals.</li>
+          <li>Cherries pay from the left reel even without three of a kind.</li>
+          <li>The machine pays back about 95% of what's bet over the long run, like a real casino slot.</li>
+          <li>Space bar spins.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Casino leaderboard</h3>
+        <p>Your chips are shared by every casino game.</p>
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab on" data-kind="score">Chips</button>
+          <button type="button" class="tab" data-kind="time">Time played</button>
+        </div>
+        <ol class="lb" id="lb"><li class="lb-empty">Loading…</li></ol>
+      </div>
+    </div>
+  </div>
+
+<script type="module">
+/* Slots: a classic three-reel machine with five lines. Each reel is a strip of 22 symbols and every stop is
+   equally likely, so how often a symbol appears on a strip sets the odds (the same way real machines work).
+   With these strips and pays the machine returns 94.99% of what's bet over the long run.
+   The server's slots_spin() uses the same strips and pays. */
+import { $, sleep, reduced, fmt, rand, bank, showChips, msg, sfx, casino, startShell, signedIn } from '/casino.js?v=1';
+
+const STRIPS = ['BPLDLSCBLPBPRLCSPRLBCP', 'LBLSLRBCPLBLPSPCPLPRDB', 'LRPBLPBLBCRCSPLPLPCDCB'], N = 22;
+const PAY3 = { D: 800, S: 150, R: 50, C: 20, B: 20, P: 15, L: 10 }, CH2 = 5, CH1 = 2;
+const LINES = [[1, 1, 1], [0, 0, 0], [2, 2, 2], [0, 1, 2], [2, 1, 0]];
+const LINE_COLOURS = ['#ffd34d', '#ff6b5a', '#5ab0ff', '#7ee08a', '#e58aff'];
+const BETS = [1, 2, 5, 10, 25, 50, 100, 250, 500];
+const PLURAL = { D: 'Diamonds', S: 'Sevens', R: 'Bars', C: 'Cherries', B: 'Bells', P: 'Plums', L: 'Lemons' };
+const SYM = {
+  C: '<svg viewBox="0 0 64 64"><path d="M30 8c-2 10-9 20-15 28M30 8c3 10 8 19 16 25" stroke="#2f7d32" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M30 8c6-4 14-3 18 1-6 3-12 3-18-1z" fill="#3fa144"/><circle cx="17" cy="44" r="12" fill="#c8102e" stroke="#7a0a1c" stroke-width="2"/><circle cx="45" cy="42" r="12" fill="#d8162f" stroke="#7a0a1c" stroke-width="2"/><circle cx="13" cy="39" r="3.5" fill="#fff" opacity=".7"/><circle cx="41" cy="37" r="3.5" fill="#fff" opacity=".7"/></svg>',
+  L: '<svg viewBox="0 0 64 64"><path d="M6 33c0-12 12-21 26-21s26 9 26 21-12 20-26 20S6 45 6 33z" fill="#f7d21a" stroke="#a88a00" stroke-width="2.5"/><path d="M4 33l5-3v6zM60 33l-5-3v6z" fill="#e0b800"/><path d="M18 25c4-4 10-6 16-6" stroke="#fff6b0" stroke-width="3" fill="none" stroke-linecap="round"/></svg>',
+  P: '<svg viewBox="0 0 64 64"><path d="M32 14c-4-6-2-9 3-10" stroke="#5a3a1a" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M34 12c8-6 16-3 19 3-8 3-14 2-19-3z" fill="#3fa144"/><circle cx="32" cy="38" r="21" fill="#6b2d8f" stroke="#3d1452" stroke-width="2.5"/><path d="M32 18c-3 8-3 30 0 40" stroke="#4a1b66" stroke-width="2" fill="none"/><ellipse cx="22" cy="30" rx="4.5" ry="7" fill="#fff" opacity=".35"/></svg>',
+  B: '<svg viewBox="0 0 64 64"><path d="M32 6c3 0 4 2 4 4 9 2 14 10 14 20v12l6 6H8l6-6V30c0-10 5-18 14-20 0-2 1-4 4-4z" fill="#f2b632" stroke="#8a5a00" stroke-width="2.5" stroke-linejoin="round"/><circle cx="32" cy="54" r="5.5" fill="#c98a12" stroke="#8a5a00" stroke-width="2"/><path d="M22 20c-3 4-4 9-4 15" stroke="#fff3c4" stroke-width="3" fill="none" stroke-linecap="round"/></svg>',
+  R: '<svg viewBox="0 0 64 64"><rect x="4" y="18" width="56" height="28" rx="6" fill="#111" stroke="#c9a24b" stroke-width="2.5"/><text x="32" y="40" text-anchor="middle" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="700" font-size="22" fill="#f6f1e4" letter-spacing="1">BAR</text></svg>',
+  S: '<svg viewBox="0 0 64 64"><path d="M12 10h40v9L33 56H20l18-34H12z" fill="#d8162f" stroke="#5a0710" stroke-width="3" stroke-linejoin="round"/><path d="M16 14h30" stroke="#ff8a8a" stroke-width="2.5" stroke-linecap="round"/></svg>',
+  D: '<svg viewBox="0 0 64 64"><path d="M18 10h28l12 14-26 32L6 24z" fill="#4fd2ff" stroke="#0b5f86" stroke-width="2.5" stroke-linejoin="round"/><path d="M6 24h52M18 10l6 14 8 32 8-32 6-14M24 24l8-14 8 14" stroke="#0b5f86" stroke-width="1.6" fill="none" stroke-linejoin="round"/><path d="M14 22l6-8" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".8"/></svg>',
+};
+
+/* ---------- rules (shared with the server) ---------- */
+const sym = (r, stop, row) => STRIPS[r][(stop + row - 1 + N) % N];
+function linePay(s){
+  if (s[0] === s[1] && s[1] === s[2]) return [PAY3[s[0]], 3];
+  if (s[0] === 'C' && s[1] === 'C') return [CH2, 2];
+  if (s[0] === 'C') return [CH1, 1];
+  return [0, 0];
+}
+function evaluate(stops, lines, lineBet){
+  const wins = [];
+  for (let l = 0; l < lines; l++){
+    const s = [0, 1, 2].map(r => sym(r, stops[r], LINES[l][r])), [m, n] = linePay(s);
+    if (m) wins.push({ line: l + 1, pay: m * lineBet, n, sym: s[0] });
+  }
+  return wins;
+}
+
+/* ---------- engines ---------- */
+const local = {
+  async state(){ return { chips: bank.get() }; },
+  async spin(lineBet, lines){
+    let chips = bank.get(); const staked = lineBet * lines;
+    if (staked > chips) throw new Error('not enough chips');
+    const stops = [rand(N), rand(N), rand(N)], wins = evaluate(stops, lines, lineBet), payout = wins.reduce((s, w) => s + w.pay, 0);
+    chips += payout - staked; bank.set(chips);
+    return { chips, stops, wins, payout, staked, net: payout - staked };
+  },
+  async topup(){ return { chips: bank.topup() }; },
+};
+const remote = {
+  state: () => casino.rpc('casino_state'),
+  spin: (lineBet, lines) => casino.rpc('slots_spin', { p_line_bet: lineBet, p_lines: lines }),
+  topup: () => casino.rpc('casino_topup'),
+};
+const engine = () => signedIn() ? remote : local;
+
+/* ---------- the machine ---------- */
+$('glass').innerHTML = [['D', 3], ['S', 3], ['R', 3], ['C', 3], ['B', 3], ['P', 3], ['L', 3], ['C', 2], ['C', 1]]
+  .map(([s, n]) => '<div>' + SYM[s].repeat(n) + (n < 3 ? '<span class="any">any</span>' : '') + '<b>' + (n === 3 ? PAY3[s] : n === 2 ? CH2 : CH1) + '</b></div>').join('');
+const reels = [0, 1, 2].map(r => {
+  const el = document.createElement('div'); el.className = 'reel';
+  const strip = document.createElement('div'); strip.className = 'strip';
+  let html = ''; for (let i = 0; i < N * 7; i++) html += '<div class="sym" data-s="' + STRIPS[r][i % N] + '">' + SYM[STRIPS[r][i % N]] + '</div>';
+  strip.innerHTML = html; el.appendChild(strip); $('reels').appendChild(el);
+  return { el, strip, top: N + rand(N) };   // `top`: index of the symbol showing in the top row
+});
+const symH = () => reels[0].el.clientHeight / 3;
+function place(r){ r.strip.style.transform = 'translateY(' + (-r.top * symH()).toFixed(2) + 'px)'; }
+reels.forEach(place);
+addEventListener('resize', () => reels.forEach(place));
+const svg = $('paylines');
+svg.innerHTML = LINES.map((ln, i) => '<polyline data-l="' + (i + 1) + '" stroke="' + LINE_COLOURS[i] + '" points="' + ln.map((row, r) => (50 + r * 100) + ',' + (50 + row * 100)).join(' ') + '"/>').join('');
+// line number badges down both sides, next to where each line starts and ends
+const BADGE = { l: { 2: 10, 4: 26, 1: 50, 5: 74, 3: 90 }, r: { 2: 10, 5: 26, 1: 50, 4: 74, 3: 90 } };
+LINES.forEach((ln, i) => ['l', 'r'].forEach(side => {
+  const b = document.createElement('div'); b.className = 'lnum ' + side; b.dataset.l = i + 1; b.textContent = i + 1; b.style.background = LINE_COLOURS[i];
+  b.style.top = BADGE[side][i + 1] + '%';
+  $('window').appendChild(b);
+}));
+function showLines(ls){ svg.querySelectorAll('polyline').forEach(p => p.classList.toggle('on', ls.includes(+p.dataset.l))); }
+function badges(n){ document.querySelectorAll('.lnum').forEach(b => b.classList.toggle('on', +b.dataset.l <= n)); }
+
+// spin a reel to `stop` (the symbol on the middle row), `laps` extra turns; resolves when it lands
+function spinReel(r, stop, laps, ms){
+  return new Promise(done => {
+    const t0 = performance.now(), from = r.top, target = ((stop - 1 + N) % N) + N * (laps + 1);
+    const to = target + (target - from < N ? N : 0);
+    r.strip.classList.add('fast');
+    (function frame(now){
+      const u = Math.min(1, (now - t0) / ms);
+      // run a little past the stop, then settle back into place like a real reel
+      if (u < 0.88) r.top = from + (to + 0.15 - from) * (1 - Math.pow(1 - u / 0.88, 3));
+      else r.top = to + 0.15 * Math.pow(1 - (u - 0.88) / 0.12, 2);
+      if (u > 0.7) r.strip.classList.remove('fast');
+      place(r);
+      if (u < 1) requestAnimationFrame(frame);
+      else { r.top = ((stop - 1 + N) % N) + N; place(r); sfx.reelStop(); done(); }
+    })(t0);
+  });
+}
+function cellAt(r, row){ const reel = reels[r]; return reel.strip.children[reel.top + row]; }
+
+/* ---------- state & controls ---------- */
+let chips = 0, lines = 5, betIdx = 0, busy = false, countId = 0;
+const lineBet = () => BETS[betIdx], total = () => lineBet() * lines;
+function ui(){
+  $('m-lines').textContent = lines; $('m-line').textContent = fmt(lineBet()); $('m-total').textContent = fmt(total());
+  $('spin').disabled = busy || total() > chips;
+  $('lines-dn').disabled = busy || lines <= 1; $('lines-up').disabled = busy || lines >= 5;
+  $('bet-dn').disabled = busy || betIdx <= 0; $('bet-up').disabled = busy || betIdx >= BETS.length - 1;
+  $('max').disabled = busy || lines === 5;
+  $('rebuy').hidden = busy || chips >= 1000;
+  badges(lines);
+  if (!busy) showChips(chips);
+}
+function preview(){ showLines(Array.from({ length: lines }, (_, i) => i + 1)); clearTimeout(preview.t); preview.t = setTimeout(() => { if (!busy) showLines([]); }, 900); }
+$('lines-dn').onclick = () => { if (lines > 1){ lines--; sfx.chip(); preview(); ui(); } };
+$('lines-up').onclick = () => { if (lines < 5){ lines++; sfx.chip(); preview(); ui(); } };
+$('max').onclick = () => { lines = 5; sfx.chip(); preview(); ui(); };
+$('bet-dn').onclick = () => { if (betIdx > 0){ betIdx--; sfx.chip(); ui(); } };
+$('bet-up').onclick = () => { if (betIdx < BETS.length - 1){ betIdx++; sfx.chip(); ui(); } };
+
+async function spin(){
+  if (busy || total() > chips) return;
+  busy = true; casino.markInput(); sfx.unlock(); ui(); showLines([]);
+  document.querySelectorAll('.sym.hit').forEach(s => s.classList.remove('hit'));
+  countId++; $('m-win').textContent = '0';
+  const lb = lineBet(), ln = lines;
+  showChips(chips - lb * ln);
+  msg('Good luck', ln + (ln === 1 ? ' line' : ' lines') + ' at ' + fmt(lb));
+  let res;
+  try { res = await engine().spin(lb, ln); }
+  catch (e) { msg('Something went wrong', 'Your chips weren’t touched. Try again', 'lose'); busy = false; ui(); return; }
+  sfx.noise(0.3, 0.12, 700, 'bandpass');
+  const base = reduced ? 500 : 1300;
+  await Promise.all(reels.map((r, i) => spinReel(r, res.stops[i], reduced ? 0 : 2 + i, base + i * (reduced ? 150 : 420))));
+  chips = res.chips;
+  if (res.wins.length){
+    showLines(res.wins.map(w => w.line));
+    for (const w of res.wins) for (let r = 0; r < w.n; r++) cellAt(r, LINES[w.line - 1][r]).classList.add('hit');
+    // count the win up on the meter
+    const steps = Math.min(30, res.payout), t0 = performance.now();
+    if (res.payout >= res.staked * 20) sfx.big(); else sfx.win();
+    sfx.coins(Math.ceil(Math.log2(res.payout + 1)) + 2);
+    const id = ++countId;
+    (async () => { for (let i = 1; i <= steps && id === countId; i++){ $('m-win').textContent = fmt(Math.round(res.payout * i / steps)); await sleep(Math.max(12, 600 / steps)); } if (id === countId) $('m-win').textContent = fmt(res.payout); })();
+    const best = res.wins.reduce((a, b) => b.pay > a.pay ? b : a);
+    const what = best.n === 3 ? 'Three ' + PLURAL[best.sym] : best.n === 2 ? 'Two cherries' : 'Cherry';
+    if (res.net > 0) msg(res.payout >= res.staked * 20 ? 'Big win!' : 'Winner!', what + ' on line ' + best.line + '. You won ' + fmt(res.payout), 'win');
+    else msg(what + ' pays ' + fmt(res.payout), res.net < 0 ? 'Down ' + fmt(-res.net) + ' on this spin' : 'Your bet back', 'push');
+  } else { msg('No win', 'Spin again'); }
+  showChips(chips, true);
+  busy = false; ui();
+}
+$('spin').onclick = spin;
+$('rebuy').onclick = async () => { if (busy) return; busy = true; ui(); try { chips = (await engine().topup()).chips; msg('Chips reset to 1,000', 'Good luck'); } catch (e) {} busy = false; ui(); };
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if (e.key === ' '){ e.preventDefault(); spin(); }
+});
+
+async function load(){
+  busy = true; ui();
+  try { chips = (await engine().state()).chips; msg('Place your bet', 'Pick lines and bet, then spin'); }
+  catch (e) { msg('Couldn’t reach the machine', 'Refresh to try again', 'lose'); }
+  busy = false; ui();
+}
+startShell();
+casino.onUser(load);
+ui();
+</script>
+</body>
+</html>

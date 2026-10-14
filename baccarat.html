@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Baccarat — Voxprints games</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@600;800&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="/looks.js"></script>
+<script src="/error-log.js"></script>
+<script src="/update-check.js" defer></script>
+<link rel="stylesheet" href="/casino.css?v=1">
+<style>
+  .table{ justify-content: flex-start; gap: 10px; max-width: 760px; }
+  .hands{ margin-top: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .side-hand{ display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 6px; border-radius: 14px; border: 1.5px solid rgba(201,162,75,.4); background: rgba(0,0,0,.1); }
+  .side-hand.win{ border-color: #ffe08a; box-shadow: 0 0 0 2px rgba(255,224,138,.5), 0 0 22px rgba(255,224,138,.25); }
+  .who{ font-weight: 700; font-size: 1.2rem; letter-spacing: .08em; text-transform: uppercase; display: flex; gap: 10px; align-items: center; }
+  .tot{ background: rgba(0,0,0,.35); border: 1px solid rgba(246,241,228,.25); border-radius: 99px; padding: 0 12px; font-weight: 700; min-width: 2em; text-align: center; letter-spacing: 0; }
+  .tot:empty{ visibility: hidden; }
+  .hand{ --cw: clamp(46px, min(9vw, 10vh), 78px); min-height: calc(var(--cw) * 1.45); align-items: center; }
+  .hand .pcard.side{ transform: rotate(90deg); margin-left: calc(var(--cw) * .25); }
+  .layout{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .spot.sm{ min-height: 54px; }
+  .spot.big{ min-height: 74px; font-size: 24px; letter-spacing: .08em; text-transform: uppercase; }
+  .spot.big.player{ grid-column: 1 / span 1; border-color: rgba(120,170,255,.7); color: #cfe0ff; }
+  .spot.big.banker{ grid-column: 2 / span 2; border-color: rgba(255,120,120,.7); color: #ffd6d6; }
+  .spot.tie{ color: #b8f0c8; border-color: rgba(120,220,150,.7); }
+  .road-wrap{ display: flex; align-items: stretch; gap: 10px; }
+  .road{ flex: 1; display: grid; grid-auto-flow: column; grid-template-rows: repeat(6, 18px); grid-auto-columns: 18px; gap: 2px; padding: 6px; border-radius: 10px; background: #f6f1e4; overflow-x: auto; min-height: 130px; justify-content: start; }
+  .road i{ width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font: 700 11px/1 'Barlow Condensed', sans-serif; font-style: normal; color: #fff; }
+  .road i.P{ background: #1f5a99; } .road i.B{ background: #b3262e; } .road i.T{ background: #1f8a5f; }
+  .road i.pp{ box-shadow: inset 4px 4px 0 -2px #1f5a99; } .road i.bp{ box-shadow: inset -4px -4px 0 -2px #b3262e; }
+  .shoe{ width: 92px; display: flex; flex-direction: column; justify-content: center; gap: 4px; font-size: 14px; text-align: center; padding: 6px; border-radius: 10px; background: rgba(0,0,0,.25); border: 1px solid rgba(201,162,75,.35); }
+  .shoe b{ font-size: 20px; color: #ffe08a; }
+  .controls{ display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .foot-notes{ margin-bottom: auto; }
+  @media (max-width: 640px){
+    .hands{ gap: 8px; } .who{ font-size: 1rem; } .hand{ --cw: calc((100vw - 90px) / 6.2); }
+    .spot.big{ font-size: 19px; min-height: 60px; } .spot.sm{ min-height: 48px; font-size: 15px; }
+    .road{ grid-template-rows: repeat(6, 14px); grid-auto-columns: 14px; min-height: 104px; } .road i{ width: 14px; height: 14px; font-size: 9px; }
+    .shoe{ width: 70px; font-size: 12px; } .shoe b{ font-size: 16px; }
+  }
+</style>
+<link rel="stylesheet" href="/looks.css">
+</head>
+<body>
+  <div class="topbar">
+    <a href="/games.html#gambling" aria-label="Back to games">&larr;<span class="bk"> Games</span></a>
+    <span class="title">Baccarat</span>
+    <button type="button" class="tbtn lb-toggle" id="lb-toggle">Rules &amp; scores</button>
+    <button type="button" class="tbtn" id="mute" aria-pressed="false">Sound on</button>
+  </div>
+  <div class="mobile-stats">
+    <div class="stat"><div class="label">Chips</div><div class="value" data-stat="chips">0</div></div>
+    <div class="stat"><div class="label">Time</div><div class="value" data-stat="time">0:00</div></div>
+  </div>
+  <div class="stage">
+    <div class="side left">
+      <div class="stat"><div class="label">Chips</div><div class="value" data-stat="chips">0</div></div>
+      <div class="stat"><div class="label">Time</div><div class="value" data-stat="time">0:00</div></div>
+    </div>
+    <div class="board felt" id="board">
+      <main class="table">
+        <div class="hands">
+          <section class="side-hand"><div class="who">Player <span class="tot" id="pt"></span></div><div class="hand" id="ph"></div></section>
+          <section class="side-hand"><div class="who">Banker <span class="tot" id="bt"></span></div><div class="hand" id="bh"></div></section>
+        </div>
+        <div id="msg" class="cz-msg" role="status" aria-live="polite"></div>
+        <div class="layout">
+          <button type="button" class="spot sm" data-k="ppair">P Pair<small>11 to 1</small></button>
+          <button type="button" class="spot sm tie" data-k="tie">Tie<small>8 to 1</small></button>
+          <button type="button" class="spot sm" data-k="bpair">B Pair<small>11 to 1</small></button>
+          <button type="button" class="spot big player" data-k="player">Player<small>1 to 1</small></button>
+          <button type="button" class="spot big banker" data-k="banker">Banker<small>0.95 to 1</small></button>
+        </div>
+        <div class="road-wrap"><div class="road" id="road" aria-label="Results this shoe"></div><div class="shoe" id="shoe"></div></div>
+        <div class="controls">
+          <div id="rack"></div>
+          <div class="btn-row">
+            <button class="btn" id="undo">Undo</button>
+            <button class="btn" id="clear">Clear</button>
+            <span class="betamt" id="betamt"></span>
+            <button class="btn" id="rebet">Rebet</button>
+            <button class="btn main" id="deal">Deal</button>
+          </div>
+          <button class="btn main" id="rebuy" hidden>Reset to 1,000 chips</button>
+        </div>
+        <div class="foot-notes">
+          <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
+          <div class="ver">Version 2026-10-14a</div>
+        </div>
+      </main>
+    </div>
+    <div class="side right" id="side-right">
+      <div class="panel" id="account"><p>Loading…</p></div>
+      <div class="panel">
+        <h3>How to play</h3>
+        <ul class="rules">
+          <li>Bet on Player, Banker or Tie, then deal. The hand closest to 9 wins.</li>
+          <li>Cards count face value; 10s and picture cards count 0, aces 1. Only the last digit of the total counts (7 + 8 = 5).</li>
+          <li>Nobody chooses to draw: the standard third-card rules decide. Either side on 8 or 9 is a natural and both stand.</li>
+          <li>Banker wins pay 0.95 to 1 (5% commission). A tie pays 8 to 1 and Player and Banker bets push.</li>
+          <li>Pair bets win if that side's first two cards are a pair, and pay 11 to 1.</li>
+          <li>Eight decks, reshuffled when the cut card comes out. The board below the table shows this shoe's results.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Casino leaderboard</h3>
+        <p>Your chips are shared by every casino game.</p>
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab on" data-kind="score">Chips</button>
+          <button type="button" class="tab" data-kind="time">Time played</button>
+        </div>
+        <ol class="lb" id="lb"><li class="lb-empty">Loading…</li></ol>
+      </div>
+    </div>
+  </div>
+
+<script type="module">
+/* Baccarat (Punto Banco): eight decks, standard third-card rules, Banker pays 0.95 to 1, Tie 8 to 1, pairs
+   11 to 1. The shoe is kept between hands and reshuffled when the cut card comes out, like a real table.
+   The server's bac_deal() deals and pays the same way for signed-in players. */
+import { $, sleep, reduced, fmt, newDeck, bank, showChips, msg, sfx, casino, startShell, signedIn, cardEl, chipRack, betBoard } from '/casino.js?v=1';
+
+const val = c => { const r = c % 13; return r >= 9 ? 0 : r + 1; };
+const tot = h => h.reduce((s, c) => s + val(c), 0) % 10;
+const CUT = 15, ROAD_MAX = 84;
+// play one coup from the end of the shoe: returns { player, banker }
+function coup(shoe){
+  const p = [shoe.pop()], b = [shoe.pop()]; p.push(shoe.pop()); b.push(shoe.pop());
+  if (tot(p) < 8 && tot(b) < 8){
+    let p3 = null;
+    if (tot(p) <= 5){ p3 = shoe.pop(); p.push(p3); }
+    const bt = tot(b), v = p3 === null ? null : val(p3);
+    const draw = p3 === null ? bt <= 5
+      : bt <= 2 || (bt === 3 && v !== 8) || (bt === 4 && v >= 2 && v <= 7) || (bt === 5 && v >= 4 && v <= 7) || (bt === 6 && (v === 6 || v === 7));
+    if (draw) b.push(shoe.pop());
+  }
+  return { player: p, banker: b };
+}
+function payouts(bets, player, banker){
+  const pt = tot(player), bt = tot(banker), r = pt > bt ? 'P' : bt > pt ? 'B' : 'T';
+  const pp = player[0] % 13 === player[1] % 13, bp = banker[0] % 13 === banker[1] % 13;
+  let pay = 0; const won = [];
+  for (const { k, a } of bets){
+    let x = 0;
+    if (k === 'player') x = r === 'P' ? 2 * a : r === 'T' ? a : 0;
+    else if (k === 'banker') x = r === 'B' ? a + Math.floor(a * 95 / 100) : r === 'T' ? a : 0;
+    else if (k === 'tie') x = r === 'T' ? 9 * a : 0;
+    else if (k === 'ppair') x = pp ? 12 * a : 0;
+    else if (k === 'bpair') x = bp ? 12 * a : 0;
+    pay += x; if (x > a) won.push(k);
+  }
+  return { r, pp, bp, pay, won };
+}
+
+/* ---------- engines ---------- */
+const local = (() => {
+  const KEY = 'bac-guest';
+  const load = () => { try { const g = JSON.parse(localStorage.getItem(KEY)); if (g && Array.isArray(g.shoe)) return g; } catch (e) {} return { shoe: [], road: [] }; };
+  const save = g => { try { localStorage.setItem(KEY, JSON.stringify(g)); } catch (e) {} };
+  return {
+    async state(){ const g = load(); return { chips: bank.get(), road: g.road, left: g.shoe.length }; },
+    async deal(bets){
+      const g = load(); let chips = bank.get(); const staked = bets.reduce((s, b) => s + b.a, 0);
+      if (staked < 5 || staked > chips) throw new Error('invalid bet');
+      let fresh = false;
+      if (g.shoe.length < CUT){ g.shoe = newDeck(8); g.road = []; fresh = true; }
+      const { player, banker } = coup(g.shoe), res = payouts(bets, player, banker);
+      g.road.push([res.r, res.pp ? 1 : 0, res.bp ? 1 : 0]); if (g.road.length > ROAD_MAX) g.road = g.road.slice(-ROAD_MAX);
+      chips += res.pay - staked; bank.set(chips); save(g);
+      return { chips, player, banker, result: res.r, payout: res.pay, staked, net: res.pay - staked, road: g.road, left: g.shoe.length, fresh };
+    },
+    async topup(){ return { chips: bank.topup() }; },
+  };
+})();
+const remote = {
+  state: () => casino.rpc('bac_state'),
+  deal: bets => casino.rpc('bac_deal', { p_bets: bets }),
+  topup: () => casino.rpc('casino_topup'),
+};
+const engine = () => signedIn() ? remote : local;
+
+/* ---------- table ---------- */
+let chips = 0, busy = false;
+const spots = {}; document.querySelectorAll('.spot[data-k]').forEach(b => spots[b.dataset.k] = b);
+const rack = chipRack($('rack'), { onPick: () => ui() });
+const board = betBoard({ spots, rack, free: () => chips, onChange: () => ui(),
+  canBet: k => (k === 'player' && board.bets.banker) || (k === 'banker' && board.bets.player) ? 'Bet Player or Banker, not both' : true });
+function ui(){
+  const st = board.total;
+  $('betamt').textContent = st ? 'Bet ' + fmt(st) : 'No bet';
+  $('deal').disabled = busy || st < 5 || st > chips;
+  $('undo').disabled = $('clear').disabled = busy || !st;
+  $('rebet').disabled = busy || !board.canRebet();
+  rack.refresh(chips - st, busy);
+  $('rebuy').hidden = busy || st > 0 || chips >= 1000;
+  if (!busy) showChips(chips - st);
+}
+function drawRoad(road, left){
+  $('road').innerHTML = road.map(([r, pp, bp]) => '<i class="' + r + (pp ? ' pp' : '') + (bp ? ' bp' : '') + '">' + r + '</i>').join('');
+  $('road').scrollLeft = $('road').scrollWidth;
+  const hands = road.length;
+  $('shoe').innerHTML = '<span>Cards left</span><b>' + (left ? fmt(left) : '416') + '</b><span>Hand ' + (hands + 1) + '</span>';
+}
+function clearHands(){ $('ph').innerHTML = $('bh').innerHTML = ''; $('pt').textContent = $('bt').textContent = ''; document.querySelectorAll('.side-hand').forEach(s => s.classList.remove('win')); }
+async function put(where, c, sideways){
+  const el = cardEl(c); if (sideways) el.classList.add('side');
+  $(where).appendChild(el); sfx.card(); await sleep(reduced ? 0 : 420);
+}
+async function deal(){
+  if (busy) return;
+  const bets = board.list(), st = bets.reduce((s, b) => s + b.a, 0);
+  if (st < 5 || st > chips){ if (st && st < 5) msg('Minimum bet is 5', '', 'lose'); return; }
+  busy = true; board.lock(true); casino.markInput(); sfx.unlock(); ui(); showChips(chips - st);
+  clearHands(); msg('No more bets', '');
+  let res;
+  try { res = await engine().deal(bets); }
+  catch (e) { msg('Something went wrong', 'Your chips weren’t touched. Try again', 'lose'); busy = false; board.lock(false); ui(); return; }
+  if (res.fresh){ msg('New shoe', 'Eight decks shuffled'); await sleep(reduced ? 0 : 700); }
+  const p = res.player, b = res.banker;
+  await put('ph', p[0]); $('pt').textContent = tot([p[0]]);
+  await put('bh', b[0]); $('bt').textContent = tot([b[0]]);
+  await put('ph', p[1]); $('pt').textContent = tot(p.slice(0, 2));
+  await put('bh', b[1]); $('bt').textContent = tot(b.slice(0, 2));
+  const pt2 = tot(p.slice(0, 2)), bt2 = tot(b.slice(0, 2));
+  if (pt2 >= 8 || bt2 >= 8){ msg('Natural ' + Math.max(pt2, bt2), ''); await sleep(reduced ? 0 : 600); }
+  if (p.length > 2){ msg('Player draws', ''); await sleep(reduced ? 0 : 450); await put('ph', p[2], true); $('pt').textContent = tot(p); }
+  else if (pt2 < 8 && bt2 < 8){ msg('Player stands on ' + pt2, ''); await sleep(reduced ? 0 : 500); }
+  if (b.length > 2){ msg('Banker draws', ''); await sleep(reduced ? 0 : 450); await put('bh', b[2], true); $('bt').textContent = tot(b); }
+  else if (pt2 < 8 && bt2 < 8){ msg('Banker stands on ' + tot(b), ''); await sleep(reduced ? 0 : 500); }
+  const out = payouts(bets, p, b);
+  if (out.r !== 'T') document.querySelectorAll('.side-hand')[out.r === 'P' ? 0 : 1].classList.add('win');
+  const head = out.r === 'T' ? 'Tie, ' + tot(p) + ' all' : (out.r === 'P' ? 'Player' : 'Banker') + ' wins, ' + Math.max(tot(p), tot(b)) + ' over ' + Math.min(tot(p), tot(b));
+  const pairs = [out.pp && 'Player pair', out.bp && 'Banker pair'].filter(Boolean).join(', ');
+  if (res.net > 0){ msg(head, 'You won ' + fmt(res.net) + (pairs ? ' · ' + pairs : ''), 'win'); sfx.win(); sfx.coins(5); }
+  else if (res.net === 0){ msg(head, 'Your bet comes back' + (pairs ? ' · ' + pairs : ''), 'push'); }
+  else { msg(head, 'You lost ' + fmt(-res.net) + (pairs ? ' · ' + pairs : ''), 'lose'); sfx.lose(); }
+  chips = res.chips;
+  board.settle(out.won.concat(bets.filter(x => out.r === 'T' && (x.k === 'player' || x.k === 'banker')).map(x => x.k)));
+  drawRoad(res.road, res.left);
+  busy = false; board.lock(false); showChips(chips, true); ui();
+}
+$('deal').onclick = deal;
+$('undo').onclick = () => board.undo();
+$('clear').onclick = () => board.clear();
+$('rebet').onclick = () => board.rebet();
+$('rebuy').onclick = async () => { if (busy) return; busy = true; ui(); try { chips = (await engine().topup()).chips; msg('Chips reset to 1,000', 'Good luck'); } catch (e) {} busy = false; ui(); };
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || /INPUT|TEXTAREA|BUTTON/.test(document.activeElement.tagName)) return;
+  if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); deal(); }
+});
+
+async function load(){
+  busy = true; ui();
+  try { const st = await engine().state(); chips = st.chips; drawRoad(st.road || [], st.left); msg('Place your bets', 'Player, Banker or Tie'); }
+  catch (e) { msg('Couldn’t reach the table', 'Refresh to try again', 'lose'); }
+  busy = false; ui();
+}
+startShell();
+casino.onUser(load);
+ui();
+</script>
+</body>
+</html>
