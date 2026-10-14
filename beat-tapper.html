@@ -10,6 +10,10 @@
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
 <style>
+  /* phones: no double-tap zoom, no accidental text selection or long-press pop-ups (typing boxes still work) */
+  html{ touch-action: manipulation; }
+  body{ -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  input, textarea, select, [contenteditable]{ -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
   .ico{ vertical-align:-0.18em; flex-shrink:0; }
   :root{
     --bg: #f6f8fa;

@@ -12,6 +12,10 @@
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
 <style>
+  /* phones: no double-tap zoom, no accidental text selection or long-press pop-ups (typing boxes still work) */
+  html{ touch-action: manipulation; }
+  body{ -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  input, textarea, select, [contenteditable]{ -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 
   :root{
     --canvas: #ffffff; --canvas-inset: #f6f8fa; --border: #d1d9e0; --border-muted: #d8dee4;
@@ -227,7 +231,7 @@
         </div>
         <div class="foot-notes">
           <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
-          <div class="ver">Version 2026-10-14a</div>
+          <div class="ver">Version 2026-10-14b</div>
         </div>
       </main>
     </div>

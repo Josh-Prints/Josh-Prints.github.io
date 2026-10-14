@@ -14,6 +14,10 @@
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
 <style>
+  /* phones: no double-tap zoom, no accidental text selection or long-press pop-ups (typing boxes still work) */
+  html{ touch-action: manipulation; }
+  body{ -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  input, textarea, select, [contenteditable]{ -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
   :root{
     --canvas: #ffffff; --canvas-inset: #f6f8fa; --border: #d1d9e0; --border-muted: #d8dee4;
     --fg: #1f2328; --fg-muted: #59636e; --accent: #0969da; --accent-emphasis: #0550ae;
@@ -196,7 +200,7 @@
             <li>A sandstorm is following you. Keep your speed up or it catches you.</li>
           </ul></details>
           <p class="guest-note" hidden>You're not signed in, so your coins, purchases and scores won't be saved. <button type="button">Sign in</button></p>
-          <div class="ver">Version 2026-10-14b</div>
+          <div class="ver">Version 2026-10-14c</div>
         </div>
       </div>
       <div class="over" id="shop" hidden>
