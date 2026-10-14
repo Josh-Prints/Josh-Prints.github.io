@@ -3,7 +3,11 @@
 <head>
 <script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dune">
 <title>Dune — Voxprints games</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
 <script src="/looks.js"></script>
@@ -29,11 +33,13 @@
   }
   *{ box-sizing: border-box; }
   html, body{ height: 100%; }
+  @supports (height: 100dvh){ body{ height: 100dvh; } }
   body{
     margin: 0; display: flex; flex-direction: column; overflow: hidden;
     background: var(--canvas); color: var(--fg);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
-    -webkit-tap-highlight-color: transparent;
+    -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
   }
   .topbar{ display: flex; align-items: center; gap: 10px; padding: 10px max(14px, calc((100% - 1100px) / 2)); border-bottom: 1px solid var(--border-muted); }
   .topbar a{ color: var(--fg); text-decoration: none; font-weight: 600; font-size: 14px; }
@@ -125,6 +131,24 @@
     .stage{ padding: 6px 8px 10px; }
   }
   .over{ border-radius: 0; }
+  .tbtn .sm{ display: none; }
+  /* phones: a compact top bar */
+  @media (max-width: 700px), (max-height: 520px){
+    .topbar{ gap: 6px; padding: 6px max(10px, env(safe-area-inset-left, 0px)) 6px 10px; }
+    .topbar a{ font-size: 13px; }
+    .topbar .title{ font-size: 15px; }
+    .tbtn{ padding: 5px 9px; font-size: 13px; min-width: 34px; }
+    .tbtn .lg{ display: none; } .tbtn .sm{ display: inline; }
+    .stage{ padding: 4px 6px 6px; }
+  }
+  /* phones on their side: no stats row (the game draws them on screen), the board fills the rest */
+  @media (max-height: 520px){
+    .mobile-stats{ display: none !important; }
+    .board{ border-radius: 10px; }
+    .over-card{ max-height: 100%; overflow-y: auto; }
+    .over-card h2{ font-size: 24px; }
+    .how{ display: none; }
+  }
   @media (max-width: 980px){ .board{ border-radius: 14px; } }
 </style>
 <link rel="stylesheet" href="/looks.css">
@@ -133,10 +157,10 @@
   <div class="topbar">
     <a href="/games.html">&larr; Games</a>
     <span class="title">Dune</span>
-    <button type="button" class="tbtn lb-toggle" id="lb-toggle">Leaderboard</button>
+    <button type="button" class="tbtn lb-toggle" id="lb-toggle" aria-label="Leaderboard"><span class="lg">Leaderboard</span><span class="sm" aria-hidden="true">🏆</span></button>
     <button type="button" class="tbtn" id="dbg" aria-pressed="false" hidden title="Founder debug: show the predicted flight path">Path</button>
     <button type="button" class="tbtn" id="mute" aria-pressed="false">Sound on</button>
-    <button type="button" class="tbtn" id="restart">New run</button>
+    <button type="button" class="tbtn" id="restart" aria-label="New run"><span class="lg">New run</span><span class="sm" aria-hidden="true">↻</span></button>
   </div>
   <div class="mobile-stats">
     <div class="stat"><div class="label">Score</div><div class="value" data-stat="score">0</div></div>
@@ -171,7 +195,7 @@
             <li>A sandstorm is following you. Keep your speed up or it catches you.</li>
           </ul></details>
           <p class="guest-note" hidden>You're not signed in, so your coins, purchases and scores won't be saved. <button type="button">Sign in</button></p>
-          <div class="ver">Version 2026-10-14a</div>
+          <div class="ver">Version 2026-10-14b</div>
         </div>
       </div>
       <div class="over" id="shop" hidden>
@@ -410,7 +434,9 @@ function size(){
   const r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
   cv.width = Math.max(1, Math.round(r.width * dpr)); cv.height = Math.max(1, Math.round(r.height * dpr));
   W = cv.width; H = cv.height;
-  base = Math.min(H / VIEW_H, W / (W < H ? 460 : 820));   // pixels per world unit at normal zoom (phones in portrait see a bit less ahead)
+  // pixels per world unit at normal zoom. Phones in portrait see a bit less ahead; short (landscape phone) screens
+  // see less sky so the ball and hills stay a good size
+  base = Math.min(H / (H / (window.devicePixelRatio || 1) < 520 ? 430 : VIEW_H), W / (W < H ? 460 : 820));   // pixels per world unit at normal zoom (phones in portrait see a bit less ahead)
 }
 /* ---------- shop: ball skins and world themes (prices are checked again by the server) ---------- */
 const SHOP = {
@@ -582,6 +608,15 @@ function draw(){
     ctx.fillText(p.text, X(p.x), Y(p.y) - p.t * 40);
   }
   ctx.globalAlpha = 1;
+  // on short screens the stats row is hidden, so show them on the game itself
+  if (started && matchMedia('(max-height: 520px)').matches){
+    const fs = Math.round(Math.max(13, H * 0.045));
+    ctx.font = '800 ' + fs + 'px system-ui, -apple-system, sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+    const line = Math.round(score).toLocaleString() + '   ' + Math.round(Math.max(0, dist) / 10) + ' m   ' + coinCount + ' coins';
+    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillText(line, W - fs * 0.6 + 1, fs * 0.5 + 1);
+    ctx.fillStyle = '#fff'; ctx.fillText(line, W - fs * 0.6, fs * 0.5);
+    ctx.textBaseline = 'alphabetic';
+  }
   // storm warning
   if (started && !over && ball.x - storm < 500){
     ctx.fillStyle = 'rgba(255,107,107,' + (0.6 + 0.4 * Math.sin(performance.now() / 120)) + ')';
@@ -672,7 +707,7 @@ document.getElementById('restart').addEventListener('click', () => { if (started
 let debugPath = false, debugPref = false;
 try { debugPref = localStorage.getItem('dune-debug-path') === '1'; } catch (e) {}
 const dbgBtn = document.getElementById('dbg');
-function showDbg(){ dbgBtn.textContent = debugPath ? 'Path: on' : 'Path: off'; dbgBtn.setAttribute('aria-pressed', String(debugPath)); }
+function showDbg(){ dbgBtn.innerHTML = '<span class="lg">' + (debugPath ? 'Path: on' : 'Path: off') + '</span><span class="sm">' + (debugPath ? 'Path ✓' : 'Path') + '</span>'; dbgBtn.setAttribute('aria-pressed', String(debugPath)); }
 dbgBtn.addEventListener('click', () => { debugPath = debugPref = !debugPath; try { localStorage.setItem('dune-debug-path', debugPath ? '1' : '0'); } catch (e) {} showDbg(); });
 showDbg();
 async function checkFounder(){
@@ -681,7 +716,7 @@ async function checkFounder(){
   dbgBtn.hidden = !ok; debugPath = ok && debugPref; showDbg();
 }
 const muteBtn = document.getElementById('mute');
-function showMute(){ muteBtn.textContent = sfx.muted ? 'Sound off' : 'Sound on'; muteBtn.setAttribute('aria-pressed', String(sfx.muted)); }
+function showMute(){ muteBtn.innerHTML = '<span class="lg">' + (sfx.muted ? 'Sound off' : 'Sound on') + '</span><span class="sm" aria-hidden="true">' + (sfx.muted ? '🔇' : '🔊') + '</span>'; muteBtn.setAttribute('aria-label', sfx.muted ? 'Sound off' : 'Sound on'); muteBtn.setAttribute('aria-pressed', String(sfx.muted)); }
 muteBtn.addEventListener('click', () => { sfx.toggle(); showMute(); });
 showMute();
 addEventListener('resize', size);
