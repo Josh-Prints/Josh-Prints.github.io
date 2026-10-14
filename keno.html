@@ -11,7 +11,7 @@
 <script src="/looks.js"></script>
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
-<link rel="stylesheet" href="/casino.css?v=3">
+<link rel="stylesheet" href="/casino.css?v=4">
 <style>
   .table{ justify-content: flex-start; gap: 10px; max-width: 900px; }
   .keno{ margin-top: auto; display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 14px; align-items: start; }
@@ -105,7 +105,7 @@
       </div>
       <div class="panel">
         <h3>Casino leaderboard</h3>
-        <p>Your chips are shared by every casino game. Ranked by net worth: chips minus what you owe.</p>
+        <p>Your chips are shared by every casino game. Ranked by net worth: chips minus what you owe. Cheating gets you banned: <a class="rules-link" href="/terms.html#casino">casino rules</a>.</p>
         <div class="tabs" role="tablist">
           <button type="button" class="tab on" data-kind="score">Net worth</button>
           <button type="button" class="tab" data-kind="time">Time played</button>
@@ -118,7 +118,7 @@
 <script type="module">
 /* Keno: pick up to 10 numbers from 80, 20 are drawn. The pay table returns 90-92% for 2 to 10 spots (75% for
    one spot), like real video keno. The server's keno_draw() draws and pays the same way for signed-in players. */
-import { $, sleep, reduced, fmt, shuffle, bank, showChips, msg, sfx, casino, startShell, signedIn } from '/casino.js?v=3';
+import { $, sleep, reduced, fmt, shuffle, bank, showChips, msg, sfx, casino, startShell, signedIn } from '/casino.js?v=4';
 
 const PAY = {
   1: { 1: 3 }, 2: { 2: 15 }, 3: { 2: 2, 3: 46 }, 4: { 2: 1, 3: 5, 4: 160 }, 5: { 3: 3, 4: 12, 5: 810 },

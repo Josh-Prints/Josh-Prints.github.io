@@ -190,10 +190,33 @@ export function betBoard({ spots, rack, free, canBet, onChange, maxPer }){
   return b;
 }
 
+/* ======================= bans ======================= */
+// Cheating (bookmarklets, scripts, console tricks, exploiting bugs) gets an account banned. The server
+// refuses every casino call for a banned account; this just tells the player why.
+export const isBanError = e => !!e && (e.hint === 'casino_banned' || /banned from the casino/.test(e.message || ''));
+export function showBan(reason, sb){
+  if (document.getElementById('cz-ban')) return;
+  const d = document.createElement('div'); d.id = 'cz-ban'; d.className = 'ban'; d.setAttribute('role', 'alertdialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'cz-ban-h');
+  d.innerHTML = '<div class="ban-box"><svg class="ico" width="28" height="28" aria-hidden="true"><use href="/icons.svg#triangle-alert"/></svg>' +
+    '<h2 id="cz-ban-h">You’re banned from the casino</h2>' +
+    '<p>' + (reason ? 'Reason: ' + esc(reason) + '. ' : '') + 'Cheating with bookmarklets, scripts, the browser console or bugs isn’t allowed. Your account can’t play, chat or appear on the leaderboard.</p>' +
+    '<p>Think this is a mistake? Email <a href="mailto:josh@voxprints.com">josh@voxprints.com</a>.</p>' +
+    '<div class="ban-btns"><a class="pbtn" href="/terms.html#casino">Casino rules</a>' + (sb ? '<button type="button" class="pbtn primary" id="cz-ban-out">Sign out</button>' : '') + '<a class="pbtn" href="/games.html">Back to games</a></div></div>';
+  document.body.appendChild(d);
+  const out = document.getElementById('cz-ban-out');
+  if (out) out.onclick = async () => { await sb.auth.signOut(); d.remove(); };
+}
+export async function checkBan(sb){
+  if (!sb) return false;
+  const { data } = await sb.rpc('casino_ban_status');
+  if (data && data.banned){ showBan(data.reason, sb); return true; }
+  return false;
+}
+
 /* ======================= accounts, leaderboard, time played ======================= */
 export const casino = {
   sb: null, user: null, pendingSecs: 0, kind: 'score', lastInput: 0, listeners: [],
-  async rpc(name, args){ const { data, error } = await this.sb.rpc(name, args || {}); if (error) throw error; if (name === 'casino_topup') this.refreshLoan(); return data; },
+  async rpc(name, args){ const { data, error } = await this.sb.rpc(name, args || {}); if (error){ if (isBanError(error)) showBan(null, this.sb); throw error; } if (name === 'casino_topup') this.refreshLoan(); return data; },
   onUser(fn){ this.listeners.push(fn); },
   markInput(){ this.lastInput = performance.now(); },
   async record(){
@@ -289,7 +312,7 @@ export const casino = {
     $('ln-repay').onclick = () => go(() => signedIn() ? this.rpc('casino_repay', { p_amount: null }) : Promise.resolve(bank.repay()), 'Paid back.');
     this.refreshLoan();
   },
-  changed(){ this.renderAccount(); this.loadBoard(); this.guestNote(); this.listeners.forEach(fn => { try { fn(this.user); } catch (e) { console.error(e); } }); },
+  changed(){ if (this.user) checkBan(this.sb); else { const b = document.getElementById('cz-ban'); if (b) b.remove(); } this.renderAccount(); this.loadBoard(); this.guestNote(); this.listeners.forEach(fn => { try { fn(this.user); } catch (e) { console.error(e); } }); },
 };
 
 // wire up the page shell: mute button, leaderboard tabs and drawer, time played, guest note, sign-in

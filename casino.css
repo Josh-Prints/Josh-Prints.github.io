@@ -184,3 +184,14 @@ body{
   .die{ --ds: 38px; }
 }
 @media (prefers-reduced-motion: reduce){ .pcard, .pcard.flip, .cz-msg .t, .stake, .die.roll, .stat .value.pulse{ animation: none; } }
+/* ban notice: shown over the whole page when a banned account is signed in */
+.ban{ position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px; background: rgba(0,0,0,.72); backdrop-filter: blur(6px); }
+.ban-box{ max-width: 420px; width: 100%; background: var(--canvas); color: var(--fg); border: 1px solid var(--border); border-radius: 14px; padding: 22px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+.ban-box .ico{ color: #d1242f; }
+.ban-box h2{ font-size: 19px; margin: 8px 0 10px; text-transform: none; letter-spacing: 0; }
+.ban-box p{ margin: 0 0 10px; font-size: 14px; line-height: 1.5; color: var(--fg-muted); }
+.ban-box a:not(.pbtn){ color: var(--accent); }
+.ban-btns{ display: grid; gap: 0; margin-top: 6px; }
+.ban-btns .pbtn{ text-decoration: none; }
+/* casino rules link under the shared-chips note */
+.rules-link{ color: var(--accent); font-weight: 600; }

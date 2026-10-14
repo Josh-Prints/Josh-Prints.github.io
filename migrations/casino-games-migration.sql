@@ -1239,3 +1239,82 @@ update public.game_stats s set best_score = w.chips - w.owed from public.casino_
 revoke all on function public.casino_accrue(uuid), public.casino_floor(uuid), public.casino_row(), public.casino_publish(uuid, bigint, boolean), public.casino_me(),
   public.casino_borrow(), public.casino_repay(bigint), public.casino_topup() from public, anon, authenticated;
 grant execute on function public.casino_me(), public.casino_borrow(), public.casino_repay(bigint), public.casino_topup() to authenticated;
+
+-- ===== Casino bans: cheating (bookmarklets, scripts, console tricks, bugs) gets an account banned =====
+alter table public.casino_wallet add column if not exists banned_at timestamptz;
+alter table public.casino_wallet add column if not exists ban_reason text;
+
+-- every casino RPC goes through casino_row(), so a ban here locks the player out of every game
+create or replace function public.casino_row() returns public.casino_wallet language plpgsql security definer set search_path = public as $$
+declare uid uuid := auth.uid(); w public.casino_wallet;
+begin
+  if uid is null then raise exception 'sign in first'; end if;
+  insert into public.casino_wallet (user_id) values (uid) on conflict (user_id) do nothing;
+  if exists (select 1 from public.casino_wallet where user_id = uid and banned_at is not null) then
+    raise exception 'banned from the casino' using errcode = 'P0001', hint = 'casino_banned';
+  end if;
+  perform public.casino_accrue(uid);
+  select * into w from public.casino_wallet where user_id = uid for update;
+  return w;
+end $$;
+
+create or replace function public.casino_banned(uid uuid) returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.casino_wallet where user_id = uid and banned_at is not null);
+$$;
+
+-- tells the page whether the signed-in player is banned (and why)
+create or replace function public.casino_ban_status() returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object('banned', w.banned_at is not null, 'reason', w.ban_reason, 'at', w.banned_at)
+  from (select auth.uid() uid) u left join public.casino_wallet w on w.user_id = u.uid;
+$$;
+
+-- banned players drop off the casino leaderboard
+create or replace function public.game_leaderboard(p_game text, p_kind text, p_limit integer default 10) returns jsonb
+language sql stable security definer set search_path = public as $$
+  select coalesce(jsonb_agg(jsonb_build_object('rank', rnk, 'name', public.game_player_name(user_id), 'value', val, 'me', user_id = auth.uid()) order by rnk), '[]'::jsonb)
+  from (
+    select user_id, val, rank() over (order by val desc) rnk
+    from (select user_id, case when p_kind = 'time' then total_seconds else best_score end val from public.game_stats
+          where game = p_game and not (p_game = 'casino' and public.casino_banned(user_id))) t
+    where val > 0
+    order by val desc
+    limit least(greatest(coalesce(p_limit, 10), 1), 50)
+  ) r;
+$$;
+
+-- banned players can't use the table chat either
+create or replace function public.mtcp_say(p_table integer, p_body text) returns jsonb language plpgsql security definer set search_path = public as $$
+declare uid uuid := auth.uid(); b text := btrim(regexp_replace(coalesce(p_body, ''), '\s+', ' ', 'g'));
+begin
+  if uid is null then raise exception 'sign in first'; end if;
+  if public.casino_banned(uid) then raise exception 'banned from the casino' using hint = 'casino_banned'; end if;
+  if not exists (select 1 from public.mtcp_tables where id = p_table) then raise exception 'no such table'; end if;
+  if char_length(b) = 0 then raise exception 'empty message'; end if;
+  if char_length(b) > 200 then b := left(b, 200); end if;
+  if exists (select 1 from public.mtcp_chat where user_id = uid and created_at > now() - interval '1 second') then raise exception 'slow down'; end if;
+  insert into public.mtcp_chat (table_id, user_id, body) values (p_table, uid, b);
+  return jsonb_build_object('ok', true);
+end $$;
+
+-- admins ban or unban a player: select casino_ban('<user id>', 'reason');  select casino_ban('<user id>', null, false);
+-- a ban also resets their chips to 1,000 and clears their debt, so a cheated balance never comes back on unban
+create or replace function public.casino_ban(p_user uuid, p_reason text default null, p_ban boolean default true) returns jsonb
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is not null and not public.is_admin() then raise exception 'not allowed'; end if;
+  insert into public.casino_wallet (user_id) values (p_user) on conflict (user_id) do nothing;
+  if p_ban then
+    update public.casino_wallet set banned_at = now(), ban_reason = coalesce(p_reason, 'Cheating'), chips = 1000, owed = 0, owed_at = null where user_id = p_user;
+    update public.game_stats set best_score = 1000 where user_id = p_user and game = 'casino';
+  else
+    update public.casino_wallet set banned_at = null, ban_reason = null where user_id = p_user;
+  end if;
+  return public.casino_ban_info(p_user);
+end $$;
+create or replace function public.casino_ban_info(p_user uuid) returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object('user_id', user_id, 'banned', banned_at is not null, 'reason', ban_reason, 'chips', chips) from public.casino_wallet where user_id = p_user;
+$$;
+
+revoke all on function public.casino_banned(uuid), public.casino_ban_status(), public.casino_ban(uuid, text, boolean), public.casino_ban_info(uuid) from public, anon, authenticated;
+grant execute on function public.casino_ban_status(), public.casino_ban(uuid, text, boolean) to authenticated;
+grant execute on function public.game_leaderboard(text, text, integer) to anon, authenticated;
