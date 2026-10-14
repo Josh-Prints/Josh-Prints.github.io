@@ -132,6 +132,7 @@
   }
   .over{ border-radius: 0; }
   .tbtn .sm{ display: none; }
+  .tbtn .sm .ico{ width: 17px; height: 17px; vertical-align: -3px; }
   /* phones: a compact top bar */
   @media (max-width: 700px), (max-height: 520px){
     .topbar{ gap: 6px; padding: 6px max(10px, env(safe-area-inset-left, 0px)) 6px 10px; }
@@ -157,10 +158,10 @@
   <div class="topbar">
     <a href="/games.html">&larr; Games</a>
     <span class="title">Dune</span>
-    <button type="button" class="tbtn lb-toggle" id="lb-toggle" aria-label="Leaderboard"><span class="lg">Leaderboard</span><span class="sm" aria-hidden="true">🏆</span></button>
+    <button type="button" class="tbtn lb-toggle" id="lb-toggle" aria-label="Leaderboard"><span class="lg">Leaderboard</span><span class="sm"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#crown"/></svg></span></button>
     <button type="button" class="tbtn" id="dbg" aria-pressed="false" hidden title="Founder debug: show the predicted flight path">Path</button>
     <button type="button" class="tbtn" id="mute" aria-pressed="false">Sound on</button>
-    <button type="button" class="tbtn" id="restart" aria-label="New run"><span class="lg">New run</span><span class="sm" aria-hidden="true">↻</span></button>
+    <button type="button" class="tbtn" id="restart" aria-label="New run"><span class="lg">New run</span><span class="sm"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#repeat"/></svg></span></button>
   </div>
   <div class="mobile-stats">
     <div class="stat"><div class="label">Score</div><div class="value" data-stat="score">0</div></div>
@@ -707,7 +708,7 @@ document.getElementById('restart').addEventListener('click', () => { if (started
 let debugPath = false, debugPref = false;
 try { debugPref = localStorage.getItem('dune-debug-path') === '1'; } catch (e) {}
 const dbgBtn = document.getElementById('dbg');
-function showDbg(){ dbgBtn.innerHTML = '<span class="lg">' + (debugPath ? 'Path: on' : 'Path: off') + '</span><span class="sm">' + (debugPath ? 'Path ✓' : 'Path') + '</span>'; dbgBtn.setAttribute('aria-pressed', String(debugPath)); }
+function showDbg(){ dbgBtn.innerHTML = '<span class="lg">' + (debugPath ? 'Path: on' : 'Path: off') + '</span><span class="sm">' + (debugPath ? 'Path on' : 'Path') + '</span>'; dbgBtn.setAttribute('aria-pressed', String(debugPath)); }
 dbgBtn.addEventListener('click', () => { debugPath = debugPref = !debugPath; try { localStorage.setItem('dune-debug-path', debugPath ? '1' : '0'); } catch (e) {} showDbg(); });
 showDbg();
 async function checkFounder(){
@@ -716,7 +717,7 @@ async function checkFounder(){
   dbgBtn.hidden = !ok; debugPath = ok && debugPref; showDbg();
 }
 const muteBtn = document.getElementById('mute');
-function showMute(){ muteBtn.innerHTML = '<span class="lg">' + (sfx.muted ? 'Sound off' : 'Sound on') + '</span><span class="sm" aria-hidden="true">' + (sfx.muted ? '🔇' : '🔊') + '</span>'; muteBtn.setAttribute('aria-label', sfx.muted ? 'Sound off' : 'Sound on'); muteBtn.setAttribute('aria-pressed', String(sfx.muted)); }
+function showMute(){ muteBtn.innerHTML = '<span class="lg">' + (sfx.muted ? 'Sound off' : 'Sound on') + '</span><span class="sm">' + (sfx.muted ? '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#volume-x"/></svg>' : '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#volume-2"/></svg>') + '</span>'; muteBtn.setAttribute('aria-label', sfx.muted ? 'Sound off' : 'Sound on'); muteBtn.setAttribute('aria-pressed', String(sfx.muted)); }
 muteBtn.addEventListener('click', () => { sfx.toggle(); showMute(); });
 showMute();
 addEventListener('resize', size);

@@ -3540,7 +3540,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     hb('ml-list').innerHTML = ml.list.map(m => {
       const who = m.box === 'sent' ? 'To: ' + mlList(m.to).map(a => mlParse(a).name).join(', ') : mlParse(m.from).name;
       return '<button type="button" class="ml-item' + (m.box === 'inbox' && !m.read ? ' unread' : '') + (ml.current && ml.current.id === m.id ? ' active' : '') + '" data-id="' + escapeHtml(m.id) + '">' +
-        '<div class="ml-item-top"><span class="ml-item-who">' + escapeHtml(who || '(unknown)') + '</span><span class="ml-item-when">' + (m.attachments ? '📎 ' : '') + escapeHtml(mlWhen(m.created_at)) + '</span></div>' +
+        '<div class="ml-item-top"><span class="ml-item-who">' + escapeHtml(who || '(unknown)') + '</span><span class="ml-item-when">' + (m.attachments ? '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> ' : '') + escapeHtml(mlWhen(m.created_at)) + '</span></div>' +
         '<div class="ml-item-subj">' + escapeHtml(m.subject || '(no subject)') + '</div>' +
         '<div class="ml-item-snip">' + escapeHtml(m.snippet || '') + '</div></button>';
     }).join('');
@@ -3580,7 +3580,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         (m.box === 'inbox' ? '<button type="button" class="er-btn" data-ml="unread">Mark unread</button>' : '') +
         '<button type="button" class="er-btn" data-ml="archive">' + (m.archived ? 'Move back' : 'Archive') + '</button>' +
       '</div>' +
-      (atts.length ? '<div class="ml-r-atts">' + atts.map((a, i) => '<button type="button" class="ml-att" data-att="' + i + '">📎 <span>' + escapeHtml(a.filename || 'attachment') + '</span>' + (a.size ? ' <small>' + Math.max(1, Math.round(Number(a.size) / 1024)) + ' KB</small>' : '') + '</button>').join('') + '</div>' : '') +
+      (atts.length ? '<div class="ml-r-atts">' + atts.map((a, i) => '<button type="button" class="ml-att" data-att="' + i + '"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> <span>' + escapeHtml(a.filename || 'attachment') + '</span>' + (a.size ? ' <small>' + Math.max(1, Math.round(Number(a.size) / 1024)) + ' KB</small>' : '') + '</button>').join('') + '</div>' : '') +
       '<div id="ml-body"></div>';
     const bodyEl = hb('ml-body');
     if (m.html) bodyEl.appendChild(mlFrame(m.html));

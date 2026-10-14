@@ -14,3 +14,7 @@
   and deployment" runs in Actions. A run stuck in `queued` (or cancelled by a
   newer push) means nothing deployed; cancelling it and pushing a fresh commit
   to `main` starts a new one. Don't cancel a run that is `in_progress`.
+- No emojis anywhere in the site's UI (buttons, labels, messages, toasts). The
+  user dislikes them. Use the line icons from `/icons.svg` instead
+  (`<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#name"/></svg>`),
+  or plain text. Playing-card suit symbols (♠♥♦♣) are fine.
