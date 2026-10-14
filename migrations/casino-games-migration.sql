@@ -1038,3 +1038,76 @@ end $$;
 revoke all on function public.mtcp_say(int, text), public.mtcp_view(int, bigint) from public, anon, authenticated;
 grant execute on function public.mtcp_say(int, text), public.mtcp_view(int, bigint) to authenticated;
 grant execute on function public.mtcp_view(int, bigint) to anon;
+/* ======================= Automatic reset to 1,000 chips ======================= */
+-- Anyone below 1,000 chips goes straight back to 1,000 as soon as they have nothing riding on a hand: when a
+-- round finishes, and whenever they start or open a game. Never while chips are out on a table.
+
+-- does this player have chips out on a hand anywhere?
+create or replace function public.casino_busy(uid uuid) returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.bj_table where user_id = uid and phase = 'play')
+    or exists (select 1 from public.mtcp_seats where user_id = uid and (ante + pair > 0 or cardinality(cards) = 3))
+    or exists (select 1 from public.casino_play where user_id = uid and (
+      (game = 'bj2' and coalesce(state->>'phase', 'bet') <> 'bet') or (game in ('vp', 'tcp') and (state ? 'hand' or state ? 'player')) or (game = 'war' and state ? 'p')
+      or (game = 'craps' and coalesce(state->'bets', '{}') <> '{}'::jsonb)))
+$$;
+
+-- top a player back up to 1,000 if they're below it and free; returns their chips
+create or replace function public.casino_floor(uid uuid) returns bigint language plpgsql security definer set search_path = public as $$
+declare c bigint;
+begin
+  select chips into c from public.casino_wallet where user_id = uid for update;
+  if c is not null and c < 1000 and not public.casino_busy(uid) then
+    update public.casino_wallet set chips = 1000, updated_at = now() where user_id = uid;
+    c := 1000;
+  end if;
+  return c;
+end $$;
+
+-- the caller's wallet, locked, topped up first if they're between hands
+create or replace function public.casino_row() returns public.casino_wallet language plpgsql security definer set search_path = public as $$
+declare uid uuid := auth.uid(); w public.casino_wallet;
+begin
+  if uid is null then raise exception 'sign in first'; end if;
+  insert into public.casino_wallet (user_id) values (uid) on conflict (user_id) do nothing;
+  perform public.casino_floor(uid);
+  select * into w from public.casino_wallet where user_id = uid for update;
+  return w;
+end $$;
+
+-- record chips for the leaderboard; at the end of a round, top up first
+create or replace function public.casino_publish(uid uuid, p_chips bigint, played boolean) returns void language plpgsql security definer set search_path = public as $$
+declare c bigint := p_chips;
+begin
+  if played then c := coalesce(public.casino_floor(uid), p_chips); end if;
+  insert into public.game_stats as s (user_id, game, best_score, total_seconds, games_played, last_seen)
+  values (uid, 'casino', least(c, 100000000000), 0, case when played then 1 else 0 end, now())
+  on conflict (user_id, game) do update set best_score = least(excluded.best_score, 100000000000),
+    games_played = s.games_played + excluded.games_played, last_seen = now();
+end $$;
+
+-- settle chips and report the balance after any top-up
+create or replace function public.cz_settle(p_stake bigint, p_payout bigint, p_round boolean default true) returns bigint language plpgsql security definer set search_path = public as $$
+declare uid uuid := auth.uid(); c bigint;
+begin
+  update public.casino_wallet set chips = chips - p_stake + p_payout, updated_at = now() where user_id = uid returning chips into c;
+  perform public.casino_publish(uid, c, p_round);
+  select chips into c from public.casino_wallet where user_id = uid;
+  return c;
+end $$;
+
+-- roulette and the live poker tables report / apply the top-up too
+do $$
+declare d text;
+begin
+  d := pg_get_functiondef('public.rl_spin(jsonb)'::regprocedure);
+  d := replace(d, 'return jsonb_build_object(''chips'', w.chips, ''number''', 'return jsonb_build_object(''chips'', (select chips from public.casino_wallet where user_id = w.user_id), ''number''');
+  execute d;
+  d := pg_get_functiondef('public.mtcp_tick(integer)'::regprocedure);
+  d := replace(d, 'update public.mtcp_seats set ante = 0, pair = 0, cards = ''{}'', decision = null, result = null where table_id = p_table;',
+    'update public.mtcp_seats set ante = 0, pair = 0, cards = ''{}'', decision = null, result = null where table_id = p_table;
+      perform public.casino_floor(user_id) from public.mtcp_seats where table_id = p_table and user_id is not null;');
+  execute d;
+end $$;
+
+revoke all on function public.casino_busy(uuid), public.casino_floor(uuid), public.casino_row(), public.casino_publish(uuid, bigint, boolean), public.cz_settle(bigint, bigint, boolean)
+  from public, anon, authenticated;

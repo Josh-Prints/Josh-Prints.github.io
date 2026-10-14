@@ -163,12 +163,13 @@ const local = (() => {
   const save = g => { try { g ? localStorage.setItem(KEY, JSON.stringify(g)) : localStorage.removeItem(KEY); } catch (e) {} };
   const finish = (g, play, extra) => {
     const r = resolve(g.player, g.dealer, g.ante, g.pair, play);
-    const chips = bank.get() - (extra || 0) + r.payout; bank.set(chips); save(null);
+    bank.set(bank.get() - (extra || 0) + r.payout); save(null);
+    const chips = bank.topup();   // below 1,000 after a hand: straight back to 1,000
     const staked = g.ante + g.pair + (play ? g.ante : 0);
     return { chips, phase: 'bet', player: g.player, dealer: g.dealer, ante: g.ante, pair: g.pair, played: !!play, result: r, payout: r.payout, staked, net: r.payout - staked };
   };
   return {
-    async state(){ const g = load(); return g ? { chips: bank.get(), phase: 'decide', player: g.player, dealer: [-1, -1, -1], ante: g.ante, pair: g.pair } : { chips: bank.get(), phase: 'bet' }; },
+    async state(){ const g = load(); return g ? { chips: bank.get(), phase: 'decide', player: g.player, dealer: [-1, -1, -1], ante: g.ante, pair: g.pair } : { chips: bank.topup(), phase: 'bet' }; },
     async deal(ante, pair){
       if (load()) return this.state();
       const chips = bank.get();

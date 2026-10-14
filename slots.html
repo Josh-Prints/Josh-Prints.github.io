@@ -181,12 +181,12 @@ function evaluate(stops, lines, lineBet){
 
 /* ---------- engines ---------- */
 const local = {
-  async state(){ return { chips: bank.get() }; },
+  async state(){ return { chips: bank.topup() }; },
   async spin(lineBet, lines){
     let chips = bank.get(); const staked = lineBet * lines;
     if (staked > chips) throw new Error('not enough chips');
     const stops = [rand(N), rand(N), rand(N)], wins = evaluate(stops, lines, lineBet), payout = wins.reduce((s, w) => s + w.pay, 0);
-    chips += payout - staked; bank.set(chips);
+    chips += payout - staked; bank.set(chips); chips = bank.topup();   // below 1,000: straight back to 1,000
     return { chips, stops, wins, payout, staked, net: payout - staked };
   },
   async topup(){ return { chips: bank.topup() }; },

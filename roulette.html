@@ -281,12 +281,12 @@ const local = (() => {
   const save = c => { try { localStorage.setItem('casino-bank', String(c)); } catch (e) {} };
   const rand37 = () => { try { const a = new Uint32Array(1); do crypto.getRandomValues(a); while (a[0] >= 4294967296 - 4294967296 % 37); return a[0] % 37; } catch (e) { return Math.floor(Math.random() * 37); } };
   return {
-    async state(){ return { chips: bank() }; },
+    async state(){ let c = bank(); if (c < 1000){ c = 1000; save(c); } return { chips: c }; },
     async spin(bets){
       let chips = bank(); const staked = bets.reduce((s, b) => s + b.a, 0);
       if (staked < 5 || staked > chips) throw new Error('invalid bet');
       const n = rand37(), payout = bets.reduce((s, b) => s + b.a * mult(b.k, n), 0);
-      chips = chips - staked + payout; save(chips);
+      chips = chips - staked + payout; if (chips < 1000) chips = 1000; save(chips);   // below 1,000: straight back to 1,000
       return { chips, number: n, staked, payout, net: payout - staked };
     },
     async topup(){ let c = bank(); if (c < 1000){ c = 1000; save(c); } return { chips: c }; },

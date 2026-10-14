@@ -129,13 +129,13 @@ const BETS = [1, 2, 5, 10, 25, 50, 100, 250, 500];
 
 /* ---------- engines ---------- */
 const local = {
-  async state(){ return { chips: bank.get() }; },
+  async state(){ return { chips: bank.topup() }; },
   async draw(picks, bet){
     let chips = bank.get();
     if (!picks.length || picks.length > 10 || bet > chips) throw new Error('invalid');
     const drawn = shuffle(Array.from({ length: 80 }, (_, i) => i + 1)).slice(0, 20);
     const hits = picks.filter(n => drawn.includes(n)).length, payout = (PAY[picks.length][hits] || 0) * bet;
-    chips += payout - bet; bank.set(chips);
+    chips += payout - bet; bank.set(chips); chips = bank.topup();   // below 1,000: straight back to 1,000
     return { chips, drawn, hits, payout, staked: bet, net: payout - bet };
   },
   async topup(){ return { chips: bank.topup() }; },

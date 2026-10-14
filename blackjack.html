@@ -213,10 +213,11 @@ const local = (() => {
     const chips = bank.get(), r = bjApply(s, act);
     if (r.stake > chips) throw new Error('not enough chips');
     bank.set(chips - r.stake + r.pay); save(r);
+    if (r.phase === 'bet') bank.topup();   // below 1,000 after a hand: straight back to 1,000
     return { chips: bank.get(), ...view(r), stake: r.stake, pay: r.pay, fresh: r.fresh };
   }
   return {
-    async state(){ const s = load(); return s.phase === 'bet' ? { chips: bank.get(), phase: 'bet', dealer: s.dealer || [], hands: s.hands || [], active: 0 } : { chips: bank.get(), ...view(s) }; },
+    async state(){ const s = load(); return s.phase === 'bet' ? { chips: bank.topup(), phase: 'bet', dealer: s.dealer || [], hands: s.hands || [], active: 0 } : { chips: bank.get(), ...view(s) }; },
     async deal(bet){
       const s = load(); if (s.phase !== 'bet') return this.state();
       if (bet < 5 || bet > bank.get()) throw new Error('invalid bet');
