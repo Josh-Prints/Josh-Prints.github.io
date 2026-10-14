@@ -54,6 +54,17 @@
   .spot.circle > .stake{ left: 50%; top: 66%; }
   .btn-row[hidden]{ display: none; }
   #leave{ font-size: 1rem; padding: 5px 16px; min-width: 0; opacity: .85; }
+  .chat{ display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 12px; border: 1.5px solid rgba(201,162,75,.35); background: rgba(0,0,0,.18); }
+  .chat-log{ height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13.5px; line-height: 1.35; -webkit-user-select: text; user-select: text; }
+  .chat-log:empty::before{ content: 'No messages yet. Say hi!'; opacity: .55; margin: auto; }
+  .chat-log .line{ overflow-wrap: anywhere; }
+  .chat-log .line b{ color: #ffe08a; font-weight: 700; }
+  .chat-log .line.me b{ color: #9fe0b8; }
+  .chat-form{ display: flex; gap: 6px; }
+  .chat-in{ flex: 1; min-width: 0; font: 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; padding: 7px 10px; border-radius: 99px; border: 1.5px solid rgba(201,162,75,.5); background: rgba(0,0,0,.3); color: var(--ivory); }
+  .chat-in::placeholder{ color: rgba(246,241,228,.5); }
+  .chat-in:disabled{ opacity: .6; }
+  .chat-form .btn{ min-width: 0; padding: 6px 16px; font-size: 1.05rem; }
   .foot-notes{ margin-bottom: auto; }
   @media (max-width: 760px){
     .tables{ grid-template-columns: 1fr; }
@@ -117,10 +128,17 @@
             </div>
             <button class="btn" id="leave">Leave table</button>
           </div>
+          <section class="chat" aria-label="Table chat">
+            <div class="chat-log" id="chat-log" aria-live="polite"></div>
+            <form class="chat-form" id="chat-form">
+              <input class="chat-in" id="chat-in" maxlength="200" autocomplete="off" placeholder="Say something to the table">
+              <button class="btn" id="chat-send" type="submit">Send</button>
+            </form>
+          </section>
         </section>
         <div class="foot-notes">
           <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
-          <div class="ver">Version 2026-10-14b</div>
+          <div class="ver">Version 2026-10-14c</div>
         </div>
       </main>
     </div>
@@ -153,7 +171,11 @@
 /* Three Card Poker Live: shared tables where up to six signed-in players play against the same dealer.
    Everything happens on the server (mtcp_* functions): the deck, everyone's cards, the clock and the payouts.
    This page just shows the table, refreshing every second, and sends your bets and Play / Fold. */
-import { $, sleep, reduced, fmt, esc, showChips, msg, sfx, casino, startShell, signedIn, cardEl, chipRack, betBoard } from '/casino.js?v=1';
+import { $, sleep, reduced, fmt, esc, showChips, msg as showMsg, sfx, casino, startShell, signedIn, cardEl, chipRack, betBoard } from '/casino.js?v=1';
+
+// the table refreshes every second; only redraw (and re-animate) the message when its wording changes
+let lastMsg = '';
+const msg = (t, s, cls) => { const k = t + '|' + (s || '') + '|' + (cls || ''); if (k === lastMsg) return; lastMsg = k; showMsg(t, s, cls); };
 
 const CAT = ['High card', 'Pair', 'Flush', 'Straight', 'Three of a kind', 'Straight flush'];
 const HIGH = { 14: 'Ace', 13: 'King', 12: 'Queen', 11: 'Jack', 10: 'Ten', 9: 'Nine', 8: 'Eight', 7: 'Seven', 6: 'Six', 5: 'Five', 4: 'Four', 3: 'Three', 2: 'Two' };
@@ -194,6 +216,7 @@ $('back').onclick = () => lobby();
 /* ---------- the room ---------- */
 function stopPoll(){ clearInterval(timer); timer = null; }
 async function enter(id){
+  chatSince = 0; $('chat-log').innerHTML = ''; lastMsg = '';
   tableId = id; lastRound = null; lastPhase = null; seatCache = {}; dealerKey = ''; $('seats').innerHTML = ''; $('dh').innerHTML = '';
   $('lobby').hidden = true; $('room').hidden = false;
   await refresh();
@@ -203,7 +226,7 @@ let inflight = false;
 async function refresh(){
   if (tableId === null || inflight) return;
   inflight = true;
-  try { render(await rpc('mtcp_view', { p_table: tableId })); }
+  try { const v = await rpc('mtcp_view', { p_table: tableId, p_since: chatSince }); render(v); chat(v.chat); }
   catch (e) { msg('Lost the table for a moment', 'Retrying…', 'lose'); }
   inflight = false;
 }
@@ -323,8 +346,49 @@ document.addEventListener('keydown', e => {
   if (k === 'p') $('play').click(); else if (k === 'f') $('fold').click();
 });
 
+/* ---------- table chat ---------- */
+let chatSince = 0;
+function chat(list){
+  if (!list || !list.length) return;
+  const log = $('chat-log'), atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 30;
+  for (const m of list){
+    if (m.id <= chatSince) continue;
+    chatSince = m.id;
+    const row = document.createElement('div'); row.className = 'line' + (m.me ? ' me' : '');
+    row.innerHTML = '<b>' + esc(m.name) + '</b> ' + esc(m.body);
+    log.appendChild(row);
+    if (!m.me && chatSince && log.dataset.ready) sfx.tick(0.4);
+  }
+  while (log.children.length > 80) log.firstChild.remove();
+  if (atBottom || !log.dataset.ready) log.scrollTop = log.scrollHeight;
+  log.dataset.ready = '1';
+}
+function chatUi(){
+  const ok = signedIn();
+  $('chat-in').disabled = $('chat-send').disabled = !ok;
+  $('chat-in').placeholder = ok ? 'Say something to the table' : 'Sign in to chat';
+}
+$('chat-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const body = $('chat-in').value.trim(); if (!body || tableId === null || !signedIn()) return;
+  $('chat-send').disabled = true;
+  try { await rpc('mtcp_say', { p_table: tableId, p_body: body }); $('chat-in').value = ''; casino.markInput(); await refresh(); }
+  catch (er) { msg(/slow/.test(er.message || '') ? 'Slow down a little' : 'Message didn’t send', /slow/.test(er.message || '') ? 'One message a second' : 'Try again', 'lose'); }
+  $('chat-send').disabled = !signedIn();
+});
+// keep the chat box out of the game's keyboard shortcuts
+$('chat-in').addEventListener('keydown', e => e.stopPropagation());
+
+/* ---------- live scores: the casino leaderboard and your stats refresh while you're here ---------- */
+setInterval(async () => {
+  if (document.hidden || !casino.sb) return;
+  casino.loadBoard();
+  if (signedIn()){ try { casino.renderMe(await rpc('game_my_stats', { p_game: 'casino' })); } catch (e) {} }
+}, 5000);
+
 startShell();
-casino.onUser(() => { if (tableId === null) lobby(); else { seatCache = {}; refresh(); } });
+casino.onUser(() => { chatUi(); if (tableId === null) lobby(); else { seatCache = {}; refresh(); } });
+chatUi();
 </script>
 </body>
 </html>

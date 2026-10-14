@@ -999,3 +999,42 @@ revoke all on function public.mtcp_resolve(int[], int[], bigint, bigint, boolean
 grant execute on function public.mtcp_view(int), public.mtcp_lobby(), public.mtcp_sit(int, int), public.mtcp_leave(int), public.mtcp_bet(int, bigint, bigint),
   public.mtcp_decide(int, boolean), public.casino_topup() to authenticated;
 grant execute on function public.mtcp_lobby(), public.mtcp_view(int) to anon;
+/* ======================= Three Card Poker Live: table chat ======================= */
+create table if not exists public.mtcp_chat (
+  id bigserial primary key,
+  table_id int not null references public.mtcp_tables(id),
+  user_id uuid references auth.users(id) on delete set null,
+  body text not null check (char_length(body) between 1 and 200),
+  created_at timestamptz not null default now()
+);
+create index if not exists mtcp_chat_table_id on public.mtcp_chat (table_id, id);
+alter table public.mtcp_chat enable row level security;
+revoke all on table public.mtcp_chat from anon, authenticated;
+revoke all on sequence public.mtcp_chat_id_seq from anon, authenticated;
+
+-- post a message (signed-in players watching or seated at the table); one message per second at most
+create or replace function public.mtcp_say(p_table int, p_body text) returns jsonb language plpgsql security definer set search_path = public as $$
+declare uid uuid := auth.uid(); b text := btrim(regexp_replace(coalesce(p_body, ''), '\s+', ' ', 'g'));
+begin
+  if uid is null then raise exception 'sign in first'; end if;
+  if not exists (select 1 from public.mtcp_tables where id = p_table) then raise exception 'no such table'; end if;
+  if char_length(b) = 0 then raise exception 'empty message'; end if;
+  if char_length(b) > 200 then b := left(b, 200); end if;
+  if exists (select 1 from public.mtcp_chat where user_id = uid and created_at > now() - interval '1 second') then raise exception 'slow down'; end if;
+  insert into public.mtcp_chat (table_id, user_id, body) values (p_table, uid, b);
+  return jsonb_build_object('ok', true);
+end $$;
+
+-- the table view plus chat messages newer than p_since (the latest 40 when p_since is 0)
+create or replace function public.mtcp_view(p_table int, p_since bigint) returns jsonb language plpgsql security definer set search_path = public as $$
+declare v jsonb := public.mtcp_view(p_table); uid uuid := auth.uid(); msgs jsonb;
+begin
+  select coalesce(jsonb_agg(jsonb_build_object('id', m.id, 'name', case when m.user_id is null then 'Player' else public.game_player_name(m.user_id) end,
+      'me', m.user_id = uid, 'body', m.body, 'at', m.created_at) order by m.id), '[]') into msgs
+  from (select * from public.mtcp_chat where table_id = p_table and id > coalesce(p_since, 0) order by id desc limit 40) m;
+  return v || jsonb_build_object('chat', msgs);
+end $$;
+
+revoke all on function public.mtcp_say(int, text), public.mtcp_view(int, bigint) from public, anon, authenticated;
+grant execute on function public.mtcp_say(int, text), public.mtcp_view(int, bigint) to authenticated;
+grant execute on function public.mtcp_view(int, bigint) to anon;
