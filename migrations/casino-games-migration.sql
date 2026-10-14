@@ -771,3 +771,230 @@ revoke all on function public.bj2_ints(jsonb), public.bj2_val(int), public.bj2_b
   public.bj2_advance(jsonb), public.bj2_options(jsonb), public.bj2_apply(jsonb, text), public.bj2_view(jsonb), public.bj2_state(), public.bj2_deal(bigint), public.bj2_act(text),
   public.casino_topup() from public, anon, authenticated;
 grant execute on function public.bj2_state(), public.bj2_deal(bigint), public.bj2_act(text), public.casino_topup() to authenticated;
+/* ======================= Three Card Poker: multiplayer tables ======================= */
+-- Shared tables: everyone seated bets in the same window, gets their own three cards, and plays against the
+-- same dealer hand. There's no game server, so the table moves on whenever anyone at it calls in after a
+-- deadline (mtcp_tick): betting (15s from the first bet) -> deciding (20s) -> showdown (7s) -> betting.
+-- Pays exactly as the single-player game (tcp_eval, Pair Plus 40/30/6/3/1, ante bonus 5/4/1).
+
+create table if not exists public.mtcp_tables (
+  id int primary key,
+  name text not null,
+  min_bet bigint not null,
+  phase text not null default 'betting' check (phase in ('betting', 'deciding', 'showdown')),
+  deadline timestamptz,
+  round int not null default 0,
+  dealer int[] not null default '{}',
+  updated_at timestamptz not null default now()
+);
+create table if not exists public.mtcp_seats (
+  table_id int not null references public.mtcp_tables(id),
+  seat int not null check (seat between 0 and 5),
+  user_id uuid references auth.users(id) on delete set null,   -- null: the seat is free
+  ante bigint not null default 0,
+  pair bigint not null default 0,
+  cards int[] not null default '{}',
+  decision text check (decision in ('play', 'fold', 'auto')),
+  result jsonb,
+  leaving boolean not null default false,
+  last_seen timestamptz not null default now(),
+  primary key (table_id, seat),
+  unique (table_id, user_id)
+);
+alter table public.mtcp_tables enable row level security;
+alter table public.mtcp_seats enable row level security;
+revoke all on table public.mtcp_tables, public.mtcp_seats from anon, authenticated;
+insert into public.mtcp_tables (id, name, min_bet) values (1, 'Table 1', 5), (2, 'Table 2', 25), (3, 'High rollers', 100) on conflict (id) do nothing;
+-- six seats per table, always there; taking a seat fills one, leaving empties it
+insert into public.mtcp_seats (table_id, seat) select t, s from generate_series(1, 3) t, generate_series(0, 5) s on conflict do nothing;
+
+-- what one hand pays (play: true / false = fold / null = Pair Plus only). Same maths as tcp_finish().
+create or replace function public.mtcp_resolve(player int[], dealer int[], ante bigint, pair bigint, play boolean) returns jsonb language plpgsql immutable as $$
+declare pe jsonb := public.tcp_eval(player); de jsonb := public.tcp_eval(dealer); q boolean; payout bigint := 0; outcome text; bonus bigint := 0; pp bigint := 0; staked bigint;
+begin
+  q := (de->>'cat')::int >= 1 or (de->>'high')::int >= 12;
+  if pair > 0 and (pe->>'cat')::int >= 1 then pp := pair * (array[0, 1, 3, 6, 30, 40])[(pe->>'cat')::int + 1]; payout := payout + pair + pp; end if;
+  if ante > 0 then
+    if not coalesce(play, false) then outcome := 'fold';
+    else
+      bonus := ante * (array[0, 0, 0, 1, 4, 5])[(pe->>'cat')::int + 1]; payout := payout + bonus;
+      if not q then outcome := 'noqual'; payout := payout + 3 * ante;
+      elsif (pe->>'score')::int > (de->>'score')::int then outcome := 'win'; payout := payout + 4 * ante;
+      elsif (pe->>'score')::int < (de->>'score')::int then outcome := 'lose';
+      else outcome := 'push'; payout := payout + 2 * ante; end if;
+    end if;
+  end if;
+  staked := ante + pair + case when coalesce(play, false) then ante else 0 end;
+  return jsonb_build_object('payout', payout, 'outcome', outcome, 'bonus', bonus, 'pairPay', pp, 'staked', staked, 'net', payout - staked,
+    'pcat', (pe->>'cat')::int, 'phigh', (pe->>'high')::int, 'dcat', (de->>'cat')::int, 'dhigh', (de->>'high')::int, 'qualifies', q);
+end $$;
+
+-- move the table along if a deadline has passed. Call with the table row already locked.
+create or replace function public.mtcp_tick(p_table int) returns void language plpgsql security definer set search_path = public as $$
+declare t public.mtcp_tables; s public.mtcp_seats; d int[]; i int; r jsonb; c bigint; steps int := 0;
+begin
+  loop
+    steps := steps + 1; exit when steps > 3;
+    select * into t from public.mtcp_tables where id = p_table;
+    if t.phase = 'betting' then
+      -- people who wandered off without a bet down lose their seat
+      update public.mtcp_seats set user_id = null, ante = 0, pair = 0, cards = '{}', decision = null, result = null, leaving = false where table_id = p_table and user_id is not null and ante = 0 and pair = 0 and last_seen < now() - interval '90 seconds';
+      exit when t.deadline is null or now() < t.deadline;
+      if not exists (select 1 from public.mtcp_seats where table_id = p_table and ante + pair > 0) then
+        update public.mtcp_tables set deadline = null where id = p_table; exit;
+      end if;
+      d := public.cz_deck(1); i := 0;
+      for s in select * from public.mtcp_seats where table_id = p_table and user_id is not null and ante + pair > 0 order by seat loop
+        update public.mtcp_seats set cards = d[i * 3 + 1 : i * 3 + 3], decision = case when s.ante = 0 then 'auto' end, result = null
+          where table_id = p_table and seat = s.seat;
+        i := i + 1;
+      end loop;
+      update public.mtcp_tables set phase = 'deciding', deadline = now() + interval '20 seconds', dealer = d[i * 3 + 1 : i * 3 + 3], updated_at = now() where id = p_table;
+    elsif t.phase = 'deciding' then
+      exit when now() < t.deadline and exists (select 1 from public.mtcp_seats where table_id = p_table and user_id is not null and cardinality(cards) = 3 and decision is null);
+      for s in select * from public.mtcp_seats where table_id = p_table and user_id is not null and cardinality(cards) = 3 order by seat loop
+        r := public.mtcp_resolve(s.cards, t.dealer, s.ante, s.pair, case when s.ante = 0 then null else s.decision = 'play' end);
+        update public.mtcp_seats set result = r, decision = coalesce(decision, 'fold') where table_id = p_table and seat = s.seat;
+        update public.casino_wallet set chips = chips + (r->>'payout')::bigint, updated_at = now() where user_id = s.user_id returning chips into c;
+        perform public.casino_publish(s.user_id, c, true);
+      end loop;
+      update public.mtcp_tables set phase = 'showdown', deadline = now() + interval '7 seconds', updated_at = now() where id = p_table;
+    else
+      exit when now() < t.deadline;
+      update public.mtcp_seats set user_id = null, ante = 0, pair = 0, cards = '{}', decision = null, result = null, leaving = false where table_id = p_table and leaving;
+      update public.mtcp_seats set ante = 0, pair = 0, cards = '{}', decision = null, result = null where table_id = p_table;
+      update public.mtcp_tables set phase = 'betting', deadline = null, dealer = '{}', round = round + 1, updated_at = now() where id = p_table;
+    end if;
+  end loop;
+end $$;
+
+-- the table as one player sees it
+create or replace function public.mtcp_view(p_table int) returns jsonb language plpgsql security definer set search_path = public as $$
+declare uid uuid := auth.uid(); t public.mtcp_tables; me int; seats jsonb; chips bigint;
+begin
+  perform 1 from public.mtcp_tables where id = p_table for update;
+  if not found then raise exception 'no such table'; end if;
+  perform public.mtcp_tick(p_table);
+  select * into t from public.mtcp_tables where id = p_table;
+  if uid is not null then
+    update public.mtcp_seats set last_seen = now() where table_id = p_table and user_id = uid returning seat into me;
+    select w.chips into chips from public.casino_wallet w where w.user_id = uid;
+  end if;
+  select coalesce(jsonb_agg(jsonb_build_object(
+      'seat', s.seat, 'name', public.game_player_name(s.user_id), 'me', s.user_id = uid, 'ante', s.ante, 'pair', s.pair, 'leaving', s.leaving,
+      'decision', s.decision,
+      'cards', case when cardinality(s.cards) = 0 then '[]'::jsonb
+                    when s.user_id = uid or t.phase = 'showdown' then to_jsonb(s.cards) else '[-1, -1, -1]'::jsonb end,
+      'result', case when t.phase = 'showdown' then s.result end) order by s.seat), '[]') into seats
+  from public.mtcp_seats s where s.table_id = p_table and s.user_id is not null;
+  return jsonb_build_object('id', t.id, 'name', t.name, 'min', t.min_bet, 'phase', t.phase, 'round', t.round,
+    'secs', case when t.deadline is null then null else greatest(0, ceil(extract(epoch from t.deadline - now())))::int end,
+    'dealer', case when t.phase = 'showdown' then to_jsonb(t.dealer) when t.phase = 'deciding' then '[-1, -1, -1]'::jsonb else '[]'::jsonb end,
+    'seats', seats, 'me', me, 'chips', chips);
+end $$;
+
+create or replace function public.mtcp_lobby() returns jsonb language sql stable security definer set search_path = public as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', t.id, 'name', t.name, 'min', t.min_bet, 'phase', t.phase,
+    'players', (select count(*) from public.mtcp_seats s where s.table_id = t.id and s.user_id is not null and s.last_seen > now() - interval '90 seconds'),
+    'mine', exists (select 1 from public.mtcp_seats s where s.table_id = t.id and s.user_id = auth.uid())) order by t.id), '[]')
+  from public.mtcp_tables t
+$$;
+
+create or replace function public.mtcp_sit(p_table int, p_seat int) returns jsonb language plpgsql security definer set search_path = public as $$
+declare uid uuid := auth.uid();
+begin
+  if uid is null then raise exception 'sign in first'; end if;
+  perform 1 from public.mtcp_tables where id = p_table for update;
+  if not found then raise exception 'no such table'; end if;
+  if exists (select 1 from public.mtcp_seats where user_id = uid and table_id <> p_table) then raise exception 'leave your other table first'; end if;
+  if not exists (select 1 from public.mtcp_seats where table_id = p_table and user_id = uid) then
+    if p_seat is null or p_seat < 0 or p_seat > 5 or exists (select 1 from public.mtcp_seats where table_id = p_table and seat = p_seat and user_id is not null) then raise exception 'seat taken'; end if;
+    perform public.casino_row();
+    update public.mtcp_seats set user_id = uid, ante = 0, pair = 0, cards = '{}', decision = null, result = null, leaving = false, last_seen = now() where table_id = p_table and seat = p_seat;
+  end if;
+  return public.mtcp_view(p_table);
+end $$;
+
+create or replace function public.mtcp_leave(p_table int) returns jsonb language plpgsql security definer set search_path = public as $$
+declare uid uuid := auth.uid(); t public.mtcp_tables; s public.mtcp_seats;
+begin
+  select * into t from public.mtcp_tables where id = p_table for update;
+  select * into s from public.mtcp_seats where table_id = p_table and user_id = uid;
+  if found then
+    if cardinality(s.cards) = 3 then
+      -- in a hand: an unplayed hand folds now, and the seat goes after the showdown
+      update public.mtcp_seats set leaving = true, decision = coalesce(decision, 'fold') where table_id = p_table and seat = s.seat;
+    else
+      perform public.casino_row();
+      if s.ante + s.pair > 0 then update public.casino_wallet set chips = chips + s.ante + s.pair, updated_at = now() where user_id = uid; end if;
+      update public.mtcp_seats set user_id = null, ante = 0, pair = 0, cards = '{}', decision = null, result = null, leaving = false where table_id = p_table and seat = s.seat;
+    end if;
+  end if;
+  return public.mtcp_lobby();
+end $$;
+
+-- put down (or change) this round's Ante and Pair Plus
+create or replace function public.mtcp_bet(p_table int, p_ante bigint, p_pair bigint) returns jsonb language plpgsql security definer set search_path = public as $$
+declare uid uuid := auth.uid(); t public.mtcp_tables; s public.mtcp_seats; w public.casino_wallet;
+begin
+  select * into t from public.mtcp_tables where id = p_table for update;
+  perform public.mtcp_tick(p_table);
+  select * into t from public.mtcp_tables where id = p_table;
+  if t.phase <> 'betting' then raise exception 'betting is closed'; end if;
+  select * into s from public.mtcp_seats where table_id = p_table and user_id = uid;
+  if not found then raise exception 'take a seat first'; end if;
+  if p_ante is null or p_pair is null or p_ante < 0 or p_pair < 0 or (p_ante > 0 and p_ante < t.min_bet) or (p_pair > 0 and p_pair < t.min_bet)
+    or (p_ante = 0 and p_pair = 0 and s.ante + s.pair = 0) then raise exception 'invalid bet'; end if;
+  w := public.casino_row();
+  if w.chips + s.ante + s.pair < p_ante + p_pair then raise exception 'not enough chips'; end if;
+  update public.casino_wallet set chips = chips + s.ante + s.pair - p_ante - p_pair, updated_at = now() where user_id = uid;
+  update public.mtcp_seats set ante = p_ante, pair = p_pair, last_seen = now() where table_id = p_table and seat = s.seat;
+  if p_ante + p_pair > 0 then
+    -- the first bet starts the clock; once everyone seated has bet, deal almost straight away
+    if t.deadline is null then t.deadline := now() + interval '15 seconds'; end if;
+    if not exists (select 1 from public.mtcp_seats where table_id = p_table and user_id is not null and ante + pair = 0) then t.deadline := least(t.deadline, now() + interval '3 seconds'); end if;
+    update public.mtcp_tables set deadline = t.deadline where id = p_table;
+  end if;
+  return public.mtcp_view(p_table);
+end $$;
+
+create or replace function public.mtcp_decide(p_table int, p_play boolean) returns jsonb language plpgsql security definer set search_path = public as $$
+declare uid uuid := auth.uid(); t public.mtcp_tables; s public.mtcp_seats; w public.casino_wallet;
+begin
+  select * into t from public.mtcp_tables where id = p_table for update;
+  perform public.mtcp_tick(p_table);
+  select * into t from public.mtcp_tables where id = p_table;
+  select * into s from public.mtcp_seats where table_id = p_table and user_id = uid;
+  if t.phase = 'deciding' and found and cardinality(s.cards) = 3 and s.ante > 0 and s.decision is null then
+    if coalesce(p_play, false) then
+      w := public.casino_row();
+      if w.chips < s.ante then raise exception 'not enough chips'; end if;
+      update public.casino_wallet set chips = chips - s.ante, updated_at = now() where user_id = uid;
+    end if;
+    update public.mtcp_seats set decision = case when coalesce(p_play, false) then 'play' else 'fold' end, last_seen = now() where table_id = p_table and seat = s.seat;
+  end if;
+  return public.mtcp_view(p_table);
+end $$;
+
+-- no resetting to 1,000 while chips are out on a hand in any game, multiplayer tables included
+create or replace function public.casino_topup() returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row();
+begin
+  if w.chips < 1000
+    and not exists (select 1 from public.bj_table where user_id = w.user_id and phase = 'play')
+    and not exists (select 1 from public.mtcp_seats where user_id = w.user_id and (ante + pair > 0 or cardinality(cards) = 3))
+    and not exists (select 1 from public.casino_play where user_id = w.user_id and (
+      (game = 'bj2' and coalesce(state->>'phase', 'bet') <> 'bet') or (game in ('vp', 'tcp') and (state ? 'hand' or state ? 'player')) or (game = 'war' and state ? 'p')
+      or (game = 'craps' and coalesce(state->'bets', '{}') <> '{}'::jsonb)))
+  then
+    update public.casino_wallet set chips = 1000, updated_at = now() where user_id = w.user_id returning * into w;
+    perform public.casino_publish(w.user_id, w.chips, false);
+  end if;
+  return jsonb_build_object('chips', w.chips);
+end $$;
+
+revoke all on function public.mtcp_resolve(int[], int[], bigint, bigint, boolean), public.mtcp_tick(int), public.mtcp_view(int), public.mtcp_lobby(),
+  public.mtcp_sit(int, int), public.mtcp_leave(int), public.mtcp_bet(int, bigint, bigint), public.mtcp_decide(int, boolean), public.casino_topup() from public, anon, authenticated;
+grant execute on function public.mtcp_view(int), public.mtcp_lobby(), public.mtcp_sit(int, int), public.mtcp_leave(int), public.mtcp_bet(int, bigint, bigint),
+  public.mtcp_decide(int, boolean), public.casino_topup() to authenticated;
+grant execute on function public.mtcp_lobby(), public.mtcp_view(int) to anon;
