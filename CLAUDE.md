@@ -18,3 +18,10 @@
   user dislikes them. Use the line icons from `/icons.svg` instead
   (`<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#name"/></svg>`),
   or plain text. Playing-card suit symbols (♠♥♦♣) are fine.
+- Casino games (Gambling tab): every game page shares `/casino.js` and
+  `/casino.css` (sign-in panel, casino leaderboard, chip wallet, cards, dice,
+  chip rack). Pages import them as `?v=N`; bump N on every page when either
+  file changes so browsers pick it up. Each game's rules exist twice: in the
+  page (guests play in the browser) and in Supabase
+  (`migrations/casino-games-migration.sql`, for signed-in players). Change
+  both together and cross-check them with the same inputs.
