@@ -214,3 +214,89 @@ end $$;
 
 revoke all on function public.bac_val(int), public.bac_tot(int[]), public.bac_state(), public.bac_deal(jsonb) from public, anon, authenticated;
 grant execute on function public.bac_state(), public.bac_deal(jsonb) to authenticated;
+/* ======================= Three Card Poker ======================= */
+-- returns {cat, high, score}: cat 0 high card, 1 pair, 2 flush, 3 straight, 4 trips, 5 straight flush
+create or replace function public.tcp_eval(h int[]) returns jsonb language plpgsql immutable as $$
+declare v int[]; flush boolean; wheel boolean; straight boolean; t int[]; cat int;
+begin
+  select array_agg(case when x % 13 = 0 then 14 else x % 13 + 1 end order by case when x % 13 = 0 then 14 else x % 13 + 1 end desc) into v from unnest(h) x;
+  flush := h[1] / 13 = h[2] / 13 and h[2] / 13 = h[3] / 13;
+  wheel := v = array[14, 3, 2];
+  straight := (v[1] - v[2] = 1 and v[2] - v[3] = 1) or wheel;
+  if straight and flush then cat := 5; t := case when wheel then array[3, 2, 1] else v end;
+  elsif v[1] = v[3] then cat := 4; t := v;
+  elsif straight then cat := 3; t := case when wheel then array[3, 2, 1] else v end;
+  elsif flush then cat := 2; t := v;
+  elsif v[1] = v[2] or v[2] = v[3] then cat := 1; t := array[v[2], v[2], case when v[1] = v[2] then v[3] else v[1] end];
+  else cat := 0; t := v; end if;
+  return jsonb_build_object('cat', cat, 'high', t[1], 'score', ((cat * 15 + t[1]) * 15 + t[2]) * 15 + t[3]);
+end $$;
+
+-- settle the saved hand (play: true, false = fold, null = Pair Plus only), clear it, pay out
+create or replace function public.tcp_finish(s jsonb, p_play boolean) returns jsonb language plpgsql security definer set search_path = public as $$
+declare player int[]; dealer int[]; ante bigint := (s->>'ante')::bigint; pair bigint := (s->>'pair')::bigint; pe jsonb; de jsonb; q boolean;
+  payout bigint := 0; outcome text; bonus bigint := 0; pp bigint := 0; staked bigint; c bigint;
+begin
+  select array_agg(x::int order by o) into player from jsonb_array_elements_text(s->'player') with ordinality t(x, o);
+  select array_agg(x::int order by o) into dealer from jsonb_array_elements_text(s->'dealer') with ordinality t(x, o);
+  pe := public.tcp_eval(player); de := public.tcp_eval(dealer);
+  q := (de->>'cat')::int >= 1 or (de->>'high')::int >= 12;
+  if pair > 0 and (pe->>'cat')::int >= 1 then
+    pp := pair * (array[0, 1, 3, 6, 30, 40])[(pe->>'cat')::int + 1]; payout := payout + pair + pp;
+  end if;
+  if ante > 0 then
+    if not coalesce(p_play, false) then outcome := 'fold';
+    else
+      bonus := ante * (array[0, 0, 0, 1, 4, 5])[(pe->>'cat')::int + 1]; payout := payout + bonus;
+      if not q then outcome := 'noqual'; payout := payout + 3 * ante;
+      elsif (pe->>'score')::int > (de->>'score')::int then outcome := 'win'; payout := payout + 4 * ante;
+      elsif (pe->>'score')::int < (de->>'score')::int then outcome := 'lose';
+      else outcome := 'push'; payout := payout + 2 * ante; end if;
+    end if;
+  end if;
+  staked := ante + pair + case when coalesce(p_play, false) then ante else 0 end;
+  perform public.cz_save('tcp', '{}'::jsonb);
+  -- the Ante and Pair Plus were taken at the deal and the Play bet just now; pay what comes back
+  c := public.cz_settle(0, payout, true);
+  return jsonb_build_object('chips', c, 'phase', 'bet', 'player', s->'player', 'dealer', s->'dealer', 'ante', ante, 'pair', pair, 'played', coalesce(p_play, false),
+    'result', jsonb_build_object('outcome', outcome, 'qualifies', q, 'bonus', bonus, 'pairPay', pp,
+      'pcat', (pe->>'cat')::int, 'dcat', (de->>'cat')::int),
+    'payout', payout, 'staked', staked, 'net', payout - staked);
+end $$;
+
+create or replace function public.tcp_state() returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row(); s jsonb := public.cz_state('tcp');
+begin
+  perform public.casino_publish(w.user_id, w.chips, false);
+  if s ? 'player' then
+    return jsonb_build_object('chips', w.chips, 'phase', 'decide', 'player', s->'player', 'dealer', '[-1, -1, -1]'::jsonb, 'ante', (s->>'ante')::bigint, 'pair', (s->>'pair')::bigint);
+  end if;
+  return jsonb_build_object('chips', w.chips, 'phase', 'bet');
+end $$;
+
+create or replace function public.tcp_deal(p_ante bigint, p_pair bigint) returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row(); s jsonb := public.cz_state('tcp'); d int[]; c bigint;
+begin
+  if s ? 'player' then return public.tcp_state(); end if;
+  if p_ante is null or p_pair is null or p_ante < 0 or p_pair < 0 or p_ante + p_pair < 5 or p_ante + p_pair > w.chips then raise exception 'invalid bet'; end if;
+  d := public.cz_deck(1);
+  s := jsonb_build_object('player', to_jsonb(d[1:3]), 'dealer', to_jsonb(d[4:6]), 'ante', p_ante, 'pair', p_pair);
+  perform public.cz_save('tcp', s);
+  c := public.cz_settle(p_ante + p_pair, 0, false);
+  if p_ante = 0 then return public.tcp_finish(s, null); end if;
+  return jsonb_build_object('chips', c, 'phase', 'decide', 'player', s->'player', 'dealer', '[-1, -1, -1]'::jsonb, 'ante', p_ante, 'pair', p_pair);
+end $$;
+
+create or replace function public.tcp_decide(p_play boolean) returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row(); s jsonb := public.cz_state('tcp');
+begin
+  if not (s ? 'player') then return public.tcp_state(); end if;
+  if coalesce(p_play, false) then
+    if w.chips < (s->>'ante')::bigint then raise exception 'not enough chips'; end if;
+    update public.casino_wallet set chips = chips - (s->>'ante')::bigint, updated_at = now() where user_id = w.user_id;
+  end if;
+  return public.tcp_finish(s, coalesce(p_play, false));
+end $$;
+
+revoke all on function public.tcp_eval(int[]), public.tcp_finish(jsonb, boolean), public.tcp_state(), public.tcp_deal(bigint, bigint), public.tcp_decide(boolean) from public, anon, authenticated;
+grant execute on function public.tcp_state(), public.tcp_deal(bigint, bigint), public.tcp_decide(boolean) to authenticated;
