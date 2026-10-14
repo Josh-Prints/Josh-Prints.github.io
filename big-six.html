@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Big Six Wheel — Voxprints games</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@600;800&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="/looks.js"></script>
+<script src="/error-log.js"></script>
+<script src="/update-check.js" defer></script>
+<link rel="stylesheet" href="/casino.css?v=1">
+<style>
+  .table{ justify-content: flex-start; gap: 10px; max-width: 760px; }
+  .wheel-wrap{ margin-top: auto; display: grid; place-items: center; }
+  .b6{ width: min(78vw, 42vh, 380px); aspect-ratio: 1; position: relative; filter: drop-shadow(0 10px 22px rgba(0,0,0,.5)); }
+  .b6 svg{ width: 100%; height: 100%; display: block; overflow: visible; }
+  .b6-bets{ display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .b6-bets .spot{ min-height: 64px; font-size: 22px; font-family: 'Bodoni Moda', Georgia, serif; font-weight: 800; color: var(--ink); border-color: rgba(0,0,0,.25); }
+  .b6-bets .spot small{ font-family: 'Barlow Condensed', sans-serif; color: rgba(0,0,0,.65); opacity: 1; }
+  .b6-bets .spot.joker, .b6-bets .spot.logo{ color: #fff; font-size: 15px; font-family: 'Barlow Condensed', sans-serif; letter-spacing: .08em; }
+  .b6-bets .spot.joker small, .b6-bets .spot.logo small{ color: rgba(255,255,255,.75); }
+  .controls{ display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .foot-notes{ margin-bottom: auto; }
+  @media (max-width: 640px){ .b6-bets{ grid-template-columns: repeat(4, 1fr); } .b6-bets .spot{ min-height: 54px; font-size: 19px; } }
+</style>
+<link rel="stylesheet" href="/looks.css">
+</head>
+<body>
+  <div class="topbar">
+    <a href="/games.html#gambling" aria-label="Back to games">&larr;<span class="bk"> Games</span></a>
+    <span class="title">Big Six Wheel</span>
+    <button type="button" class="tbtn lb-toggle" id="lb-toggle">Rules &amp; scores</button>
+    <button type="button" class="tbtn" id="mute" aria-pressed="false">Sound on</button>
+  </div>
+  <div class="mobile-stats">
+    <div class="stat"><div class="label">Chips</div><div class="value" data-stat="chips">0</div></div>
+    <div class="stat"><div class="label">Time</div><div class="value" data-stat="time">0:00</div></div>
+  </div>
+  <div class="stage">
+    <div class="side left">
+      <div class="stat"><div class="label">Chips</div><div class="value" data-stat="chips">0</div></div>
+      <div class="stat"><div class="label">Time</div><div class="value" data-stat="time">0:00</div></div>
+    </div>
+    <div class="board felt" id="board">
+      <main class="table">
+        <div class="wheel-wrap"><div class="b6" id="wheel"></div></div>
+        <div id="msg" class="cz-msg" role="status" aria-live="polite"></div>
+        <div class="b6-bets" id="bets"></div>
+        <div class="controls">
+          <div id="rack"></div>
+          <div class="btn-row">
+            <button class="btn" id="undo">Undo</button>
+            <button class="btn" id="clear">Clear</button>
+            <span class="betamt" id="betamt"></span>
+            <button class="btn" id="rebet">Rebet</button>
+            <button class="btn main" id="spin">Spin</button>
+          </div>
+          <button class="btn main" id="rebuy" hidden>Reset to 1,000 chips</button>
+        </div>
+        <div class="foot-notes">
+          <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
+          <div class="ver">Version 2026-10-14a</div>
+        </div>
+      </main>
+    </div>
+    <div class="side right" id="side-right">
+      <div class="panel" id="account"><p>Loading…</p></div>
+      <div class="panel">
+        <h3>How to play</h3>
+        <ul class="rules">
+          <li>Bet on the symbol you think the wheel will stop on, then spin. The leather pointer at the top picks the winner.</li>
+          <li>Each symbol pays what it says: 1 pays 1 to 1, 2 pays 2 to 1, and so on up to 20. The Joker and the Vox logo pay 40 to 1.</li>
+          <li>The wheel has 54 slots: 24 ones, 15 twos, 7 fives, 4 tens, 2 twenties, 1 Joker and 1 logo, the same as a Vegas Big Six.</li>
+          <li>It's one of the worst bets in the casino: the 1 is the best bet and still loses 11% over time.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Casino leaderboard</h3>
+        <p>Your chips are shared by every casino game.</p>
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab on" data-kind="score">Chips</button>
+          <button type="button" class="tab" data-kind="time">Time played</button>
+        </div>
+        <ol class="lb" id="lb"><li class="lb-empty">Loading…</li></ol>
+      </div>
+    </div>
+  </div>
+
+<script type="module">
+/* Big Six (the money wheel): 54 slots with the classic Vegas mix. The server's bigsix_spin() picks the slot
+   and pays the same way for signed-in players. */
+import { $, sleep, reduced, fmt, rand, bank, showChips, msg, sfx, casino, startShell, signedIn, chipRack, betBoard } from '/casino.js?v=1';
+
+const WHEEL = 'J21512X121152T121152X112115L21211X521211T25121X1251211', N = 54;   // X = 10, T = 20, J = Joker, L = logo
+const SYMS = { '1': { pay: 1, label: '1', col: '#efe8cf' }, '2': { pay: 2, label: '2', col: '#cfe6bf' }, '5': { pay: 5, label: '5', col: '#bcd9ee' },
+  'X': { pay: 10, label: '10', col: '#f2d29e' }, 'T': { pay: 20, label: '20', col: '#f0bccb' }, 'J': { pay: 40, label: 'JOKER', col: '#b3262e' }, 'L': { pay: 40, label: 'VOX', col: '#1f8a5f' } };
+const ORDER = ['1', '2', '5', 'X', 'T', 'J', 'L'];
+
+const local = {
+  async state(){ return { chips: bank.get() }; },
+  async spin(bets){
+    let chips = bank.get(); const staked = bets.reduce((s, b) => s + b.a, 0);
+    if (staked < 1 || staked > chips) throw new Error('invalid bet');
+    const index = rand(N), sym = WHEEL[index], payout = bets.reduce((s, b) => s + (b.k === sym ? b.a * (SYMS[sym].pay + 1) : 0), 0);
+    chips += payout - staked; bank.set(chips);
+    return { chips, index, sym, payout, staked, net: payout - staked };
+  },
+  async topup(){ return { chips: bank.topup() }; },
+};
+const remote = {
+  state: () => casino.rpc('casino_state'),
+  spin: bets => casino.rpc('bigsix_spin', { p_bets: bets }),
+  topup: () => casino.rpc('casino_topup'),
+};
+const engine = () => signedIn() ? remote : local;
+
+/* ---------- the wheel ---------- */
+const SEG = 360 / N;
+(function build(){
+  const pt = (r, deg) => [r * Math.sin(deg * Math.PI / 180), -r * Math.cos(deg * Math.PI / 180)];
+  let segs = '', pegs = '';
+  for (let i = 0; i < N; i++){
+    const s = SYMS[WHEEL[i]], a0 = i * SEG - SEG / 2, a1 = a0 + SEG, [x0, y0] = pt(94, a0), [x1, y1] = pt(94, a1), [x2, y2] = pt(40, a1), [x3, y3] = pt(40, a0);
+    const dark = WHEEL[i] === 'J' || WHEEL[i] === 'L';
+    segs += '<path d="M' + x0.toFixed(2) + ' ' + y0.toFixed(2) + 'A94 94 0 0 1 ' + x1.toFixed(2) + ' ' + y1.toFixed(2) + 'L' + x2.toFixed(2) + ' ' + y2.toFixed(2) + 'A40 40 0 0 0 ' + x3.toFixed(2) + ' ' + y3.toFixed(2) + 'Z" fill="' + s.col + '" stroke="#5a3518" stroke-width=".6"/>';
+    const fs = s.label.length > 2 ? 5.2 : 9;
+    segs += '<text transform="rotate(' + (i * SEG).toFixed(3) + ') translate(0 -78)' + (s.label.length > 2 ? ' rotate(-90)' : '') + '" font-size="' + fs + '" fill="' + (dark ? '#fff' : '#1b1b1b') + '">' + s.label + '</text>';
+    const [px, py] = pt(97, a0); pegs += '<circle cx="' + px.toFixed(2) + '" cy="' + py.toFixed(2) + '" r="1.5" fill="#e8d08f"/>';
+  }
+  $('wheel').innerHTML = '<svg viewBox="-104 -112 208 216" role="img" aria-label="Big Six wheel">' +
+    '<circle r="103" fill="#3b2210"/><circle r="99" fill="#7a4a22" stroke="#c9a24b" stroke-width="1.5"/>' +
+    '<g id="rot"><g font-family="Bodoni Moda, Georgia, serif" font-weight="800" text-anchor="middle" dominant-baseline="central">' + segs + '</g>' + pegs +
+    '<circle r="40" fill="#2a1a0c" stroke="#c9a24b" stroke-width="1.5"/><circle r="30" fill="#0f5a46"/><text y="1" font-family="Bodoni Moda, Georgia, serif" font-weight="800" font-size="13" fill="#e8d08f" text-anchor="middle" dominant-baseline="central">BIG SIX</text></g>' +
+    '<g id="clapper"><path d="M-6 -111 L6 -111 L2 -88 L-2 -88 Z" fill="#6b3a1a" stroke="#2a1a0c" stroke-width="1"/><circle cy="-109" r="4" fill="#c9a24b"/></g></svg>';
+})();
+const rot = $('rot'), clapper = $('clapper');
+let angle = 0;
+function setAngle(a){ angle = a; rot.setAttribute('transform', 'rotate(' + (a % 360).toFixed(2) + ')'); }
+// the wheel turns until slot `index` sits under the pointer at the top
+function spinTo(index){
+  return new Promise(done => {
+    const T = reduced ? 900 : 5600, a0 = angle, base = -index * SEG + (Math.random() - 0.5) * SEG * 0.7;
+    let a1 = base; while (a1 < a0 + (reduced ? 360 : 360 * 3)) a1 += 360;
+    const t0 = performance.now(); let lastPeg = Math.floor((a0 + SEG / 2) / SEG);
+    (function frame(now){
+      const u = Math.min(1, (now - t0) / T), e = 1 - Math.pow(1 - u, 3.2);
+      setAngle(a0 + (a1 - a0) * e);
+      const peg = Math.floor((angle + SEG / 2) / SEG);
+      if (peg !== lastPeg){ lastPeg = peg; sfx.tick(0.6 * (1 - u) + 0.2); clapper.setAttribute('transform', 'rotate(' + (-14 * (1 - u * 0.6)).toFixed(1) + ' 0 -109)'); setTimeout(() => clapper.removeAttribute('transform'), 50); }
+      if (u < 1) requestAnimationFrame(frame); else done();
+    })(t0);
+  });
+}
+
+/* ---------- bets ---------- */
+$('bets').innerHTML = ORDER.map(k => { const s = SYMS[k], cls = k === 'J' ? 'joker' : k === 'L' ? 'logo' : ''; return '<button type="button" class="spot ' + cls + '" data-k="' + k + '" style="background:' + s.col + '">' + s.label + '<small>' + s.pay + ' to 1</small></button>'; }).join('');
+let chips = 0, busy = false;
+const spots = {}; document.querySelectorAll('#bets .spot').forEach(b => spots[b.dataset.k] = b);
+const rack = chipRack($('rack'), { onPick: () => ui() });
+const board = betBoard({ spots, rack, free: () => chips, onChange: () => ui() });
+function ui(){
+  const st = board.total;
+  $('betamt').textContent = st ? 'Bet ' + fmt(st) : 'No bet';
+  $('spin').disabled = busy || st < 1 || st > chips;
+  $('undo').disabled = $('clear').disabled = busy || !st;
+  $('rebet').disabled = busy || !board.canRebet();
+  rack.refresh(chips - st, busy);
+  $('rebuy').hidden = busy || st > 0 || chips >= 1000;
+  if (!busy) showChips(chips - st);
+}
+async function spin(){
+  if (busy) return;
+  const bets = board.list(), st = bets.reduce((s, b) => s + b.a, 0);
+  if (!st || st > chips) return;
+  busy = true; board.lock(true); casino.markInput(); sfx.unlock(); ui(); showChips(chips - st);
+  msg('Round and round', '');
+  let res;
+  try { res = await engine().spin(bets); }
+  catch (e) { msg('Something went wrong', 'Your chips weren’t touched. Try again', 'lose'); busy = false; board.lock(false); ui(); return; }
+  await spinTo(res.index);
+  const s = SYMS[res.sym]; chips = res.chips;
+  board.settle(bets.filter(b => b.k === res.sym).map(b => b.k));
+  const name = res.sym === 'J' ? 'Joker' : res.sym === 'L' ? 'The Vox logo' : s.label;
+  if (res.net > 0){ msg(name + '!', 'You won ' + fmt(res.net), 'win'); sfx.win(); sfx.coins(6); }
+  else if (res.payout > 0){ msg(name, 'Paid ' + fmt(res.payout) + ', down ' + fmt(-res.net), 'push'); }
+  else { msg(name, 'You lost ' + fmt(res.staked), 'lose'); sfx.lose(); }
+  busy = false; board.lock(false); showChips(chips, true); ui();
+}
+$('spin').onclick = spin;
+$('undo').onclick = () => board.undo();
+$('clear').onclick = () => board.clear();
+$('rebet').onclick = () => board.rebet();
+$('rebuy').onclick = async () => { if (busy) return; busy = true; ui(); try { chips = (await engine().topup()).chips; msg('Chips reset to 1,000', 'Good luck'); } catch (e) {} busy = false; ui(); };
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || /INPUT|TEXTAREA|BUTTON/.test(document.activeElement.tagName)) return;
+  if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); spin(); }
+});
+async function load(){
+  busy = true; ui();
+  try { chips = (await engine().state()).chips; msg('Place your bets', 'Then spin the wheel'); }
+  catch (e) { msg('Couldn’t reach the wheel', 'Refresh to try again', 'lose'); }
+  busy = false; ui();
+}
+setAngle(-rand(N) * SEG);
+startShell();
+casino.onUser(load);
+ui();
+</script>
+</body>
+</html>

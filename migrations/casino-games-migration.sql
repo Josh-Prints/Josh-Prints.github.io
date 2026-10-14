@@ -429,3 +429,146 @@ end $$;
 
 revoke all on function public.craps_resolve(int, jsonb, int, int), public.craps_state(), public.craps_roll(jsonb), public.craps_takedown() from public, anon, authenticated;
 grant execute on function public.craps_state(), public.craps_roll(jsonb), public.craps_takedown() to authenticated;
+/* ======================= Sic Bo ======================= */
+create or replace function public.sicbo_back(k text, a bigint, d int[]) returns bigint language plpgsql immutable as $$
+declare s int := d[1] + d[2] + d[3]; triple boolean := d[1] = d[2] and d[2] = d[3]; n int; c int;
+begin
+  if k = 'small' then return case when s between 4 and 10 and not triple then 2 * a else 0 end; end if;
+  if k = 'big' then return case when s between 11 and 17 and not triple then 2 * a else 0 end; end if;
+  if k = 'anyt' then return case when triple then 31 * a else 0 end; end if;
+  if k ~ '^c[1-6][1-6]$' then
+    return case when substr(k, 2, 1)::int = any(d) and substr(k, 3, 1)::int = any(d) then 6 * a else 0 end;
+  end if;
+  n := substr(k, 2)::int;
+  select count(*) into c from unnest(d) x where x = n;
+  return case left(k, 1)
+    when 't' then case when triple and d[1] = n then 181 * a else 0 end
+    when 'd' then case when c >= 2 then 11 * a else 0 end
+    when 's' then case when s = n then a * (1 + (array[60, 30, 17, 12, 8, 6, 6, 6, 6, 8, 12, 17, 30, 60])[n - 3]) else 0 end
+    when 'n' then case when c > 0 then a * (1 + c) else 0 end
+    else 0 end;
+end $$;
+
+create or replace function public.sicbo_roll(p_bets jsonb) returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row(); b jsonb; k text; a bigint; staked bigint := 0; pay bigint := 0; d int[]; c bigint;
+begin
+  if jsonb_typeof(p_bets) <> 'array' or jsonb_array_length(p_bets) = 0 or jsonb_array_length(p_bets) > 60 then raise exception 'invalid bets'; end if;
+  for b in select * from jsonb_array_elements(p_bets) loop
+    k := b->>'k'; a := (b->>'a')::bigint;
+    if a is null or a < 1 or not (k ~ '^(small|big|anyt|[tdn][1-6]|s([4-9]|1[0-7])|c(12|13|14|15|16|23|24|25|26|34|35|36|45|46|56))$') then raise exception 'invalid bet'; end if;
+    staked := staked + a;
+  end loop;
+  if staked > w.chips then raise exception 'not enough chips'; end if;
+  d := array[1 + public.cz_rand(6), 1 + public.cz_rand(6), 1 + public.cz_rand(6)];
+  for b in select * from jsonb_array_elements(p_bets) loop pay := pay + public.sicbo_back(b->>'k', (b->>'a')::bigint, d); end loop;
+  c := public.cz_settle(staked, pay);
+  return jsonb_build_object('chips', c, 'dice', to_jsonb(d), 'payout', pay, 'staked', staked, 'net', pay - staked);
+end $$;
+
+/* ======================= Keno ======================= */
+create or replace function public.keno_pay(spots int, hits int) returns int language sql immutable as $$
+  select coalesce((('{"1":{"1":3},"2":{"2":15},"3":{"2":2,"3":46},"4":{"2":1,"3":5,"4":160},"5":{"3":3,"4":12,"5":810},"6":{"3":1,"4":7,"5":110,"6":1800},'
+    || '"7":{"3":1,"4":2,"5":21,"6":400,"7":7000},"8":{"4":2,"5":12,"6":98,"7":1652,"8":10000},"9":{"4":1,"5":6,"6":44,"7":335,"8":4700,"9":10000},'
+    || '"10":{"5":5,"6":22,"7":142,"8":1000,"9":4500,"10":10000}}')::jsonb -> spots::text ->> hits::text)::int, 0)
+$$;
+
+create or replace function public.keno_draw(p_picks int[], p_bet bigint) returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row(); drawn int[]; hits int; n int; pay bigint; c bigint;
+begin
+  n := coalesce(array_length(p_picks, 1), 0);
+  if n < 1 or n > 10 or (select count(distinct x) from unnest(p_picks) x where x between 1 and 80) <> n then raise exception 'invalid picks'; end if;
+  if p_bet is null or p_bet not in (1, 2, 5, 10, 25, 50, 100, 250, 500) or p_bet > w.chips then raise exception 'invalid bet'; end if;
+  select (array_agg(x order by random()))[1:20] into drawn from generate_series(1, 80) x;
+  select count(*) into hits from unnest(p_picks) x where x = any(drawn);
+  pay := public.keno_pay(n, hits)::bigint * p_bet;
+  c := public.cz_settle(p_bet, pay);
+  return jsonb_build_object('chips', c, 'drawn', to_jsonb(drawn), 'hits', hits, 'payout', pay, 'staked', p_bet, 'net', pay - p_bet);
+end $$;
+
+/* ======================= Big Six ======================= */
+create or replace function public.bigsix_spin(p_bets jsonb) returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row(); wheel text := 'J21512X121152T121152X112115L21211X521211T25121X1251211';
+  b jsonb; k text; a bigint; staked bigint := 0; pay bigint := 0; i int; sym text; m int; c bigint;
+begin
+  if jsonb_typeof(p_bets) <> 'array' or jsonb_array_length(p_bets) = 0 or jsonb_array_length(p_bets) > 7 then raise exception 'invalid bets'; end if;
+  for b in select * from jsonb_array_elements(p_bets) loop
+    k := b->>'k'; a := (b->>'a')::bigint;
+    if a is null or a < 1 or k not in ('1', '2', '5', 'X', 'T', 'J', 'L') then raise exception 'invalid bet'; end if;
+    staked := staked + a;
+  end loop;
+  if staked > w.chips then raise exception 'not enough chips'; end if;
+  i := public.cz_rand(54); sym := substr(wheel, i + 1, 1);
+  m := case sym when '1' then 1 when '2' then 2 when '5' then 5 when 'X' then 10 when 'T' then 20 else 40 end;
+  for b in select * from jsonb_array_elements(p_bets) loop
+    if b->>'k' = sym then pay := pay + (b->>'a')::bigint * (m + 1); end if;
+  end loop;
+  c := public.cz_settle(staked, pay);
+  return jsonb_build_object('chips', c, 'index', i, 'sym', sym, 'payout', pay, 'staked', staked, 'net', pay - staked);
+end $$;
+
+/* ======================= Casino War ======================= */
+create or replace function public.war_rank(c int) returns int language sql immutable as $$ select case when c % 13 = 0 then 14 else c % 13 + 1 end $$;
+
+-- settle a saved hand: war null (no tie), true (went to war), false (surrendered). Returns {pay, outcome}
+create or replace function public.war_settle(g jsonb, p_war boolean) returns jsonb language plpgsql immutable as $$
+declare a bigint := (g->>'bet')::bigint; t bigint := (g->>'tie')::bigint; p int := public.war_rank((g->>'p')::int); d int := public.war_rank((g->>'d')::int);
+  pay bigint := 0; outcome text; p2 int; d2 int;
+begin
+  if p = d and t > 0 then pay := 11 * t; end if;
+  if p > d then outcome := 'win'; pay := pay + 2 * a;
+  elsif p < d then outcome := 'lose';
+  elsif p_war = false then outcome := 'surrender'; pay := pay + a / 2;
+  else
+    p2 := public.war_rank((g->>'p2')::int); d2 := public.war_rank((g->>'d2')::int);
+    if p2 > d2 then outcome := 'warwin'; pay := pay + 3 * a;
+    elsif p2 = d2 then outcome := 'wartie'; pay := pay + 4 * a;
+    else outcome := 'warlose'; end if;
+  end if;
+  return jsonb_build_object('pay', pay, 'outcome', outcome);
+end $$;
+
+create or replace function public.war_state() returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row(); s jsonb := public.cz_state('war');
+begin
+  perform public.casino_publish(w.user_id, w.chips, false);
+  if s ? 'p' then return jsonb_build_object('chips', w.chips, 'phase', 'tie', 'p', s->'p', 'd', s->'d', 'bet', s->'bet', 'tie', s->'tie'); end if;
+  return jsonb_build_object('chips', w.chips, 'phase', 'bet');
+end $$;
+
+create or replace function public.war_deal(p_bet bigint, p_tie bigint) returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row(); s jsonb := public.cz_state('war'); dk int[]; g jsonb; r jsonb; c bigint; tie_pay bigint;
+begin
+  if s ? 'p' then return public.war_state(); end if;
+  if p_bet is null or p_tie is null or p_bet < 5 or p_tie < 0 or p_bet + p_tie > w.chips then raise exception 'invalid bet'; end if;
+  dk := public.cz_deck(6);
+  g := jsonb_build_object('p', dk[1], 'd', dk[2], 'bet', p_bet, 'tie', p_tie, 'burn', to_jsonb(dk[3:5]), 'p2', dk[6], 'd2', dk[7]);
+  if public.war_rank(dk[1]) <> public.war_rank(dk[2]) then
+    r := public.war_settle(g, null);
+    c := public.cz_settle(p_bet + p_tie, (r->>'pay')::bigint);
+    return jsonb_build_object('chips', c, 'phase', 'bet', 'p', dk[1], 'd', dk[2], 'bet', p_bet, 'tie', p_tie, 'outcome', r->>'outcome', 'pay', (r->>'pay')::bigint,
+      'staked', p_bet + p_tie, 'net', (r->>'pay')::bigint - p_bet - p_tie);
+  end if;
+  -- a tie: pay the Tie bet now, keep the hand for the war-or-surrender choice
+  tie_pay := case when p_tie > 0 then 11 * p_tie else 0 end;
+  perform public.cz_save('war', g || jsonb_build_object('tiePaid', tie_pay));
+  c := public.cz_settle(p_bet + p_tie, tie_pay, false);
+  return jsonb_build_object('chips', c, 'phase', 'tie', 'p', dk[1], 'd', dk[2], 'bet', p_bet, 'tie', p_tie, 'tiePay', tie_pay);
+end $$;
+
+create or replace function public.war_decide(p_war boolean) returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row(); g jsonb := public.cz_state('war'); r jsonb; a bigint; staked bigint; c bigint; go boolean := coalesce(p_war, false);
+begin
+  if not (g ? 'p') then return public.war_state(); end if;
+  a := (g->>'bet')::bigint;
+  if go and w.chips < a then raise exception 'not enough chips'; end if;
+  r := public.war_settle(g, go);
+  staked := a + (g->>'tie')::bigint + case when go then a else 0 end;
+  perform public.cz_save('war', '{}'::jsonb);
+  c := public.cz_settle(case when go then a else 0 end, (r->>'pay')::bigint - (g->>'tiePaid')::bigint, true);
+  return jsonb_build_object('chips', c, 'phase', 'bet', 'p', g->'p', 'd', g->'d', 'bet', a, 'tie', g->'tie', 'outcome', r->>'outcome', 'pay', (r->>'pay')::bigint,
+    'p2', case when go then g->'p2' end, 'd2', case when go then g->'d2' end, 'burn', case when go then g->'burn' end, 'staked', staked, 'net', (r->>'pay')::bigint - staked);
+end $$;
+
+revoke all on function public.sicbo_back(text, bigint, int[]), public.sicbo_roll(jsonb), public.keno_pay(int, int), public.keno_draw(int[], bigint), public.bigsix_spin(jsonb),
+  public.war_rank(int), public.war_settle(jsonb, boolean), public.war_state(), public.war_deal(bigint, bigint), public.war_decide(boolean) from public, anon, authenticated;
+grant execute on function public.sicbo_roll(jsonb), public.keno_draw(int[], bigint), public.bigsix_spin(jsonb), public.war_state(), public.war_deal(bigint, bigint), public.war_decide(boolean) to authenticated;

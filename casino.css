@@ -127,7 +127,7 @@ body{
 
 /* dice */
 .die{ --ds: 46px; width: var(--ds); height: var(--ds); border-radius: 18%; background: linear-gradient(145deg, #fff, #e9e2d2); box-shadow: inset 0 -3px 0 rgba(0,0,0,.12), 0 6px 12px rgba(0,0,0,.4);
-  display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); padding: 14%; flex: none; }
+  display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); padding: calc(var(--ds) * .14); flex: none; }
 .die.red{ background: linear-gradient(145deg, #d8313a, #9f1f27); }
 .die i{ width: 70%; height: 70%; place-self: center; border-radius: 50%; background: #1b1b1b; visibility: hidden; }
 .die.red i{ background: #fff; }
