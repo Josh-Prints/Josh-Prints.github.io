@@ -51,6 +51,24 @@
   .game-art.bj-art svg{ width: 70%; height: auto; opacity: 1; }
   .gamble-note{ font-size: 13px; color: var(--fg-muted); margin: -6px 0 16px; }
   .gamble-note[hidden]{ display: none; }
+  .rl-art svg{ width: 80% !important; }
+  .casino{ margin-top: 26px; background: var(--canvas-inset); border: 1px solid var(--border-muted); border-radius: 14px; padding: 20px 22px; }
+  .casino[hidden]{ display: none; }
+  .casino-head{ display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+  .casino h2{ font-size: 19px; margin: 0; }
+  .casino-sub{ margin: 2px 0 0; font-size: 13.5px; color: var(--fg-muted); }
+  .casino-sub b{ color: var(--fg); }
+  .ctabs{ display: flex; gap: 6px; }
+  .ctab{ font: inherit; font-size: 13px; font-weight: 700; padding: 6px 14px; border-radius: 999px; cursor: pointer; background: var(--canvas); color: var(--fg-muted); border: 1px solid var(--border); }
+  .ctab[aria-selected="true"]{ background: #1f8a5f; color: #fff; border-color: transparent; }
+  .clb{ list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 18px; }
+  .clb li{ display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: center; font-size: 14px; padding: 7px 10px; border-radius: 8px; margin-bottom: 4px; break-inside: avoid; }
+  .clb li.me{ background: color-mix(in srgb, #1f8a5f 20%, transparent); font-weight: 700; }
+  .clb .rk{ color: var(--fg-muted); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .clb .nm{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .clb .vl{ font-weight: 700; font-variant-numeric: tabular-nums; }
+  .clb li.clb-empty{ display: block; column-span: all; color: var(--fg-muted); padding: 6px 2px; }
+  @media (max-width: 620px){ .clb{ columns: 1; } .casino{ padding: 16px; } }
   .card.game{
     background: var(--canvas-inset); border: 1px solid var(--border-muted); border-radius: 14px;
     padding: 22px; min-height: 220px; display: flex; flex-direction: column; justify-content: flex-end;
@@ -155,12 +173,25 @@
         <h2>Blackjack</h2>
         <p>Beat the dealer to 21 with play chips. Play now &rarr;</p>
       </a>
-      <div class="card game" style="--d:0.06s">
-        <div class="game-art"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg></div>
-        <h2>More soon</h2>
-        <p>Coming soon</p>
-      </div>
+      <a class="card game play" href="/roulette.html" style="--d:0.06s">
+        <div class="game-art bj-art rl-art"><svg viewBox="0 0 120 80" aria-hidden="true"><g transform="translate(60 40)"><circle r="34" fill="#5a3518"/><circle r="30" fill="#2a1a0c" stroke="#c9a24b" stroke-width="1"/><g transform="rotate(-20)"><path d="M-2.5 -28.9L2.5 -28.9L1.5 -17.9L-1.5 -17.9Z" fill="#0f7a4d"/><path d="M2.5 -28.9L7.3 -28.1L4.5 -17.4L1.5 -17.9Z" fill="#b3262e"/><path d="M7.3 -28.1L11.9 -26.4L7.4 -16.4L4.5 -17.4Z" fill="#161616"/><path d="M11.9 -26.4L16.2 -24.0L10.1 -14.9L7.4 -16.4Z" fill="#b3262e"/><path d="M16.2 -24.0L20.1 -20.9L12.5 -13.0L10.1 -14.9Z" fill="#161616"/><path d="M20.1 -20.9L23.3 -17.2L14.5 -10.7L12.5 -13.0Z" fill="#b3262e"/><path d="M23.3 -17.2L25.9 -13.1L16.1 -8.1L14.5 -10.7Z" fill="#161616"/><path d="M25.9 -13.1L27.7 -8.5L17.2 -5.3L16.1 -8.1Z" fill="#b3262e"/><path d="M27.7 -8.5L28.8 -3.7L17.9 -2.3L17.2 -5.3Z" fill="#161616"/><path d="M28.8 -3.7L29.0 1.2L18.0 0.8L17.9 -2.3Z" fill="#b3262e"/><path d="M29.0 1.2L28.3 6.1L17.6 3.8L18.0 0.8Z" fill="#161616"/><path d="M28.3 6.1L26.9 10.8L16.7 6.7L17.6 3.8Z" fill="#b3262e"/><path d="M26.9 10.8L24.7 15.2L15.3 9.4L16.7 6.7Z" fill="#161616"/><path d="M24.7 15.2L21.8 19.2L13.5 11.9L15.3 9.4Z" fill="#b3262e"/><path d="M21.8 19.2L18.2 22.6L11.3 14.0L13.5 11.9Z" fill="#161616"/><path d="M18.2 22.6L14.1 25.3L8.8 15.7L11.3 14.0Z" fill="#b3262e"/><path d="M14.1 25.3L9.7 27.3L6.0 17.0L8.8 15.7Z" fill="#161616"/><path d="M9.7 27.3L4.9 28.6L3.0 17.7L6.0 17.0Z" fill="#b3262e"/><path d="M4.9 28.6L0.0 29.0L0.0 18.0L3.0 17.7Z" fill="#161616"/><path d="M0.0 29.0L-4.9 28.6L-3.0 17.7L0.0 18.0Z" fill="#b3262e"/><path d="M-4.9 28.6L-9.7 27.3L-6.0 17.0L-3.0 17.7Z" fill="#161616"/><path d="M-9.7 27.3L-14.1 25.3L-8.8 15.7L-6.0 17.0Z" fill="#b3262e"/><path d="M-14.1 25.3L-18.2 22.6L-11.3 14.0L-8.8 15.7Z" fill="#161616"/><path d="M-18.2 22.6L-21.8 19.2L-13.5 11.9L-11.3 14.0Z" fill="#b3262e"/><path d="M-21.8 19.2L-24.7 15.2L-15.3 9.4L-13.5 11.9Z" fill="#161616"/><path d="M-24.7 15.2L-26.9 10.8L-16.7 6.7L-15.3 9.4Z" fill="#b3262e"/><path d="M-26.9 10.8L-28.3 6.1L-17.6 3.8L-16.7 6.7Z" fill="#161616"/><path d="M-28.3 6.1L-29.0 1.2L-18.0 0.8L-17.6 3.8Z" fill="#b3262e"/><path d="M-29.0 1.2L-28.8 -3.7L-17.9 -2.3L-18.0 0.8Z" fill="#161616"/><path d="M-28.8 -3.7L-27.7 -8.5L-17.2 -5.3L-17.9 -2.3Z" fill="#b3262e"/><path d="M-27.7 -8.5L-25.9 -13.1L-16.1 -8.1L-17.2 -5.3Z" fill="#161616"/><path d="M-25.9 -13.1L-23.3 -17.2L-14.5 -10.7L-16.1 -8.1Z" fill="#b3262e"/><path d="M-23.3 -17.2L-20.1 -20.9L-12.5 -13.0L-14.5 -10.7Z" fill="#161616"/><path d="M-20.1 -20.9L-16.2 -24.0L-10.1 -14.9L-12.5 -13.0Z" fill="#b3262e"/><path d="M-16.2 -24.0L-11.9 -26.4L-7.4 -16.4L-10.1 -14.9Z" fill="#161616"/><path d="M-11.9 -26.4L-7.3 -28.1L-4.5 -17.4L-7.4 -16.4Z" fill="#b3262e"/><path d="M-7.3 -28.1L-2.5 -28.9L-1.5 -17.9L-4.5 -17.4Z" fill="#161616"/></g><circle r="17" fill="#8a6a2e"/><g stroke="#e8d08f" stroke-width="2" stroke-linecap="round"><line x1="-6" x2="6"/><line y1="-6" y2="6"/></g><circle cx="9" cy="-24" r="2.6" fill="#fff"/></g></svg></div>
+        <h2>Roulette</h2>
+        <p>Pick your numbers and watch the ball drop. Play now &rarr;</p>
+      </a>
     </div>
+    <section class="casino" id="casino" hidden>
+      <div class="casino-head">
+        <div>
+          <h2>Casino leaderboard</h2>
+          <p class="casino-sub">One pile of chips for every casino game. <span id="casino-me"></span></p>
+        </div>
+        <div class="ctabs" role="tablist">
+          <button type="button" class="ctab" aria-selected="true" data-kind="score">Chips</button>
+          <button type="button" class="ctab" aria-selected="false" data-kind="time">Time played</button>
+        </div>
+      </div>
+      <ol class="clb" id="clb"><li class="clb-empty">Loading…</li></ol>
+    </section>
     <div class="foot"><a href="/">Back to home</a><a href="/terms.html">Terms</a><a href="/privacy.html">Privacy</a></div>
   </main>
 <script>
@@ -172,10 +203,50 @@
     document.getElementById('tab-games').hidden = name !== 'games';
     document.getElementById('tab-gambling').hidden = name !== 'gambling';
     document.getElementById('gamble-note').hidden = name !== 'gambling';
+    document.getElementById('casino').hidden = name !== 'gambling';
+    if (name === 'gambling' && window.loadCasinoBoard) window.loadCasinoBoard();
   }
   tabs.forEach(function(t){ t.addEventListener('click', function(){ pick(t.dataset.gtab); history.replaceState(null, '', t.dataset.gtab === 'gambling' ? '#gambling' : location.pathname); }); });
   pick(location.hash === '#gambling' ? 'gambling' : 'games');
 })();
+</script>
+<script type="module">
+/* the casino leaderboard (shared chips across blackjack and roulette) */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = s => { s = Math.round(Number(s) || 0); const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60; return h ? h + 'h ' + m + 'm' : m ? m + 'm ' + (s % 60) + 's' : s + 's'; };
+let sb = null, kind = 'score', ready = null, loaded = false;
+function client(){
+  if (!ready) ready = import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm')
+    .then(({ createClient }) => { sb = createClient('https://paycasfatsakidsriwqt.supabase.co', 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv'); return sb; })
+    .catch(() => null);
+  return ready;
+}
+async function board(){
+  const el = document.getElementById('clb');
+  if (!(await client())){ el.innerHTML = '<li class="clb-empty">Leaderboard unavailable right now.</li>'; return; }
+  const { data, error } = await sb.rpc('game_leaderboard', { p_game: 'casino', p_kind: kind, p_limit: 20 });
+  if (error){ el.innerHTML = '<li class="clb-empty">Couldn’t load the leaderboard.</li>'; return; }
+  el.innerHTML = (data || []).length
+    ? data.map(r => '<li class="' + (r.me ? 'me' : '') + '"><span class="rk">' + r.rank + '</span><span class="nm">' + esc(r.name) + '</span><span class="vl">' + (kind === 'time' ? fmt(r.value) : Number(r.value).toLocaleString()) + '</span></li>').join('')
+    : '<li class="clb-empty">No one yet. Be the first!</li>';
+}
+async function me(){
+  const box = document.getElementById('casino-me');
+  const { data: s } = sb ? await sb.auth.getSession() : { data: null };
+  if (s && s.session){
+    const { data } = await sb.rpc('game_my_stats', { p_game: 'casino' });
+    if (data) box.innerHTML = 'You have <b>' + Number(data.best_score || 0).toLocaleString() + '</b> chips' + (data.score_rank ? ' (#' + data.score_rank + ')' : '') + '.';
+  } else {
+    let c = 1000; try { const v = localStorage.getItem('casino-bank') ?? localStorage.getItem('bj-bank'); if (v !== null && isFinite(+v)) c = +v; } catch (e) {}
+    box.innerHTML = 'You have <b>' + c.toLocaleString() + '</b> chips on this device. Sign in at a table to get on the board.';
+  }
+}
+window.loadCasinoBoard = async () => { await board(); if (!loaded){ loaded = true; me(); } };
+document.querySelectorAll('.ctab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.ctab').forEach(x => x.setAttribute('aria-selected', String(x === t)));
+  kind = t.dataset.kind; board();
+}));
+if (!document.getElementById('casino').hidden) window.loadCasinoBoard();
 </script>
 </body>
 </html>
