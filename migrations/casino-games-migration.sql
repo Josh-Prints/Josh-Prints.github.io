@@ -1444,3 +1444,50 @@ grant execute on function public.casino_me(), public.casino_borrow(), public.cas
 -- chips to 1,000 without the once-a-minute limit
 revoke all on function public.bj_deal(bigint), public.bj_double(), public.bj_hit(), public.bj_new_shoe(), public.bj_stand(), public.bj_state(), public.bj_topup()
   from public, anon, authenticated;
+
+
+-- A live Three Card Poker table only moves on when someone looks at it, so a player who left during the
+-- showdown stayed "mid-hand" for good and could never get free chips. Bets are paid before the showdown,
+-- so a seat there no longer counts; and asking for chips first moves on any table you're sitting at.
+create or replace function public.casino_busy(uid uuid) returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.mtcp_seats s join public.mtcp_tables t on t.id = s.table_id
+                 where s.user_id = uid and t.phase <> 'showdown' and (s.ante + s.pair > 0 or cardinality(s.cards) = 3))
+    or exists (select 1 from public.casino_play where user_id = uid and (
+      (game = 'bj2' and coalesce(state->>'phase', 'bet') <> 'bet') or (game in ('vp', 'tcp') and (state ? 'hand' or state ? 'player')) or (game = 'war' and state ? 'p')
+      or (game = 'craps' and coalesce(state->'bets', '{}') <> '{}'::jsonb)));
+$$;
+
+create or replace function public.casino_tick_my_tables(uid uuid) returns void language plpgsql security definer set search_path = public as $$
+declare tid int;
+begin
+  for tid in select distinct table_id from public.mtcp_seats where user_id = uid order by 1 loop
+    perform 1 from public.mtcp_tables where id = tid for update;
+    perform public.mtcp_tick(tid);
+  end loop;
+end $$;
+
+create or replace function public.casino_me() returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row();
+begin
+  perform public.casino_tick_my_tables(w.user_id);
+  select * into w from public.casino_wallet where user_id = w.user_id;
+  perform public.casino_publish(w.user_id, w.chips, false);
+  return jsonb_build_object('chips', w.chips, 'owed', 0, 'wait', coalesce(public.casino_grant_wait(w.user_id), 0), 'busy', public.casino_busy(w.user_id));
+end $$;
+
+create or replace function public.casino_borrow() returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row(); wt int;
+begin
+  perform public.casino_tick_my_tables(w.user_id);
+  select * into w from public.casino_wallet where user_id = w.user_id for update;
+  if w.chips >= 1000 then raise exception 'only below 1,000 chips' using hint = 'casino_below'; end if;
+  if public.casino_busy(w.user_id) then raise exception 'finish your hand first' using hint = 'casino_hand'; end if;
+  wt := coalesce(public.casino_grant_wait(w.user_id), 0);
+  if wt > 0 then raise exception 'wait % seconds', wt using hint = 'casino_wait'; end if;
+  update public.casino_wallet set chips = chips + 1000, grant_at = now() where user_id = w.user_id returning * into w;
+  perform public.casino_publish(w.user_id, w.chips, false);
+  return jsonb_build_object('chips', w.chips, 'owed', 0, 'wait', 60);
+end $$;
+
+revoke all on function public.casino_tick_my_tables(uuid), public.casino_busy(uuid) from public, anon, authenticated;
+grant execute on function public.casino_me(), public.casino_borrow() to authenticated;

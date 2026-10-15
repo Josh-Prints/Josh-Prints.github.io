@@ -74,8 +74,11 @@ function loanChips(v){
 // "Try again in 42 seconds" etc. for a refused free-chips request
 export function grantError(e){
   const m = (e && e.message) || '', w = /wait (\d+)/.exec(m);
+  if (w) setGrantWait(+w[1], true);
   return w ? 'You can get more in ' + w[1] + ' second' + (w[1] === '1' ? '' : 's') : /below/.test(m) ? 'Only when you’re below 1,000 chips' : /hand/.test(m) ? 'Finish your hand first' : 'That didn’t go through';
 }
+// start the countdown on the free-chips buttons (pages that don't use the side panel call this themselves)
+export function setGrantWait(wait, ok){ casino.nextGrant = Date.now() + (wait || 0) * 1000; casino.grantOk = !!ok; casino.grantButton(); }
 let shownChips = null;
 export function showChips(v, pulse){
   loanChips(v);
@@ -400,7 +403,7 @@ export const casino = {
   // the free-chips block in the account panel: your chips and "Get 1,000 chips" (once a minute, below 1,000)
   nextGrant: 0, grantOk: false, grantTimer: null,
   async refreshLoan(){
-    const box = $('loan'); if (!box) return;
+    if (!$('loan') && !$('rebuy')) return;
     let d;
     if (signedIn()){ try { d = await this.rpc('casino_me'); } catch (e) { return; } }
     else d = { chips: bank.get(), wait: bank.wait(), busy: bank.busy() };
@@ -408,12 +411,13 @@ export const casino = {
     const c = $('ln-chips'); if (c && c.textContent === '…') c.textContent = fmt(d.chips);
     this.grantButton();
   },
+  // the side panel's button and the table's "Get 1,000 chips" button both count down to the next free chips
   grantButton(){
-    const b = $('ln-borrow'); if (!b) return;
     const left = Math.max(0, Math.ceil((this.nextGrant - Date.now()) / 1000)), low = this.grantOk;
-    b.disabled = !low || left > 0;
-    b.textContent = low && left > 0 ? 'Get 1,000 chips in ' + left + 's' : 'Get 1,000 chips';
-    clearTimeout(this.grantTimer); if (low && left > 0) this.grantTimer = setTimeout(() => this.grantButton(), 1000);
+    const label = left > 0 ? 'Get 1,000 chips in ' + Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0') : 'Get 1,000 chips';
+    const b = $('ln-borrow'); if (b){ b.disabled = !low || left > 0; b.textContent = low ? label : 'Get 1,000 chips'; }
+    const r = $('rebuy'); if (r){ r.disabled = left > 0; r.textContent = label; }
+    clearTimeout(this.grantTimer); if (left > 0) this.grantTimer = setTimeout(() => this.grantButton(), 1000);
   },
   loanHtml(){
     return '<div class="loan" id="loan"><div class="me-row"><span>Chips</span><b id="ln-chips">…</b></div>' +

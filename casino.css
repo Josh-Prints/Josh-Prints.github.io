@@ -168,6 +168,7 @@ body{
 .btn{ font: 600 1.2rem 'Barlow Condensed', sans-serif; border-radius: 99px; border: 1.5px solid rgba(201,162,75,.7); background: transparent; color: var(--ivory); padding: 8px 20px; cursor: pointer; min-width: 84px; }
 .btn.main{ background: var(--brass); color: var(--ink); min-width: 110px; }
 .btn:disabled{ opacity: .35; cursor: default; }
+#rebuy:disabled{ opacity: .8; }
 .btn:hover:not(:disabled){ filter: brightness(1.12); }
 .btn[hidden]{ display: none; }
 .chip:focus-visible, .btn:focus-visible, .spot:focus-visible{ outline: 3px solid var(--ivory); outline-offset: 2px; }

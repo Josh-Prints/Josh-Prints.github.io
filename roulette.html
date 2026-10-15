@@ -170,6 +170,7 @@
   .btn{ font: 600 1.2rem 'Barlow Condensed', sans-serif; border-radius: 99px; border: 1.5px solid rgba(201,162,75,.7); background: transparent; color: var(--ivory); padding: 8px 20px; cursor: pointer; min-width: 84px; }
   .btn.main{ background: var(--brass); color: var(--ink); min-width: 110px; }
   .btn:disabled{ opacity: .35; cursor: default; }
+  #rebuy:disabled{ opacity: .8; }
   .btn:hover:not(:disabled){ filter: brightness(1.12); }
   .chip:focus-visible, .btn:focus-visible, .cell:focus-visible{ outline: 3px solid var(--ivory); outline-offset: 2px; }
   .betamt{ font-family: 'Bodoni Moda', Georgia, serif; font-weight: 800; font-size: 1.35rem; min-width: 6.5em; text-align: center; }
@@ -245,7 +246,7 @@
         </div>
         <div class="foot-notes">
           <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
-          <div class="ver">Version 2026-10-15c</div>
+          <div class="ver">Version 2026-10-15d</div>
         </div>
       </main>
     </div>
@@ -264,7 +265,7 @@
   </div>
 
 <script type="module">
-import { bank as czBank, showBan, isBanError, isLockError, guard, grantError } from '/casino.js?v=8';
+import { bank as czBank, showBan, isBanError, isLockError, guard, grantError, setGrantWait } from '/casino.js?v=9';
 /* Roulette (single zero). Signed-in players spin on the server, which picks the number and pays out from the
    casino wallet (the same chips as blackjack), so the leaderboard can't be faked; guests play here in the
    browser with the device's casino chips. Below 1,000 chips you can reset back to 1,000. */
@@ -493,13 +494,20 @@ async function spin(){
   if (chips > prev - res.staked) document.querySelectorAll('[data-stat="chips"]').forEach(b => { b.classList.remove('pulse'); void b.offsetWidth; b.classList.add('pulse'); });
   // the chips stay on the felt (losers fade) until the next bet, which starts a clean table
   lastBets = list; history = []; bets = {}; settled = true;
-  busy = false; ui();
+  busy = false; ui(); refreshGrant();
+}
+// the countdown on "Get 1,000 chips" (free chips once a minute, below 1,000)
+async function refreshGrant(){
+  try {
+    if (engine() === remote){ const d = await remote.call('casino_me'); setGrantWait(d.wait, d.chips < 1000 && !d.busy); }
+    else setGrantWait(czBank.wait(), czBank.get() < 1000);
+  } catch (e) {}
 }
 async function load(){
   busy = true; ui();
   try { const st = await engine().state(); chips = st.chips; idle(); }
   catch (e) { msg('Couldn’t reach the table', 'Refresh to try again', 'lose'); }
-  busy = false; bets = {}; history = []; settled = false; clearMarks(); drawStakes(); ui();
+  busy = false; bets = {}; history = []; settled = false; clearMarks(); drawStakes(); ui(); refreshGrant();
 }
 
 /* ---------- sound ---------- */
@@ -537,7 +545,7 @@ $('rebet').onclick = () => {
   sfx.chip(); drawStakes(); ui();
 };
 $('spin').onclick = spin;
-$('rebuy').onclick = async () => { if (busy) return; busy = true; ui(); try { const st = await engine().topup(); chips = st.chips; msg('Here’s 1,000 chips', 'Good luck'); } catch (e) { msg('Not yet', grantError(e), 'lose'); } busy = false; ui(); };
+$('rebuy').onclick = async () => { if (busy) return; busy = true; ui(); try { const st = await engine().topup(); chips = st.chips; msg('Here’s 1,000 chips', 'Good luck'); } catch (e) { msg('Not yet', grantError(e), 'lose'); } busy = false; ui(); refreshGrant(); };
 document.addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
   if (e.key === ' ' && document.activeElement === document.body){ e.preventDefault(); spin(); }
