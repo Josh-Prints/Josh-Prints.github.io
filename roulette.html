@@ -239,11 +239,11 @@
             <button class="btn" id="rebet">Rebet</button>
             <button class="btn main" id="spin">Spin</button>
           </div>
-          <button class="btn main" id="rebuy" hidden>Borrow 1,000</button>
+          <button class="btn main" id="rebuy" hidden>Get 1,000 chips</button>
         </div>
         <div class="foot-notes">
           <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
-          <div class="ver">Version 2026-10-14e</div>
+          <div class="ver">Version 2026-10-15a</div>
         </div>
       </main>
     </div>
@@ -251,9 +251,9 @@
       <div class="panel" id="account"><p>Loading…</p></div>
       <div class="panel">
         <h3>Casino leaderboard</h3>
-        <p>Your chips are shared by every casino game. Ranked by net worth: chips minus what you owe. Cheating gets you banned: <a class="rules-link" href="/terms.html#casino">casino rules</a>.</p>
+        <p>Your chips are shared by every casino game. Below 1,000? Get 1,000 free, once a minute. Cheating gets you banned: <a class="rules-link" href="/terms.html#casino">casino rules</a>.</p>
         <div class="tabs" role="tablist">
-          <button type="button" class="tab on" data-kind="score">Net worth</button>
+          <button type="button" class="tab on" data-kind="score">Chips</button>
           <button type="button" class="tab" data-kind="time">Time played</button>
         </div>
         <ol class="lb" id="lb"><li class="lb-empty">Loading…</li></ol>
@@ -262,7 +262,7 @@
   </div>
 
 <script type="module">
-import { bank as czBank, showBan, isBanError, isLockError, guard } from '/casino.js?v=5';
+import { bank as czBank, showBan, isBanError, isLockError, guard, grantError } from '/casino.js?v=6';
 /* Roulette (single zero). Signed-in players spin on the server, which picks the number and pays out from the
    casino wallet (the same chips as blackjack), so the leaderboard can't be faked; guests play here in the
    browser with the device's casino chips. Below 1,000 chips you can reset back to 1,000. */
@@ -302,7 +302,7 @@ const local = (() => {
       chips = chips - staked + payout; save(chips);
       return { chips, number: n, staked, payout, net: payout - staked };
     },
-    async topup(){ return { chips: czBank.borrow() }; },   // guests borrow 1,000 like everyone else
+    async topup(){ return { chips: czBank.borrow() }; },   // guests get 1,000 free chips once a minute, like everyone else
   };
 })();
 const remote = {
@@ -532,7 +532,7 @@ $('rebet').onclick = () => {
   sfx.chip(); drawStakes(); ui();
 };
 $('spin').onclick = spin;
-$('rebuy').onclick = async () => { if (busy) return; busy = true; ui(); try { const st = await engine().topup(); chips = st.chips; idle(); } catch (e) {} busy = false; ui(); };
+$('rebuy').onclick = async () => { if (busy) return; busy = true; ui(); try { const st = await engine().topup(); chips = st.chips; msg('Here’s 1,000 chips', 'Good luck'); } catch (e) { msg('Not yet', grantError(e), 'lose'); } busy = false; ui(); };
 document.addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
   if (e.key === ' ' && document.activeElement === document.body){ e.preventDefault(); spin(); }
@@ -578,12 +578,9 @@ const net = {
   renderMe(st){
     if (!this.user) return;
     const box = document.getElementById('me-stats'); if (!box || !st) return;
-    box.innerHTML = '<span>Net worth</span><b>' + Number(st.best_score || 0).toLocaleString() + (st.score_rank ? ' <small>#' + st.score_rank + '</small>' : '') + '</b>' +
-      '<span>Chips</span><b id="me-chips">…</b><span>Owed</span><b id="me-borrowed">…</b>' +
+    box.innerHTML = '<span>Chips</span><b>' + Number(st.best_score || 0).toLocaleString() + (st.score_rank ? ' <small>#' + st.score_rank + '</small>' : '') + '</b>' +
       '<span>Time played</span><b>' + fmtLong(st.total_seconds || 0) + (st.time_rank ? ' <small>#' + st.time_rank + '</small>' : '') + '</b>' +
       '<span>Rounds played</span><b>' + (st.games_played || 0) + '</b>';
-    // score = chips minus what you've been topped up; show both parts
-    this.sb.rpc('casino_me').then(({ data }) => { if (!data) return; const c = document.getElementById('me-chips'), d = document.getElementById('me-borrowed'); if (c) c.textContent = Number(data.chips).toLocaleString(); if (d) d.textContent = Number(data.owed).toLocaleString(); const pb = document.getElementById('rl-repay'); if (pb) pb.hidden = !data.owed; });
     const nm = document.getElementById('me-name'); if (nm) nm.textContent = st.name;
     const setName = document.getElementById('name-box'); if (setName) setName.hidden = st.name !== 'Player';
   },
@@ -592,7 +589,6 @@ const net = {
     if (!this.sb){ box.innerHTML = '<p>Sign-in is unavailable right now. You can still play.</p>'; return; }
     if (this.user){
       box.innerHTML = '<h3>Playing as <span id="me-name">…</span></h3><div class="me-row" id="me-stats"></div>' +
-        '<button type="button" class="pbtn primary" id="rl-repay" hidden>Pay back what you owe</button><div class="pmsg" id="rl-repay-msg"></div>' +
         '<div id="name-box" hidden><p style="margin-top:10px">Pick a name for the leaderboard:</p><input class="pinput" id="name-in" maxlength="40" placeholder="Your name"><button type="button" class="pbtn primary" id="name-save">Save name</button><div class="pmsg" id="name-msg"></div></div>' +
         '<button type="button" class="link" id="sign-out">Sign out</button>';
       document.getElementById('sign-out').onclick = async () => { await this.sb.auth.signOut(); };
@@ -604,13 +600,6 @@ const net = {
         const { data } = await this.sb.rpc('game_my_stats', { p_game: 'casino' }); this.renderMe(data); this.loadBoard();
       };
       this.sb.rpc('game_my_stats', { p_game: 'casino' }).then(({ data }) => this.renderMe(data));
-      document.getElementById('rl-repay').onclick = async () => {
-        const m = document.getElementById('rl-repay-msg');
-        const { data, error } = await this.sb.rpc('casino_repay', { p_amount: null });
-        m.textContent = error ? (/hand/.test(error.message) ? 'Finish your spin first.' : 'That didn’t go through.') : 'Paid back. You still owe ' + Number(data.owed).toLocaleString() + '.';
-        if (data){ chips = data.chips; ui(); }
-        const st = await this.sb.rpc('game_my_stats', { p_game: 'casino' }); this.renderMe(st.data); this.loadBoard();
-      };
       return;
     }
     box.innerHTML = '<h3>Save your chips</h3><p>Sign in to keep your chips on any device and get on the casino leaderboard.</p>' +

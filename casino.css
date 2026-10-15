@@ -71,6 +71,7 @@ body{
 .loan{ margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-muted); }
 .loan-note{ margin: 8px 0 0 !important; font-size: 12px !important; }
 .loan-btns{ display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.loan-btns.one{ grid-template-columns: 1fr; }
 .loan-btns .pbtn:disabled{ opacity: .45; cursor: default; }
 .rules{ margin: 0; padding-left: 18px; font-size: 13px; color: var(--fg-muted); line-height: 1.55; }
 .rules li{ margin-bottom: 3px; }

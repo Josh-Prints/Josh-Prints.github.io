@@ -1397,3 +1397,44 @@ end $$;
 revoke all on function public.casino_flag(text, text), public.casino_lock_minutes(int) from public, anon, authenticated;
 grant execute on function public.casino_flag(text, text) to authenticated;
 grant execute on function public.casino_ban_status() to authenticated;
+
+
+-- ===== No more loans: below 1,000 chips you can get 1,000 free chips, at most once a minute =====
+alter table public.casino_wallet add column if not exists grant_at timestamptz;
+
+-- debts are forgiven and interest stops; the leaderboard goes back to plain chips
+update public.casino_wallet set owed = 0, owed_at = null where owed <> 0 or owed_at is not null;
+update public.game_stats s set best_score = least(w.chips, 100000000000) from public.casino_wallet w
+  where s.user_id = w.user_id and s.game = 'casino' and s.best_score <> least(w.chips, 100000000000);
+
+create or replace function public.casino_accrue(uid uuid) returns void language sql security definer set search_path = public as $$ select; $$;
+
+create or replace function public.casino_grant_wait(uid uuid) returns int language sql stable security definer set search_path = public as $$
+  select coalesce(greatest(0, ceil(extract(epoch from (grant_at + interval '1 minute' - now()))))::int, 0) from public.casino_wallet where user_id = uid;
+$$;
+
+create or replace function public.casino_me() returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row();
+begin
+  perform public.casino_publish(w.user_id, w.chips, false);
+  return jsonb_build_object('chips', w.chips, 'owed', 0, 'wait', coalesce(public.casino_grant_wait(w.user_id), 0), 'busy', public.casino_busy(w.user_id));
+end $$;
+
+-- 1,000 free chips when you're below 1,000, not mid-hand, and haven't had any in the last minute
+create or replace function public.casino_borrow() returns jsonb language plpgsql security definer set search_path = public as $$
+declare w public.casino_wallet := public.casino_row(); wt int;
+begin
+  if w.chips >= 1000 then raise exception 'only below 1,000 chips' using hint = 'casino_below'; end if;
+  if public.casino_busy(w.user_id) then raise exception 'finish your hand first' using hint = 'casino_hand'; end if;
+  wt := coalesce(public.casino_grant_wait(w.user_id), 0);
+  if wt > 0 then raise exception 'wait % seconds', wt using hint = 'casino_wait'; end if;
+  update public.casino_wallet set chips = chips + 1000, grant_at = now() where user_id = w.user_id returning * into w;
+  perform public.casino_publish(w.user_id, w.chips, false);
+  return jsonb_build_object('chips', w.chips, 'owed', 0, 'wait', 60);
+end $$;
+
+create or replace function public.casino_topup() returns jsonb language sql security definer set search_path = public as $$ select public.casino_borrow(); $$;
+
+revoke all on function public.casino_repay(bigint) from public, anon, authenticated;
+revoke all on function public.casino_grant_wait(uuid), public.casino_accrue(uuid) from public, anon, authenticated;
+grant execute on function public.casino_me(), public.casino_borrow(), public.casino_topup() to authenticated;

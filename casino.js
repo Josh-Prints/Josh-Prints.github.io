@@ -23,6 +23,7 @@ export function newDeck(decks){ const s = []; for (let d = 0; d < (decks || 1); 
 // It's only a speed bump: anything in the browser can be undone. Signed-in chips live on the server.
 const sig = v => { let h = 0x811c9dc5; const t = 'vx' + v + 'c4s1n0'; for (let i = 0; i < t.length; i++){ h ^= t.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 let lastGoodChips = null;
+try { ['casino-loan', 'casino-loan-k'].forEach(k => localStorage.removeItem(k)); } catch (e) {}
 function signedRead(key, sigKey, fallback){
   const v = localStorage.getItem(key), g = localStorage.getItem(sigKey);
   if (v === null){ if (g !== null) localStorage.removeItem(sigKey); return null; }
@@ -41,41 +42,34 @@ export const bank = {
     } catch (e) { return 1000; }
   },
   set(c){ try { const v = String(Math.max(0, Math.floor(c))); localStorage.setItem('casino-bank', v); localStorage.setItem('casino-bank-k', sig(v)); lastGoodChips = +v; } catch (e) {} },
-  // guests borrow the same way signed-in players do: 1,000 at a time below 1,000 chips, 10% interest a day
-  loan(){
-    try {
-      const l = JSON.parse(signedRead('casino-loan', 'casino-loan-k', null));
-      if (l && l.owed > 0){
-        const days = Math.floor((Date.now() - l.at) / 86400000);
-        if (days > 0){ for (let i = 0; i < days; i++) l.owed = Math.ceil(l.owed * 11 / 10 - 1e-9); l.at += days * 86400000; this.saveLoan(l); }
-        return l;
-      }
-    } catch (e) {}
-    return { owed: 0, at: null };
-  },
-  saveLoan(l){ try { if (l.owed > 0){ const v = JSON.stringify(l); localStorage.setItem('casino-loan', v); localStorage.setItem('casino-loan-k', sig(v)); } else { localStorage.removeItem('casino-loan'); localStorage.removeItem('casino-loan-k'); } } catch (e) {} },
+  // when this device last got free chips (signed, so it can't be wound back by hand)
+  grantAt(){ try { const v = signedRead('casino-grant', 'casino-grant-k', String(Date.now())); return v === null ? 0 : +v || 0; } catch (e) { return 0; } },
+  wait(){ return Math.max(0, Math.ceil((this.grantAt() + 60000 - Date.now()) / 1000)); },
   // is a guest hand still being played? (chips are out on the table)
   busy(){ try { const b = JSON.parse(localStorage.getItem('bj-guest') || 'null'); return !!localStorage.getItem('tcp-guest') || !!(b && b.phase && b.phase !== 'bet'); } catch (e) { return false; } },
+  // 1,000 free chips, the same rule as the server's casino_borrow(): below 1,000 chips, not mid-hand, once a minute
   borrow(){
-    const c = this.get(); if (c >= 1000 || this.busy()) return c;
-    const l = this.loan(); l.owed += 1000; if (!l.at) l.at = Date.now(); this.saveLoan(l); this.set(c + 1000);
+    const c = this.get(), w = this.wait();
+    if (c >= 1000) throw Object.assign(new Error('only below 1,000 chips'), { hint: 'casino_below' });
+    if (this.busy()) throw Object.assign(new Error('finish your hand first'), { hint: 'casino_hand' });
+    if (w > 0) throw Object.assign(new Error('wait ' + w + ' seconds'), { hint: 'casino_wait' });
+    this.set(c + 1000);
+    try { const v = String(Date.now()); localStorage.setItem('casino-grant', v); localStorage.setItem('casino-grant-k', sig(v)); } catch (e) {}
     casino.refreshLoan(); return c + 1000;
   },
-  repay(){
-    const c = this.get(), l = this.loan(), amt = Math.min(c, l.owed); if (amt <= 0 || this.busy()) return c;
-    l.owed -= amt; if (!l.owed) l.at = null; this.saveLoan(l); this.set(c - amt);
-    casino.refreshLoan(); return c - amt;
-  },
-  // the games' "Borrow 1,000" button
+  // the games' "Get 1,000 chips" button
   topup(){ return this.borrow(); },
 };
 
 /* ---------- chips shown in the stats ---------- */
 function loanChips(v){
   const c = $('ln-chips'); if (!c) return;
-  const o = casino.owed || 0;
-  c.textContent = fmt(v); $('ln-owed').textContent = fmt(o); $('ln-net').textContent = fmt(v - o);
-  $('ln-borrow').disabled = v >= 1000; $('ln-repay').disabled = !o || v <= 0;
+  c.textContent = fmt(v); casino.chipsNow = v; casino.grantButton();
+}
+// "Try again in 42 seconds" etc. for a refused free-chips request
+export function grantError(e){
+  const m = (e && e.message) || '', w = /wait (\d+)/.exec(m);
+  return w ? 'You can get more in ' + w[1] + ' second' + (w[1] === '1' ? '' : 's') : /below/.test(m) ? 'Only when you’re below 1,000 chips' : /hand/.test(m) ? 'Finish your hand first' : 'That didn’t go through';
 }
 let shownChips = null;
 export function showChips(v, pulse){
@@ -322,7 +316,7 @@ export const guard = {
 /* ======================= accounts, leaderboard, time played ======================= */
 export const casino = {
   sb: null, user: null, pendingSecs: 0, kind: 'score', lastInput: 0, listeners: [],
-  async rpc(name, args){ const { data, error } = await this.sb.rpc(name, args || {}); if (error){ if (isBanError(error)) showBan(null, this.sb); else if (isLockError(error)) guard.check(); throw error; } if (name === 'casino_topup') this.refreshLoan(); return data; },
+  async rpc(name, args){ const { data, error } = await this.sb.rpc(name, args || {}); if (error){ if (isBanError(error)) showBan(null, this.sb); else if (isLockError(error)) guard.check(); throw error; } if (name === 'casino_topup' || name === 'casino_borrow') this.refreshLoan(); return data; },
   onUser(fn){ this.listeners.push(fn); },
   markInput(){ this.lastInput = performance.now(); },
   async record(){
@@ -345,7 +339,7 @@ export const casino = {
   renderMe(st){
     if (!this.user || !st) return;
     const box = $('me-stats'); if (!box) return;
-    box.innerHTML = '<span>Net worth</span><b>' + fmt(st.best_score || 0) + (st.score_rank ? ' <small>#' + st.score_rank + '</small>' : '') + '</b>' +
+    box.innerHTML = '<span>Leaderboard</span><b>' + fmt(st.best_score || 0) + (st.score_rank ? ' <small>#' + st.score_rank + '</small>' : '') + '</b>' +
       '<span>Time played</span><b>' + fmtLong(st.total_seconds || 0) + (st.time_rank ? ' <small>#' + st.time_rank + '</small>' : '') + '</b>' +
       '<span>Rounds played</span><b>' + fmt(st.games_played || 0) + '</b>';
     const nm = $('me-name'); if (nm) nm.textContent = st.name;
@@ -394,28 +388,34 @@ export const casino = {
     };
   },
   guestNote(){ document.querySelectorAll('.guest-note').forEach(n => n.hidden = !!this.user); },
-  // the loan block in the account panel: chips, what you owe, net worth, Borrow 1,000 / Pay back
-  owed: 0,
+  // the free-chips block in the account panel: your chips and "Get 1,000 chips" (once a minute, below 1,000)
+  nextGrant: 0, chipsNow: null, grantTimer: null,
   async refreshLoan(){
     const box = $('loan'); if (!box) return;
     let d;
     if (signedIn()){ try { d = await this.rpc('casino_me'); } catch (e) { return; } }
-    else d = { chips: bank.get(), owed: bank.loan().owed };
-    this.owed = d.owed; loanChips(d.chips);
+    else d = { chips: bank.get(), wait: bank.wait() };
+    this.nextGrant = Date.now() + (d.wait || 0) * 1000; loanChips(d.chips);
+  },
+  grantButton(){
+    const b = $('ln-borrow'); if (!b) return;
+    const left = Math.max(0, Math.ceil((this.nextGrant - Date.now()) / 1000)), low = this.chipsNow !== null && this.chipsNow < 1000;
+    b.disabled = !low || left > 0;
+    b.textContent = low && left > 0 ? 'Get 1,000 chips in ' + left + 's' : 'Get 1,000 chips';
+    clearTimeout(this.grantTimer); if (low && left > 0) this.grantTimer = setTimeout(() => this.grantButton(), 1000);
   },
   loanHtml(){
-    return '<div class="loan" id="loan"><div class="me-row"><span>Chips</span><b id="ln-chips">…</b><span>Owed</span><b id="ln-owed">…</b><span>Net worth</span><b id="ln-net">…</b></div>' +
-      '<p class="loan-note">Below 1,000 chips you can borrow 1,000. Loans grow 10% a day until you pay them back, and the leaderboard counts what you owe.</p>' +
-      '<div class="loan-btns"><button type="button" class="pbtn" id="ln-borrow">Borrow 1,000</button><button type="button" class="pbtn primary" id="ln-repay">Pay back</button></div><div class="pmsg" id="ln-msg"></div></div>';
+    return '<div class="loan" id="loan"><div class="me-row"><span>Chips</span><b id="ln-chips">…</b></div>' +
+      '<p class="loan-note">Below 1,000 chips? Get 1,000 free, once a minute.</p>' +
+      '<div class="loan-btns one"><button type="button" class="pbtn primary" id="ln-borrow">Get 1,000 chips</button></div><div class="pmsg" id="ln-msg"></div></div>';
   },
   wireLoan(){
-    const go = async (fn, done) => {
+    $('ln-borrow').onclick = async () => {
       const m = $('ln-msg'); if (m) m.textContent = '';
-      try { await fn(); if (m) m.textContent = done; } catch (e) { if (m) m.textContent = /hand/.test(e.message || '') ? 'Finish your hand first.' : /below/.test(e.message || '') ? 'You can borrow once you’re below 1,000 chips.' : 'That didn’t go through.'; }
+      try { signedIn() ? await this.rpc('casino_borrow') : bank.borrow(); if (m) m.textContent = 'Here’s 1,000 chips.'; }
+      catch (e) { if (m) m.textContent = grantError(e) + '.'; }
       await this.refreshLoan(); this.loadBoard(); this.listeners.forEach(fn => { try { fn(this.user); } catch (e) {} });
     };
-    $('ln-borrow').onclick = () => go(() => signedIn() ? this.rpc('casino_borrow') : Promise.resolve(bank.borrow()), 'Borrowed 1,000.');
-    $('ln-repay').onclick = () => go(() => signedIn() ? this.rpc('casino_repay', { p_amount: null }) : Promise.resolve(bank.repay()), 'Paid back.');
     this.refreshLoan();
   },
   changed(){ const b = document.getElementById('cz-ban'); if (b && !this.user) b.remove(); guard.clear(); guard.check(); this.renderAccount(); this.loadBoard(); this.guestNote(); this.listeners.forEach(fn => { try { fn(this.user); } catch (e) { console.error(e); } }); },
