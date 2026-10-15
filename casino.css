@@ -147,6 +147,8 @@ body{
 .chip.sel{ transform: translateY(-5px); box-shadow: 0 0 0 3px #ffe08a, 0 8px 14px var(--shadow); }
 .chip:active:not(:disabled){ transform: translateY(2px) scale(.96); }
 .chip:disabled{ opacity: .35; cursor: default; }
+.chip.allin{ --c:#c9a24b; color: #1b1b1b; font-size: .82rem; line-height: .95; }
+.chip.allin span{ text-shadow: none; text-align: center; }
 .chip span{ position: absolute; inset: 0; display: grid; place-items: center; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
 .stake{ position: absolute; z-index: 3; top: 50%; left: 50%; transform: translate(-50%, -50%); --c:#b3262e; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
   font: 700 12px 'Barlow Condensed', sans-serif; color: #fff; writing-mode: horizontal-tb; text-shadow: 0 1px 2px rgba(0,0,0,.6); pointer-events: none;

@@ -164,6 +164,8 @@
     background: radial-gradient(circle, var(--c) 0 56%, transparent 57%), repeating-conic-gradient(var(--ivory) 0 14deg, var(--c) 14deg 30deg); box-shadow: 0 4px 8px var(--shadow); transition: transform .12s; }
   .chip.sel{ transform: translateY(-5px); box-shadow: 0 0 0 3px #ffe08a, 0 8px 14px var(--shadow); }
   .chip:disabled{ opacity: .35; cursor: default; }
+  .chip.allin{ --c:#c9a24b; color: #1b1b1b; font-size: .82rem; line-height: .95; }
+  .chip.allin span{ text-shadow: none; text-align: center; }
   .chip span{ position: absolute; inset: 0; display: grid; place-items: center; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
   .btn{ font: 600 1.2rem 'Barlow Condensed', sans-serif; border-radius: 99px; border: 1.5px solid rgba(201,162,75,.7); background: transparent; color: var(--ivory); padding: 8px 20px; cursor: pointer; min-width: 84px; }
   .btn.main{ background: var(--brass); color: var(--ink); min-width: 110px; }
@@ -243,7 +245,7 @@
         </div>
         <div class="foot-notes">
           <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
-          <div class="ver">Version 2026-10-15a</div>
+          <div class="ver">Version 2026-10-15b</div>
         </div>
       </main>
     </div>
@@ -262,7 +264,7 @@
   </div>
 
 <script type="module">
-import { bank as czBank, showBan, isBanError, isLockError, guard, grantError } from '/casino.js?v=6';
+import { bank as czBank, showBan, isBanError, isLockError, guard, grantError } from '/casino.js?v=7';
 /* Roulette (single zero). Signed-in players spin on the server, which picks the number and pays out from the
    casino wallet (the same chips as blackjack), so the leaderboard can't be faked; guests play here in the
    browser with the device's casino chips. Below 1,000 chips you can reset back to 1,000. */
@@ -441,7 +443,7 @@ function ui(){
   $('clear').disabled = $('undo').disabled = busy || !st;
   const lastSum = lastBets ? lastBets.reduce((s, b) => s + b.a, 0) : 0;
   $('rebet').disabled = busy || !lastBets || st > 0 || lastSum > chips;
-  document.querySelectorAll('.chip').forEach(b => { b.disabled = busy || +b.dataset.v > Math.max(free, 0); b.classList.toggle('sel', +b.dataset.v === chipVal); });
+  document.querySelectorAll('.chip').forEach(b => { const v = chipNum(b); b.disabled = busy || (v === Infinity ? free < 1 : v > Math.max(free, 0)); b.classList.toggle('sel', v === chipVal); });
   document.querySelectorAll('.cell').forEach(b => b.disabled = busy);
   $('rebuy').hidden = !(chips < 1000 && !busy && !st);
 }
@@ -519,8 +521,11 @@ const sfx = (() => {
 })();
 
 /* ---------- controls ---------- */
-$('chips').innerHTML = CH.map(([v, c]) => '<button class="chip" data-v="' + v + '" style="--c:' + c + '" aria-label="Chip size ' + v + '"><span>' + v + '</span></button>').join('');
-$('chips').addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b || b.disabled) return; chipVal = +b.dataset.v; sfx.unlock(); sfx.chip(); ui(); });
+// the last chip is "All in": everything you have left goes on the spot you tap
+const chipNum = b => b.dataset.v === 'all' ? Infinity : +b.dataset.v;
+$('chips').innerHTML = CH.map(([v, c]) => '<button class="chip" data-v="' + v + '" style="--c:' + c + '" aria-label="Chip size ' + v + '"><span>' + v + '</span></button>').join('') +
+  '<button class="chip allin" data-v="all" aria-label="All in: bet everything you have left"><span>ALL<br>IN</span></button>';
+$('chips').addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b || b.disabled) return; chipVal = chipNum(b); sfx.unlock(); sfx.chip(); ui(); });
 $('layout').addEventListener('click', e => { const c = e.target.closest('.cell'); if (c){ sfx.unlock(); addBet(c.dataset.k); } });
 $('undo').onclick = () => { const h = history.pop(); if (!h || busy) return; bets[h[0]] -= h[1]; if (bets[h[0]] <= 0) delete bets[h[0]]; drawStakes(); ui(); };
 $('clear').onclick = () => { if (busy) return; bets = {}; history = []; drawStakes(); ui(); };

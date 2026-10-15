@@ -131,14 +131,18 @@ export const sfx = (() => {
 /* ---------- the chip rack (pick a chip size) ---------- */
 export const CHIPS = [[5, '#b3262e'], [25, '#1f5a99'], [100, '#222'], [500, '#6b3fa0'], [1000, '#c9a24b']];
 export const chipColour = v => ([...CHIPS].reverse().find(([c]) => v >= c) || CHIPS[0])[1];
+// The last chip is "All in": it bets everything you have left on the spot you tap (value Infinity, which
+// betBoard clamps to the chips still free).
 export function chipRack(el, { values = [5, 25, 100, 500], start = 25, onPick } = {}){
   let val = start;
+  const num = b => b.dataset.v === 'all' ? Infinity : +b.dataset.v;
   el.classList.add('chips-row');
-  el.innerHTML = values.map(v => '<button type="button" class="chip" data-v="' + v + '" style="--c:' + chipColour(v) + '" aria-label="Chip size ' + v + '"><span>' + short(v) + '</span></button>').join('');
-  el.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b || b.disabled) return; val = +b.dataset.v; sfx.unlock(); sfx.chip(); rack.refresh(); onPick && onPick(val); });
+  el.innerHTML = values.map(v => '<button type="button" class="chip" data-v="' + v + '" style="--c:' + chipColour(v) + '" aria-label="Chip size ' + v + '"><span>' + short(v) + '</span></button>').join('') +
+    '<button type="button" class="chip allin" data-v="all" aria-label="All in: bet everything you have left"><span>ALL<br>IN</span></button>';
+  el.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b || b.disabled) return; val = num(b); sfx.unlock(); sfx.chip(); rack.refresh(); onPick && onPick(val); });
   const rack = {
     get value(){ return val; },
-    refresh(max, disabled){ el.querySelectorAll('.chip').forEach(b => { b.classList.toggle('sel', +b.dataset.v === val); if (max !== undefined) b.disabled = !!disabled || +b.dataset.v > Math.max(0, max); }); },
+    refresh(max, disabled){ el.querySelectorAll('.chip').forEach(b => { const v = num(b); b.classList.toggle('sel', v === val); if (max !== undefined) b.disabled = !!disabled || (v === Infinity ? max < 1 : v > Math.max(0, max)); }); },
   };
   rack.refresh();
   return rack;
