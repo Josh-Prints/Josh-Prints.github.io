@@ -62,9 +62,14 @@ export const bank = {
 };
 
 /* ---------- chips shown in the stats ---------- */
+// The panel shows the chips in front of you, but whether you can get free chips depends on your whole
+// wallet (bets not yet dealt still count) and on not being mid-hand, so that's re-checked once the
+// table settles after any change.
+let grantCheck = null;
 function loanChips(v){
   const c = $('ln-chips'); if (!c) return;
-  c.textContent = fmt(v); casino.chipsNow = v; casino.grantButton();
+  c.textContent = fmt(v);
+  clearTimeout(grantCheck); grantCheck = setTimeout(() => casino.refreshLoan(), 500);
 }
 // "Try again in 42 seconds" etc. for a refused free-chips request
 export function grantError(e){
@@ -393,24 +398,26 @@ export const casino = {
   },
   guestNote(){ document.querySelectorAll('.guest-note').forEach(n => n.hidden = !!this.user); },
   // the free-chips block in the account panel: your chips and "Get 1,000 chips" (once a minute, below 1,000)
-  nextGrant: 0, chipsNow: null, grantTimer: null,
+  nextGrant: 0, grantOk: false, grantTimer: null,
   async refreshLoan(){
     const box = $('loan'); if (!box) return;
     let d;
     if (signedIn()){ try { d = await this.rpc('casino_me'); } catch (e) { return; } }
-    else d = { chips: bank.get(), wait: bank.wait() };
-    this.nextGrant = Date.now() + (d.wait || 0) * 1000; loanChips(d.chips);
+    else d = { chips: bank.get(), wait: bank.wait(), busy: bank.busy() };
+    this.nextGrant = Date.now() + (d.wait || 0) * 1000; this.grantOk = d.chips < 1000 && !d.busy;
+    const c = $('ln-chips'); if (c && c.textContent === '…') c.textContent = fmt(d.chips);
+    this.grantButton();
   },
   grantButton(){
     const b = $('ln-borrow'); if (!b) return;
-    const left = Math.max(0, Math.ceil((this.nextGrant - Date.now()) / 1000)), low = this.chipsNow !== null && this.chipsNow < 1000;
+    const left = Math.max(0, Math.ceil((this.nextGrant - Date.now()) / 1000)), low = this.grantOk;
     b.disabled = !low || left > 0;
     b.textContent = low && left > 0 ? 'Get 1,000 chips in ' + left + 's' : 'Get 1,000 chips';
     clearTimeout(this.grantTimer); if (low && left > 0) this.grantTimer = setTimeout(() => this.grantButton(), 1000);
   },
   loanHtml(){
     return '<div class="loan" id="loan"><div class="me-row"><span>Chips</span><b id="ln-chips">…</b></div>' +
-      '<p class="loan-note">Below 1,000 chips? Get 1,000 free, once a minute.</p>' +
+      '<p class="loan-note">Below 1,000 chips (counting any on the table)? Get 1,000 free, once a minute.</p>' +
       '<div class="loan-btns one"><button type="button" class="pbtn primary" id="ln-borrow">Get 1,000 chips</button></div><div class="pmsg" id="ln-msg"></div></div>';
   },
   wireLoan(){

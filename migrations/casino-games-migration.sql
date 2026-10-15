@@ -1438,3 +1438,9 @@ create or replace function public.casino_topup() returns jsonb language sql secu
 revoke all on function public.casino_repay(bigint) from public, anon, authenticated;
 revoke all on function public.casino_grant_wait(uuid), public.casino_accrue(uuid) from public, anon, authenticated;
 grant execute on function public.casino_me(), public.casino_borrow(), public.casino_topup() to authenticated;
+
+
+-- the first blackjack (bj_table) was replaced by bj2_*; nothing calls these any more, and bj_topup could reset
+-- chips to 1,000 without the once-a-minute limit
+revoke all on function public.bj_deal(bigint), public.bj_double(), public.bj_hit(), public.bj_new_shoe(), public.bj_stand(), public.bj_state(), public.bj_topup()
+  from public, anon, authenticated;
