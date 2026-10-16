@@ -1,0 +1,76 @@
+# Builds the Dune iOS app (ios/dune) as an unsigned .ipa on a macOS runner and attaches it to the
+# "dune-ios" release, so it can be downloaded and sideloaded. Runs when the game or the app changes on
+# main, or by hand from the Actions tab.
+name: Dune iOS app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - dune.html
+      - looks.js
+      - looks.css
+      - error-log.js
+      - icons.svg
+      - favicon.svg
+      - ios/dune/**
+      - .github/workflows/dune-ios.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dune-ios
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bundle the game's web files
+        run: |
+          set -euo pipefail
+          web=ios/dune/web
+          rm -rf "$web" && mkdir -p "$web"
+          cp dune.html looks.js looks.css error-log.js icons.svg favicon.svg "$web"/
+          # the app ships a fixed copy of the game, so the site's "new version, refresh" bar doesn't apply
+          sed -i '' '/update-check\.js/d' "$web/dune.html"
+          ls -la "$web"
+
+      - name: Generate the Xcode project
+        run: |
+          brew install xcodegen
+          cd ios/dune && xcodegen generate
+
+      - name: Build (unsigned)
+        run: |
+          set -euo pipefail
+          cd ios/dune
+          xcodebuild -project Dune.xcodeproj -target Dune -configuration Release -sdk iphoneos \
+            SYMROOT="$PWD/build" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+          rm -rf Payload Dune.ipa && mkdir Payload
+          cp -R build/Release-iphoneos/Dune.app Payload/
+          zip -qry Dune.ipa Payload
+          ls -la Dune.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Dune-ipa
+          path: ios/dune/Dune.ipa
+
+      - name: Attach to the dune-ios release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          notes="Unsigned build of Dune for iPhone and iPad, from commit ${GITHUB_SHA::7}. Sideload Dune.ipa with AltStore, SideStore or Sideloadly (they sign it with your Apple ID), or install it with TrollStore."
+          if gh release view dune-ios >/dev/null 2>&1; then
+            gh release edit dune-ios --notes "$notes"
+          else
+            gh release create dune-ios --title "Dune for iOS (unsigned)" --notes "$notes" --target "$GITHUB_SHA"
+          fi
+          gh release upload dune-ios ios/dune/Dune.ipa --clobber

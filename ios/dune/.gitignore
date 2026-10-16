@@ -1,0 +1,7 @@
+# made by the build
+web/
+Dune.xcodeproj/
+Info.plist
+build/
+Payload/
+*.ipa

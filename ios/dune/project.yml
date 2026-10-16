@@ -1,0 +1,50 @@
+# XcodeGen project for the Dune iOS app. The GitHub workflow (.github/workflows/dune-ios.yml) copies the
+# game's web files into web/ and builds an unsigned .ipa from this.
+name: Dune
+options:
+  bundleIdPrefix: com.voxprints
+  deploymentTarget:
+    iOS: "15.0"
+targets:
+  Dune:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+      - path: Resources/Assets.xcassets
+      - path: web
+        type: folder
+        buildPhase: resources
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: Dune
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UIStatusBarHidden: true
+        UIViewControllerBasedStatusBarAppearance: true
+        UIRequiresFullScreen: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.voxprints.dune
+        PRODUCT_NAME: Dune
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.0"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGN_IDENTITY: ""
