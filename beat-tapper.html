@@ -179,6 +179,15 @@
   .calres{ margin:10px 0 0; font-size:14px; }
   .calres b{ font-family:ui-monospace,'SF Mono','Roboto Mono',monospace; }
   .lane-edit .desc{ flex:1 1 100%; width:100%; font-size:13px; }
+  /* sliders: a full-width card with a big range input */
+  .pad.slider{ grid-column:1 / -1; cursor:default; text-align:left; padding:12px 14px 10px; touch-action:pan-y; }
+  .pad.slider.off{ opacity:.5; }
+  .pad.slider .top{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .pad.slider .val{ margin-left:auto; font-family:ui-monospace,'SF Mono','Roboto Mono',monospace; font-weight:700; font-size:20px; min-width:3ch; text-align:right; }
+  .pad.slider .mv{ font-size:12px; color:var(--ink-dim); }
+  .pad.slider input[type=range]{ display:block; width:100%; height:38px; margin:4px 0 0; accent-color:var(--lane); cursor:pointer; touch-action:none; }
+  .pad.slider input[type=range]:disabled{ cursor:default; }
+  .lane-edit .kind{ font-size:12px; font-weight:600; min-width:64px; text-align:center; padding:5px 10px; border-radius:6px; border:1px dashed rgba(var(--border-tint),0.25); color:var(--ink-dim); }
   .pad .ds{ display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; margin-top:6px; font-size:11px; line-height:1.3; color:var(--ink-dim); }
   .playback{ margin-top:18px; padding-top:16px; border-top:1px solid rgba(var(--border-tint),0.10); }
   .playback h3{ margin:0 0 4px; font-size:15px; }
@@ -216,11 +225,12 @@
 
   <section class="card">
     <h2><span class="n">2</span> Your buttons</h2>
-    <p class="hint">Each button is its own track. Rename it, pick a colour, or click the key box to change its key. Untick Rec to leave a button out of the next pass.</p>
+    <p class="hint">Each button or slider is its own track. Buttons record taps; sliders record a value from 0 to 100 that you change as the song plays. Rename them, pick a colour, or click a button's key box to change its key. Untick Rec to leave one out of the next pass.</p>
     <div id="laneList"></div>
     <p class="savenote" id="saveNote"></p>
     <div class="row" style="margin-top:10px;">
       <button class="btn" id="addLane" type="button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#plus"/></svg> Add a button</button>
+      <button class="btn" id="addSlider" type="button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#separator-vertical"/></svg> Add a slider</button>
     </div>
     <div class="opt">
       <label>Speed
@@ -237,7 +247,7 @@
 
   <section class="card">
     <h2><span class="n">3</span> Record</h2>
-    <p class="hint">Press Start, then press and hold the keys on screen or on your keyboard. How long you hold each one is saved too. Backspace removes your last tap from this pass.</p>
+    <p class="hint">Press Start, then press and hold the keys on screen or on your keyboard. How long you hold each one is saved too. Drag a slider to record its value; until you grab it, a slider follows what you recorded for it before. Backspace removes your last tap from this pass.</p>
     <div class="stage">
       <canvas id="wave" width="1600" height="300"></canvas>
       <div class="overlay" id="overlay"></div>
@@ -255,11 +265,11 @@
       <button class="btn btn-primary" id="start" type="button" disabled><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#play"/></svg> Start recording</button>
       <button class="btn" id="stop" type="button" disabled><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pause"/></svg> Stop</button>
       <button class="btn" id="undo" type="button" disabled>Undo last tap</button>
-      <button class="btn btn-danger" id="clearAll" type="button" disabled>Clear all taps</button>
+      <button class="btn btn-danger" id="clearAll" type="button" disabled>Clear all</button>
     </div>
     <div class="playback hidden" id="playback">
       <h3>Playback</h3>
-      <p class="hint" style="margin:0 0 10px;">Hear your taps as tones along with the song. Click the waveform to choose where playback starts. Click a button below to mute it.</p>
+      <p class="hint" style="margin:0 0 10px;">Hear your taps as tones along with the song. Click the waveform to choose where playback starts. Click a button below to mute it. Sliders move along as you recorded them.</p>
       <div class="row">
         <button class="btn btn-primary" id="pbPlay" type="button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#play"/></svg> Play my taps</button>
         <button class="btn" id="pbStop" type="button" disabled><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pause"/></svg> Stop playback</button>
@@ -272,7 +282,7 @@
       </div>
       <div class="chips" id="pbLanes"></div>
       <div class="row" style="margin-top:14px;">
-        <label class="dim" style="display:flex;align-items:center;gap:8px;font-size:13px;">Delete all taps from <select id="delLane"></select></label>
+        <label class="dim" style="display:flex;align-items:center;gap:8px;font-size:13px;">Delete everything recorded on <select id="delLane"></select></label>
         <button class="btn btn-sm btn-danger" id="delLaneBtn" type="button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#trash-2"/></svg> Delete</button>
       </div>
     </div>
@@ -299,6 +309,7 @@
       <li>Wired headphones or speakers are best. Bluetooth adds delay that browsers can't always measure; if your taps sound late on playback, use the timing nudge.</li>
       <li>Use "Play my taps" after recording. You'll hear a click on every tap. If they sit slightly off the music, change the nudge and play it back again, no need to re-record.</li>
       <li>Hard to keep up? Drag the speed slider down (it can go to 25%). The times are saved against the original song, so they still match. Slower playback also lowers the pitch.</li>
+      <li>Sliders work like a mixing desk: on a new pass a slider plays back its earlier moves, and only the part from where you grab it until you stop is replaced. Set a slider's starting value before its first pass.</li>
       <li>To layer buttons, record one pass, then press "Record another pass". Your earlier taps play as clicks so you can tap along with them. Untick Rec on buttons you don't want to change.</li>
     </ul>
   </section>
@@ -418,6 +429,8 @@
   ];
   var laneSeq = 3;
   var taps = [];                 // {lane, raw, dur, pass}  raw/dur in song seconds before nudge; dur null while held
+  var moves = [];                // slider lanes: {lane, raw, v, pass}  raw in song seconds before nudge, v = 0..100
+  var punch = {}, lastMove = {}, curveVer = 0, curveCache = {}; // slider recording: where each slider was grabbed this pass
   var held = {};                 // press id -> tap
   var pass = 0, lastNatural = true;
   var mode = 'idle';             // idle | lead | rec | test
@@ -427,11 +440,11 @@
   /* remember button setup between visits */
   function cleanLanes(arr){
     if (!Array.isArray(arr) || !arr.length || arr.length > MAX_LANES || !arr.every(function(l){ return l && typeof l.id === 'string' && typeof l.name === 'string' && typeof l.code === 'string'; })) return null;
-    return arr.map(function(l, i){ return { id: l.id.slice(0, 20), name: l.name.slice(0, 24), code: l.code.slice(0, 20), color: /^#[0-9a-f]{6}$/i.test(l.color) ? l.color : COLORS[i % COLORS.length], desc: typeof l.desc === 'string' ? l.desc.slice(0, 140) : '', armed: true }; });
+    return arr.map(function(l, i){ var sl = l.type === 'slider'; return { id: l.id.slice(0, 20), name: l.name.slice(0, 24), code: sl ? '' : l.code.slice(0, 20), color: /^#[0-9a-f]{6}$/i.test(l.color) ? l.color : COLORS[i % COLORS.length], desc: typeof l.desc === 'string' ? l.desc.slice(0, 140) : '', armed: true, type: sl ? 'slider' : 'button', cur: sl ? (isFinite(l.start) ? Math.max(0, Math.min(100, Math.round(l.start))) : 0) : null }; });
   }
   function fixSeq(){ laneSeq = lanes.reduce(function(m, l){ var n = parseInt(String(l.id).replace(/\D/g, ''), 10); return isFinite(n) ? Math.max(m, n + 1) : m; }, 3); }
   try { var savedLanes = cleanLanes(JSON.parse(localStorage.getItem(STORE) || 'null')); if (savedLanes) { lanes = savedLanes; fixSeq(); } } catch (e) {}
-  function laneData(){ return lanes.map(function(l){ return { id: l.id, name: l.name, code: l.code, color: l.color, desc: l.desc || '' }; }); }
+  function laneData(){ return lanes.map(function(l){ var o = { id: l.id, name: l.name, code: l.code, color: l.color, desc: l.desc || '' }; if (l.type === 'slider') { o.type = 'slider'; o.start = l.cur || 0; } return o; }); }
   function saveLanes(){ try { localStorage.setItem(STORE, JSON.stringify(laneData())); } catch (e) {} scheduleProfileSave(); }
 
   function laneIdx(id){ return lanes.findIndex(function(l){ return l.id === id; }); }
@@ -442,8 +455,28 @@
   function nudge(){ var v = parseFloat($('nudge').value); return isFinite(v) ? v / 1000 : 0; }
   function isTyping(el){ return el && ((el.tagName === 'INPUT' && el.type !== 'file' && el.type !== 'range' && el.type !== 'checkbox') || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT'); }
   function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-  function countOf(id){ var n = 0; for (var i = 0; i < taps.length; i++) if (taps[i].lane === id) n++; return n; }
+  function isSlider(id){ var l = laneOf(id); return !!l && l.type === 'slider'; }
+  function countOf(id){ var arr = isSlider(id) ? moves : taps, n = 0; for (var i = 0; i < arr.length; i++) if (arr[i].lane === id) n++; return n; }
   function tapsWord(n){ return n + (n === 1 ? ' tap' : ' taps'); }
+  function movesWord(n){ return n + (n === 1 ? ' move' : ' moves'); }
+  function countWord(id){ return isSlider(id) ? movesWord(countOf(id)) : tapsWord(countOf(id)); }
+  function anyData(){ return taps.length > 0 || moves.length > 0; }
+  function dataWord(){ return [taps.length ? tapsWord(taps.length) : '', moves.length ? movesWord(moves.length) : ''].filter(Boolean).join(' and '); }
+
+  /* ---------- slider curves: points in time order; between points the value moves in a straight line ---------- */
+  function curveOf(id){
+    var c = curveCache[id]; if (c && c.ver === curveVer) return c.pts;
+    var pts = moves.filter(function(m){ return m.lane === id; }).sort(function(a, b){ return a.raw - b.raw; });
+    curveCache[id] = { ver: curveVer, pts: pts }; return pts;
+  }
+  function valueOn(pts, t){
+    if (!pts.length) return null;
+    if (t <= pts[0].raw) return pts[0].v;
+    var lo = 0, hi = pts.length - 1; if (t >= pts[hi].raw) return pts[hi].v;
+    while (hi - lo > 1) { var mid = (lo + hi) >> 1; if (pts[mid].raw <= t) lo = mid; else hi = mid; }
+    var a = pts[lo], b = pts[hi], span = b.raw - a.raw;
+    return span > 0 ? a.v + (b.v - a.v) * (t - a.raw) / span : b.v;
+  }
 
   /* ---------- button setup ---------- */
   function renderLanes(){
@@ -452,21 +485,22 @@
       var d = document.createElement('div'); d.className = 'lane-edit';
       d.innerHTML = '<input type="color" value="' + esc(l.color) + '" aria-label="Colour" title="Colour">' +
         '<input type="text" maxlength="24" value="' + esc(l.name) + '" aria-label="Button name">' +
-        '<button type="button" class="keycap' + (listening === l.id ? ' listening' : '') + '" title="Click, then press a key">' + (listening === l.id ? 'press a key…' : esc(codeLabel(l.code))) + '</button>' +
+        (l.type === 'slider' ? '<span class="kind" title="Drag it on screen while recording">Slider</span>' :
+        '<button type="button" class="keycap' + (listening === l.id ? ' listening' : '') + '" title="Click, then press a key">' + (listening === l.id ? 'press a key…' : esc(codeLabel(l.code))) + '</button>') +
         '<label class="armed"><input type="checkbox"' + (l.armed ? ' checked' : '') + '> Rec</label>' +
-        '<span class="cnt mono" data-cnt>' + tapsWord(countOf(l.id)) + '</span>' +
-        '<button type="button" class="btn btn-sm" data-clear title="Delete this button\'s taps">Clear taps</button>' +
+        '<span class="cnt mono" data-cnt>' + countWord(l.id) + '</span>' +
+        '<button type="button" class="btn btn-sm" data-clear title="Delete what this ' + (l.type === 'slider' ? 'slider' : 'button') + ' recorded">' + (l.type === 'slider' ? 'Clear moves' : 'Clear taps') + '</button>' +
         (lanes.length > 1 ? '<button type="button" class="btn btn-sm btn-danger" data-rm aria-label="Remove button"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#trash-2"/></svg></button>' : '') +
-        '<input type="text" class="desc" maxlength="140" placeholder="Description (optional): what is this button for?" value="' + esc(l.desc || '') + '" aria-label="Button description">';
+        '<input type="text" class="desc" maxlength="140" placeholder="Description (optional): what is this ' + (l.type === 'slider' ? 'slider' : 'button') + ' for?" value="' + esc(l.desc || '') + '" aria-label="Button description">';
       var col = d.querySelector('input[type=color]'); col.addEventListener('input', function(){ l.color = col.value; saveLanes(); renderPads(); renderChips(); drawWave(position()); });
       var dsc = d.querySelector('input.desc'); dsc.addEventListener('input', function(){ l.desc = dsc.value; saveLanes(); renderPads(); refreshResult(); });
-      var inp = d.querySelector('input[type=text]:not(.desc)'); inp.addEventListener('input', function(){ l.name = inp.value.trim() || ('Button ' + (i + 1)); saveLanes(); renderPads(); renderChips(); refreshResult(); });
-      d.querySelector('.keycap').addEventListener('click', function(){ listening = listening === l.id ? null : l.id; renderLanes(); });
+      var inp = d.querySelector('input[type=text]:not(.desc)'); inp.addEventListener('input', function(){ l.name = inp.value.trim() || ((l.type === 'slider' ? 'Slider ' : 'Button ') + (i + 1)); saveLanes(); renderPads(); renderChips(); refreshResult(); });
+      var kc = d.querySelector('button.keycap'); if (kc) kc.addEventListener('click', function(){ listening = listening === l.id ? null : l.id; renderLanes(); });
       d.querySelector('.armed input').addEventListener('change', function(e){ l.armed = e.target.checked; renderPads(); });
       d.querySelector('[data-clear]').addEventListener('click', function(){ deleteLaneTaps(l.id); });
       var rm = d.querySelector('[data-rm]'); if (rm) rm.addEventListener('click', function(){
-        var n = countOf(l.id); snapshotForUndo('Removed "' + l.name + '"' + (n ? ' and its ' + tapsWord(n) : '') + '.');
-        taps = taps.filter(function(t){ return t.lane !== l.id; }); lanes.splice(i, 1); saveLanes(); renderLanes(); renderPads(); renderChips(); afterTapsChanged();
+        var n = countOf(l.id); snapshotForUndo('Removed "' + l.name + '"' + (n ? ' and its ' + countWord(l.id) : '') + '.');
+        taps = taps.filter(function(t){ return t.lane !== l.id; }); moves = moves.filter(function(m){ return m.lane !== l.id; }); curveVer++; lanes.splice(i, 1); saveLanes(); renderLanes(); renderPads(); renderChips(); afterTapsChanged();
       });
       box.appendChild(d);
     });
@@ -475,11 +509,12 @@
   function lockSetup(lock){
     $('openSettings').disabled = lock || cal.on;
     document.querySelectorAll('#laneList .keycap, #laneList .armed input, #laneList [data-clear], #laneList [data-rm], #rate, #lead, #hear').forEach(function(e){ e.disabled = lock; });
-    $('addLane').disabled = lock || lanes.length >= MAX_LANES;
+    $('addLane').disabled = $('addSlider').disabled = lock || lanes.length >= MAX_LANES;
   }
   function renderPads(){
     var box = $('pads'); box.innerHTML = '';
     lanes.forEach(function(l){
+      if (l.type === 'slider') { box.appendChild(sliderPad(l)); return; }
       var b = document.createElement('button'); b.type = 'button'; b.className = 'pad'; b.dataset.lane = l.id; b.style.setProperty('--lane', l.color);
       b.innerHTML = '<span class="ct" data-ct>' + countOf(l.id) + '</span><span class="nm">' + esc(l.name) + '</span><span class="kc">' + esc(codeLabel(l.code)) + '</span>' + (l.desc ? '<span class="ds">' + esc(l.desc) + '</span>' : '');
       if (l.desc) b.title = l.desc;
@@ -491,11 +526,68 @@
       box.appendChild(b);
     });
   }
+  // A slider records while you're recording a pass and it has Rec ticked. Before its first recording you can set
+  // where it starts; once it has moves it shows its recorded value (at the playback marker when stopped).
+  function sliderUsable(l){ return mode === 'rec' ? l.armed : mode === 'idle' && !countOf(l.id); }
+  function sliderPad(l){
+    var d = document.createElement('div'); d.className = 'pad slider' + (mode === 'rec' && !l.armed ? ' off' : ''); d.dataset.lane = l.id; d.style.setProperty('--lane', l.color);
+    d.innerHTML = '<div class="top"><span class="nm">' + esc(l.name) + '</span><span class="mv"><span data-ct>' + countOf(l.id) + '</span> moves</span><span class="val" data-val>' + Math.round(l.cur || 0) + '</span></div>' +
+      '<input type="range" min="0" max="100" step="1" value="' + Math.round(l.cur || 0) + '" aria-label="' + esc(l.name) + '">' + (l.desc ? '<span class="ds">' + esc(l.desc) + '</span>' : '');
+    if (l.desc) d.title = l.desc;
+    var r = d.querySelector('input'); r.disabled = !sliderUsable(l);
+    r.addEventListener('input', function(e){ sliderInput(l, r, e); });
+    r.addEventListener('change', function(){ if (mode === 'idle') saveLanes(); });
+    return d;
+  }
+  function showSlider(l){
+    var pad = document.querySelector('.pad.slider[data-lane="' + l.id + '"]'); if (!pad) return;
+    var v = Math.round(l.cur || 0), r = pad.querySelector('input'), o = pad.querySelector('[data-val]');
+    if (+r.value !== v) r.value = v;
+    if (o.textContent !== String(v)) o.textContent = v;
+  }
+  // a slider moved by hand: while recording, store the value against the song time
+  function sliderInput(l, r, e){
+    var before = l.cur || 0, v = Math.round(+r.value); l.cur = v; l.movedAt = performance.now(); showSlider(l);
+    if (mode !== 'rec' || !l.armed || !buffer) return;
+    var raw = songTime(e); if (raw < 0 || raw > buffer.duration) return;
+    if (punch[l.id] == null) punch[l.id] = raw;
+    var prev = lastMove[l.id];
+    // after a pause, hold the old value right up to this moment, so the line doesn't ramp across the gap
+    if (!prev || raw - prev.raw > 0.08) moves.push({ lane: l.id, raw: Math.max(0, raw - 0.001), v: before, pass: pass });
+    if (prev && raw - prev.raw < 0.04) prev.v = v;   // at most about 25 points a second
+    else { prev = { lane: l.id, raw: raw, v: v, pass: pass }; moves.push(prev); lastMove[l.id] = prev; }
+    curveVer++;
+    var c = document.querySelector('.pad.slider[data-lane="' + l.id + '"] [data-ct]'); if (c) c.textContent = countOf(l.id);
+    $('lastLine').textContent = l.name + ' set to ' + v + ' at ' + fmt(raw);
+  }
+  // sliders you aren't holding follow their recording: while recording (until grabbed) and during playback
+  function followSliders(pos, shifted){
+    var nd = shifted ? nudge() : 0, now = performance.now();
+    lanes.forEach(function(l){
+      if (l.type !== 'slider' || punch[l.id] != null) return;
+      var v = valueOn(curveOf(l.id), pos - nd); if (v == null) return;
+      v = Math.round(v); if (v !== l.cur) { l.cur = v; l.movedAt = now; showSlider(l); }
+    });
+  }
+  // end of a pass: what you recorded on a slider replaces its earlier moves from where you grabbed it to where you stopped
+  function settleSliders(endPos){
+    Object.keys(punch).forEach(function(id){
+      var from = punch[id], l = laneOf(id);
+      var older = moves.filter(function(m){ return m.lane === id && m.pass !== pass; }).sort(function(a, b){ return a.raw - b.raw; });
+      var resume = older.some(function(m){ return m.raw > endPos; }) ? valueOn(older, endPos) : null;
+      moves = moves.filter(function(m){ return !(m.lane === id && m.pass !== pass && m.raw >= from && m.raw <= endPos); });
+      if (resume != null) {
+        moves.push({ lane: id, raw: endPos, v: l ? l.cur : resume, pass: pass });
+        moves.push({ lane: id, raw: Math.min(buffer.duration, endPos + 0.001), v: Math.round(resume), pass: pass });
+      }
+    });
+    punch = {}; lastMove = {}; curveVer++;
+  }
   function renderChips(){
     var box = $('chips'); box.innerHTML = '';
     lanes.forEach(function(l){
       var c = document.createElement('span'); c.className = 'chip'; c.dataset.lane = l.id; c.style.setProperty('--lane', l.color);
-      c.innerHTML = '<i></i>' + esc(l.name) + ' <b data-d></b>'; box.appendChild(c);
+      c.innerHTML = '<i></i>' + esc(l.name) + ' <b data-d></b>'; if (l.type === 'slider') c.dataset.slider = '1'; box.appendChild(c);
     });
     updateChips(position());
   }
@@ -503,7 +595,15 @@
     var live = {};
     if (mode === 'test') playList.forEach(function(t){ if (pos >= t.t && pos < t.t + Math.max(t.d, 0.1) && !muted[t.lane]) live[t.lane] = Math.max(live[t.lane] || 0, pos - t.t); });
     else Object.keys(held).forEach(function(k){ var t = held[k]; live[t.lane] = Math.max(live[t.lane] || 0, pos - t.raw); });
+    var now = performance.now();
     document.querySelectorAll('#chips .chip').forEach(function(c){
+      if (c.dataset.slider) {
+        var sl = laneOf(c.dataset.lane); if (!sl) return;
+        var son = now - (sl.movedAt || 0) < 300, sb = c.querySelector('[data-d]'), st = String(Math.round(sl.cur || 0));
+        if (c.classList.contains('on') !== son) c.classList.toggle('on', son);
+        if (sb.textContent !== st) sb.textContent = st;
+        return;
+      }
       var d = live[c.dataset.lane], on = d != null;
       if (c.classList.contains('on') !== on) c.classList.toggle('on', on);
       var b = c.querySelector('[data-d]'), txt = on ? d.toFixed(2) + ' s' : ''; if (b.textContent !== txt) b.textContent = txt;
@@ -515,61 +615,66 @@
     lanes.forEach(function(l){
       var p = document.querySelector('.pad[data-lane="' + l.id + '"] [data-ct]'); if (p) p.textContent = countOf(l.id);
     });
-    document.querySelectorAll('#laneList .lane-edit').forEach(function(row, i){ var c = row.querySelector('[data-cnt]'); if (c && lanes[i]) c.textContent = tapsWord(countOf(lanes[i].id)); });
+    document.querySelectorAll('#laneList .lane-edit').forEach(function(row, i){ var c = row.querySelector('[data-cnt]'); if (c && lanes[i]) c.textContent = countWord(lanes[i].id); });
     $('undo').disabled = !(mode === 'rec' && taps.some(function(t){ return t.pass === pass; }));
-    $('clearAll').disabled = mode !== 'idle' || !taps.length;
+    $('clearAll').disabled = mode !== 'idle' || !anyData();
     $('hearRow').classList.toggle('hidden', !taps.length);
-    $('playback').classList.toggle('hidden', !taps.length);
-    $('pbPlay').disabled = mode !== 'idle' || !taps.length; $('pbStop').disabled = mode !== 'test'; $('pbStart').disabled = mode !== 'idle';
+    $('playback').classList.toggle('hidden', !anyData());
+    $('pbPlay').disabled = mode !== 'idle' || !anyData(); $('pbStop').disabled = mode !== 'test'; $('pbStart').disabled = mode !== 'idle';
     renderPbLanes(); renderDelSelect();
-    $('start').innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#play"/></svg> ' + (taps.length ? 'Record another pass' : 'Start recording');
+    $('start').innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#play"/></svg> ' + (anyData() ? 'Record another pass' : 'Start recording');
   }
   /* deleting is instant and undoable (no confirm pop-ups: some phone and in-app browsers silently block them) */
   var undoSnap = null, undoTimer = 0;
   function snapshotForUndo(msg){
-    undoSnap = { taps: taps.map(function(t){ return { lane: t.lane, raw: t.raw, dur: t.dur, pass: t.pass }; }), lanes: lanes.map(function(l){ return { id: l.id, name: l.name, code: l.code, color: l.color, desc: l.desc, armed: l.armed }; }), pass: pass };
+    undoSnap = { taps: taps.map(function(t){ return { lane: t.lane, raw: t.raw, dur: t.dur, pass: t.pass }; }), moves: moves.map(function(m){ return { lane: m.lane, raw: m.raw, v: m.v, pass: m.pass }; }),
+      lanes: lanes.map(function(l){ return { id: l.id, name: l.name, code: l.code, color: l.color, desc: l.desc, armed: l.armed, type: l.type, cur: l.cur }; }), pass: pass };
     $('undoMsg').textContent = msg; $('undoBar').classList.remove('hidden'); clearTimeout(undoTimer); undoTimer = setTimeout(hideUndo, 15000);
   }
   function hideUndo(){ undoSnap = null; $('undoBar').classList.add('hidden'); clearTimeout(undoTimer); }
   $('undoBtn').addEventListener('click', function(){
     if (!undoSnap) return; var sn = undoSnap; hideUndo();
-    taps = sn.taps; lanes = sn.lanes; pass = sn.pass; fixSeq(); saveLanes();
+    taps = sn.taps; moves = sn.moves; curveVer++; lanes = sn.lanes; pass = sn.pass; fixSeq(); saveLanes();
     renderLanes(); renderPads(); renderChips(); afterTapsChanged();
-    if (taps.length) showResult(lastNatural, true);
+    if (anyData()) showResult(lastNatural, true);
     setStatus('Restored.', 'ok');
   });
   function deleteLaneTaps(id){
-    var l = laneOf(id), n = countOf(id); if (!l || !n || mode !== 'idle') return;
-    snapshotForUndo('Deleted ' + tapsWord(n) + ' from "' + l.name + '".');
-    taps = taps.filter(function(t){ return t.lane !== id; }); afterTapsChanged();
-    setStatus('Deleted ' + tapsWord(n) + ' from "' + l.name + '".');
+    var l = laneOf(id), n = countOf(id), w = countWord(id); if (!l || !n || mode !== 'idle') return;
+    snapshotForUndo('Deleted ' + w + ' from "' + l.name + '".');
+    taps = taps.filter(function(t){ return t.lane !== id; }); moves = moves.filter(function(m){ return m.lane !== id; }); curveVer++;
+    renderPads(); afterTapsChanged();
+    setStatus('Deleted ' + w + ' from "' + l.name + '".');
   }
   function renderDelSelect(){
     var sel = $('delLane'), keep = sel.value; sel.innerHTML = '';
-    lanes.forEach(function(l){ var n = countOf(l.id); if (!n) return; var o = document.createElement('option'); o.value = l.id; o.textContent = l.name + ' (' + tapsWord(n) + ')'; sel.appendChild(o); });
+    lanes.forEach(function(l){ var n = countOf(l.id); if (!n) return; var o = document.createElement('option'); o.value = l.id; o.textContent = l.name + ' (' + countWord(l.id) + ')'; sel.appendChild(o); });
     if (keep) sel.value = keep; if (!sel.value && sel.options.length) sel.selectedIndex = 0;
     $('delLaneBtn').disabled = mode !== 'idle' || !sel.options.length; sel.disabled = mode !== 'idle';
   }
   $('delLaneBtn').addEventListener('click', function(){ var id = $('delLane').value; if (id) deleteLaneTaps(id); });
   function afterTapsChanged(){
     updateCounts(); drawWave(position()); refreshResult(); scheduleTakeSave();
-    if (!taps.length) hideResult();
+    if (!anyData()) hideResult();
   }
 
-  $('addLane').addEventListener('click', function(){
+  function addLane(type){
     if (lanes.length >= MAX_LANES) return;
     var used = lanes.map(function(l){ return l.code; }), usedC = lanes.map(function(l){ return l.color; });
-    var code = KEYS.filter(function(k){ return used.indexOf(k) < 0; })[0] || 'KeyZ';
+    var code = type === 'slider' ? '' : (KEYS.filter(function(k){ return used.indexOf(k) < 0; })[0] || 'KeyZ');
     var color = COLORS.filter(function(c){ return usedC.indexOf(c) < 0; })[0] || COLORS[lanes.length % COLORS.length];
-    lanes.push({ id: 'b' + (laneSeq++), name: 'Button ' + (lanes.length + 1), code: code, color: color, desc: '', armed: true });
+    var same = lanes.filter(function(l){ return (l.type === 'slider') === (type === 'slider'); }).length;
+    lanes.push({ id: (type === 'slider' ? 's' : 'b') + (laneSeq++), name: (type === 'slider' ? 'Slider ' : 'Button ') + (same + 1), code: code, color: color, desc: '', armed: true, type: type, cur: type === 'slider' ? 0 : null });
     saveLanes(); renderLanes(); renderPads(); renderChips();
-  });
+  }
+  $('addLane').addEventListener('click', function(){ addLane('button'); });
+  $('addSlider').addEventListener('click', function(){ addLane('slider'); });
   $('rate').addEventListener('input', function(){ $('rateOut').textContent = this.value + '%'; });
 
   /* ---------- loading the song ---------- */
   $('file').addEventListener('change', function(){
     var f = this.files && this.files[0]; if (!f || !AC) return;
-    stopAll(); hideResult(); taps = []; held = {}; pass = 0; buffer = null; peaks = null; takeLoadedFor = ''; playFrom = 0; hideUndo(); $('start').disabled = true; updateCounts();
+    stopAll(); hideResult(); taps = []; moves = []; curveVer++; punch = {}; lastMove = {}; held = {}; pass = 0; buffer = null; peaks = null; takeLoadedFor = ''; playFrom = 0; hideUndo(); $('start').disabled = true; updateCounts();
     setStatus('Reading the song…');
     if (!ctx) makeCtx();
     var rd = new FileReader();
@@ -607,7 +712,15 @@
       var d = t.dur == null ? Math.max(0, pos - t.raw) : t.dur, x0 = Math.round((t.raw + nd) / dur * W), w = Math.max(3, Math.round(d / dur * W));
       g.fillStyle = lanes[i].color; g.fillRect(x0, 4 + i * (rowH + 1), w, rowH);
     });
-    if (playFrom > 0.05 && taps.length) { var mx2 = Math.round(playFrom / dur * W); g.fillStyle = css('--ok') || '#1a7f37'; g.fillRect(mx2 - 1, 0, 3, H); g.beginPath(); g.moveTo(mx2, 0); g.lineTo(mx2 + 18, 0); g.lineTo(mx2, 20); g.closePath(); g.fill(); }
+    // slider curves across the full height: 100 at the top, 0 at the bottom
+    lanes.forEach(function(l){
+      if (l.type !== 'slider') return; var pts = curveOf(l.id); if (!pts.length) return;
+      var y = function(v){ return 6 + (H - 12) * (1 - v / 100); };
+      g.strokeStyle = l.color; g.lineWidth = 4; g.lineJoin = 'round'; g.beginPath(); g.moveTo(0, y(pts[0].v));
+      pts.forEach(function(m){ g.lineTo(Math.round((m.raw + nd) / dur * W), y(m.v)); });
+      g.lineTo(W, y(pts[pts.length - 1].v)); g.stroke();
+    });
+    if (playFrom > 0.05 && anyData()) { var mx2 = Math.round(playFrom / dur * W); g.fillStyle = css('--ok') || '#1a7f37'; g.fillRect(mx2 - 1, 0, 3, H); g.beginPath(); g.moveTo(mx2, 0); g.lineTo(mx2 + 18, 0); g.lineTo(mx2, 20); g.closePath(); g.fill(); }
     g.fillStyle = css('--ink') || '#000'; g.fillRect(px - 1, 0, 3, H);
   }
   function position(){ // song seconds currently being heard
@@ -617,6 +730,7 @@
   }
   function loop(){
     var p = position(); $('tNow').textContent = fmt(p); $('tLeft').textContent = mode === 'rec' || mode === 'test' ? '-' + fmt(buffer.duration - p) : '';
+    if (mode === 'rec' || mode === 'lead') followSliders(p, false); else if (mode === 'test') followSliders(p, true);
     updateChips(p); drawWave(p); if (mode !== 'idle') rafId = requestAnimationFrame(loop);
   }
 
@@ -659,10 +773,10 @@
   });
   function beginRecording(){
     hideResult(); hideUndo(); document.activeElement && document.activeElement.blur();
-    pass++; held = {};
+    pass++; held = {}; punch = {}; lastMove = {};
     var lead = parseFloat($('lead').value) || 0, r = (parseFloat($('rate').value) || 100) / 100;
     var armed = lanes.filter(function(l){ return l.armed; }).length;
-    if (!armed) { setStatus('Tick Rec on at least one button.', 'warn'); pass--; return; }
+    if (!armed) { setStatus('Tick Rec on at least one button or slider.', 'warn'); pass--; return; }
     mode = lead > 0 ? 'lead' : 'rec'; renderLanes(); renderPads(); updateCounts(); $('stop').disabled = false; $('start').disabled = true;
     startPlayback({ rate: r, lead: lead });
     if ($('hear').checked && taps.length) { var nd = nudge(); scheduleClicks(taps.filter(function(t){ return t.dur != null; }).map(function(t){ return { lane: t.lane, t: Math.max(0, t.raw + nd), d: t.dur }; }), r); }
@@ -681,7 +795,7 @@
     endedEarly = true; finish(false);
   });
   $('undo').addEventListener('click', undoTap);
-  $('clearAll').addEventListener('click', function(){ if (!taps.length) return; snapshotForUndo('Deleted all ' + tapsWord(taps.length) + '.'); taps = []; pass = 0; hideResult(); afterTapsChanged(); setStatus('Cleared. Ready when you are.'); });
+  $('clearAll').addEventListener('click', function(){ if (!anyData()) return; snapshotForUndo('Deleted all ' + dataWord() + '.'); taps = []; moves = []; curveVer++; pass = 0; hideResult(); renderPads(); afterTapsChanged(); setStatus('Cleared. Ready when you are.'); });
   $('again').addEventListener('click', function(){ if (!$('start').disabled) $('start').click(); });
 
   function resetButtons(){ $('start').disabled = !buffer; $('stop').disabled = true; renderLanes(); renderPads(); renderChips(); updateCounts(); }
@@ -689,11 +803,12 @@
     if (finished) return; finished = true;
     var wasRec = mode === 'rec' || mode === 'lead'; var p = natural && buffer ? buffer.duration : position();
     closeHeld(p);
+    if (wasRec && buffer) settleSliders(Math.min(p, buffer.duration));
     stopAll(); resetButtons(); drawWave(p);
     if (!wasRec) return;
-    var mine = taps.filter(function(t){ return t.pass === pass; }).length;
-    if (!taps.length) { setStatus(natural ? 'The song ended but no taps were recorded.' : 'Stopped. No taps were recorded.', 'warn'); return; }
-    if (!mine) setStatus('That pass had no new taps.', 'warn');
+    var mine = taps.filter(function(t){ return t.pass === pass; }).length + moves.filter(function(m){ return m.pass === pass; }).length;
+    if (!anyData()) { setStatus(natural ? 'The song ended but nothing was recorded.' : 'Stopped. Nothing was recorded.', 'warn'); return; }
+    if (!mine) setStatus('That pass had no new taps or slider moves.', 'warn');
     showResult(natural); scheduleTakeSave(true);
   }
   function closeHeld(p){
@@ -754,14 +869,21 @@
   function build(natural){
     var nd = nudge(), dur = buffer.duration, round = function(v){ return Math.round(v * 1000) / 1000; };
     var list = taps.filter(function(t){ return t.dur != null && laneIdx(t.lane) >= 0; }).map(function(t){ var s = Math.max(0, Math.min(dur, t.raw + nd)); return { lane: t.lane, t: round(s), d: round(Math.min(t.dur, dur - s)) }; }).sort(function(a, b){ return a.t - b.t; });
-    var by = {}; lanes.forEach(function(l){ by[l.id] = list.filter(function(x){ return x.lane === l.id; }).map(function(x){ return { t: x.t, d: x.d }; }); });
+    var by = {}, sliders = {};
+    lanes.forEach(function(l){
+      if (l.type === 'slider') {
+        var pts = curveOf(l.id).map(function(m){ return { t: round(Math.max(0, Math.min(dur, m.raw + nd))), v: Math.round(m.v) }; });
+        // drop points that change nothing (same value as both neighbours)
+        sliders[l.id] = pts.filter(function(m, i){ return i === 0 || i === pts.length - 1 || !(pts[i - 1].v === m.v && pts[i + 1].v === m.v); });
+      } else by[l.id] = list.filter(function(x){ return x.lane === l.id; }).map(function(x){ return { t: x.t, d: x.d }; });
+    });
     return {
-      tool: 'voxprints-beat-tapper', version: 2,
+      tool: 'voxprints-beat-tapper', version: 3,
       song: { name: songName, durationSec: round(dur), sizeBytes: songSize },
       passes: pass, nudgeMs: Math.round(nd * 1000), calibrationMs: Math.round(calMs), endedWithSong: !!natural,
-      note: 't = seconds into the song when the button went down, d = seconds it was held',
-      lanes: lanes.map(function(l){ return { id: l.id, name: l.name, description: l.desc || '', key: codeLabel(l.code), color: l.color }; }),
-      byLane: by, taps: list
+      note: 'Buttons: t = seconds into the song when the button went down, d = seconds it was held. Sliders: t = seconds into the song, v = value from 0 to 100; between two points the value moves in a straight line, and before the first / after the last point it stays at that value.',
+      lanes: lanes.map(function(l){ return l.type === 'slider' ? { id: l.id, type: 'slider', name: l.name, description: l.desc || '', color: l.color } : { id: l.id, type: 'button', name: l.name, description: l.desc || '', key: codeLabel(l.code), color: l.color }; }),
+      byLane: by, taps: list.filter(function(x){ return !isSlider(x.lane); }), sliders: sliders
     };
   }
   function showResult(natural, quiet){
@@ -769,13 +891,13 @@
     $('resultHint').textContent = (natural ? 'The song finished, so the recording stopped on its own.' : 'You stopped before the song ended, so taps may only cover part of it.') + (pass > 1 ? ' This file has ' + pass + ' passes layered together.' : '');
     refreshResult();
     if (quiet) return;
-    setStatus(tapsWord(taps.length) + ' recorded' + (user ? ' and saved to your account' : '') + '. Download the file below and send it over, or record another pass.', 'ok');
+    setStatus(dataWord() + ' recorded' + (user ? ' and saved to your account' : '') + '. Download the file below and send it over, or record another pass.', 'ok');
     $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   function refreshResult(){
     if (!buffer || $('result').classList.contains('hidden')) return;
     var d = build(lastNatural), sum = $('sum'); sum.innerHTML = '';
-    lanes.forEach(function(l){ var n = d.byLane[l.id].length; if (!n) return; var s = document.createElement('span'); s.className = 'pill'; s.style.setProperty('--lane', l.color); s.innerHTML = '<i></i>' + esc(l.name) + ': ' + n; sum.appendChild(s); });
+    lanes.forEach(function(l){ var sl = l.type === 'slider', n = sl ? countOf(l.id) : d.byLane[l.id].length; if (!n) return; var s = document.createElement('span'); s.className = 'pill'; s.style.setProperty('--lane', l.color); s.innerHTML = '<i></i>' + esc(l.name) + ': ' + (sl ? movesWord(n) : n); sum.appendChild(s); });
     $('json').value = JSON.stringify(d, null, 1);
   }
   function hideResult(){ $('result').classList.add('hidden'); }
@@ -798,16 +920,16 @@
     if (sig === pbSig) return; pbSig = sig;
     var box = $('pbLanes'); box.innerHTML = '';
     lanes.forEach(function(l){
-      if (!countOf(l.id)) return;
+      if (l.type === 'slider' || !countOf(l.id)) return;
       var c = document.createElement('button'); c.type = 'button'; c.className = 'chip' + (muted[l.id] ? ' muted' : ''); c.style.setProperty('--lane', l.color); c.title = muted[l.id] ? 'Muted. Click to hear it' : 'Click to mute';
       c.innerHTML = '<i></i>' + esc(l.name) + ' <b>' + countOf(l.id) + '</b>';
       c.addEventListener('click', function(){ muted[l.id] = !muted[l.id]; if (laneG[l.id]) laneG[l.id].gain.value = muted[l.id] ? 0 : 1; pbSig = ''; renderPbLanes(); });
       box.appendChild(c);
     });
   }
-  function setPlayFrom(t){ playFrom = Math.max(0, Math.min(buffer ? Math.max(0, buffer.duration - 0.3) : 0, t)); $('pbFrom').textContent = 'Starts at ' + fmt(playFrom); drawWave(position()); }
+  function setPlayFrom(t){ playFrom = Math.max(0, Math.min(buffer ? Math.max(0, buffer.duration - 0.3) : 0, t)); $('pbFrom').textContent = 'Starts at ' + fmt(playFrom); if (mode === 'idle') followSliders(playFrom, true); drawWave(position()); }
   $('pbPlay').addEventListener('click', function(){
-    if (!buffer || !taps.length || mode !== 'idle') return;
+    if (!buffer || !anyData() || mode !== 'idle') return;
     unlockAudio().then(function(ok){ if (ok) playTest(); else audioBlocked(); });
   });
   $('pbStop').addEventListener('click', function(){ if (mode === 'test') { stopAll(); resetButtons(); setStatus('Playback stopped.'); } });
@@ -825,7 +947,7 @@
     startPlayback({ rate: 1, lead: 0, offset: playFrom });
     scheduleClicks(playList, 1, playFrom);
     src.onended = function(){ if (this !== src) return; stopAll(); resetButtons(); setStatus('Playback finished.'); };
-    setStatus('Playing your taps as tones. If they sound early or late, change the timing nudge and play again.');
+    setStatus('Playing your taps as tones' + (moves.length ? ', with the sliders moving as you recorded them' : '') + '. If they sound early or late, change the timing nudge and play again.');
   }
 
   /* ---------- settings + calibration ---------- */
@@ -946,7 +1068,8 @@
   }
   function saveTake(){
     if (!sb || !user || !buffer || notAdmin) return;
-    var rows = taps.filter(function(t){ return t.dur != null; }).map(function(t){ return [t.lane, Math.round(t.raw * 1000) / 1000, Math.round(t.dur * 1000) / 1000, t.pass]; });
+    var rows = taps.filter(function(t){ return t.dur != null; }).map(function(t){ return [t.lane, Math.round(t.raw * 1000) / 1000, Math.round(t.dur * 1000) / 1000, t.pass]; })
+      .concat(moves.map(function(m){ return [m.lane, Math.round(m.raw * 1000) / 1000, Math.round(m.v), m.pass, 's']; }));
     sb.rpc('beat_tapper_save_take', { p_key: songKey(), p_name: songName, p_duration: buffer.duration, p_lanes: laneData(), p_taps: rows, p_passes: pass, p_nudge_ms: Math.round(nudge() * 1000) }).then(function(r){
       if (r.error) onCloudError(r.error); else { takeDirty = false; note(rows.length ? 'Taps saved to your account.' : 'Saved to your account.', 'ok'); }
     }, onCloudError);
@@ -956,14 +1079,16 @@
     var key = songKey(); if (takeLoadedFor === key) return; takeLoadedFor = key;
     sb.rpc('beat_tapper_get_take', { p_key: key }).then(function(r){
       if (r.error) return onCloudError(r.error);
-      var d = r.data; if (!d || !Array.isArray(d.taps) || !d.taps.length || taps.length || songKey() !== key || mode !== 'idle') return;
+      var d = r.data; if (!d || !Array.isArray(d.taps) || !d.taps.length || anyData() || songKey() !== key || mode !== 'idle') return;
       var known = {}; lanes.forEach(function(l){ known[l.id] = true; });
       (cleanLanes(d.lanes) || []).forEach(function(l){ if (!known[l.id] && lanes.length < MAX_LANES) { lanes.push(l); known[l.id] = true; } });
-      taps = d.taps.filter(function(a){ return Array.isArray(a) && known[a[0]] && isFinite(a[1]) && isFinite(a[2]); }).map(function(a){ return { lane: a[0], raw: +a[1], dur: +a[2], pass: +a[3] || 1 }; });
-      pass = Math.max(d.passes || 0, taps.reduce(function(m, t){ return Math.max(m, t.pass); }, 0)); takeDirty = false;
+      var rows = d.taps.filter(function(a){ return Array.isArray(a) && known[a[0]] && isFinite(a[1]) && isFinite(a[2]); });
+      taps = rows.filter(function(a){ return a[4] !== 's' && !isSlider(a[0]); }).map(function(a){ return { lane: a[0], raw: +a[1], dur: +a[2], pass: +a[3] || 1 }; });
+      moves = rows.filter(function(a){ return a[4] === 's' && isSlider(a[0]); }).map(function(a){ return { lane: a[0], raw: +a[1], v: Math.max(0, Math.min(100, +a[2])), pass: +a[3] || 1 }; }); curveVer++;
+      pass = Math.max(d.passes || 0, taps.concat(moves).reduce(function(m, t){ return Math.max(m, t.pass); }, 0)); takeDirty = false;
       if (isFinite(d.nudge_ms)) $('nudge').value = d.nudge_ms;
       fixSeq(); saveLanes(); renderLanes(); renderPads(); renderChips(); updateCounts(); drawWave(0);
-      if (taps.length) { showResult(true, true); setStatus('Loaded ' + tapsWord(taps.length) + ' you saved for this song. Record another pass to add more, or clear them to start over.', 'ok'); }
+      if (anyData()) { followSliders(playFrom, true); showResult(true, true); setStatus('Loaded ' + dataWord() + ' you saved for this song. Record another pass to add more, or clear them to start over.', 'ok'); }
     }, onCloudError);
   }
   function initCloud(){
@@ -992,7 +1117,7 @@
     }).then(function(r){ var u = r && r.data && r.data.session && r.data.session.user || null; if (u && !user) { user = u; initCloud(); } else if (!u) acctLine(); }).catch(function(){ $('acctInfo').textContent = 'Could not reach the account service. Everything still works and is saved on this device.'; });
   } catch (e) {}
 
-  window.addEventListener('beforeunload', function(e){ if (taps.length && (!user || takeDirty)) { e.preventDefault(); e.returnValue = ''; } });
+  window.addEventListener('beforeunload', function(e){ if (anyData() && (!user || takeDirty)) { e.preventDefault(); e.returnValue = ''; } });
   window.addEventListener('resize', function(){ drawWave(position()); });
   setCal(calMs); renderLanes(); renderPads(); renderChips(); updateCounts();
 })();
@@ -1000,4 +1125,4 @@
 
 </body>
 </html>
-<!-- build 2026-10-13T23:52:28Z -->
+<!-- build 2026-10-17T00:00:00Z -->
