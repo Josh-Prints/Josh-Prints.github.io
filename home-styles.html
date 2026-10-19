@@ -171,7 +171,7 @@ h1 > span{ display:block; }
 .s-kinetic{ background:#0d1117; color:#e6edf3; }
 .s-kinetic .marq{ position:absolute; inset:-20%; display:flex; flex-direction:column; justify-content:center; gap:2px; opacity:.08; transform:rotate(-8deg); }
 .s-kinetic .marq div{ white-space:nowrap; font-size:clamp(56px,10vw,120px); font-weight:900; text-transform:uppercase; letter-spacing:-.02em; line-height:1; animation:mq 40s linear infinite; }
-.s-kinetic .marq div:nth-child(even){ animation-direction:reverse; color:rgba(230,237,243,.45); }
+.s-kinetic .marq div:nth-child(even){ animation-direction:reverse; color:#0d1117; -webkit-text-stroke:4px #e6edf3; paint-order:stroke fill; }
 @keyframes mq{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
 .s-kinetic h1{ font-weight:800; letter-spacing:-.03em; font-size:clamp(40px,7vw,80px); }
 .s-kinetic .ch{ display:inline-block; animation:rise .9s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i) * 32ms); }
