@@ -208,7 +208,7 @@
           <h2>You won!</h2>
           <p id="win-text"></p>
           <button type="button" class="gbtn" id="again">Play again</button>
-          <p class="guest-note" hidden>You're not signed in, so this win won't go on the leaderboard. <button type="button">Sign in</button></p>
+          <p class="guest-note" hidden>Playing as guest. <button type="button">Sign in</button></p>
         </div>
       </div>
     </div>
@@ -231,12 +231,10 @@
       <div class="panel">
         <h3>How to play</h3>
         <ul class="rules">
-          <li>Build each foundation (top right) up by suit, from Ace to King. Get all 52 cards there to win.</li>
-          <li>In the seven columns, stack cards down in alternating colours: a red 9 on a black 10. You can move a whole run at once.</li>
-          <li>Only a King (or a run starting with one) can go in an empty column.</li>
-          <li>Tap the stock (top left) to turn cards over. When it runs out, tap again to go through the pile again.</li>
-          <li>Drag cards, or tap one to send it to the best place. Undo takes back a move.</li>
-          <li>Score: 10 for each card onto a foundation, 5 for each card from the pile to a column, 5 for each card turned face up. Taking a card back off a foundation costs 15, going through the pile again costs 100 (20 when turning 3), and you lose 2 points every 10 seconds. Winning adds a time bonus: the faster, the bigger.</li>
+          <li>Build each suit from Ace to King.</li>
+          <li>Stack columns down in alternating colours.</li>
+          <li>Only Kings go in empty columns.</li>
+          <li>Drag, or tap a card to auto-move it.</li>
         </ul>
       </div>
     </div>
@@ -502,7 +500,7 @@ const net = {
   },
   async loadBoard(){
     const el = document.getElementById('lb');
-    if (!this.sb){ el.innerHTML = '<li class="lb-empty">Leaderboard unavailable right now.</li>'; return; }
+    if (!this.sb){ el.innerHTML = '<li class="lb-empty">Unavailable right now.</li>'; return; }
     const { data, error } = await this.sb.rpc('game_leaderboard', { p_game: 'solitaire', p_kind: this.kind, p_limit: 10 });
     if (error){ el.innerHTML = '<li class="lb-empty">Couldn’t load the leaderboard.</li>'; return; }
     const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -538,7 +536,7 @@ const net = {
       this.sb.rpc('game_my_stats', { p_game: 'solitaire' }).then(({ data }) => this.renderMe(data));
       return;
     }
-    box.innerHTML = '<h3>Get on the leaderboard</h3><p>Sign in to put your best wins and time played on the leaderboard.</p>' +
+    box.innerHTML = '<h3>Sign in</h3><p>Join the leaderboard.</p>' +
       '<button type="button" class="pbtn" id="g-in"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>Sign in with Google</button>' +
       '<input class="pinput" id="em-in" type="email" placeholder="or your email" autocomplete="email">' +
       '<button type="button" class="pbtn" id="em-send">Email me a code</button>' +

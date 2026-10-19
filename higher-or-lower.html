@@ -12,7 +12,7 @@
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
 <script src="/game-ui.js?v=1" defer></script>
-<link rel="stylesheet" href="/casino.css?v=13">
+<link rel="stylesheet" href="/casino.css?v=14">
 <style>
   .table{ justify-content: flex-start; gap: 12px; max-width: 720px; }
   .table > .trail-zone{ margin-top: auto; }
@@ -87,7 +87,7 @@
           <button class="btn main" id="rebuy" hidden>Get chips with Vox points</button>
         </div>
         <div class="foot-notes">
-          <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
+          <p class="guest-note" hidden>Playing as guest. <button type="button">Sign in</button></p>
           <div class="ver">Version 2026-10-19a</div>
         </div>
       </main>
@@ -97,18 +97,15 @@
       <div class="panel">
         <h3>How to play</h3>
         <ul class="rules">
-          <li>Bet, then deal. One card is turned over.</li>
-          <li>Guess whether the next card will be higher or lower. Aces are low: A, 2, 3 … 10, J, Q, K.</li>
-          <li>A card of the same rank counts as a wrong guess.</li>
-          <li>Each right guess multiplies your winnings. Unlikely guesses pay more: the buttons show how many cards are left that win, and what they pay.</li>
-          <li>Cash out any time after a right guess. A wrong guess loses your bet.</li>
-          <li>All the cards come from one shuffled deck, so cards you've seen won't come up again in that round.</li>
-          <li>Payouts are 97% of the true odds. Winnings stop growing at 1,000 times your bet.</li>
+          <li>Guess if the next card is higher or lower.</li>
+          <li>Aces are low. Same rank loses.</li>
+          <li>Cash out after any right guess.</li>
+          <li>Max 1,000× your bet.</li>
         </ul>
       </div>
       <div class="panel">
         <h3>Casino leaderboard</h3>
-        <p>Your chips are shared by every casino game. Out of chips? Turn <a class="rules-link" href="/games.html#vox">Vox points</a> into chips. Cheating gets you banned: <a class="rules-link" href="/terms.html#casino">casino rules</a>.</p>
+        <p>Shared across all casino games. <a class="rules-link" href="/terms.html#casino">Rules</a></p>
         <div class="tabs" role="tablist">
           <button type="button" class="tab on" data-kind="score">Chips</button>
           <button type="button" class="tab" data-kind="time">Time played</button>
@@ -123,7 +120,7 @@
    loses). Each right guess multiplies the winnings by 97% of the fair odds from the cards left; cash out any time
    after a right guess. Multipliers are whole basis points (10000 = 1x), rounded down, capped at 1000x. The server's
    hl_start(), hl_guess() and hl_cashout() play the same way for signed-in players. */
-import { $, sleep, reduced, fmt, newDeck, showChips, msg, sfx, casino, startShell, signedIn, cardEl, paintCard, chipRack, betBoard, openVox, bank } from '/casino.js?v=13';
+import { $, sleep, reduced, fmt, newDeck, showChips, msg, sfx, casino, startShell, signedIn, cardEl, paintCard, chipRack, betBoard, openVox, bank } from '/casino.js?v=14';
 
 const RANKS = ['Ace', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King'];
 const CAP = 10000000;

@@ -12,7 +12,7 @@
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
 <script src="/game-ui.js?v=1" defer></script>
-<link rel="stylesheet" href="/casino.css?v=13">
+<link rel="stylesheet" href="/casino.css?v=14">
 <style>
   .table{ justify-content: flex-start; gap: 10px; max-width: 900px; }
   .keno{ margin-top: auto; display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 14px; align-items: start; }
@@ -89,7 +89,7 @@
           <button class="btn main" id="rebuy" hidden>Get chips with Vox points</button>
         </div>
         <div class="foot-notes">
-          <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
+          <p class="guest-note" hidden>Playing as guest. <button type="button">Sign in</button></p>
           <div class="ver">Version 2026-10-14a</div>
         </div>
       </main>
@@ -99,15 +99,14 @@
       <div class="panel">
         <h3>How to play</h3>
         <ul class="rules">
-          <li>Pick 1 to 10 numbers from 1 to 80 (or Quick pick), set your bet, then draw.</li>
-          <li>20 numbers are drawn. The more of yours that come up, the more you win; the pay table shows what each number of hits pays for the spots you picked.</li>
-          <li>Your numbers stay picked, so you can draw again with the same card.</li>
-          <li>Like real keno, it pays back around 90 to 92% for 2 to 10 spots, and 75% for a single spot.</li>
+          <li>Pick 1 to 10 numbers, then draw.</li>
+          <li>20 balls are drawn. See the pay table.</li>
+          <li>Your picks stay for the next draw.</li>
         </ul>
       </div>
       <div class="panel">
         <h3>Casino leaderboard</h3>
-        <p>Your chips are shared by every casino game. Out of chips? Turn <a class="rules-link" href="/games.html#vox">Vox points</a> into chips. Cheating gets you banned: <a class="rules-link" href="/terms.html#casino">casino rules</a>.</p>
+        <p>Shared across all casino games. <a class="rules-link" href="/terms.html#casino">Rules</a></p>
         <div class="tabs" role="tablist">
           <button type="button" class="tab on" data-kind="score">Chips</button>
           <button type="button" class="tab" data-kind="time">Time played</button>
@@ -120,7 +119,7 @@
 <script type="module">
 /* Keno: pick up to 10 numbers from 80, 20 are drawn. The pay table returns 90-92% for 2 to 10 spots (75% for
    one spot), like real video keno. The server's keno_draw() draws and pays the same way for signed-in players. */
-import { $, sleep, reduced, fmt, shuffle, bank, showChips, msg, sfx, casino, startShell, signedIn, openVox } from '/casino.js?v=13';
+import { $, sleep, reduced, fmt, shuffle, bank, showChips, msg, sfx, casino, startShell, signedIn, openVox } from '/casino.js?v=14';
 
 const PAY = {
   1: { 1: 3 }, 2: { 2: 15 }, 3: { 2: 2, 3: 46 }, 4: { 2: 1, 3: 5, 4: 160 }, 5: { 3: 3, 4: 12, 5: 810 },

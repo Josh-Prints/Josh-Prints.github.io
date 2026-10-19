@@ -12,7 +12,7 @@
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
 <script src="/game-ui.js?v=1" defer></script>
-<link rel="stylesheet" href="/casino.css?v=13">
+<link rel="stylesheet" href="/casino.css?v=14">
 <style>
   .table{ justify-content: flex-start; gap: 10px; max-width: 820px; }
   .table > .zone:first-child{ margin-top: auto; }
@@ -89,7 +89,7 @@
           <button class="btn main" id="rebuy" hidden>Get chips with Vox points</button>
         </div>
         <div class="foot-notes">
-          <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
+          <p class="guest-note" hidden>Playing as guest. <button type="button">Sign in</button></p>
           <div class="ver">Version 2026-10-14e</div>
         </div>
       </main>
@@ -99,19 +99,16 @@
       <div class="panel">
         <h3>How to play</h3>
         <ul class="rules">
-          <li>Get closer to 21 than the dealer without going over. Picture cards count 10, aces 1 or 11.</li>
-          <li>Blackjack (an ace and a ten-card) pays 3 to 2. Other wins pay 1 to 1; ties push.</li>
-          <li><b>Double</b> on any first two cards: double the bet, take exactly one more card.</li>
-          <li><b>Split</b> two cards of the same value into two hands (up to four). Split aces get one card each. You can double after splitting.</li>
-          <li><b>Surrender</b> your first two cards to get half your bet back.</li>
-          <li><b>Insurance</b> is offered when the dealer shows an ace: it costs half your bet and pays 2 to 1 if the dealer has blackjack.</li>
-          <li>Six decks, reshuffled at the cut card. The dealer checks for blackjack and stands on all 17s.</li>
-          <li>Keys: H hit, S stand, D double, P split.</li>
+          <li>Get closer to 21 than the dealer. Aces are 1 or 11.</li>
+          <li>Blackjack pays 3:2.</li>
+          <li><b>Double</b>, <b>Split</b> (up to 4 hands), <b>Surrender</b>, <b>Insurance</b>.</li>
+          <li>6 decks. Dealer stands on 17.</li>
+          <li>Keys: H, S, D, P.</li>
         </ul>
       </div>
       <div class="panel">
         <h3>Casino leaderboard</h3>
-        <p>Your chips are shared by every casino game. Out of chips? Turn <a class="rules-link" href="/games.html#vox">Vox points</a> into chips. Cheating gets you banned: <a class="rules-link" href="/terms.html#casino">casino rules</a>.</p>
+        <p>Shared across all casino games. <a class="rules-link" href="/terms.html#casino">Rules</a></p>
         <div class="tabs" role="tablist">
           <button type="button" class="tab on" data-kind="score">Chips</button>
           <button type="button" class="tab" data-kind="time">Time played</button>
@@ -126,7 +123,7 @@
    stands on all 17s, blackjack pays 3 to 2, double on any two cards, split up to four hands (split aces get one
    card each, double after split allowed), late surrender, insurance. bjApply() is the whole rulebook as one
    step function; the server's bj2_apply() follows it step for step for signed-in players. */
-import { $, sleep, reduced, fmt, newDeck, bank, showChips, msg, sfx, casino, startShell, signedIn, cardEl, paintCard, chipRack, betBoard, openVox } from '/casino.js?v=13';
+import { $, sleep, reduced, fmt, newDeck, bank, showChips, msg, sfx, casino, startShell, signedIn, cardEl, paintCard, chipRack, betBoard, openVox } from '/casino.js?v=14';
 
 const val = c => c % 13 === 0 ? 11 : c % 13 >= 9 ? 10 : c % 13 + 1;
 function tot(h){ let t = 0, a = 0; for (const c of h){ if (c < 0) continue; t += val(c); if (c % 13 === 0) a++; } while (t > 21 && a){ t -= 10; a--; } return { t, soft: a > 0 }; }

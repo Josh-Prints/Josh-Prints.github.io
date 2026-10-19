@@ -197,14 +197,12 @@
           </div>
           <details class="how"><summary>How to play</summary>
           <ul>
-            <li>Your ball rolls over the dunes on its own.</li>
-            <li><b>Hold down</b> (touch, click or Space) to get heavy and dive into the hills. <b>Let go</b> to fly off the tops.</li>
-            <li>Land smoothly on a <b>downhill slope</b> to get a speed boost. Land three in a row for a fever combo.</li>
-            <li>Grab the <b>coins</b> on the ground. When you're flying fast, more sometimes appear right on your flight path ahead of you. Land hard (Ouch!) and you'll drop some.</li>
-            <li>Your coins are saved to your account. Spend them in the <b>shop</b> on ball skins and world themes, or turn them into <a href="/games.html#vox">Vox points</a> (1 coin = 1 point) for the weekly leaderboard and the casino.</li>
-            <li>A sandstorm is following you. Keep your speed up or it catches you.</li>
+            <li><b>Hold</b> to dive, <b>let go</b> to fly.</li>
+            <li>Land on downhill slopes for speed.</li>
+            <li>Collect coins. Spend them in the shop or on <a href="/games.html#vox">Vox points</a>.</li>
+            <li>Outrun the sandstorm.</li>
           </ul></details>
-          <p class="guest-note" hidden>You're not signed in, so your coins, purchases and scores won't be saved. <button type="button">Sign in</button></p>
+          <p class="guest-note" hidden>Playing as guest. <button type="button">Sign in</button></p>
           <div class="ver">Version 2026-10-21a</div>
         </div>
       </div>
@@ -218,7 +216,7 @@
           </div>
           <div class="shop-grid" id="shop-grid"></div>
           <p class="shop-msg" id="shop-msg"></p>
-          <p class="guest-note" hidden>You're not signed in, so your coins, purchases and scores won't be saved. <button type="button">Sign in</button></p>
+          <p class="guest-note" hidden>Playing as guest. <button type="button">Sign in</button></p>
           <button type="button" class="play ghost" data-act="menu">Back</button>
         </div>
       </div>
@@ -242,7 +240,7 @@
             <button type="button" class="play" data-act="new">Ride again</button>
             <button type="button" class="play ghost" data-act="menu">Menu</button>
           </div>
-          <p class="guest-note" hidden>You're not signed in, so your coins, purchases and scores won't be saved. <button type="button">Sign in</button></p>
+          <p class="guest-note" hidden>Playing as guest. <button type="button">Sign in</button></p>
         </div>
       </div>
     </div>
@@ -800,7 +798,7 @@ const net = {
   },
   async loadBoard(){
     const el = document.getElementById('lb');
-    if (!this.sb){ el.innerHTML = '<li class="lb-empty">Leaderboard unavailable right now.</li>'; return; }
+    if (!this.sb){ el.innerHTML = '<li class="lb-empty">Unavailable right now.</li>'; return; }
     const { data, error } = await this.sb.rpc('game_leaderboard', { p_game: 'dune', p_kind: this.kind, p_limit: 10 });
     if (error){ el.innerHTML = '<li class="lb-empty">Couldn’t load the leaderboard.</li>'; return; }
     const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -836,7 +834,7 @@ const net = {
       this.sb.rpc('game_my_stats', { p_game: 'dune' }).then(({ data }) => this.renderMe(data));
       return;
     }
-    box.innerHTML = '<h3>Get on the leaderboard</h3><p>Sign in to save your best runs and time played.</p>' +
+    box.innerHTML = '<h3>Sign in</h3><p>Save your runs and join the leaderboard.</p>' +
       '<button type="button" class="pbtn" id="g-in"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>Sign in with Google</button>' +
       '<input class="pinput" id="em-in" type="email" placeholder="or your email" autocomplete="email">' +
       '<button type="button" class="pbtn" id="em-send">Email me a code</button>' +

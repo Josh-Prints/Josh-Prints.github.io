@@ -58,11 +58,10 @@ function loanChips(v){ const c = $('ln-chips'); if (c) c.textContent = fmt(v); }
 export function voxHtml(signed){
   return '<div class="loan" id="vox"><div class="me-row"><span>Chips</span><b id="ln-chips">…</b><span>Vox points</span><b id="vx-pts">' + (signed ? '…' : 'Sign in') + '</b></div>' +
     (signed
-      ? '<p class="loan-note">1 chip = 1 Vox point, both ways. Points reset every Sunday at midnight (Sydney time), and the week’s top 3 go on the <a href="/games.html#vox">Vox leaderboard</a>.</p>' +
-        '<input class="pinput" id="vx-amt" type="number" min="1" step="1" inputmode="numeric" placeholder="How many?" aria-label="How many">' +
-        '<div class="vx-fill"><button type="button" class="link" id="vx-allc">All my chips</button><button type="button" class="link" id="vx-allp">All my points</button></div>' +
-        '<div class="loan-btns"><button type="button" class="pbtn" id="vx-in">Chips to points</button><button type="button" class="pbtn primary" id="vx-out">Points to chips</button></div><div class="pmsg" id="vx-msg" aria-live="polite"></div>'
-      : '<p class="loan-note">Out of chips? Sign in and turn Vox points into chips. You get points from Dune coins and casino chips.</p>') +
+      ? '<input class="pinput" id="vx-amt" type="number" min="1" step="1" inputmode="numeric" placeholder="Amount" aria-label="Amount">' +
+        '<div class="vx-fill"><button type="button" class="link" id="vx-allc">All chips</button><button type="button" class="link" id="vx-allp">All points</button></div>' +
+        '<div class="loan-btns"><button type="button" class="pbtn" id="vx-in">Chips → points</button><button type="button" class="pbtn primary" id="vx-out">Points → chips</button></div><div class="pmsg" id="vx-msg" aria-live="polite"></div>'
+      : '<p class="loan-note">Sign in to swap chips and <a href="/games.html#vox">Vox points</a>.</p>') +
     '</div>';
 }
 // api: { rpc(name, args), signed(), after(result) }; after() lets the page reload its chips
@@ -73,15 +72,15 @@ export function wireVox(api){
   const refresh = async () => { if (!api.signed() || !$('vx-pts')) return; try { show(await api.rpc('vox_me')); } catch (e) {} };
   const amount = () => { const v = Math.floor(Number(($('vx-amt') || {}).value)); return v >= 1 && isFinite(v) ? v : 0; };
   const go = async (fn, verb) => {
-    const n = amount(); if (!n){ say('Type how many first.'); return; }
+    const n = amount(); if (!n){ say('Enter an amount.'); return; }
     $('vx-in').disabled = $('vx-out').disabled = true; say('');
-    try { const d = await api.rpc(fn, { p_amount: n }); show(d); say(verb.replace('{n}', fmt(n)) + ' You have ' + fmt(d.chips) + ' chips and ' + fmt(d.points) + ' points.'); $('vx-amt').value = ''; api.after && api.after(d); }
-    catch (e) { say(/safe word/.test(e.message || '') ? 'That needs your safe word.' : /chips/.test(e.message || '') ? 'You don’t have that many chips free.' : /points/.test(e.message || '') ? 'You don’t have that many points.' : /locked|banned/.test(e.message || '') ? 'You can’t do that right now.' : 'That didn’t go through. Try again.'); }
+    try { const d = await api.rpc(fn, { p_amount: n }); show(d); say(verb.replace('{n}', fmt(n))); $('vx-amt').value = ''; api.after && api.after(d); }
+    catch (e) { say(/safe word/.test(e.message || '') ? 'Safe word needed.' : /chips/.test(e.message || '') ? 'Not enough chips.' : /points/.test(e.message || '') ? 'Not enough points.' : /locked|banned/.test(e.message || '') ? 'Casino locked.' : 'Something went wrong.'); }
     $('vx-in').disabled = $('vx-out').disabled = false;
   };
   if ($('vx-in')){
-    $('vx-in').onclick = () => go('vox_from_chips', 'Turned {n} chips into points.');
-    $('vx-out').onclick = () => go('vox_to_chips', 'Turned {n} points into chips.');
+    $('vx-in').onclick = () => go('vox_from_chips', '+{n} points');
+    $('vx-out').onclick = () => go('vox_to_chips', '+{n} chips');
     $('vx-allc').onclick = () => { if (last) $('vx-amt').value = last.chips || ''; };
     $('vx-allp').onclick = () => { if (last) $('vx-amt').value = last.points || ''; };
   }
@@ -240,9 +239,8 @@ export function showBan(reason, sb){
   const d = document.createElement('div'); d.id = 'cz-ban'; d.className = 'ban'; d.setAttribute('role', 'alertdialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'cz-ban-h');
   d.innerHTML = '<div class="ban-box"><svg class="ico" width="28" height="28" aria-hidden="true"><use href="/icons.svg#triangle-alert"/></svg>' +
     '<h2 id="cz-ban-h">You’re banned from the casino</h2>' +
-    '<p>' + (reason ? 'Reason: ' + esc(reason) + '. ' : '') + 'Cheating with bookmarklets, scripts, the browser console or bugs isn’t allowed. Your account can’t play, chat or appear on the leaderboard.</p>' +
-    '<p>Think this is a mistake? Email <a href="mailto:josh@voxprints.com">josh@voxprints.com</a>.</p>' +
-    '<div class="ban-btns"><a class="pbtn" href="/terms.html#casino">Casino rules</a>' + (sb ? '<button type="button" class="pbtn primary" id="cz-ban-out">Sign out</button>' : '') + '<a class="pbtn" href="/games.html">Back to games</a></div></div>';
+    '<p>' + (reason ? 'Reason: ' + esc(reason) + '. ' : '') + 'Mistake? Email <a href="mailto:josh@voxprints.com">josh@voxprints.com</a>.</p>' +
+    '<div class="ban-btns"><a class="pbtn" href="/terms.html#casino">Rules</a>' + (sb ? '<button type="button" class="pbtn primary" id="cz-ban-out">Sign out</button>' : '') + '<a class="pbtn" href="/games.html">Back to games</a></div></div>';
   document.body.appendChild(d);
   const out = document.getElementById('cz-ban-out');
   if (out) out.onclick = async () => { await sb.auth.signOut(); d.remove(); };
@@ -288,15 +286,13 @@ export const guard = {
     if (!d){
       d = document.createElement('div'); d.id = 'cz-lock'; d.className = 'ban'; d.setAttribute('role', 'alertdialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'cz-lock-h');
       d.innerHTML = '<div class="ban-box"><svg class="ico" width="28" height="28" aria-hidden="true"><use href="/icons.svg#lock"/></svg>' +
-        '<h2 id="cz-lock-h">Locked out for cheating</h2><div class="lock-time" id="cz-lock-t" aria-live="off">5:00</div>' +
-        '<p>We caught something that looks like a bookmarklet or script changing the game. <span id="cz-lock-n"></span></p>' +
-        '<p>Lockouts are 5 minutes the first time, 10 the second, and an hour every time after that. Keep it up and your account can be banned.</p>' +
-        '<p>Think this is a mistake? Email <a href="mailto:josh@voxprints.com">josh@voxprints.com</a>.</p>' +
-        '<div class="ban-btns"><a class="pbtn" href="/terms.html#casino">Casino rules</a><a class="pbtn" href="/games.html">Back to games</a></div></div>';
+        '<h2 id="cz-lock-h">Locked out</h2><div class="lock-time" id="cz-lock-t" aria-live="off">5:00</div>' +
+        '<p>Script or bookmarklet detected. <span id="cz-lock-n"></span></p>' +
+        '<p>Mistake? Email <a href="mailto:josh@voxprints.com">josh@voxprints.com</a>.</p>' +
+        '<div class="ban-btns"><a class="pbtn" href="/terms.html#casino">Rules</a><a class="pbtn" href="/games.html">Back to games</a></div></div>';
       document.body.appendChild(d);
     }
-    const nth = ['', 'first', 'second', 'third'][strikes] || strikes + 'th';
-    document.getElementById('cz-lock-n').textContent = 'This is your ' + nth + ' offence' + (strikes >= 2 ? '.' : '. Next time it’s 10 minutes.');
+    document.getElementById('cz-lock-n').textContent = 'Offence ' + strikes + '.';
     clearInterval(this.timer);
     const tick = () => {
       const left = Math.max(0, Math.ceil((this.until - Date.now()) / 1000));
@@ -362,7 +358,7 @@ export function askSafeWord(rawRpc, amount){
   return new Promise(resolve => {
     const d = document.createElement('div'); d.className = 'sw-back'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'sw-h');
     d.innerHTML = '<form class="sw-box" autocomplete="off"><h2 id="sw-h"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#lock"/></svg>Safe word</h2>' +
-      '<p>' + (amount ? 'This takes <b>' + fmt(amount) + '</b> chips, which is over your safe-word amount.' : 'This is over your safe-word amount.') + ' Type your safe word to go ahead.</p>' +
+      '<p>' + (amount ? '<b>' + fmt(amount) + '</b> chips is over your limit.' : 'This is over your limit.') + '</p>' +
       '<input type="password" id="sw-in" aria-label="Safe word" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="sw-msg" id="sw-msg" aria-live="polite"></div>' +
       '<div class="sw-btns"><button type="button" id="sw-no">Cancel</button><button type="submit" class="go" id="sw-ok">Go ahead</button></div></form>';
     document.body.appendChild(d);
@@ -371,13 +367,13 @@ export function askSafeWord(rawRpc, amount){
     d.querySelector('#sw-no').onclick = () => done(false);
     d.addEventListener('keydown', e => { if (e.key === 'Escape') done(false); });
     d.querySelector('form').onsubmit = async e => {
-      e.preventDefault(); if (!inp.value.trim()) { msgEl.textContent = 'Type your safe word.'; return; }
+      e.preventDefault(); if (!inp.value.trim()) { msgEl.textContent = 'Enter your safe word.'; return; }
       okBtn.disabled = true; msgEl.textContent = '';
       const { data, error } = await rawRpc('casino_sw_approve', { p_word: inp.value });
       okBtn.disabled = false;
-      if (error) { msgEl.textContent = error.hint === 'casino_sw_locked' ? 'Too many wrong tries. Try again in 10 minutes.' : 'That didn’t go through. Try again.'; return; }
+      if (error) { msgEl.textContent = error.hint === 'casino_sw_locked' ? 'Too many tries. Wait 10 minutes.' : 'Something went wrong.'; return; }
       if (data && data.ok) return done(true);
-      msgEl.textContent = 'That’s not your safe word.'; inp.select();
+      msgEl.textContent = 'Wrong safe word.'; inp.select();
     };
     setTimeout(() => inp.focus(), 50);
   });
@@ -399,27 +395,27 @@ export function wireSafeWord(rawRpc){
   const show = st => {
     state.textContent = st.on ? 'On' : 'Off';
     body.innerHTML = st.on
-      ? '<p class="loan-note">Anything over <b>' + fmt(st.limit) + '</b> chips in one go needs your safe word, so nobody else can bet big on this device.</p>' +
+      ? '<p class="loan-note">Asks over <b>' + fmt(st.limit) + '</b> chips.</p>' +
         '<div class="loan-btns"><button type="button" class="pbtn" id="sw-change">Change</button><button type="button" class="pbtn" id="sw-off">Turn off</button></div><div id="sw-form"></div>'
-      : '<p class="loan-note">Set a safe word and an amount. Bets over that amount will ask for the word, so nobody else can bet big on this device.</p>' +
-        '<div class="loan-btns one"><button type="button" class="pbtn" id="sw-set">Set a safe word</button></div><div id="sw-form"></div>';
+      : '<p class="loan-note">Ask for a word before big bets.</p>' +
+        '<div class="loan-btns one"><button type="button" class="pbtn" id="sw-set">Set safe word</button></div><div id="sw-form"></div>';
     const form = (needCurrent, newWord) => {
       $('sw-form').innerHTML = (needCurrent ? field('sw-cur', 'Current safe word', 'password') : '') +
-        (newWord ? field('sw-new', 'New safe word', 'password') + field('sw-new2', 'Type it again', 'password') + field('sw-lim', 'Ask over how many chips?', 'number', ' min="1" step="1" inputmode="numeric" value="' + (st.limit || '') + '"') : '') +
+        (newWord ? field('sw-new', 'New safe word', 'password') + field('sw-new2', 'Type it again', 'password') + field('sw-lim', 'Limit (chips)', 'number', ' min="1" step="1" inputmode="numeric" value="' + (st.limit || '') + '"') : '') +
         '<button type="button" class="pbtn primary" id="sw-save">' + (newWord ? 'Save safe word' : 'Turn off safe word') + '</button>';
       $('sw-save').onclick = async () => {
         let word = null, lim = null;
         if (newWord) {
           word = $('sw-new').value.trim(); lim = Math.floor(Number($('sw-lim').value));
-          if (word.length < 3) return say('Make the safe word at least 3 letters.');
-          if (word.toLowerCase() !== $('sw-new2').value.trim().toLowerCase()) return say('The two safe words don’t match.');
-          if (!(lim >= 1)) return say('Pick an amount of chips.');
+          if (word.length < 3) return say('At least 3 letters.');
+          if (word.toLowerCase() !== $('sw-new2').value.trim().toLowerCase()) return say('Words don’t match.');
+          if (!(lim >= 1)) return say('Enter a limit.');
         }
         $('sw-save').disabled = true; say('');
         const { data, error } = await rawRpc('casino_sw_set', { p_current: needCurrent ? $('sw-cur').value : null, p_word: word, p_limit: lim });
-        if (error) { $('sw-save').disabled = false; return say(error.hint === 'casino_sw_locked' ? 'Too many wrong tries. Try again in 10 minutes.' : 'That didn’t go through. Try again.'); }
-        if (!data.ok) { $('sw-save').disabled = false; return say('That’s not your current safe word.'); }
-        show(data); say(data.on ? 'Safe word saved. Remember it: you’ll need it to change or turn it off.' : 'Safe word turned off.');
+        if (error) { $('sw-save').disabled = false; return say(error.hint === 'casino_sw_locked' ? 'Too many tries. Wait 10 minutes.' : 'Something went wrong.'); }
+        if (!data.ok) { $('sw-save').disabled = false; return say('Wrong safe word.'); }
+        show(data); say(data.on ? 'Saved.' : 'Turned off.');
       };
     };
     if ($('sw-set')) $('sw-set').onclick = () => form(false, true);
@@ -444,7 +440,7 @@ export const casino = {
   },
   async loadBoard(){
     const el = $('lb'); if (!el) return;
-    if (!this.sb){ el.innerHTML = '<li class="lb-empty">Leaderboard unavailable right now.</li>'; return; }
+    if (!this.sb){ el.innerHTML = '<li class="lb-empty">Unavailable right now.</li>'; return; }
     const { data, error } = await this.sb.rpc('game_leaderboard', { p_game: 'casino', p_kind: this.kind, p_limit: 10 });
     if (error){ el.innerHTML = '<li class="lb-empty">Couldn’t load the leaderboard.</li>'; return; }
     const val = v => this.kind === 'time' ? fmtLong(v) : fmt(v);
@@ -463,15 +459,15 @@ export const casino = {
   },
   renderAccount(){
     const box = $('account'); if (!box) return;
-    if (!this.sb){ box.innerHTML = voxHtml(false) + '<p style="margin-top:12px">Sign-in is unavailable right now. You can still play.</p>'; return; }
+    if (!this.sb){ box.innerHTML = voxHtml(false) + '<p style="margin-top:12px">Sign-in unavailable.</p>'; return; }
     if (this.user){
       box.innerHTML = '<h3>Playing as <span id="me-name">…</span></h3><div class="me-row" id="me-stats"></div>' + voxHtml(true) + swHtml() +
-        '<div id="name-box" hidden><p style="margin-top:10px">Pick a name for the leaderboard:</p><input class="pinput" id="name-in" maxlength="40" placeholder="Your name"><button type="button" class="pbtn primary" id="name-save">Save name</button><div class="pmsg" id="name-msg"></div></div>' +
+        '<div id="name-box" hidden><p style="margin-top:10px">Leaderboard name:</p><input class="pinput" id="name-in" maxlength="40" placeholder="Your name"><button type="button" class="pbtn primary" id="name-save">Save name</button><div class="pmsg" id="name-msg"></div></div>' +
         '<button type="button" class="link" id="sign-out">Sign out</button>';
       $('sign-out').onclick = async () => { await this.sb.auth.signOut(); };
       $('name-save').onclick = async () => {
         const name = $('name-in').value.trim(), m = $('name-msg');
-        if (!name){ m.textContent = 'Type a name first.'; return; }
+        if (!name){ m.textContent = 'Enter a name.'; return; }
         const { error } = await this.sb.from('customer_profiles').upsert({ id: this.user.id, email: this.user.email, full_name: name });
         if (error){ m.textContent = 'Couldn’t save: ' + error.message; return; }
         const { data } = await this.sb.rpc('game_my_stats', { p_game: 'casino' }); this.renderMe(data); this.loadBoard();
@@ -481,7 +477,7 @@ export const casino = {
       this.refreshVox = wireVox({ rpc: (n, a) => this.rpc(n, a), signed: () => signedIn(), after: () => { this.loadBoard(); this.listeners.forEach(fn => { try { fn(this.user); } catch (e) {} }); } });
       return;
     }
-    box.innerHTML = voxHtml(false) + '<h3 style="margin-top:14px">Save your chips</h3><p>Sign in to keep your chips on any device, get on the casino leaderboard, and use Vox points.</p>' +
+    box.innerHTML = voxHtml(false) + '<h3 style="margin-top:14px">Sign in</h3><p>Save your chips and join the leaderboard.</p>' +
       '<button type="button" class="pbtn" id="g-in"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>Sign in with Google</button>' +
       '<input class="pinput" id="em-in" type="email" placeholder="or your email" autocomplete="email">' +
       '<button type="button" class="pbtn" id="em-send">Email me a code</button>' +
@@ -492,16 +488,16 @@ export const casino = {
     let pendingEmail = '';
     $('em-send').onclick = async () => {
       const email = $('em-in').value.trim(), m = $('em-msg');
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ m.textContent = 'Type your email first.'; return; }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ m.textContent = 'Enter your email.'; return; }
       m.textContent = 'Sending…';
       const { error } = await this.sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
       if (error){ m.textContent = error.message; return; }
-      pendingEmail = email; $('code-box').hidden = false; m.textContent = 'Check your email for a 6-digit code.';
+      pendingEmail = email; $('code-box').hidden = false; m.textContent = 'Code sent. Check your email.';
     };
     $('code-go').onclick = async () => {
       const token = $('code-in').value.trim(), m = $('em-msg');
       const { error } = await this.sb.auth.verifyOtp({ email: pendingEmail, token, type: 'email' });
-      m.textContent = error ? 'That code didn’t work. Try again.' : '';
+      m.textContent = error ? 'Wrong code.' : '';
     };
   },
   guestNote(){ document.querySelectorAll('.guest-note').forEach(n => n.hidden = !!this.user); },

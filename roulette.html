@@ -257,7 +257,7 @@
           <button class="btn main" id="rebuy" hidden>Get chips with Vox points</button>
         </div>
         <div class="foot-notes">
-          <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
+          <p class="guest-note" hidden>Playing as guest. <button type="button">Sign in</button></p>
           <div class="ver">Version 2026-10-19b</div>
         </div>
       </main>
@@ -266,7 +266,7 @@
       <div class="panel" id="account"><p>Loading…</p></div>
       <div class="panel">
         <h3>Casino leaderboard</h3>
-        <p>Your chips are shared by every casino game. Out of chips? Turn <a class="rules-link" href="/games.html#vox">Vox points</a> into chips. Cheating gets you banned: <a class="rules-link" href="/terms.html#casino">casino rules</a>.</p>
+        <p>Shared across all casino games. <a class="rules-link" href="/terms.html#casino">Rules</a></p>
         <div class="tabs" role="tablist">
           <button type="button" class="tab on" data-kind="score">Chips</button>
           <button type="button" class="tab" data-kind="time">Time played</button>
@@ -277,7 +277,7 @@
   </div>
 
 <script type="module">
-import { bank as czBank, showBan, isBanError, isLockError, guard, voxHtml, wireVox, openVox, safeRpc, swHtml, wireSafeWord } from '/casino.js?v=13';
+import { bank as czBank, showBan, isBanError, isLockError, guard, voxHtml, wireVox, openVox, safeRpc, swHtml, wireSafeWord } from '/casino.js?v=14';
 import { startLive } from '/live.js?v=1';
 /* Roulette (single zero). Signed-in players spin on the server, which picks the number and pays out from the
    casino wallet (the same chips as blackjack), so the leaderboard can't be faked; guests play here in the
@@ -586,7 +586,7 @@ const net = {
   },
   async loadBoard(){
     const el = document.getElementById('lb');
-    if (!this.sb){ el.innerHTML = '<li class="lb-empty">Leaderboard unavailable right now.</li>'; return; }
+    if (!this.sb){ el.innerHTML = '<li class="lb-empty">Unavailable right now.</li>'; return; }
     const { data, error } = await this.sb.rpc('game_leaderboard', { p_game: 'casino', p_kind: this.kind, p_limit: 10 });
     if (error){ el.innerHTML = '<li class="lb-empty">Couldn’t load the leaderboard.</li>'; return; }
     const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -624,7 +624,7 @@ const net = {
       wireVox({ rpc: (n, a) => remote.call(n, a), signed: () => !!(this.sb && this.user), after: () => { load(); this.loadBoard(); } });
       return;
     }
-    box.innerHTML = voxHtml(false) + '<h3 style="margin-top:14px">Save your chips</h3><p>Sign in to keep your chips on any device, get on the casino leaderboard, and use Vox points.</p>' +
+    box.innerHTML = voxHtml(false) + '<h3 style="margin-top:14px">Sign in</h3><p>Save your chips and join the leaderboard.</p>' +
       '<button type="button" class="pbtn" id="g-in"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>Sign in with Google</button>' +
       '<input class="pinput" id="em-in" type="email" placeholder="or your email" autocomplete="email">' +
       '<button type="button" class="pbtn" id="em-send">Email me a code</button>' +

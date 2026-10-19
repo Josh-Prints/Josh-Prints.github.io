@@ -12,7 +12,7 @@
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
 <script src="/game-ui.js?v=1" defer></script>
-<link rel="stylesheet" href="/casino.css?v=13">
+<link rel="stylesheet" href="/casino.css?v=14">
 <style>
   .table{ justify-content: flex-start; gap: 10px; max-width: 720px; }
   .table > .zone:first-child{ margin-top: auto; }
@@ -84,7 +84,7 @@
           <button class="btn main" id="rebuy" hidden>Get chips with Vox points</button>
         </div>
         <div class="foot-notes">
-          <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
+          <p class="guest-note" hidden>Playing as guest. <button type="button">Sign in</button></p>
           <div class="ver">Version 2026-10-14a</div>
         </div>
       </main>
@@ -94,18 +94,16 @@
       <div class="panel">
         <h3>How to play</h3>
         <ul class="rules">
-          <li>Bet the Ante, Pair Plus, or both, then deal. You and the dealer each get three cards.</li>
-          <li>After looking at your cards, Play (bet the same as your Ante again) or Fold (lose the Ante).</li>
-          <li>The dealer needs Queen high or better to play. If not, your Ante pays 1 to 1 and the Play bet comes back.</li>
-          <li>If the dealer qualifies, the better hand wins: Ante and Play pay 1 to 1. Ties push.</li>
-          <li>Hands, best first: straight flush, three of a kind, straight, flush, pair, high card. A-2-3 is the lowest straight.</li>
-          <li>Pair Plus pays on your hand alone, whatever the dealer has. The Ante bonus pays even if the dealer wins.</li>
-          <li>Good strategy: play Queen-6-4 or better, fold anything worse.</li>
+          <li>Bet Ante, Pair Plus, or both.</li>
+          <li>Play (match your Ante) or Fold.</li>
+          <li>Dealer needs Queen high.</li>
+          <li>Pair Plus pays on your hand alone.</li>
+          <li>Tip: play Q-6-4 or better.</li>
         </ul>
       </div>
       <div class="panel">
         <h3>Casino leaderboard</h3>
-        <p>Your chips are shared by every casino game. Out of chips? Turn <a class="rules-link" href="/games.html#vox">Vox points</a> into chips. Cheating gets you banned: <a class="rules-link" href="/terms.html#casino">casino rules</a>.</p>
+        <p>Shared across all casino games. <a class="rules-link" href="/terms.html#casino">Rules</a></p>
         <div class="tabs" role="tablist">
           <button type="button" class="tab on" data-kind="score">Chips</button>
           <button type="button" class="tab" data-kind="time">Time played</button>
@@ -119,7 +117,7 @@
 /* Three Card Poker: Ante / Play against the dealer (who needs Queen high to play), the Ante bonus, and the
    Pair Plus side bet (40 / 30 / 6 / 3 / 1). One deck, shuffled every hand. The server's tcp_deal() and
    tcp_decide() deal and pay the same way for signed-in players. */
-import { $, sleep, reduced, fmt, short, newDeck, bank, showChips, msg, sfx, casino, startShell, signedIn, cardEl, paintCard, chipRack, betBoard, chipColour, openVox } from '/casino.js?v=13';
+import { $, sleep, reduced, fmt, short, newDeck, bank, showChips, msg, sfx, casino, startShell, signedIn, cardEl, paintCard, chipRack, betBoard, chipColour, openVox } from '/casino.js?v=14';
 
 const CAT = ['High card', 'Pair', 'Flush', 'Straight', 'Three of a kind', 'Straight flush'];
 const PAIR_PLUS = [0, 1, 3, 6, 30, 40], ANTE_BONUS = [0, 0, 0, 1, 4, 5];

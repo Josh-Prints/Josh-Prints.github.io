@@ -12,7 +12,7 @@
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
 <script src="/game-ui.js?v=1" defer></script>
-<link rel="stylesheet" href="/casino.css?v=13">
+<link rel="stylesheet" href="/casino.css?v=14">
 <style>
   .table{ justify-content: flex-start; gap: 10px; max-width: 900px; }
   .lobby{ margin: auto 0; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
@@ -99,9 +99,9 @@
       <main class="table">
         <section class="lobby" id="lobby">
           <h2 class="lobby-title">Pick a table</h2>
-          <p class="lobby-sub">Play Three Card Poker against the same dealer as everyone else at the table.</p>
+          <p class="lobby-sub">Everyone plays the same dealer.</p>
           <div class="tables" id="tables"></div>
-          <p class="need-sign" id="need-sign" hidden>Sign in to take a seat. You can still watch.</p>
+          <p class="need-sign" id="need-sign" hidden>Sign in to sit down.</p>
         </section>
         <section class="room" id="room" hidden>
           <div class="room-head">
@@ -139,7 +139,7 @@
           </section>
         </section>
         <div class="foot-notes">
-          <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
+          <p class="guest-note" hidden>Playing as guest. <button type="button">Sign in</button></p>
           <div class="ver">Version 2026-10-19b</div>
         </div>
       </main>
@@ -149,17 +149,15 @@
       <div class="panel">
         <h3>How to play</h3>
         <ul class="rules">
-          <li>Up to six players sit at a table. Everyone plays their own hand against the same dealer.</li>
-          <li>When the first bet goes down, betting closes 15 seconds later (sooner if everyone has bet). Bet the Ante, Pair Plus, or both, at least the table minimum.</li>
-          <li>Then you have 20 seconds to Play (match your Ante) or Fold. If time runs out, you fold.</li>
-          <li>The dealer needs Queen high to play. Pays are the same as single-player Three Card Poker: Ante bonus 5/4/1, Pair Plus 40/30/6/3/1.</li>
-          <li>Other players' cards stay face down until the showdown.</li>
-          <li>You need to be signed in to sit down. Your chips are the same casino chips as every other game.</li>
+          <li>Up to 6 players vs one dealer.</li>
+          <li>15 s to bet, 20 s to Play or Fold.</li>
+          <li>Dealer needs Queen high.</li>
+          <li>Sign in to sit down.</li>
         </ul>
       </div>
       <div class="panel">
         <h3>Casino leaderboard</h3>
-        <p>Your chips are shared by every casino game. Out of chips? Turn <a class="rules-link" href="/games.html#vox">Vox points</a> into chips. Cheating gets you banned: <a class="rules-link" href="/terms.html#casino">casino rules</a>.</p>
+        <p>Shared across all casino games. <a class="rules-link" href="/terms.html#casino">Rules</a></p>
         <div class="tabs" role="tablist">
           <button type="button" class="tab on" data-kind="score">Chips</button>
           <button type="button" class="tab" data-kind="time">Time played</button>
@@ -173,7 +171,7 @@
 /* Three Card Poker Live: shared tables where up to six signed-in players play against the same dealer.
    Everything happens on the server (mtcp_* functions): the deck, everyone's cards, the clock and the payouts.
    This page just shows the table, refreshing every second, and sends your bets and Play / Fold. */
-import { $, sleep, reduced, fmt, esc, showChips, msg as showMsg, sfx, casino, startShell, signedIn, cardEl, chipRack, betBoard } from '/casino.js?v=13';
+import { $, sleep, reduced, fmt, esc, showChips, msg as showMsg, sfx, casino, startShell, signedIn, cardEl, chipRack, betBoard } from '/casino.js?v=14';
 
 // the table refreshes every second; only redraw (and re-animate) the message when its wording changes
 let lastMsg = '';

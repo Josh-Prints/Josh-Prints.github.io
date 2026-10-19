@@ -801,9 +801,9 @@ h1{ animation: fadeInDown 0.5s ease both; }
       <div id="my-orders-empty" style="display:none; color: var(--ink-dim); font-size: 14px; text-align:center; padding: 20px 0;">You haven't placed an order yet.</div>
     </div>
   </div>
-  <div id="not-found" style="display:none;">Couldn't find that order. Double check the link you were sent.</div>
+  <div id="not-found" style="display:none;">Order not found. Check your link.</div>
   <div id="load-error" style="display:none;">
-    <p style="margin:0 0 16px;">Having trouble loading your order. Check your connection and try again.</p>
+    <p style="margin:0 0 16px;">Couldn't load your order. Try again.</p>
     <button type="button" id="load-retry-btn" class="send-btn">Try again</button>
   </div>
 
@@ -886,11 +886,6 @@ h1{ animation: fadeInDown 0.5s ease both; }
   // the stages an order goes through, in order (cancelled orders show a greyed-out bar)
   const STEPS = ['new', 'acknowledged', 'quoted', 'printing', 'completed', 'sold'];
   const STEP_LABEL = { new: 'New', acknowledged: 'Seen', quoted: 'Quoted', printing: 'Printing', completed: 'Done', sold: 'Sold' };
-  const STEP_NOTE = {
-    new: 'We’ve got your order and will look at it soon.', acknowledged: 'We’ve seen your order and are working out the details.',
-    quoted: 'We’ve sent you a quote.', printing: 'Your order is being printed.', completed: 'Your print is done.',
-    sold: 'All done. Thanks for ordering!', cancelled: 'This order was cancelled.', deleted: 'This order was deleted.'
-  };
   function statusBar(status, deleted, mini){
     const off = deleted || status === 'cancelled' || STEPS.indexOf(status) < 0;
     // a cancelled order keeps the bar greyed out at the start
@@ -1145,9 +1140,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
       document.getElementById('composer-wrap').style.display = 'flex';
     }
 
-    const key = order.deleted ? 'deleted' : order.status;
-    document.getElementById('status-text').innerHTML = escapeHtml(order.deleted ? 'Deleted' : (STATUS_LABEL[order.status] || order.status)) +
-      (STEP_NOTE[key] ? '<small>' + escapeHtml(STEP_NOTE[key]) + '</small>' : '');
+    document.getElementById('status-text').innerHTML = escapeHtml(order.deleted ? 'Deleted' : (STATUS_LABEL[order.status] || order.status));
     const barBox = document.getElementById('status-bar');
     barBox.innerHTML = statusBar(order.status, order.deleted, false);
     // grow the bar from the start so the progress is easy to see

@@ -12,7 +12,7 @@
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
 <script src="/game-ui.js?v=1" defer></script>
-<link rel="stylesheet" href="/casino.css?v=13">
+<link rel="stylesheet" href="/casino.css?v=14">
 <style>
   .table{ justify-content: flex-start; gap: 12px; }
   .machine{ margin-top: auto; } .foot-notes{ margin-bottom: auto; }
@@ -112,7 +112,7 @@
           <button class="btn main" id="rebuy" hidden>Get chips with Vox points</button>
         </div>
         <div class="foot-notes">
-          <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
+          <p class="guest-note" hidden>Playing as guest. <button type="button">Sign in</button></p>
           <div class="ver">Version 2026-10-14a</div>
         </div>
       </main>
@@ -122,16 +122,15 @@
       <div class="panel">
         <h3>How to play</h3>
         <ul class="rules">
-          <li>Pick how many lines to play (1 to 5) and the bet on each line. The total bet is lines × bet per line.</li>
-          <li>Lines pay left to right. Line 1 is the middle row, 2 the top, 3 the bottom, 4 and 5 the diagonals.</li>
-          <li>Cherries pay from the left reel even without three of a kind.</li>
-          <li>The machine pays back about 95% of what's bet over the long run, like a real casino slot.</li>
-          <li>Space bar spins.</li>
+          <li>Pick lines (1 to 5) and bet per line.</li>
+          <li>Lines pay left to right.</li>
+          <li>Cherries pay from the left reel.</li>
+          <li>Space spins.</li>
         </ul>
       </div>
       <div class="panel">
         <h3>Casino leaderboard</h3>
-        <p>Your chips are shared by every casino game. Out of chips? Turn <a class="rules-link" href="/games.html#vox">Vox points</a> into chips. Cheating gets you banned: <a class="rules-link" href="/terms.html#casino">casino rules</a>.</p>
+        <p>Shared across all casino games. <a class="rules-link" href="/terms.html#casino">Rules</a></p>
         <div class="tabs" role="tablist">
           <button type="button" class="tab on" data-kind="score">Chips</button>
           <button type="button" class="tab" data-kind="time">Time played</button>
@@ -146,7 +145,7 @@
    equally likely, so how often a symbol appears on a strip sets the odds (the same way real machines work).
    With these strips and pays the machine returns 94.99% of what's bet over the long run.
    The server's slots_spin() uses the same strips and pays. */
-import { $, sleep, reduced, fmt, rand, bank, showChips, msg, sfx, casino, startShell, signedIn, openVox } from '/casino.js?v=13';
+import { $, sleep, reduced, fmt, rand, bank, showChips, msg, sfx, casino, startShell, signedIn, openVox } from '/casino.js?v=14';
 
 const STRIPS = ['BPLDLSCBLPBPRLCSPRLBCP', 'LBLSLRBCPLBLPSPCPLPRDB', 'LRPBLPBLBCRCSPLPLPCDCB'], N = 22;
 const PAY3 = { D: 800, S: 150, R: 50, C: 20, B: 20, P: 15, L: 10 }, CH2 = 5, CH1 = 2;
