@@ -270,6 +270,31 @@
   .status-cancelled{ background: rgba(101,109,118,0.14); color: var(--ink-dim); }
   .status-cancelled .dot{ background: var(--ink-dim); }
 
+  /* order progress bar: one dot per stage, filled up to where the order is */
+  .status-now{ font-weight: 700; font-size: 16px; }
+  .status-now small{ display: block; font-weight: 400; font-size: 12.5px; color: var(--ink-dim); margin-top: 2px; }
+  .sbar{ --n: 6; margin: 4px 0 18px; }
+  .sbar-track{ position: relative; height: 8px; border-radius: 999px; background: rgba(var(--border-tint),0.12); margin: 10px calc(50% / var(--n)) 0; }
+  .sbar-fill{ position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(90deg, var(--ok), var(--accent)); transition: width .8s cubic-bezier(.22,1,.36,1); }
+  .sbar-dot{ position: absolute; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: var(--bg-raised); border: 3px solid rgba(var(--border-tint),0.22); transition: background-color .35s, border-color .35s; }
+  .sbar-dot.done{ background: var(--ok); border-color: var(--ok); }
+  .sbar-dot.now{ background: var(--accent); border-color: var(--bg-raised); box-shadow: 0 0 0 3px var(--accent); }
+  .sbar-dot.now.live{ animation: sbarPulse 1.8s ease-in-out infinite; }
+  @keyframes sbarPulse{ 50%{ box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 25%, transparent); } }
+  .sbar-steps{ list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); font-size: 12px; color: var(--ink-dim); text-align: center; }
+  .sbar-steps li{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; }
+  .sbar-steps li.done{ color: var(--ok); }
+  .sbar-steps li.now{ color: var(--ink); font-weight: 700; }
+  .sbar.off .sbar-fill{ background: rgba(var(--border-tint),0.25); }
+  .sbar.off .sbar-dot.done, .sbar.off .sbar-dot.now{ background: var(--ink-dim); border-color: var(--ink-dim); box-shadow: none; }
+  .sbar.off .sbar-steps li{ color: var(--ink-dim); text-decoration: line-through; opacity: .7; }
+  .sbar.mini{ margin: 7px 0 2px; max-width: 220px; }
+  .sbar.mini .sbar-track{ height: 4px; margin-top: 0; }
+  .sbar.mini .sbar-dot{ width: 8px; height: 8px; margin: -4px 0 0 -4px; border-width: 2px; }
+  .sbar.mini .sbar-dot.now{ box-shadow: 0 0 0 2px var(--accent); }
+  @media (max-width: 520px){ .sbar-steps{ font-size: 10.5px; } }
+  @media (prefers-reduced-motion: reduce){ .sbar-fill{ transition: none; } .sbar-dot.now.live{ animation: none; } }
+
   .quote-amount{
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-weight: 700;
@@ -785,9 +810,10 @@ h1{ animation: fadeInDown 0.5s ease both; }
   <div id="order-view">
     <div class="card">
       <div class="status-row">
-        <span class="status-pill" id="status-pill"><span class="dot"></span><span id="status-text"></span></span>
+        <span class="status-now" id="status-text"></span>
         <span class="quote-amount" id="quote-amount"></span>
       </div>
+      <div id="status-bar"></div>
       <div class="detail-row"><span class="label">Name</span><span class="value" id="d-name"></span></div>
       <div class="detail-row"><span class="label">Order type</span><span class="value" id="d-type"></span></div>
       <div class="detail-row" id="d-notes-row"><span class="label">Notes</span><span class="value" id="d-notes"></span></div>
@@ -856,6 +882,27 @@ h1{ animation: fadeInDown 0.5s ease both; }
     new: 'New', acknowledged: 'Acknowledged', quoted: 'Quoted', printing: 'Printing',
     completed: 'Completed', sold: 'Sold', cancelled: 'Cancelled'
   };
+
+  // the stages an order goes through, in order (cancelled orders show a greyed-out bar)
+  const STEPS = ['new', 'acknowledged', 'quoted', 'printing', 'completed', 'sold'];
+  const STEP_LABEL = { new: 'New', acknowledged: 'Seen', quoted: 'Quoted', printing: 'Printing', completed: 'Done', sold: 'Sold' };
+  const STEP_NOTE = {
+    new: 'We’ve got your order and will look at it soon.', acknowledged: 'We’ve seen your order and are working out the details.',
+    quoted: 'We’ve sent you a quote.', printing: 'Your order is being printed.', completed: 'Your print is done.',
+    sold: 'All done. Thanks for ordering!', cancelled: 'This order was cancelled.', deleted: 'This order was deleted.'
+  };
+  function statusBar(status, deleted, mini){
+    const off = deleted || status === 'cancelled' || STEPS.indexOf(status) < 0;
+    // a cancelled order keeps the bar greyed out at the start
+    const i = off ? 0 : STEPS.indexOf(status), n = STEPS.length, at = k => ((k + .5) / n * 100) + '%';
+    const live = !off && (status === 'new' || status === 'printing');
+    const label = deleted ? 'Deleted' : (STATUS_LABEL[status] || status);
+    return '<div class="sbar' + (off ? ' off' : '') + (mini ? ' mini' : '') + '" role="progressbar" aria-label="Order progress" aria-valuemin="1" aria-valuemax="' + n + '" aria-valuenow="' + (off ? 0 : i + 1) + '" aria-valuetext="' + escapeHtml(label) + '">' +
+      '<div class="sbar-track"><div class="sbar-fill" style="width:' + (off ? 0 : i / (n - 1) * 100) + '%"></div>' +
+      STEPS.map((s, k) => '<span class="sbar-dot' + (k < i ? ' done' : k === i && !off ? ' now' + (live ? ' live' : '') : '') + '" style="left:' + (k / (n - 1) * 100) + '%"></span>').join('') + '</div>' +
+      (mini ? '' : '<ol class="sbar-steps">' + STEPS.map((s, k) => '<li class="' + (off ? '' : k < i ? 'done' : k === i ? 'now' : '') + '">' + STEP_LABEL[s] + '</li>').join('') + '</ol>') +
+      '</div>';
+  }
 
   let attachedFiles = [];
   let lastMessageCount = -1;
@@ -990,6 +1037,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
         <span>
           ${escapeHtml(o.order_type === 'design' ? 'Design order' : o.order_type === 'custom_model' ? 'Custom model' : 'Custom print')}
           <div class="meta">${STATUS_LABEL[o.status] || o.status} · ${new Date(o.created_at).toLocaleDateString()}</div>
+          ${statusBar(o.status, false, true)}
         </span>
         <span>→</span>
       </a>
@@ -1089,8 +1137,6 @@ h1{ animation: fadeInDown 0.5s ease both; }
 
   function renderOrder(order){
     if (order.deleted){
-      document.getElementById('status-pill').className = 'status-pill status-cancelled';
-      document.getElementById('status-text').textContent = 'Deleted';
       document.getElementById('quote-amount').textContent = '';
       document.getElementById('deleted-notice').style.display = 'block';
       document.getElementById('composer-wrap').style.display = 'none';
@@ -1099,13 +1145,14 @@ h1{ animation: fadeInDown 0.5s ease both; }
       document.getElementById('composer-wrap').style.display = 'flex';
     }
 
-    const isLive = !order.deleted && (order.status === 'new' || order.status === 'printing');
-    document.getElementById('status-pill').className = order.deleted
-      ? 'status-pill status-cancelled'
-      : 'status-pill status-' + order.status + (isLive ? ' active' : '');
-    document.getElementById('status-text').textContent = order.deleted
-      ? 'Deleted'
-      : (STATUS_LABEL[order.status] || order.status);
+    const key = order.deleted ? 'deleted' : order.status;
+    document.getElementById('status-text').innerHTML = escapeHtml(order.deleted ? 'Deleted' : (STATUS_LABEL[order.status] || order.status)) +
+      (STEP_NOTE[key] ? '<small>' + escapeHtml(STEP_NOTE[key]) + '</small>' : '');
+    const barBox = document.getElementById('status-bar');
+    barBox.innerHTML = statusBar(order.status, order.deleted, false);
+    // grow the bar from the start so the progress is easy to see
+    const fill = barBox.querySelector('.sbar-fill'), w = fill.style.width;
+    fill.style.width = '0%'; requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.width = w; }));
     document.getElementById('quote-amount').textContent =
       (!order.deleted && order.quote_amount != null) ? `$${Number(order.quote_amount).toFixed(2)}` : '';
 
