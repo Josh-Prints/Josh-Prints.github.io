@@ -116,6 +116,7 @@
   .item button:disabled{ opacity: .45; cursor: default; }
   .item .pr{ display: inline-flex; align-items: center; gap: 4px; }
   .item .pr .coin-ic{ width: 12px; height: 12px; }
+  .vox-link{ margin: -4px 0 10px; font-size: 13px; } .vox-link a{ color: inherit; opacity: .85; }
   .shop-msg{ min-height: 1.2em; font-size: 13px; color: #ffb4b4; margin: 8px 0 0 !important; }
   .guest-note{ margin: 12px auto 0; max-width: 300px; padding: 8px 12px; border-radius: 10px; background: rgba(255,193,7,.14); border: 1px solid rgba(255,193,7,.45); color: #ffe7a3; font-size: 13px; line-height: 1.4; }
   .guest-note[hidden]{ display: none; }
@@ -196,7 +197,7 @@
             <li><b>Hold down</b> (touch, click or Space) to get heavy and dive into the hills. <b>Let go</b> to fly off the tops.</li>
             <li>Land smoothly on a <b>downhill slope</b> to get a speed boost. Land three in a row for a fever combo.</li>
             <li>Grab the <b>coins</b> on the ground. When you're flying fast, more sometimes appear right on your flight path ahead of you. Land hard (Ouch!) and you'll drop some.</li>
-            <li>Your coins are saved to your account. Spend them in the <b>shop</b> on ball skins and world themes.</li>
+            <li>Your coins are saved to your account. Spend them in the <b>shop</b> on ball skins and world themes, or turn them into <a href="/games.html#vox">Vox points</a> (1 coin = 1 point) for the weekly leaderboard and the casino.</li>
             <li>A sandstorm is following you. Keep your speed up or it catches you.</li>
           </ul></details>
           <p class="guest-note" hidden>You're not signed in, so your coins, purchases and scores won't be saved. <button type="button">Sign in</button></p>
@@ -206,6 +207,7 @@
       <div class="over" id="shop" hidden>
         <div class="over-card shop-card">
           <div class="shop-head"><h2>Shop</h2><div class="wallet"><span class="coin-ic" aria-hidden="true"></span><b data-wallet>0</b></div></div>
+          <p class="vox-link"><a href="/games.html#vox">Turn coins into Vox points</a></p>
           <div class="tabs shop-tabs" role="tablist">
             <button type="button" class="tab on" data-shop="skin">Ball skins</button>
             <button type="button" class="tab" data-shop="theme">Themes</button>

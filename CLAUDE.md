@@ -25,3 +25,9 @@
   page (guests play in the browser) and in Supabase
   (`migrations/casino-games-migration.sql`, for signed-in players). Change
   both together and cross-check them with the same inputs.
+- Vox points (`migrations/vox-points-migration.sql`): Dune coins -> points 1:1 (one way),
+  casino chips <-> points 1:1. Points reset to 0 every Sunday midnight Sydney time; the
+  top 3 of each week are stored in `vox_winners` (closed lazily by `vox_close_weeks()`
+  on the next Vox call). There are no free chips: out of chips means buying chips with
+  points. The UI is the "Vox points" tab on games.html (#vox) plus the Vox block in
+  every casino side panel (`voxHtml`/`wireVox` in casino.js).

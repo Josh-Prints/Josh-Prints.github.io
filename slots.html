@@ -11,7 +11,7 @@
 <script src="/looks.js"></script>
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
-<link rel="stylesheet" href="/casino.css?v=9">
+<link rel="stylesheet" href="/casino.css?v=10">
 <style>
   .table{ justify-content: flex-start; gap: 12px; }
   .machine{ margin-top: auto; } .foot-notes{ margin-bottom: auto; }
@@ -107,7 +107,7 @@
             <button class="btn" id="max">Max lines</button>
             <button class="btn main spin" id="spin">Spin</button>
           </div>
-          <button class="btn main" id="rebuy" hidden>Get 1,000 chips</button>
+          <button class="btn main" id="rebuy" hidden>Get chips with Vox points</button>
         </div>
         <div class="foot-notes">
           <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
@@ -129,7 +129,7 @@
       </div>
       <div class="panel">
         <h3>Casino leaderboard</h3>
-        <p>Your chips are shared by every casino game. Below 1,000? Get 1,000 free, once a minute. Cheating gets you banned: <a class="rules-link" href="/terms.html#casino">casino rules</a>.</p>
+        <p>Your chips are shared by every casino game. Out of chips? Turn <a class="rules-link" href="/games.html#vox">Vox points</a> into chips. Cheating gets you banned: <a class="rules-link" href="/terms.html#casino">casino rules</a>.</p>
         <div class="tabs" role="tablist">
           <button type="button" class="tab on" data-kind="score">Chips</button>
           <button type="button" class="tab" data-kind="time">Time played</button>
@@ -144,7 +144,7 @@
    equally likely, so how often a symbol appears on a strip sets the odds (the same way real machines work).
    With these strips and pays the machine returns 94.99% of what's bet over the long run.
    The server's slots_spin() uses the same strips and pays. */
-import { $, sleep, reduced, fmt, rand, bank, showChips, msg, sfx, casino, startShell, signedIn, grantError } from '/casino.js?v=9';
+import { $, sleep, reduced, fmt, rand, bank, showChips, msg, sfx, casino, startShell, signedIn, openVox } from '/casino.js?v=10';
 
 const STRIPS = ['BPLDLSCBLPBPRLCSPRLBCP', 'LBLSLRBCPLBLPSPCPLPRDB', 'LRPBLPBLBCRCSPLPLPCDCB'], N = 22;
 const PAY3 = { D: 800, S: 150, R: 50, C: 20, B: 20, P: 15, L: 10 }, CH2 = 5, CH1 = 2;
@@ -297,7 +297,7 @@ async function spin(){
   busy = false; ui();
 }
 $('spin').onclick = spin;
-$('rebuy').onclick = async () => { if (busy) return; busy = true; ui(); try { chips = (await engine().topup()).chips; msg('Here’s 1,000 chips', 'Good luck'); } catch (e) { msg('Not yet', grantError(e), 'lose'); } busy = false; ui(); };
+$('rebuy').onclick = () => openVox();
 document.addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
   if (e.key === ' '){ e.preventDefault(); spin(); }

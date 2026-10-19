@@ -47,6 +47,37 @@
   .gtab{ font: inherit; font-size: 14px; font-weight: 700; padding: 8px 16px; border-radius: 999px; cursor: pointer; background: var(--canvas-inset, transparent); color: var(--fg-muted); border: 1px solid var(--border); }
   .gtab[aria-selected="true"]{ background: var(--accent); color: #fff; border-color: transparent; }
   .gtab.gamble[aria-selected="true"]{ background: #1f8a5f; }
+  .gtab.voxt[aria-selected="true"]{ background: #8957e5; }
+  /* Vox points tab */
+  .vox{ display: grid; gap: 18px; }
+  .vox[hidden]{ display: none; }
+  .vbox{ background: var(--canvas-inset); border: 1px solid var(--border-muted); border-radius: 14px; padding: 20px 22px; }
+  .vbox h2{ font-size: 19px; margin: 0 0 4px; }
+  .vbox .sub{ margin: 0 0 14px; font-size: 13.5px; color: var(--fg-muted); }
+  .vbox .sub b{ color: var(--fg); }
+  .vrules{ margin: 0; padding-left: 18px; font-size: 14px; color: var(--fg-muted); }
+  .vrules li{ margin: 4px 0; } .vrules b{ color: var(--fg); }
+  .vstats{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .vstat{ background: var(--canvas); border: 1px solid var(--border-muted); border-radius: 10px; padding: 10px 12px; }
+  .vstat span{ display: block; font-size: 12px; color: var(--fg-muted); font-weight: 600; }
+  .vstat b{ display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .vstat.pts b{ color: #8957e5; }
+  .vform{ display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .vform input{ font: inherit; font-size: 15px; width: 140px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--canvas); color: var(--fg); }
+  .vbtn{ font: inherit; font-size: 13.5px; font-weight: 700; padding: 8px 14px; border-radius: 8px; cursor: pointer; background: var(--canvas); color: var(--fg); border: 1px solid var(--border); }
+  .vbtn.main{ background: #8957e5; color: #fff; border-color: transparent; }
+  .vbtn:disabled{ opacity: .45; cursor: default; }
+  .vmsg{ min-height: 20px; margin: 10px 0 0; font-size: 13.5px; color: var(--fg-muted); }
+  .vweek{ display: grid; gap: 8px; }
+  .vplace{ display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 10px; background: var(--canvas); border: 1px solid var(--border-muted); font-size: 15px; }
+  .vplace.me{ border-color: #8957e5; }
+  .vplace .pl{ width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #1b1b1b; background: var(--m); }
+  .vplace .nm{ font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vplace .pt{ font-weight: 700; font-variant-numeric: tabular-nums; }
+  .vempty{ color: var(--fg-muted); font-size: 14px; padding: 6px 2px; }
+  .vpast{ display: grid; gap: 14px; margin-top: 6px; }
+  .vpast h3{ font-size: 14px; margin: 0 0 6px; color: var(--fg-muted); }
+  @media (max-width: 620px){ .vbox{ padding: 16px; } .vstats{ grid-template-columns: 1fr 1fr; } }
   .bj-art{ padding: 0 !important; overflow: hidden; background: radial-gradient(ellipse at 50% 40%, #0f5a46, #07372b) !important; }
   .game-art.bj-art svg{ width: 70%; height: auto; opacity: 1; }
   .gamble-note{ font-size: 13px; color: var(--fg-muted); margin: -6px 0 16px; }
@@ -133,6 +164,7 @@
     <div class="gtabs" role="tablist">
       <button type="button" class="gtab" role="tab" aria-selected="true" data-gtab="games">Games</button>
       <button type="button" class="gtab gamble" role="tab" aria-selected="false" data-gtab="gambling">Gambling games</button>
+      <button type="button" class="gtab voxt" role="tab" aria-selected="false" data-gtab="vox">Vox points</button>
     </div>
     <p class="gamble-note" id="gamble-note" hidden>Just for fun: play chips only, never real money. No cheating: bookmarklets, scripts, console tricks and exploiting bugs are all bannable. <a href="/terms.html#casino">Casino rules</a></p>
     <div class="games" id="tab-games">
@@ -203,7 +235,7 @@
       <div class="casino-head">
         <div>
           <h2>Casino leaderboard</h2>
-          <p class="casino-sub">One pile of chips for every casino game. Below 1,000? Get 1,000 free, once a minute. <span id="casino-me"></span></p>
+          <p class="casino-sub">One pile of chips for every casino game. Out of chips? Turn <a href="#vox" data-govox>Vox points</a> into chips. <span id="casino-me"></span></p>
         </div>
         <div class="ctabs" role="tablist">
           <button type="button" class="ctab" aria-selected="true" data-kind="score">Chips</button>
@@ -212,6 +244,32 @@
       </div>
       <ol class="clb" id="clb"><li class="clb-empty">Loading…</li></ol>
     </section>
+    <div class="vox" id="tab-vox" hidden>
+      <section class="vbox">
+        <h2>Vox points</h2>
+        <p class="sub">One kind of points for every game on Voxprints.</p>
+        <ul class="vrules">
+          <li><b>Dune coins</b> turn into Vox points, 1 coin for 1 point. Points can't be turned back into coins.</li>
+          <li><b>Casino chips</b> and Vox points swap both ways, 1 chip for 1 point. Out of chips? Turn points into chips.</li>
+          <li>Every <b>Sunday at midnight</b> (Sydney time) everyone's points go back to 0. The three players with the most points that week go on that week's leaderboard.</li>
+          <li>Points, chips and coins are just for fun. They have no cash value.</li>
+        </ul>
+      </section>
+      <section class="vbox">
+        <h2>Your points</h2>
+        <p class="sub" id="vx-when">&nbsp;</p>
+        <div id="vx-out"><p class="vempty">Loading…</p></div>
+      </section>
+      <section class="vbox">
+        <h2>This week</h2>
+        <p class="sub">The top 3 so far. When the week ends they go on the leaderboard below and a new week starts.</p>
+        <div class="vweek" id="vx-live"><p class="vempty">Loading…</p></div>
+      </section>
+      <section class="vbox">
+        <h2>Past weeks</h2>
+        <div class="vpast" id="vx-past"><p class="vempty">Loading…</p></div>
+      </section>
+    </div>
     <div class="foot"><a href="/">Back to home</a><a href="/terms.html">Terms</a><a href="/privacy.html">Privacy</a></div>
   </main>
 <script>
@@ -224,10 +282,13 @@
     document.getElementById('tab-gambling').hidden = name !== 'gambling';
     document.getElementById('gamble-note').hidden = name !== 'gambling';
     document.getElementById('casino').hidden = name !== 'gambling';
+    document.getElementById('tab-vox').hidden = name !== 'vox';
     if (name === 'gambling' && window.loadCasinoBoard) window.loadCasinoBoard();
+    if (name === 'vox' && window.loadVox) window.loadVox();
   }
-  tabs.forEach(function(t){ t.addEventListener('click', function(){ pick(t.dataset.gtab); history.replaceState(null, '', t.dataset.gtab === 'gambling' ? '#gambling' : location.pathname); }); });
-  pick(location.hash === '#gambling' ? 'gambling' : 'games');
+  tabs.forEach(function(t){ t.addEventListener('click', function(){ pick(t.dataset.gtab); history.replaceState(null, '', t.dataset.gtab === 'games' ? location.pathname : '#' + t.dataset.gtab); }); });
+  pick(location.hash === '#gambling' ? 'gambling' : location.hash === '#vox' ? 'vox' : 'games');
+  window.addEventListener('hashchange', function(){ pick(location.hash === '#gambling' ? 'gambling' : location.hash === '#vox' ? 'vox' : 'games'); });
 })();
 </script>
 <script type="module">
@@ -267,7 +328,67 @@ document.querySelectorAll('.ctab').forEach(t => t.addEventListener('click', () =
   kind = t.dataset.kind; board();
 }));
 if (!document.getElementById('casino').hidden) window.loadCasinoBoard();
+
+/* ---------- Vox points ---------- */
+const n = v => Number(v || 0).toLocaleString();
+const MEDAL = ['#e6c35c', '#c9ced6', '#d39b6a'];
+const place = r => '<div class="vplace' + (r.me ? ' me' : '') + '"><span class="pl" style="--m:' + MEDAL[r.place - 1] + '">' + r.place + '</span><span class="nm">' + esc(r.name) + (r.me ? ' (you)' : '') + '</span><span class="pt">' + n(r.points) + ' pts</span></div>';
+const weekName = d => 'Week of ' + new Date(d + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+let voxEnds = null, voxTimer = 0, me2 = null;
+function countdown(){
+  const el = document.getElementById('vx-when'); if (!voxEnds) return;
+  let s = Math.max(0, Math.floor((voxEnds - Date.now()) / 1000));
+  const d = Math.floor(s / 86400), h = Math.floor(s / 3600) % 24, m = Math.floor(s / 60) % 60;
+  el.innerHTML = 'This week ends in <b>' + (d ? d + 'd ' : '') + h + 'h ' + m + 'm</b>' + (me2 && me2.place ? '. You’re <b>#' + me2.place + '</b> this week.' : '.');
+  if (s === 0){ clearInterval(voxTimer); setTimeout(() => window.loadVox(), 3000); }
+}
+async function voxBoard(){
+  const { data, error } = await sb.rpc('vox_board', { p_weeks: 12 });
+  if (error || !data){ document.getElementById('vx-live').innerHTML = '<p class="vempty">Couldn’t load the leaderboard.</p>'; return; }
+  voxEnds = new Date(data.week_ends).getTime();
+  document.getElementById('vx-live').innerHTML = data.live.length ? data.live.map(place).join('') : '<p class="vempty">No one has any points yet this week.</p>';
+  document.getElementById('vx-past').innerHTML = data.past.length
+    ? data.past.map(w => '<div><h3>' + weekName(w.week_start) + '</h3><div class="vweek">' + (w.winners.length ? w.winners.map(place).join('') : '<p class="vempty">No one scored that week.</p>') + '</div></div>').join('')
+    : '<p class="vempty">The first weekly leaderboard appears after this week ends.</p>';
+}
+function voxMine(d){
+  me2 = d;
+  document.getElementById('vx-out').innerHTML =
+    '<div class="vstats"><div class="vstat pts"><span>Vox points</span><b>' + n(d.points) + '</b></div><div class="vstat"><span>Casino chips</span><b>' + n(d.chips) + '</b></div><div class="vstat"><span>Dune coins</span><b>' + n(d.coins) + '</b></div></div>' +
+    '<div class="vform"><input type="number" id="vx-amt" min="1" step="1" inputmode="numeric" placeholder="How many?" aria-label="How many">' +
+    '<button type="button" class="vbtn" id="vx-d">Dune coins to points</button><button type="button" class="vbtn" id="vx-c">Chips to points</button><button type="button" class="vbtn main" id="vx-p">Points to chips</button></div>' +
+    '<p class="vmsg" id="vx-msg" aria-live="polite"></p>';
+  const go = async (fn, what) => {
+    const amt = Math.floor(Number(document.getElementById('vx-amt').value)), m = document.getElementById('vx-msg');
+    if (!(amt >= 1)){ m.textContent = 'Type how many first.'; return; }
+    document.querySelectorAll('#vx-out .vbtn').forEach(b => b.disabled = true);
+    const { data, error } = await sb.rpc(fn, { p_amount: amt });
+    if (error){
+      const e = error.message || '';
+      m.textContent = /coins/.test(e) ? 'You don’t have that many Dune coins.' : /chips/.test(e) ? 'You don’t have that many chips.' : /points/.test(e) ? 'You don’t have that many points.' : /banned|locked/.test(e) ? 'You can’t use the casino right now.' : 'That didn’t go through. Try again.';
+      document.querySelectorAll('#vx-out .vbtn').forEach(b => b.disabled = false); return;
+    }
+    voxMine(data); document.getElementById('vx-msg').textContent = what.replace('{n}', n(amt)); voxBoard(); countdown();
+  };
+  document.getElementById('vx-d').onclick = () => go('vox_from_dune', 'Turned {n} Dune coins into points.');
+  document.getElementById('vx-c').onclick = () => go('vox_from_chips', 'Turned {n} chips into points.');
+  document.getElementById('vx-p').onclick = () => go('vox_to_chips', 'Turned {n} points into chips.');
+}
+window.loadVox = async () => {
+  if (!(await client())){ document.getElementById('vx-out').innerHTML = '<p class="vempty">Vox points are unavailable right now.</p>'; return; }
+  await voxBoard();
+  const { data: s } = await sb.auth.getSession();
+  if (s && s.session){
+    const { data } = await sb.rpc('vox_me');
+    if (data) voxMine(data);
+  } else {
+    me2 = null;
+    document.getElementById('vx-out').innerHTML = '<p class="vempty">Sign in to use Vox points. You can sign in from any <a href="/blackjack.html">casino table</a> or from <a href="/dune.html">Dune</a>, then come back here.</p>';
+  }
+  countdown(); clearInterval(voxTimer); voxTimer = setInterval(countdown, 30000);
+};
+if (!document.getElementById('tab-vox').hidden) window.loadVox();
 </script>
 </body>
 </html>
-<!-- build 2026-10-13T23:52:28Z -->
+<!-- build 2026-10-19T00:00:00Z -->

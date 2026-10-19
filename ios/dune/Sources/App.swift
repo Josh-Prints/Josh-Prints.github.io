@@ -33,7 +33,7 @@ final class GameViewController: UIViewController, WKNavigationDelegate, WKUIDele
         config.allowsInlineMediaPlayback = true
         config.websiteDataStore = .default()   // keeps the best score, look and sign-in between launches
 
-        // things that only make sense on the website: the link back to the Games page, the "new version"
+        // things that only make sense on the website: the links to the Games page, the "new version"
         // bar, and Google sign-in (Google doesn't allow it inside apps; the email code works)
         let css = """
         a[href="/games.html"]{ visibility: hidden !important; }
@@ -73,6 +73,14 @@ final class GameViewController: UIViewController, WKNavigationDelegate, WKUIDele
 
     // links to other websites open in Safari; the game itself stays in the app
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        // links to other pages of the website (like the Vox points tab) aren't in the app: open them on voxprints.com
+        if let url = action.request.url, url.scheme == "dune", action.navigationType == .linkActivated, url.path != "/dune.html",
+           var web = URLComponents(string: "https://voxprints.com" + url.path) {
+            web.fragment = url.fragment
+            if let target = web.url { UIApplication.shared.open(target) }
+            decisionHandler(.cancel)
+            return
+        }
         if let url = action.request.url, url.scheme != "dune", action.targetFrame?.isMainFrame ?? true,
            ["http", "https", "mailto"].contains(url.scheme ?? "") {
             UIApplication.shared.open(url)

@@ -19,11 +19,11 @@ export function shuffle(arr){ for (let i = arr.length - 1; i > 0; i--){ const j 
 export function newDeck(decks){ const s = []; for (let d = 0; d < (decks || 1); d++) for (let c = 0; c < 52; c++) s.push(c); return shuffle(s); }
 
 /* ---------- guests: one chip bank on this device for every casino game ---------- */
-// Guest chips and loans are signed, so editing them by hand (a bookmarklet, the console) is caught.
+// Guest chips are signed, so editing them by hand (a bookmarklet, the console) is caught.
 // It's only a speed bump: anything in the browser can be undone. Signed-in chips live on the server.
 const sig = v => { let h = 0x811c9dc5; const t = 'vx' + v + 'c4s1n0'; for (let i = 0; i < t.length; i++){ h ^= t.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
 let lastGoodChips = null;
-try { ['casino-loan', 'casino-loan-k'].forEach(k => localStorage.removeItem(k)); } catch (e) {}
+try { ['casino-loan', 'casino-loan-k', 'casino-grant', 'casino-grant-k'].forEach(k => localStorage.removeItem(k)); } catch (e) {}
 function signedRead(key, sigKey, fallback){
   const v = localStorage.getItem(key), g = localStorage.getItem(sigKey);
   if (v === null){ if (g !== null) localStorage.removeItem(sigKey); return null; }
@@ -42,43 +42,57 @@ export const bank = {
     } catch (e) { return 1000; }
   },
   set(c){ try { const v = String(Math.max(0, Math.floor(c))); localStorage.setItem('casino-bank', v); localStorage.setItem('casino-bank-k', sig(v)); lastGoodChips = +v; } catch (e) {} },
-  // when this device last got free chips (signed, so it can't be wound back by hand)
-  grantAt(){ try { const v = signedRead('casino-grant', 'casino-grant-k', String(Date.now())); return v === null ? 0 : +v || 0; } catch (e) { return 0; } },
-  wait(){ return Math.max(0, Math.ceil((this.grantAt() + 60000 - Date.now()) / 1000)); },
   // is a guest hand still being played? (chips are out on the table)
   busy(){ try { const b = JSON.parse(localStorage.getItem('bj-guest') || 'null'); return !!localStorage.getItem('tcp-guest') || !!(b && b.phase && b.phase !== 'bet'); } catch (e) { return false; } },
-  // 1,000 free chips, the same rule as the server's casino_borrow(): below 1,000 chips, not mid-hand, once a minute
-  borrow(){
-    const c = this.get(), w = this.wait();
-    if (c >= 1000) throw Object.assign(new Error('only below 1,000 chips'), { hint: 'casino_below' });
-    if (this.busy()) throw Object.assign(new Error('finish your hand first'), { hint: 'casino_hand' });
-    if (w > 0) throw Object.assign(new Error('wait ' + w + ' seconds'), { hint: 'casino_wait' });
-    this.set(c + 1000);
-    try { const v = String(Date.now()); localStorage.setItem('casino-grant', v); localStorage.setItem('casino-grant-k', sig(v)); } catch (e) {}
-    casino.refreshLoan(); return c + 1000;
-  },
-  // the games' "Get 1,000 chips" button
-  topup(){ return this.borrow(); },
+  // there are no free chips any more: signed-in players buy chips with Vox points
+  topup(){ throw Object.assign(new Error('free chips are gone: turn Vox points into chips'), { hint: 'casino_nofree' }); },
 };
 
 /* ---------- chips shown in the stats ---------- */
-// The panel shows the chips in front of you, but whether you can get free chips depends on your whole
-// wallet (bets not yet dealt still count) and on not being mid-hand, so that's re-checked once the
-// table settles after any change.
-let grantCheck = null;
-function loanChips(v){
-  const c = $('ln-chips'); if (!c) return;
-  c.textContent = fmt(v);
-  clearTimeout(grantCheck); grantCheck = setTimeout(() => casino.refreshLoan(), 500);
+function loanChips(v){ const c = $('ln-chips'); if (c) c.textContent = fmt(v); }
+
+/* ---------- Vox points: 1 chip = 1 point, both ways (signed-in players only) ---------- */
+// Points reset every week and the week's top 3 go on the Vox leaderboard (games.html#vox). Free chips are gone:
+// out of chips, you turn points (from Dune coins or earlier winnings) back into chips.
+export function voxHtml(signed){
+  return '<div class="loan" id="vox"><div class="me-row"><span>Chips</span><b id="ln-chips">…</b><span>Vox points</span><b id="vx-pts">' + (signed ? '…' : 'Sign in') + '</b></div>' +
+    (signed
+      ? '<p class="loan-note">1 chip = 1 Vox point, both ways. Points reset every Sunday at midnight (Sydney time), and the week’s top 3 go on the <a href="/games.html#vox">Vox leaderboard</a>.</p>' +
+        '<input class="pinput" id="vx-amt" type="number" min="1" step="1" inputmode="numeric" placeholder="How many?" aria-label="How many">' +
+        '<div class="vx-fill"><button type="button" class="link" id="vx-allc">All my chips</button><button type="button" class="link" id="vx-allp">All my points</button></div>' +
+        '<div class="loan-btns"><button type="button" class="pbtn" id="vx-in">Chips to points</button><button type="button" class="pbtn primary" id="vx-out">Points to chips</button></div><div class="pmsg" id="vx-msg" aria-live="polite"></div>'
+      : '<p class="loan-note">Out of chips? Sign in and turn Vox points into chips. You get points from Dune coins and casino chips.</p>') +
+    '</div>';
 }
-// "Try again in 42 seconds" etc. for a refused free-chips request
-export function grantError(e){
-  const m = (e && e.message) || '', w = /wait (\d+)/.exec(m);
-  if (w) setGrantWait(+w[1], true);
-  return w ? 'You can get more in ' + w[1] + ' second' + (w[1] === '1' ? '' : 's') : /below/.test(m) ? 'Only when you’re below 1,000 chips' : /hand/.test(m) ? 'Finish your hand first' : 'That didn’t go through';
+// api: { rpc(name, args), signed(), after(result) }; after() lets the page reload its chips
+export function wireVox(api){
+  const msgEl = $('vx-msg'), say = t => { if (msgEl) msgEl.textContent = t; };
+  let last = null;
+  const show = d => { last = d; const p = $('vx-pts'); if (p) p.textContent = fmt(d.points); loanChips(d.chips); };
+  const refresh = async () => { if (!api.signed() || !$('vx-pts')) return; try { show(await api.rpc('vox_me')); } catch (e) {} };
+  const amount = () => { const v = Math.floor(Number(($('vx-amt') || {}).value)); return v >= 1 && isFinite(v) ? v : 0; };
+  const go = async (fn, verb) => {
+    const n = amount(); if (!n){ say('Type how many first.'); return; }
+    $('vx-in').disabled = $('vx-out').disabled = true; say('');
+    try { const d = await api.rpc(fn, { p_amount: n }); show(d); say(verb.replace('{n}', fmt(n)) + ' You have ' + fmt(d.chips) + ' chips and ' + fmt(d.points) + ' points.'); $('vx-amt').value = ''; api.after && api.after(d); }
+    catch (e) { say(/chips/.test(e.message || '') ? 'You don’t have that many chips free.' : /points/.test(e.message || '') ? 'You don’t have that many points.' : /locked|banned/.test(e.message || '') ? 'You can’t do that right now.' : 'That didn’t go through. Try again.'); }
+    $('vx-in').disabled = $('vx-out').disabled = false;
+  };
+  if ($('vx-in')){
+    $('vx-in').onclick = () => go('vox_from_chips', 'Turned {n} chips into points.');
+    $('vx-out').onclick = () => go('vox_to_chips', 'Turned {n} points into chips.');
+    $('vx-allc').onclick = () => { if (last) $('vx-amt').value = last.chips || ''; };
+    $('vx-allp').onclick = () => { if (last) $('vx-amt').value = last.points || ''; };
+  }
+  refresh();
+  return refresh;
 }
-// start the countdown on the free-chips buttons (pages that don't use the side panel call this themselves)
-export function setGrantWait(wait, ok){ casino.nextGrant = Date.now() + (wait || 0) * 1000; casino.grantOk = !!ok; casino.grantButton(); }
+// the table's "Get chips" button: open the side panel at the Vox points block
+export function openVox(){
+  const side = $('side-right'); if (side) side.classList.add('open');
+  const box = $('vox'); if (box) box.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  const amt = $('vx-amt'); if (amt) setTimeout(() => amt.focus(), 300);
+}
 let shownChips = null;
 export function showChips(v, pulse){
   loanChips(v);
@@ -328,7 +342,7 @@ export const guard = {
 /* ======================= accounts, leaderboard, time played ======================= */
 export const casino = {
   sb: null, user: null, pendingSecs: 0, kind: 'score', lastInput: 0, listeners: [],
-  async rpc(name, args){ const { data, error } = await this.sb.rpc(name, args || {}); if (error){ if (isBanError(error)) showBan(null, this.sb); else if (isLockError(error)) guard.check(); throw error; } if (name === 'casino_topup' || name === 'casino_borrow') this.refreshLoan(); return data; },
+  async rpc(name, args){ const { data, error } = await this.sb.rpc(name, args || {}); if (error){ if (isBanError(error)) showBan(null, this.sb); else if (isLockError(error)) guard.check(); throw error; } return data; },
   onUser(fn){ this.listeners.push(fn); },
   markInput(){ this.lastInput = performance.now(); },
   async record(){
@@ -359,9 +373,9 @@ export const casino = {
   },
   renderAccount(){
     const box = $('account'); if (!box) return;
-    if (!this.sb){ box.innerHTML = this.loanHtml() + '<p style="margin-top:12px">Sign-in is unavailable right now. You can still play.</p>'; this.wireLoan(); return; }
+    if (!this.sb){ box.innerHTML = voxHtml(false) + '<p style="margin-top:12px">Sign-in is unavailable right now. You can still play.</p>'; return; }
     if (this.user){
-      box.innerHTML = '<h3>Playing as <span id="me-name">…</span></h3><div class="me-row" id="me-stats"></div>' + this.loanHtml() +
+      box.innerHTML = '<h3>Playing as <span id="me-name">…</span></h3><div class="me-row" id="me-stats"></div>' + voxHtml(true) +
         '<div id="name-box" hidden><p style="margin-top:10px">Pick a name for the leaderboard:</p><input class="pinput" id="name-in" maxlength="40" placeholder="Your name"><button type="button" class="pbtn primary" id="name-save">Save name</button><div class="pmsg" id="name-msg"></div></div>' +
         '<button type="button" class="link" id="sign-out">Sign out</button>';
       $('sign-out').onclick = async () => { await this.sb.auth.signOut(); };
@@ -373,17 +387,17 @@ export const casino = {
         const { data } = await this.sb.rpc('game_my_stats', { p_game: 'casino' }); this.renderMe(data); this.loadBoard();
       };
       this.sb.rpc('game_my_stats', { p_game: 'casino' }).then(({ data }) => this.renderMe(data));
-      this.wireLoan();
+      this.refreshVox = wireVox({ rpc: (n, a) => this.rpc(n, a), signed: () => signedIn(), after: () => { this.loadBoard(); this.listeners.forEach(fn => { try { fn(this.user); } catch (e) {} }); } });
       return;
     }
-    box.innerHTML = this.loanHtml() + '<h3 style="margin-top:14px">Save your chips</h3><p>Sign in to keep your chips on any device and get on the casino leaderboard.</p>' +
+    box.innerHTML = voxHtml(false) + '<h3 style="margin-top:14px">Save your chips</h3><p>Sign in to keep your chips on any device, get on the casino leaderboard, and use Vox points.</p>' +
       '<button type="button" class="pbtn" id="g-in"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>Sign in with Google</button>' +
       '<input class="pinput" id="em-in" type="email" placeholder="or your email" autocomplete="email">' +
       '<button type="button" class="pbtn" id="em-send">Email me a code</button>' +
       '<div id="code-box" hidden><input class="pinput" id="code-in" inputmode="numeric" maxlength="6" placeholder="6-digit code"><button type="button" class="pbtn primary" id="code-go">Sign in</button></div>' +
       '<div class="pmsg" id="em-msg"></div>';
     $('g-in').onclick = () => { this.sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } }); };
-    this.wireLoan();
+    loanChips(bank.get());
     let pendingEmail = '';
     $('em-send').onclick = async () => {
       const email = $('em-in').value.trim(), m = $('em-msg');
@@ -400,39 +414,8 @@ export const casino = {
     };
   },
   guestNote(){ document.querySelectorAll('.guest-note').forEach(n => n.hidden = !!this.user); },
-  // the free-chips block in the account panel: your chips and "Get 1,000 chips" (once a minute, below 1,000)
-  nextGrant: 0, grantOk: false, grantTimer: null,
-  async refreshLoan(){
-    if (!$('loan') && !$('rebuy')) return;
-    let d;
-    if (signedIn()){ try { d = await this.rpc('casino_me'); } catch (e) { return; } }
-    else d = { chips: bank.get(), wait: bank.wait(), busy: bank.busy() };
-    this.nextGrant = Date.now() + (d.wait || 0) * 1000; this.grantOk = d.chips < 1000 && !d.busy;
-    const c = $('ln-chips'); if (c && c.textContent === '…') c.textContent = fmt(d.chips);
-    this.grantButton();
-  },
-  // the side panel's button and the table's "Get 1,000 chips" button both count down to the next free chips
-  grantButton(){
-    const left = Math.max(0, Math.ceil((this.nextGrant - Date.now()) / 1000)), low = this.grantOk;
-    const label = left > 0 ? 'Get 1,000 chips in ' + Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0') : 'Get 1,000 chips';
-    const b = $('ln-borrow'); if (b){ b.disabled = !low || left > 0; b.textContent = low ? label : 'Get 1,000 chips'; }
-    const r = $('rebuy'); if (r){ r.disabled = left > 0; r.textContent = label; }
-    clearTimeout(this.grantTimer); if (left > 0) this.grantTimer = setTimeout(() => this.grantButton(), 1000);
-  },
-  loanHtml(){
-    return '<div class="loan" id="loan"><div class="me-row"><span>Chips</span><b id="ln-chips">…</b></div>' +
-      '<p class="loan-note">Below 1,000 chips (counting any on the table)? Get 1,000 free, once a minute.</p>' +
-      '<div class="loan-btns one"><button type="button" class="pbtn primary" id="ln-borrow">Get 1,000 chips</button></div><div class="pmsg" id="ln-msg"></div></div>';
-  },
-  wireLoan(){
-    $('ln-borrow').onclick = async () => {
-      const m = $('ln-msg'); if (m) m.textContent = '';
-      try { signedIn() ? await this.rpc('casino_borrow') : bank.borrow(); if (m) m.textContent = 'Here’s 1,000 chips.'; }
-      catch (e) { if (m) m.textContent = grantError(e) + '.'; }
-      await this.refreshLoan(); this.loadBoard(); this.listeners.forEach(fn => { try { fn(this.user); } catch (e) {} });
-    };
-    this.refreshLoan();
-  },
+  // refreshes the Vox points block (set by renderAccount when signed in)
+  refreshVox: () => {},
   changed(){ const b = document.getElementById('cz-ban'); if (b && !this.user) b.remove(); guard.clear(); guard.check(); this.renderAccount(); this.loadBoard(); this.guestNote(); this.listeners.forEach(fn => { try { fn(this.user); } catch (e) { console.error(e); } }); },
 };
 
