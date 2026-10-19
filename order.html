@@ -295,6 +295,13 @@
   @media (max-width: 520px){ .sbar-steps{ font-size: 10.5px; } }
   @media (prefers-reduced-motion: reduce){ .sbar-fill{ transition: none; } .sbar-dot.now.live{ animation: none; } }
 
+  .pay-box{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin: 4px 0 14px; padding: 12px 14px; border-radius: 10px; background: var(--accent-dim, rgba(68,147,248,.1)); }
+  .pay-box[hidden]{ display:none; }
+  .pay-box .pay-sub{ font-size: 12.5px; color: var(--ink-dim); }
+  .pay-box .pay-err{ font-size: 12.5px; color: #cf222e; width: 100%; }
+  .pay-box.paid{ background: rgba(31,136,61,.12); }
+  .pay-box.paid b{ color: #1a7f37; display:inline-flex; align-items:center; gap:6px; }
+  .pay-box .send-btn{ display:inline-flex; align-items:center; gap:8px; }
   .quote-amount{
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-weight: 700;
@@ -814,6 +821,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
         <span class="quote-amount" id="quote-amount"></span>
       </div>
       <div id="status-bar"></div>
+      <div class="pay-box" id="pay-box" hidden></div>
       <div class="detail-row"><span class="label">Name</span><span class="value" id="d-name"></span></div>
       <div class="detail-row"><span class="label">Order type</span><span class="value" id="d-type"></span></div>
       <div class="detail-row" id="d-notes-row"><span class="label">Notes</span><span class="value" id="d-notes"></span></div>
@@ -1126,8 +1134,55 @@ h1{ animation: fadeInDown 0.5s ease both; }
     if (snapshot !== lastStatusSnapshot){
       lastStatusSnapshot = snapshot;
       renderOrder(orderRow);
+      loadPayment(orderRow.deleted);
     }
     return true;
+  }
+
+  /* ---------- paying by card (Stripe Checkout through the stripe-pay function) ---------- */
+  const money = v => '$' + Number(v || 0).toFixed(2);
+  const PAID_BY = { card: 'card', cash: 'cash', payid: 'PayID' };
+  async function payCall(action){
+    const { data, error } = await supabase.functions.invoke('stripe-pay', { body: { action, orderId } });
+    if (error){
+      let msg = 'Something went wrong.';
+      try { const j = await error.context.json(); if (j && j.error) msg = j.error; } catch (e) {}
+      throw new Error(msg);
+    }
+    return data;
+  }
+  async function loadPayment(deleted){
+    const box = document.getElementById('pay-box');
+    const { data: p } = await supabase.rpc('get_order_payment', { p_id: orderId });
+    if (!p || deleted){ box.hidden = true; return; }
+    if (p.paid_at){
+      box.className = 'pay-box paid'; box.hidden = false;
+      box.innerHTML = '<b><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg>Paid ' + money(p.paid_amount) + '</b>' +
+        '<span class="pay-sub">' + (PAID_BY[p.paid_method] ? 'by ' + PAID_BY[p.paid_method] + ' · ' : '') + new Date(p.paid_at).toLocaleDateString() + '</span>';
+      return;
+    }
+    if (!p.can_pay){ box.hidden = true; return; }
+    box.className = 'pay-box'; box.hidden = false;
+    box.innerHTML = '<span><b>' + money(p.amount) + '</b> <span class="pay-sub">due</span></span>' +
+      '<button type="button" class="send-btn" id="pay-btn"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#credit-card"/></svg>Pay now</button>' +
+      '<div class="pay-err" id="pay-err" hidden></div>';
+    document.getElementById('pay-btn').onclick = async () => {
+      const btn = document.getElementById('pay-btn'), err = document.getElementById('pay-err');
+      btn.disabled = true; err.hidden = true;
+      try { const r = await payCall('checkout'); location.href = r.url; }
+      catch (e){ err.textContent = e.message; err.hidden = false; btn.disabled = false; }
+    };
+  }
+  // back from Stripe: ask the server to check with Stripe, then show the result
+  if (params.get('paid')){
+    history.replaceState(null, '', location.pathname + '?order=' + encodeURIComponent(orderId));
+    (async () => {
+      for (let i = 0; i < 5; i++){
+        try { if ((await payCall('confirm')).paid) break; } catch (e) {}
+        await new Promise(r => setTimeout(r, 2000));
+      }
+      loadPayment(false);
+    })();
   }
 
   function renderOrder(order){

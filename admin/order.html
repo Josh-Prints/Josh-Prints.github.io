@@ -120,6 +120,10 @@
   .head-meta a{ color: var(--accent); text-decoration:none; }
   .head-meta a:hover{ text-decoration:underline; }
   .head-quote{ font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size:26px; font-weight:700; text-align:right; }
+  .paid-tag{ display:block; margin-top:4px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#1a7f37; }
+  .paid-tag.no{ color: var(--ink-dim); }
+  .pay-row[hidden]{ display:none; }
+  .pay-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:14px; padding-top:14px; border-top:1px solid rgba(var(--border-tint),0.1); font-size:13.5px; }
   .head-quote small{ display:block; font-size:11px; font-weight:500; color: var(--ink-dim); text-transform:uppercase; letter-spacing:0.06em; }
 
   .type-badge{ font-family: ui-monospace, monospace; font-size:11px; padding:3px 9px; border-radius:20px; background: var(--accent-dim); color: var(--accent); }
@@ -587,6 +591,8 @@
 
   const STATUS_OPTIONS = ['new', 'acknowledged', 'quoted', 'printing', 'completed', 'sold', 'cancelled'];
   const STATUS_LABEL = { new:'New', acknowledged:'Acknowledged', quoted:'Quoted', printing:'Printing', completed:'Completed', sold:'Sold', cancelled:'Cancelled' };
+  const PAID_BY = { card: 'card', cash: 'cash', payid: 'PayID' };
+  let isFounder = null;
 
   let order = null;
   let myUserId = null;
@@ -690,6 +696,8 @@
       supabase.from('order_quote_drafts').select('draft, updated_at').eq('order_id', order.id).maybeSingle()
     ]);
     settingsRow = s || null;
+    // online payments are experimental: founders only for now
+    if (isFounder === null){ const { data: st } = await supabase.rpc('my_admin_state'); isFounder = !!(st && st.is_founder); }
     quoteDraft = draftRes && draftRes.data ? draftRes.data : null;
     customerCredit = Number(creditRes.data?.store_credit) || 0;
 
@@ -725,7 +733,8 @@
           ${order.email ? `<a href="mailto:${escapeHtml(order.email)}">${escapeHtml(order.email)}</a>` : ''}
         </div>
       </div>
-      <div class="head-quote"><small>Quote</small>${order.quote_amount != null ? fmt(order.quote_amount) : '—'}</div>`;
+      <div class="head-quote"><small>Quote</small>${order.quote_amount != null ? fmt(order.quote_amount) : '—'}
+        ${!isFounder ? '' : order.paid_at ? `<span class="paid-tag">Paid${order.paid_method ? ' · ' + escapeHtml(PAID_BY[order.paid_method] || order.paid_method) : ''}</span>` : (order.quote_amount != null ? '<span class="paid-tag no">Unpaid</span>' : '')}</div>`;
   }
 
   function filesOf(o){
@@ -850,7 +859,24 @@
       <div style="display:flex;align-items:center;gap:12px;margin-top:16px;">
         <button type="button" class="btn ok" id="save-btn">Save</button>
         <span class="save-msg" id="save-msg"></span>
+      </div>
+      <div class="pay-row" ${isFounder ? '' : 'hidden'}>
+        ${order.paid_at
+          ? `<span>Paid ${fmt(order.paid_amount ?? order.quote_amount)} by ${escapeHtml(PAID_BY[order.paid_method] || order.paid_method || '?')} on ${new Date(order.paid_at).toLocaleDateString()}</span>
+             ${order.paid_method === 'card' ? '' : '<button type="button" class="btn" id="unpaid-btn">Mark unpaid</button>'}`
+          : `<span>Payment</span>
+             <select id="paid-method"><option value="cash">Cash</option><option value="payid">PayID</option></select>
+             <button type="button" class="btn" id="paid-btn">Mark paid</button>`}
+        <span class="save-msg" id="pay-msg"></span>
       </div>`;
+    const setPaid = async (paid) => {
+      const { error } = await supabase.rpc('admin_set_order_paid', { p_id: order.id, p_method: paid ? $('paid-method').value : null, p_paid: paid });
+      if (error){ $('pay-msg').textContent = error.message; return; }
+      const { data: o } = await supabase.from('orders').select('*').eq('id', order.id).maybeSingle();
+      if (o){ order = o; renderAll(); }
+    };
+    if ($('paid-btn')) $('paid-btn').onclick = () => setPaid(true);
+    if ($('unpaid-btn')) $('unpaid-btn').onclick = () => setPaid(false);
     const cb = $('credit-use-cb');
     if (cb) cb.addEventListener('change', () => {
       const amt = $('credit-use-amt');
