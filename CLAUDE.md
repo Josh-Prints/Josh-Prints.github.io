@@ -31,3 +31,8 @@
   on the next Vox call). There are no free chips: out of chips means buying chips with
   points. The UI is the "Vox points" tab on games.html (#vox) plus the Vox block in
   every casino side panel (`voxHtml`/`wireVox` in casino.js).
+- Casino safe word (`migrations/casino-safe-word-migration.sql`): a trigger on
+  `casino_wallet` refuses any update that lowers chips by more than the player's
+  `sw_limit` unless they entered their safe word in the last minute (hint
+  `casino_safeword`; the pages ask and retry via `safeRpc` in casino.js). Admin fixes that
+  lower someone's chips must `set_config('casino.sw_bypass', 'on', true)` first.

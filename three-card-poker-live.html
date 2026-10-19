@@ -11,7 +11,7 @@
 <script src="/looks.js"></script>
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
-<link rel="stylesheet" href="/casino.css?v=10">
+<link rel="stylesheet" href="/casino.css?v=11">
 <style>
   .table{ justify-content: flex-start; gap: 10px; max-width: 900px; }
   .lobby{ margin: auto 0; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
@@ -138,7 +138,7 @@
         </section>
         <div class="foot-notes">
           <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
-          <div class="ver">Version 2026-10-19a</div>
+          <div class="ver">Version 2026-10-19b</div>
         </div>
       </main>
     </div>
@@ -171,7 +171,7 @@
 /* Three Card Poker Live: shared tables where up to six signed-in players play against the same dealer.
    Everything happens on the server (mtcp_* functions): the deck, everyone's cards, the clock and the payouts.
    This page just shows the table, refreshing every second, and sends your bets and Play / Fold. */
-import { $, sleep, reduced, fmt, esc, showChips, msg as showMsg, sfx, casino, startShell, signedIn, cardEl, chipRack, betBoard } from '/casino.js?v=10';
+import { $, sleep, reduced, fmt, esc, showChips, msg as showMsg, sfx, casino, startShell, signedIn, cardEl, chipRack, betBoard } from '/casino.js?v=11';
 
 // the table refreshes every second; only redraw (and re-animate) the message when its wording changes
 let lastMsg = '';

@@ -75,7 +75,7 @@ export function wireVox(api){
     const n = amount(); if (!n){ say('Type how many first.'); return; }
     $('vx-in').disabled = $('vx-out').disabled = true; say('');
     try { const d = await api.rpc(fn, { p_amount: n }); show(d); say(verb.replace('{n}', fmt(n)) + ' You have ' + fmt(d.chips) + ' chips and ' + fmt(d.points) + ' points.'); $('vx-amt').value = ''; api.after && api.after(d); }
-    catch (e) { say(/chips/.test(e.message || '') ? 'You don’t have that many chips free.' : /points/.test(e.message || '') ? 'You don’t have that many points.' : /locked|banned/.test(e.message || '') ? 'You can’t do that right now.' : 'That didn’t go through. Try again.'); }
+    catch (e) { say(/safe word/.test(e.message || '') ? 'That needs your safe word.' : /chips/.test(e.message || '') ? 'You don’t have that many chips free.' : /points/.test(e.message || '') ? 'You don’t have that many points.' : /locked|banned/.test(e.message || '') ? 'You can’t do that right now.' : 'That didn’t go through. Try again.'); }
     $('vx-in').disabled = $('vx-out').disabled = false;
   };
   if ($('vx-in')){
@@ -339,10 +339,99 @@ export const guard = {
   },
 };
 
+/* ======================= safe word ======================= */
+// A signed-in player can set a safe word and an amount: anything that takes more than that from their chips in one go
+// is refused by the server (hint 'casino_safeword') until the word is entered. safeRpc() asks for it and retries.
+let swStyled = false;
+function swStyle(){
+  if (swStyled) return; swStyled = true;
+  const st = document.createElement('style');
+  st.textContent = '.sw-back{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.62);backdrop-filter:blur(4px)}' +
+    '.sw-box{max-width:380px;width:100%;background:var(--canvas,#fff);color:var(--fg,#1f2328);border:1px solid var(--border,#d1d9e0);border-radius:14px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.4);font-family:inherit}' +
+    '.sw-box h2{font-size:18px;margin:6px 0 8px;display:flex;align-items:center;gap:8px}.sw-box p{margin:0 0 12px;font-size:14px;line-height:1.5;color:var(--fg-muted,#59636e)}' +
+    '.sw-box input{width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:10px 12px;border-radius:9px;border:1px solid var(--border,#d1d9e0);background:var(--canvas-inset,#f6f8fa);color:inherit}' +
+    '.sw-box .sw-msg{min-height:20px;margin:8px 0 0;font-size:13px;color:#d1242f}.sw-box .sw-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}' +
+    '.sw-box button{font:inherit;font-size:14px;font-weight:700;padding:10px;border-radius:9px;cursor:pointer;border:1px solid var(--border,#d1d9e0);background:var(--canvas,#fff);color:inherit}' +
+    '.sw-box button.go{background:#1f8a5f;color:#fff;border-color:transparent}.sw-box button:disabled{opacity:.5;cursor:default}';
+  document.head.appendChild(st);
+}
+// rawRpc(name, args) -> { data, error }, like a Supabase client's rpc
+export function askSafeWord(rawRpc, amount){
+  swStyle();
+  return new Promise(resolve => {
+    const d = document.createElement('div'); d.className = 'sw-back'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'sw-h');
+    d.innerHTML = '<form class="sw-box" autocomplete="off"><h2 id="sw-h"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#lock"/></svg>Safe word</h2>' +
+      '<p>' + (amount ? 'This takes <b>' + fmt(amount) + '</b> chips, which is over your safe-word amount.' : 'This is over your safe-word amount.') + ' Type your safe word to go ahead.</p>' +
+      '<input type="password" id="sw-in" aria-label="Safe word" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="sw-msg" id="sw-msg" aria-live="polite"></div>' +
+      '<div class="sw-btns"><button type="button" id="sw-no">Cancel</button><button type="submit" class="go" id="sw-ok">Go ahead</button></div></form>';
+    document.body.appendChild(d);
+    const inp = d.querySelector('#sw-in'), msgEl = d.querySelector('#sw-msg'), okBtn = d.querySelector('#sw-ok');
+    const done = v => { d.remove(); resolve(v); };
+    d.querySelector('#sw-no').onclick = () => done(false);
+    d.addEventListener('keydown', e => { if (e.key === 'Escape') done(false); });
+    d.querySelector('form').onsubmit = async e => {
+      e.preventDefault(); if (!inp.value.trim()) { msgEl.textContent = 'Type your safe word.'; return; }
+      okBtn.disabled = true; msgEl.textContent = '';
+      const { data, error } = await rawRpc('casino_sw_approve', { p_word: inp.value });
+      okBtn.disabled = false;
+      if (error) { msgEl.textContent = error.hint === 'casino_sw_locked' ? 'Too many wrong tries. Try again in 10 minutes.' : 'That didn’t go through. Try again.'; return; }
+      if (data && data.ok) return done(true);
+      msgEl.textContent = 'That’s not your safe word.'; inp.select();
+    };
+    setTimeout(() => inp.focus(), 50);
+  });
+}
+// an rpc that asks for the safe word when the server wants it, then tries once more
+export async function safeRpc(rawRpc, name, args){
+  let r = await rawRpc(name, args);
+  if (r.error && r.error.hint === 'casino_safeword' && await askSafeWord(rawRpc, Number(r.error.details) || 0)) r = await rawRpc(name, args);
+  return r;
+}
+// the safe word block in the side panel
+export function swHtml(){
+  return '<div class="loan" id="sw"><div class="sw-head"><b>Safe word</b> <span id="sw-state">…</span></div><div id="sw-body"></div><div class="pmsg" id="sw-pmsg" aria-live="polite"></div></div>';
+}
+export function wireSafeWord(rawRpc){
+  const body = $('sw-body'), state = $('sw-state'), say = t => { $('sw-pmsg').textContent = t; };
+  if (!body) return;
+  const field = (id, label, type, extra) => '<input class="pinput" id="' + id + '" type="' + type + '" placeholder="' + label + '" aria-label="' + label + '" autocomplete="off"' + (extra || '') + '>';
+  const show = st => {
+    state.textContent = st.on ? 'On' : 'Off';
+    body.innerHTML = st.on
+      ? '<p class="loan-note">Anything over <b>' + fmt(st.limit) + '</b> chips in one go needs your safe word, so nobody else can bet big on this device.</p>' +
+        '<div class="loan-btns"><button type="button" class="pbtn" id="sw-change">Change</button><button type="button" class="pbtn" id="sw-off">Turn off</button></div><div id="sw-form"></div>'
+      : '<p class="loan-note">Set a safe word and an amount. Bets over that amount will ask for the word, so nobody else can bet big on this device.</p>' +
+        '<div class="loan-btns one"><button type="button" class="pbtn" id="sw-set">Set a safe word</button></div><div id="sw-form"></div>';
+    const form = (needCurrent, newWord) => {
+      $('sw-form').innerHTML = (needCurrent ? field('sw-cur', 'Current safe word', 'password') : '') +
+        (newWord ? field('sw-new', 'New safe word', 'password') + field('sw-new2', 'Type it again', 'password') + field('sw-lim', 'Ask over how many chips?', 'number', ' min="1" step="1" inputmode="numeric" value="' + (st.limit || '') + '"') : '') +
+        '<button type="button" class="pbtn primary" id="sw-save">' + (newWord ? 'Save safe word' : 'Turn off safe word') + '</button>';
+      $('sw-save').onclick = async () => {
+        let word = null, lim = null;
+        if (newWord) {
+          word = $('sw-new').value.trim(); lim = Math.floor(Number($('sw-lim').value));
+          if (word.length < 3) return say('Make the safe word at least 3 letters.');
+          if (word.toLowerCase() !== $('sw-new2').value.trim().toLowerCase()) return say('The two safe words don’t match.');
+          if (!(lim >= 1)) return say('Pick an amount of chips.');
+        }
+        $('sw-save').disabled = true; say('');
+        const { data, error } = await rawRpc('casino_sw_set', { p_current: needCurrent ? $('sw-cur').value : null, p_word: word, p_limit: lim });
+        if (error) { $('sw-save').disabled = false; return say(error.hint === 'casino_sw_locked' ? 'Too many wrong tries. Try again in 10 minutes.' : 'That didn’t go through. Try again.'); }
+        if (!data.ok) { $('sw-save').disabled = false; return say('That’s not your current safe word.'); }
+        show(data); say(data.on ? 'Safe word saved. Remember it: you’ll need it to change or turn it off.' : 'Safe word turned off.');
+      };
+    };
+    if ($('sw-set')) $('sw-set').onclick = () => form(false, true);
+    if ($('sw-change')) $('sw-change').onclick = () => form(true, true);
+    if ($('sw-off')) $('sw-off').onclick = () => form(true, false);
+  };
+  rawRpc('casino_sw_status').then(({ data }) => { if (data) show(data); });
+}
+
 /* ======================= accounts, leaderboard, time played ======================= */
 export const casino = {
   sb: null, user: null, pendingSecs: 0, kind: 'score', lastInput: 0, listeners: [],
-  async rpc(name, args){ const { data, error } = await this.sb.rpc(name, args || {}); if (error){ if (isBanError(error)) showBan(null, this.sb); else if (isLockError(error)) guard.check(); throw error; } return data; },
+  async rpc(name, args){ const { data, error } = await safeRpc((n, a) => this.sb.rpc(n, a || {}), name, args || {}); if (error){ if (isBanError(error)) showBan(null, this.sb); else if (isLockError(error)) guard.check(); throw error; } return data; },
   onUser(fn){ this.listeners.push(fn); },
   markInput(){ this.lastInput = performance.now(); },
   async record(){
@@ -375,7 +464,7 @@ export const casino = {
     const box = $('account'); if (!box) return;
     if (!this.sb){ box.innerHTML = voxHtml(false) + '<p style="margin-top:12px">Sign-in is unavailable right now. You can still play.</p>'; return; }
     if (this.user){
-      box.innerHTML = '<h3>Playing as <span id="me-name">…</span></h3><div class="me-row" id="me-stats"></div>' + voxHtml(true) +
+      box.innerHTML = '<h3>Playing as <span id="me-name">…</span></h3><div class="me-row" id="me-stats"></div>' + voxHtml(true) + swHtml() +
         '<div id="name-box" hidden><p style="margin-top:10px">Pick a name for the leaderboard:</p><input class="pinput" id="name-in" maxlength="40" placeholder="Your name"><button type="button" class="pbtn primary" id="name-save">Save name</button><div class="pmsg" id="name-msg"></div></div>' +
         '<button type="button" class="link" id="sign-out">Sign out</button>';
       $('sign-out').onclick = async () => { await this.sb.auth.signOut(); };
@@ -387,6 +476,7 @@ export const casino = {
         const { data } = await this.sb.rpc('game_my_stats', { p_game: 'casino' }); this.renderMe(data); this.loadBoard();
       };
       this.sb.rpc('game_my_stats', { p_game: 'casino' }).then(({ data }) => this.renderMe(data));
+      wireSafeWord((n, a) => this.sb.rpc(n, a || {}));
       this.refreshVox = wireVox({ rpc: (n, a) => this.rpc(n, a), signed: () => signedIn(), after: () => { this.loadBoard(); this.listeners.forEach(fn => { try { fn(this.user); } catch (e) {} }); } });
       return;
     }

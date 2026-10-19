@@ -76,6 +76,9 @@ body{
 .vx-fill{ display: flex; gap: 14px; margin: 2px 0 4px; }
 .vx-fill .link{ margin-top: 0; }
 #vox .loan-note a{ color: inherit; }
+.sw-head{ display: flex; justify-content: space-between; font-size: 13.5px; }
+#sw-state{ font-weight: 700; color: var(--fg-muted); }
+#sw .pinput{ margin-top: 6px; }
 .rules{ margin: 0; padding-left: 18px; font-size: 13px; color: var(--fg-muted); line-height: 1.55; }
 .rules li{ margin-bottom: 3px; }
 .paytable{ width: 100%; border-collapse: collapse; font-size: 13px; }

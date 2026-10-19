@@ -330,6 +330,7 @@ document.querySelectorAll('.ctab').forEach(t => t.addEventListener('click', () =
 if (!document.getElementById('casino').hidden) window.loadCasinoBoard();
 
 /* ---------- Vox points ---------- */
+import { safeRpc } from '/casino.js?v=11';
 const n = v => Number(v || 0).toLocaleString();
 const MEDAL = ['#e6c35c', '#c9ced6', '#d39b6a'];
 const place = r => '<div class="vplace' + (r.me ? ' me' : '') + '"><span class="pl" style="--m:' + MEDAL[r.place - 1] + '">' + r.place + '</span><span class="nm">' + esc(r.name) + (r.me ? ' (you)' : '') + '</span><span class="pt">' + n(r.points) + ' pts</span></div>';
@@ -362,10 +363,10 @@ function voxMine(d){
     const amt = Math.floor(Number(document.getElementById('vx-amt').value)), m = document.getElementById('vx-msg');
     if (!(amt >= 1)){ m.textContent = 'Type how many first.'; return; }
     document.querySelectorAll('#vx-out .vbtn').forEach(b => b.disabled = true);
-    const { data, error } = await sb.rpc(fn, { p_amount: amt });
+    const { data, error } = await safeRpc((x, a) => sb.rpc(x, a || {}), fn, { p_amount: amt });
     if (error){
       const e = error.message || '';
-      m.textContent = /coins/.test(e) ? 'You don’t have that many Dune coins.' : /chips/.test(e) ? 'You don’t have that many chips.' : /points/.test(e) ? 'You don’t have that many points.' : /banned|locked/.test(e) ? 'You can’t use the casino right now.' : 'That didn’t go through. Try again.';
+      m.textContent = /safe word/.test(e) ? 'That needs your safe word.' : /coins/.test(e) ? 'You don’t have that many Dune coins.' : /chips/.test(e) ? 'You don’t have that many chips.' : /points/.test(e) ? 'You don’t have that many points.' : /banned|locked/.test(e) ? 'You can’t use the casino right now.' : 'That didn’t go through. Try again.';
       document.querySelectorAll('#vx-out .vbtn').forEach(b => b.disabled = false); return;
     }
     voxMine(data); document.getElementById('vx-msg').textContent = what.replace('{n}', n(amt)); voxBoard(); countdown();

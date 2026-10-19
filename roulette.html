@@ -70,6 +70,9 @@
   .loan-note{ margin: 8px 0 0 !important; font-size: 12px !important; }
   .loan-btns{ display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .loan-btns .pbtn:disabled{ opacity: .45; cursor: default; }
+  .sw-head{ display: flex; justify-content: space-between; font-size: 13.5px; }
+  #sw-state{ font-weight: 700; color: var(--fg-muted); }
+  #sw .pinput{ margin-top: 6px; }
   .vx-fill{ display: flex; gap: 14px; margin: 2px 0 4px; }
   .vx-fill .link{ margin-top: 0; }
   #vox .loan-note a{ color: inherit; }
@@ -253,7 +256,7 @@
         </div>
         <div class="foot-notes">
           <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
-          <div class="ver">Version 2026-10-19a</div>
+          <div class="ver">Version 2026-10-19b</div>
         </div>
       </main>
     </div>
@@ -272,7 +275,7 @@
   </div>
 
 <script type="module">
-import { bank as czBank, showBan, isBanError, isLockError, guard, voxHtml, wireVox, openVox } from '/casino.js?v=10';
+import { bank as czBank, showBan, isBanError, isLockError, guard, voxHtml, wireVox, openVox, safeRpc, swHtml, wireSafeWord } from '/casino.js?v=11';
 /* Roulette (single zero). Signed-in players spin on the server, which picks the number and pays out from the
    casino wallet (the same chips as blackjack), so the leaderboard can't be faked; guests play here in the
    browser with the device's casino chips. Below 1,000 chips you can reset back to 1,000. */
@@ -316,7 +319,7 @@ const local = (() => {
   };
 })();
 const remote = {
-  async call(name, args){ const { data, error } = await net.sb.rpc(name, args || {}); if (error){ if (isBanError(error)) showBan(null, net.sb); else if (isLockError(error)) guard.check(); throw error; } return data; },
+  async call(name, args){ const { data, error } = await safeRpc((n, a) => net.sb.rpc(n, a || {}), name, args || {}); if (error){ if (isBanError(error)) showBan(null, net.sb); else if (isLockError(error)) guard.check(); throw error; } return data; },
   state(){ return this.call('casino_state'); }, spin(bets){ return this.call('rl_spin', { p_bets: bets }); }, topup(){ return this.call('casino_topup'); },
 };
 const engine = () => (net.sb && net.user ? remote : local);
@@ -602,7 +605,7 @@ const net = {
     const box = document.getElementById('account');
     if (!this.sb){ box.innerHTML = voxHtml(false) + '<p style="margin-top:12px">Sign-in is unavailable right now. You can still play.</p>'; return; }
     if (this.user){
-      box.innerHTML = '<h3>Playing as <span id="me-name">…</span></h3><div class="me-row" id="me-stats"></div>' + voxHtml(true) +
+      box.innerHTML = '<h3>Playing as <span id="me-name">…</span></h3><div class="me-row" id="me-stats"></div>' + voxHtml(true) + swHtml() +
         '<div id="name-box" hidden><p style="margin-top:10px">Pick a name for the leaderboard:</p><input class="pinput" id="name-in" maxlength="40" placeholder="Your name"><button type="button" class="pbtn primary" id="name-save">Save name</button><div class="pmsg" id="name-msg"></div></div>' +
         '<button type="button" class="link" id="sign-out">Sign out</button>';
       document.getElementById('sign-out').onclick = async () => { await this.sb.auth.signOut(); };
@@ -614,6 +617,7 @@ const net = {
         const { data } = await this.sb.rpc('game_my_stats', { p_game: 'casino' }); this.renderMe(data); this.loadBoard();
       };
       this.sb.rpc('game_my_stats', { p_game: 'casino' }).then(({ data }) => this.renderMe(data));
+      wireSafeWord((n, a) => this.sb.rpc(n, a || {}));
       wireVox({ rpc: (n, a) => remote.call(n, a), signed: () => !!(this.sb && this.user), after: () => { load(); this.loadBoard(); } });
       return;
     }
