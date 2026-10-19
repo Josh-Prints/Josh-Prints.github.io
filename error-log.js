@@ -212,6 +212,8 @@
         var attr = t.getAttribute && (t.getAttribute('src') || t.getAttribute('href'));
         if (!attr || /^(data|blob|about):/i.test(attr)) return;       // nothing real was requested
         var tag = (t.tagName || '').toLowerCase();
+        if (unloading || navigator.onLine === false) return;            // leaving the page or offline: not a site problem
+        if (tag === 'use') return;                                       // an icon from /icons.svg that didn't arrive: a blip, the page still works
         var host = safe(function () { var u = new URL(attr, location.href); return u.hostname + u.pathname; }) || attr;
         report('resource', 'Failed to load ' + tag + ' ' + clip(host, 120), { tag: tag }, null, { toast: false });
         return;
@@ -261,11 +263,15 @@
           if (s < 400) return;
           if (s === 406 || (s === 404 && method === 'GET')) return;      // "no row found" is normal
           if (ep === 'auth/verify') return;                              // a mistyped sign-in code is not a bug
+          if (ep === 'auth/logout' && s === 403) return;                 // signing out of a session that already ended
+          if (ep === 'auth/otp' && s === 429) return;                    // asked for a code too soon; the page says so
           res.clone().text().then(function (txt) {
             var msg = '';
             safe(function () { var j = JSON.parse(txt); msg = j.message || j.msg || j.error_description || j.error || ''; });
             if (!msg) msg = clip(txt, 160);
             if (ep === 'auth/token' && s === 400 && /refresh token/i.test(msg)) return;   // an old login that expired: the page just asks them to sign in again
+            // a game or form rule saying no ("not enough points", "safe word needed", "wait 30 seconds"): the page shows it, it isn't a bug
+            if (s === 400 && /^rpc\//.test(ep) && safe(function () { return JSON.parse(txt).code === 'P0001'; })) return;
             report('http', method + ' ' + ep + ' → ' + s + (msg ? ': ' + msg : ''), { endpoint: ep, method: method, status: s },
               null, { toast: s >= 500 });
           }, function () {
