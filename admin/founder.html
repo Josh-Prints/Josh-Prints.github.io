@@ -1368,6 +1368,34 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     border-radius: 14px; padding: 20px; margin-bottom: 18px;
   }
   .founder-card h2{ margin:0 0 4px; font-size:16px; }
+  /* ---- Announce tab ---- */
+  .an-grid{ display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:18px; align-items:start; }
+  @media (max-width: 860px){ .an-grid{ grid-template-columns: 1fr; } }
+  .an-lbl{ display:block; margin-bottom:14px; font-size:13px; font-weight:600; }
+  .an-lbl span{ font-weight:400; color: var(--ink-dim); }
+  .an-row{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+  .an-row .an-lbl{ margin-bottom:6px; }
+  .an-note{ margin:0 0 16px !important; font-size:12px !important; }
+  .an-themes{ display:flex; flex-wrap:wrap; gap:8px; margin:-6px 0 16px; }
+  .an-sw{ width:34px; height:34px; border-radius:50%; border:2px solid transparent; cursor:pointer; padding:0; box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); }
+  .an-sw[aria-checked="true"]{ border-color: var(--ink); box-shadow: 0 0 0 2px var(--bg), inset 0 0 0 1px rgba(255,255,255,.25); }
+  .an-sw.rainbow{ background-size:300% 100% !important; animation: an-rb 4s linear infinite; }
+  @keyframes an-rb{ from{ background-position:0 0; } to{ background-position:300% 0; } }
+  .an-btns{ display:flex; gap:8px; flex-wrap:wrap; }
+  .an-btns .save-btn{ padding:9px 14px; font-size:13px; }
+  .an-ghost{ background:none !important; border-color: rgba(var(--border-tint),0.25) !important; color: var(--ink) !important; }
+  .an-msg{ margin-top:10px; font-size:13px; color: var(--ink-dim); min-height:18px; }
+  .an-replay{ float:right; font:inherit; font-size:12px; font-weight:400; background:none; border:1px solid rgba(var(--border-tint),0.2); color: var(--ink); border-radius:6px; padding:3px 10px; cursor:pointer; }
+  .an-stage{ margin-top:12px; min-height:150px; padding:18px; border-radius:10px; display:grid; align-content:start; justify-items:end;
+    background: repeating-linear-gradient(45deg, rgba(var(--border-tint),0.04) 0 10px, transparent 10px 20px), var(--bg); border:1px solid rgba(var(--border-tint),0.12); }
+  .an-stage .vox-ann{ width:min(360px,100%); }
+  .an-item{ display:flex; gap:10px; align-items:center; padding:10px 0; border-top:1px solid rgba(var(--border-tint),0.10); font-size:13px; }
+  .an-item:first-child{ border-top:0; }
+  .an-dot{ flex:none; width:14px; height:14px; border-radius:50%; }
+  .an-item .an-txt{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .an-item .an-when{ color: var(--ink-dim); font-size:12px; white-space:nowrap; }
+  .an-item .an-replay{ float:none; }
+  .an-live{ color: var(--ok); font-weight:600; }
   .settings-section-title{
     font-size:15px; font-weight:700; margin: 28px 0 12px;
     padding-top:20px; border-top:1px solid rgba(var(--border-tint),0.10);
@@ -1823,6 +1851,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       <button type="button" class="debug-tab" data-tab="email">Email</button>
       <button type="button" class="debug-tab" data-tab="ai">AI</button>
       <button type="button" class="debug-tab" data-tab="errors">Errors <span class="er-tab-badge" id="er-tab-badge" hidden></span></button>
+      <button type="button" class="debug-tab" data-tab="announce">Announce</button>
       <button type="button" class="debug-tab" data-tab="tools">Tools</button>
     </div>
   </div>
@@ -2115,6 +2144,53 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
           <span class="modal-sub" id="el-count" style="margin:0;"></span>
         </div>
         <div class="email-log-list" id="el-list"></div>
+      </div>
+    </div>
+
+    <div class="debug-section" id="debug-section-announce">
+      <div class="an-grid">
+        <div class="founder-card">
+          <h2><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#megaphone"/></svg> New announcement</h2>
+          <p class="hint">Shows as a notification on every open page.</p>
+          <label class="an-lbl">Title <span>(optional)</span>
+            <input type="text" class="banner-textarea" id="an-title" maxlength="80" placeholder="Big news">
+          </label>
+          <label class="an-lbl">Message
+            <textarea class="banner-textarea" id="an-body" rows="3" maxlength="400" placeholder="What's happening?"></textarea>
+          </label>
+          <div class="an-lbl">Colour</div>
+          <div class="an-themes" id="an-themes" role="radiogroup" aria-label="Colour"></div>
+          <div class="an-row">
+            <label class="an-lbl">Show for
+              <select class="banner-textarea" id="an-secs">
+                <option value="5">5 seconds</option><option value="8" selected>8 seconds</option><option value="15">15 seconds</option>
+                <option value="30">30 seconds</option><option value="60">1 minute</option><option value="0">Until closed</option>
+              </select>
+            </label>
+            <label class="an-lbl">Live for
+              <select class="banner-textarea" id="an-live">
+                <option value="10">10 minutes</option><option value="60" selected>1 hour</option><option value="360">6 hours</option>
+                <option value="1440">1 day</option><option value="10080">1 week</option>
+              </select>
+            </label>
+          </div>
+          <p class="hint an-note">Live for: how long new visitors will still get it.</p>
+          <div class="an-btns">
+            <button type="button" class="save-btn an-ghost" id="an-try">Preview on this page</button>
+            <button type="button" class="save-btn" id="an-send">Send to everyone</button>
+          </div>
+          <div class="an-msg" id="an-msg" aria-live="polite"></div>
+        </div>
+        <div>
+          <div class="founder-card">
+            <h2>Preview <button type="button" class="an-replay" id="an-replay">Replay</button></h2>
+            <div class="an-stage" id="an-stage"></div>
+          </div>
+          <div class="founder-card">
+            <h2>Recent</h2>
+            <div id="an-list"><p class="hint">Loading…</p></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -3742,6 +3818,59 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   });
 
 
+  /* ---- Announce tab: founder notifications shown on every page (update-check.js) ---- */
+  const AN_THEMES = { blue: '#4493f8', green: '#2ea043', purple: '#8957e5', red: '#e5534b', orange: '#f0883e', gold: '#d4a72c', dark: '#2d333b',
+    rainbow: 'linear-gradient(90deg,#ff3b3b,#ff9f1c,#ffe14d,#3ddc84,#3b9cff,#8b5cf6,#ff3bd4,#ff3b3b)' };
+  const AN_NAMES = { blue: 'Blue', green: 'Green', purple: 'Purple', red: 'Red', orange: 'Orange', gold: 'Gold', dark: 'Dark', rainbow: 'Rainbow' };
+  let anTheme = 'blue', anReady = false;
+  const anDraft = () => ({ title: hb('an-title').value.trim(), body: hb('an-body').value.trim() || 'Your message here.', theme: anTheme, show_secs: +hb('an-secs').value });
+  function anPreview(){ if (window.VoxAnnounce) window.VoxAnnounce.show(anDraft(), { into: hb('an-stage') }); }
+  const anAgo = t => { const m = Math.round((Date.now() - new Date(t)) / 60000); return m < 1 ? 'just now' : m < 60 ? m + 'm ago' : m < 1440 ? Math.round(m / 60) + 'h ago' : Math.round(m / 1440) + 'd ago'; };
+  async function anLoad(){
+    const { data, error } = await supabase.rpc('founder_announcements');
+    const box = hb('an-list');
+    if (error){ box.innerHTML = '<p class="hint">Couldn\'t load.</p>'; return; }
+    if (!data.length){ box.innerHTML = '<p class="hint">Nothing sent yet.</p>'; return; }
+    box.innerHTML = data.map(a => {
+      const live = !a.stopped && new Date(a.ends_at) > Date.now();
+      return '<div class="an-item"><span class="an-dot" style="background:' + (AN_THEMES[a.theme] || AN_THEMES.blue) + '"></span>' +
+        '<span class="an-txt">' + escapeHtml(a.title ? a.title + ': ' + a.body : a.body) + '</span>' +
+        '<span class="an-when">' + (live ? '<span class="an-live">Live</span> · ' : '') + anAgo(a.created_at) + '</span>' +
+        (live ? '<button type="button" class="an-replay" data-stop="' + a.id + '">Stop</button>' : '') + '</div>';
+    }).join('');
+    box.querySelectorAll('[data-stop]').forEach(b => b.onclick = async () => {
+      b.disabled = true;
+      const { error } = await supabase.rpc('founder_announce_stop', { p_id: +b.dataset.stop });
+      if (error) b.disabled = false; else anLoad();
+    });
+  }
+  function anOpen(){
+    if (!anReady){
+      anReady = true;
+      hb('an-themes').innerHTML = Object.keys(AN_THEMES).map(k => '<button type="button" class="an-sw' + (k === 'rainbow' ? ' rainbow' : '') + '" role="radio" aria-checked="' + (k === anTheme) + '" data-theme="' + k + '" title="' + AN_NAMES[k] + '" aria-label="' + AN_NAMES[k] + '" style="background:' + AN_THEMES[k] + '"></button>').join('');
+      hb('an-themes').querySelectorAll('.an-sw').forEach(b => b.onclick = () => {
+        anTheme = b.dataset.theme;
+        hb('an-themes').querySelectorAll('.an-sw').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+        anPreview();
+      });
+      ['an-title', 'an-body'].forEach(id => hb(id).addEventListener('input', anPreview));
+      hb('an-secs').addEventListener('change', anPreview);
+      hb('an-replay').onclick = anPreview;
+      hb('an-try').onclick = () => { if (window.VoxAnnounce) window.VoxAnnounce.show(anDraft()); };
+      hb('an-send').onclick = async () => {
+        const msg = hb('an-msg'), body = hb('an-body').value.trim();
+        if (!body){ msg.textContent = 'Write a message first.'; hb('an-body').focus(); return; }
+        hb('an-send').disabled = true; msg.textContent = 'Sending…';
+        const { error } = await supabase.rpc('founder_announce', { p_title: hb('an-title').value.trim() || null, p_body: body, p_theme: anTheme, p_show_secs: +hb('an-secs').value, p_live_mins: +hb('an-live').value });
+        hb('an-send').disabled = false;
+        if (error){ msg.textContent = 'Couldn\'t send: ' + error.message; return; }
+        msg.textContent = 'Sent. Everyone sees it within 8 seconds.';
+        hb('an-title').value = ''; hb('an-body').value = ''; anPreview(); anLoad();
+      };
+    }
+    anPreview(); anLoad();
+  }
+
   /* ---- Debug modal tabs ---- */
   document.querySelectorAll('.debug-tab').forEach(tab => {
     tab.addEventListener('click', () => {
@@ -3756,6 +3885,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       if (tab.dataset.tab === 'errors') loadErrors();
       if (tab.dataset.tab === 'inbox') mlOpenTab();
       if (tab.dataset.tab === 'home'){ playHomeAnimation(); loadHomeBrief(false); }
+      if (tab.dataset.tab === 'announce') anOpen();
     });
   });
 

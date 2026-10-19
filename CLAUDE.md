@@ -44,3 +44,7 @@
   "N playing" top-bar button, the "Playing now" drawer panel, the strip on games.html,
   and live ticking on the leaderboards (display only; the server's board is re-read
   every 15 s). New game pages should call `startLive` too (and bump `live.js?v=N`).
+- Founder announcements (`migrations/announcements-migration.sql`): the Announce tab in
+  admin/founder.html posts them; `update-check.js` (on every page) polls `current_announcement`
+  every 8 s alongside the update check and shows each one once per visitor (`vox-ann-seen`).
+  `window.VoxAnnounce.show()` renders it (also used for the founder preview).
