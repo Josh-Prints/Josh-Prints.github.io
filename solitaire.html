@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Solitaire — Voxprints games</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@600;800&display=swap" rel="stylesheet">
+<script src="/looks.js"></script>
+<script src="/error-log.js"></script>
+<script src="/update-check.js" defer></script>
+<style>
+  html{ touch-action: manipulation; }
+  body{ -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  input, textarea, select, [contenteditable]{ -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+  :root{
+    --canvas: #ffffff; --canvas-inset: #f6f8fa; --border: #d1d9e0; --border-muted: #d8dee4;
+    --fg: #1f2328; --fg-muted: #59636e; --accent: #0969da; --accent-emphasis: #0550ae;
+    --btn-primary-hover: #0860ca; --btn-hover-bg: #f3f4f6;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --canvas: #0d1117; --canvas-inset: #161b22; --border: #30363d; --border-muted: #21262d;
+      --fg: #e6edf3; --fg-muted: #8b949e; --accent: #4493f8; --accent-emphasis: #79c0ff;
+      --btn-primary-hover: #5aa6ff; --btn-hover-bg: #21262d;
+    }
+  }
+  :root[data-theme="dark"]{
+    --canvas: #0d1117; --canvas-inset: #161b22; --border: #30363d; --border-muted: #21262d;
+    --fg: #e6edf3; --fg-muted: #8b949e; --accent: #4493f8; --accent-emphasis: #79c0ff;
+    --btn-primary-hover: #5aa6ff; --btn-hover-bg: #21262d;
+  }
+  *{ box-sizing: border-box; }
+  html, body{ height: 100%; }
+  @supports (height: 100dvh){ body{ height: 100dvh; } }
+  body{
+    margin: 0; display: flex; flex-direction: column; overflow: hidden;
+    background: var(--canvas); color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  }
+  .topbar{ display: flex; align-items: center; gap: 10px; padding: 10px max(14px, calc((100% - 1100px) / 2)); border-bottom: 1px solid var(--border-muted); }
+  .topbar a{ color: var(--fg); text-decoration: none; font-weight: 600; font-size: 14px; }
+  .topbar .title{ margin-right: auto; font-weight: 800; letter-spacing: -.01em; }
+  .tbtn{ font: inherit; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 8px; cursor: pointer; background: var(--canvas-inset); color: var(--fg); border: 1px solid var(--border); }
+  .tbtn.lb-toggle{ display: none; }
+
+  .stage{ flex: 1; min-height: 0; display: flex; align-items: stretch; justify-content: center; gap: 20px; padding: 12px; }
+  .side{ width: 170px; display: flex; flex-direction: column; justify-content: center; gap: 16px; min-height: 0; }
+  .side.right{ width: 260px; justify-content: flex-start; overflow-y: auto; padding-top: 4px; }
+  .stat{ text-align: center; }
+  .stat .label{ font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--fg-muted); }
+  .stat .value{ font-size: 32px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .panel{ background: var(--canvas-inset); border: 1px solid var(--border-muted); border-radius: 14px; padding: 14px; }
+  .panel h3{ margin: 0 0 10px; font-size: 14px; }
+  .panel p{ margin: 0 0 10px; font-size: 13px; color: var(--fg-muted); line-height: 1.5; }
+  .pbtn{ display: flex; width: 100%; align-items: center; justify-content: center; gap: 8px; font: inherit; font-size: 13.5px; font-weight: 600; padding: 9px 12px; border-radius: 9px; cursor: pointer; background: var(--canvas); color: var(--fg); border: 1px solid var(--border); margin-top: 8px; }
+  .pbtn.primary{ background: var(--accent); color: #fff; border-color: transparent; }
+  .pinput{ width: 100%; font: inherit; font-size: 16px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--canvas); color: var(--fg); margin-top: 8px; }
+  .pmsg{ font-size: 12.5px; color: var(--fg-muted); margin-top: 6px; min-height: 1em; }
+  .me-row{ display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; font-size: 13px; }
+  .me-row b{ font-variant-numeric: tabular-nums; }
+  .link{ background: none; border: 0; padding: 0; font: inherit; font-size: 12.5px; color: var(--fg-muted); text-decoration: underline; cursor: pointer; margin-top: 10px; }
+
+  .tabs{ display: flex; gap: 6px; margin-bottom: 10px; }
+  .tab{ flex: 1; font: inherit; font-size: 12.5px; font-weight: 700; padding: 7px 8px; border-radius: 999px; cursor: pointer; background: var(--canvas); color: var(--fg-muted); border: 1px solid var(--border); }
+  .tab.on{ background: var(--accent); color: #fff; border-color: transparent; }
+  .lb{ list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .lb li{ display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: center; font-size: 13.5px; padding: 6px 8px; border-radius: 8px; }
+  .lb li.me{ background: color-mix(in srgb, var(--accent) 16%, transparent); font-weight: 700; }
+  .lb .rk{ color: var(--fg-muted); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .lb .nm{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb .vl{ font-weight: 700; font-variant-numeric: tabular-nums; }
+  .lb-empty{ font-size: 13px; color: var(--fg-muted); padding: 6px 2px; }
+  .lb li.lb-empty{ display: block; }
+
+  .mobile-stats{ display: none; gap: 18px; justify-content: center; padding: 6px 0 0; }
+  .mobile-stats .stat .value{ font-size: 21px; }
+  .mobile-stats .stat .label{ font-size: 10.5px; }
+
+  .guest-note{ margin: 12px auto 0; max-width: 300px; padding: 8px 12px; border-radius: 10px; background: rgba(255,193,7,.14); border: 1px solid rgba(255,193,7,.45); color: #ffe7a3; font-size: 13px; line-height: 1.4; }
+  .guest-note[hidden]{ display: none; }
+  .guest-note button{ font: inherit; font-weight: 700; background: none; border: 0; padding: 0; color: #fff; text-decoration: underline; cursor: pointer; }
+  .tbtn:disabled{ opacity: .45; cursor: default; }
+  .tbtn .sm{ display: none; }
+  .tbtn .sm .ico{ width: 17px; height: 17px; vertical-align: -3px; }
+
+  /* the table */
+  .board{ position: relative; flex: 1; min-width: 0; max-width: 1000px; height: 100%; border-radius: 18px; overflow: hidden;
+    background: radial-gradient(ellipse at 50% 30%, #11654f, #07372b 75%); box-shadow: inset 0 0 0 1px rgba(0,0,0,.25); }
+  .sol{ --gap: clamp(5px, 1.3vw, 16px); position: absolute; inset: 0; padding: clamp(8px, 1.6vw, 18px); display: grid; grid-template-rows: auto 1fr; gap: calc(var(--gap) * 1.6); touch-action: none; }
+  .row{ display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--gap); }
+  .pile{ position: relative; aspect-ratio: 5 / 7; border-radius: 8px; }
+  .pile.slot{ border: 2px dashed rgba(246,241,228,.22); }
+  .pile.found.slot::after{ content: attr(data-suit); position: absolute; inset: 0; display: grid; place-items: center; font-size: calc(var(--cw) * .42); color: rgba(246,241,228,.18); }
+  .pile.stock{ cursor: pointer; }
+  .pile.stock.empty::after{ content: ''; position: absolute; inset: 22%; border-radius: 50%; border: 3px solid rgba(246,241,228,.3); }
+  .pile.stock.done::after{ border-color: transparent; }
+  .col{ position: relative; aspect-ratio: auto; height: 100%; }
+  .col.slot-col::before{ content: ''; position: absolute; left: 0; right: 0; top: 0; aspect-ratio: 5 / 7; border: 2px dashed rgba(246,241,228,.16); border-radius: 8px; }
+  .sc{ position: absolute; left: 0; width: var(--cw); height: calc(var(--cw) * 1.4); border-radius: calc(var(--cw) * .09); background: #f6f1e4; color: #1b1b1b;
+    box-shadow: 0 1px 2px rgba(0,0,0,.3); font-family: 'Bodoni Moda', Georgia, serif; font-weight: 800; cursor: pointer; }
+  .sc.red{ color: #b3262e; }
+  .sc .tl{ position: absolute; top: 4%; left: 7%; font-size: calc(var(--cw) * .26); line-height: 1; display: flex; align-items: baseline; gap: 1px; }
+  .sc .tl i{ font-style: normal; font-size: .85em; }
+  .sc .ctr{ position: absolute; inset: 22% 0 0; display: grid; place-items: center; font-size: calc(var(--cw) * .5); }
+  .sc .ctr.face{ font-size: calc(var(--cw) * .42); }
+  .sc.down{ background: repeating-linear-gradient(45deg, #8c2633 0 5px, #7a1f2b 5px 10px); border: 2px solid #f6f1e4; cursor: default; }
+  .sc.down *{ display: none; }
+  .sc.hint{ box-shadow: 0 0 0 3px #ffe08a, 0 4px 12px rgba(0,0,0,.4); }
+  .sc.nope{ animation: nope .3s; }
+  @keyframes nope{ 25%{ transform: translateX(-4px); } 75%{ transform: translateX(4px); } }
+  .sc.lift{ visibility: hidden; }
+  .ghost{ position: fixed; left: 0; top: 0; z-index: 60; pointer-events: none; }
+  .ghost .sc{ box-shadow: 0 10px 24px rgba(0,0,0,.45); }
+  .pile.drop, .col.drop{ outline: 3px solid rgba(255,224,138,.8); outline-offset: 2px; border-radius: 10px; }
+  .banner{ position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 8px; z-index: 5; }
+  .banner[hidden]{ display: none; }
+  .gbtn{ font: inherit; font-size: 15px; font-weight: 700; padding: 10px 18px; border-radius: 999px; cursor: pointer; border: 0; background: #ffe08a; color: #1b1b1b; box-shadow: 0 6px 16px rgba(0,0,0,.35); }
+  .gbtn.ghostb{ background: rgba(255,255,255,.14); color: #fff; }
+  .win{ position: absolute; inset: 0; display: grid; place-items: center; background: rgba(5,7,12,.7); z-index: 6; padding: 18px; }
+  .win[hidden]{ display: none; }
+  .win-card{ text-align: center; color: #fff; max-width: 320px; }
+  .win-card h2{ margin: 0 0 6px; font-size: 30px; }
+  .win-card p{ margin: 0 0 14px; color: #c9d1d9; font-size: 15px; line-height: 1.5; }
+  .seg{ display: flex; gap: 6px; margin-top: 4px; }
+  .seg button{ flex: 1; font: inherit; font-size: 12.5px; font-weight: 700; padding: 7px 8px; border-radius: 999px; cursor: pointer; background: var(--canvas); color: var(--fg-muted); border: 1px solid var(--border); }
+  .seg button.on{ background: var(--accent); color: #fff; border-color: transparent; }
+  .rules{ margin: 0; padding-left: 18px; font-size: 13px; color: var(--fg-muted); line-height: 1.5; }
+  @media (max-width: 980px){
+    .side.left{ display: none; }
+    .mobile-stats{ display: flex; }
+    .tbtn.lb-toggle{ display: inline-block; }
+    .side.right{ display: none; }
+    .side.right.open{ display: flex; position: fixed; z-index: 50; inset: 56px 10px 10px; width: auto; background: var(--canvas); border: 1px solid var(--border); border-radius: 16px; padding: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+    .stage{ padding: 6px 8px 10px; }
+  }
+  .over{ border-radius: 0; }
+  .tbtn .sm{ display: none; }
+  .tbtn .sm .ico{ width: 17px; height: 17px; vertical-align: -3px; }
+  /* phones: a compact top bar */
+  @media (max-width: 700px), (max-height: 520px){
+    .topbar{ gap: 6px; padding: 6px max(10px, env(safe-area-inset-left, 0px)) 6px 10px; }
+    .topbar a{ font-size: 13px; }
+    .topbar .title{ font-size: 15px; }
+    .tbtn{ padding: 5px 9px; font-size: 13px; min-width: 34px; }
+    .tbtn .lg{ display: none; } .tbtn .sm{ display: inline; }
+    .stage{ padding: 4px 6px 6px; }
+  }
+  @media (max-width: 700px){
+    .topbar{ gap: 6px; padding: 6px 10px; }
+    .topbar a{ font-size: 13px; }
+    .tbtn{ padding: 5px 9px; min-width: 34px; }
+    .tbtn .lg{ display: none; } .tbtn .sm{ display: inline; }
+    .board{ border-radius: 12px; }
+  }
+</style>
+<link rel="stylesheet" href="/looks.css">
+</head>
+<body>
+  <div class="topbar">
+    <a href="/games.html">&larr; Games</a>
+    <span class="title">Solitaire</span>
+    <button type="button" class="tbtn lb-toggle" id="lb-toggle" aria-label="Leaderboard and settings"><span class="lg">Leaderboard</span><span class="sm"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#crown"/></svg></span></button>
+    <button type="button" class="tbtn" id="undo" aria-label="Undo"><span class="lg">Undo</span><span class="sm"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#skip-back"/></svg></span></button>
+    <button type="button" class="tbtn" id="new" aria-label="New game"><span class="lg">New game</span><span class="sm"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#repeat"/></svg></span></button>
+  </div>
+  <div class="mobile-stats">
+    <div class="stat"><div class="label">Score</div><div class="value" data-stat="score">0</div></div>
+    <div class="stat"><div class="label">Moves</div><div class="value" data-stat="moves">0</div></div>
+    <div class="stat"><div class="label">Time</div><div class="value" data-stat="time">0:00</div></div>
+  </div>
+  <div class="stage">
+    <div class="side left">
+      <div class="stat"><div class="label">Score</div><div class="value" data-stat="score">0</div></div>
+      <div class="stat"><div class="label">Moves</div><div class="value" data-stat="moves">0</div></div>
+      <div class="stat"><div class="label">Time</div><div class="value" data-stat="time">0:00</div></div>
+      <div class="stat"><div class="label">Best</div><div class="value" data-stat="best">0</div></div>
+    </div>
+    <div class="board" id="board">
+      <div class="sol" id="sol">
+        <div class="row">
+          <div class="pile stock" data-pile="stock" aria-label="Stock: tap to turn cards over"></div>
+          <div class="pile waste" data-pile="waste"></div>
+          <div></div>
+          <div class="pile found slot" data-pile="f0" data-suit="&#9824;"></div>
+          <div class="pile found slot" data-pile="f1" data-suit="&#9829;"></div>
+          <div class="pile found slot" data-pile="f2" data-suit="&#9830;"></div>
+          <div class="pile found slot" data-pile="f3" data-suit="&#9827;"></div>
+        </div>
+        <div class="row tabrow">
+          <div class="col" data-pile="t0"></div><div class="col" data-pile="t1"></div><div class="col" data-pile="t2"></div><div class="col" data-pile="t3"></div>
+          <div class="col" data-pile="t4"></div><div class="col" data-pile="t5"></div><div class="col" data-pile="t6"></div>
+        </div>
+      </div>
+      <div class="banner" id="finish-bar" hidden><button type="button" class="gbtn" id="finish">Finish</button></div>
+      <div class="win" id="win" hidden>
+        <div class="win-card">
+          <h2>You won!</h2>
+          <p id="win-text"></p>
+          <button type="button" class="gbtn" id="again">Play again</button>
+          <p class="guest-note" hidden>You're not signed in, so this win won't go on the leaderboard. <button type="button">Sign in</button></p>
+        </div>
+      </div>
+    </div>
+    <div class="side right" id="side-right">
+      <div class="panel" id="account"><p>Loading…</p></div>
+      <div class="panel">
+        <h3>Game</h3>
+        <p style="margin-bottom:4px">Turn over</p>
+        <div class="seg" id="draw-seg"><button type="button" data-draw="1">1 card</button><button type="button" data-draw="3">3 cards</button></div>
+        <p class="pmsg" id="draw-msg"></p>
+      </div>
+      <div class="panel">
+        <h3>Leaderboard</h3>
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab on" data-kind="score">Top scores</button>
+          <button type="button" class="tab" data-kind="time">Most played</button>
+        </div>
+        <ol class="lb" id="lb"><li class="lb-empty">Loading…</li></ol>
+      </div>
+      <div class="panel">
+        <h3>How to play</h3>
+        <ul class="rules">
+          <li>Build each foundation (top right) up by suit, from Ace to King. Get all 52 cards there to win.</li>
+          <li>In the seven columns, stack cards down in alternating colours: a red 9 on a black 10. You can move a whole run at once.</li>
+          <li>Only a King (or a run starting with one) can go in an empty column.</li>
+          <li>Tap the stock (top left) to turn cards over. When it runs out, tap again to go through the pile again.</li>
+          <li>Drag cards, or tap one to send it to the best place. Undo takes back a move.</li>
+          <li>Score: 10 for each card onto a foundation, 5 for each card from the pile to a column, 5 for each card turned face up. Taking a card back off a foundation costs 15, going through the pile again costs 100 (20 when turning 3), and you lose 2 points every 10 seconds. Winning adds a time bonus: the faster, the bigger.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+<script type="module">
+/* Klondike solitaire. Cards are { s: suit 0-3 (spades, hearts, diamonds, clubs), r: 1-13, up }. Scoring follows the
+   classic Windows "standard" rules; a won game adds a time bonus of 700,000 / seconds (counted as at least 60 s),
+   so a won game scores at most about 12,500 (game_record caps solitaire at 20,000). */
+const SUITS = ['♠', '♥', '♦', '♣'], RANK = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+const red = s => s === 1 || s === 2;
+const $ = id => document.getElementById(id);
+const SAVE = 'sol-game', PREF = 'sol-draw', BEST = 'sol-best';
+function rnd(n){ const a = new Uint32Array(1), lim = 4294967296 - 4294967296 % n; do crypto.getRandomValues(a); while (a[0] >= lim); return a[0] % n; }
+
+let state = null, undoStack = [], drawPref = 1, best = 0;
+try { drawPref = localStorage.getItem(PREF) === '3' ? 3 : 1; best = +localStorage.getItem(BEST) || 0; } catch (e) {}
+
+function newGame(){
+  const deck = [];
+  for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) deck.push({ s, r, up: false });
+  for (let i = deck.length - 1; i > 0; i--){ const j = rnd(i + 1); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+  const tab = [];
+  for (let c = 0; c < 7; c++){ tab.push(deck.splice(0, c + 1)); tab[c][c].up = true; }
+  state = { stock: deck, waste: [], found: [[], [], [], []], tab, draw: drawPref, score: 0, moves: 0, secs: 0, started: false, won: false, passes: 0 };
+  undoStack = []; $('win').hidden = true; save(); render(); updateStats();
+}
+function save(){ try { state && !state.won ? localStorage.setItem(SAVE, JSON.stringify(state)) : localStorage.removeItem(SAVE); } catch (e) {} }
+function snapshot(){ undoStack.push(JSON.stringify(state)); if (undoStack.length > 300) undoStack.shift(); }
+function addScore(n){ state.score = Math.max(0, state.score + n); }
+function begin(){ if (!state.started){ state.started = true; } }
+
+/* ---------- rules ---------- */
+const top = a => a[a.length - 1];
+function fitsTab(card, col){ const t = top(state.tab[col]); return t ? t.up && red(t.s) !== red(card.s) && t.r === card.r + 1 : card.r === 13; }
+function fitsFound(card, f){ const t = top(state.found[f]); return t ? t.s === card.s && card.r === t.r + 1 : card.r === 1; }
+// the cards a source refers to: { from: 'waste' } | { from: 'tab', col, idx } | { from: 'found', f }
+function cardsOf(src){
+  if (src.from === 'waste') return state.waste.length ? [top(state.waste)] : [];
+  if (src.from === 'found') return state.found[src.f].length ? [top(state.found[src.f])] : [];
+  const col = state.tab[src.col]; if (!col[src.idx] || !col[src.idx].up) return [];
+  return col.slice(src.idx);
+}
+function legal(src, dst){
+  const cards = cardsOf(src); if (!cards.length) return false;
+  if (dst.to === 'found') return cards.length === 1 && !(src.from === 'found') && fitsFound(cards[0], dst.f);
+  if (src.from === 'tab' && src.col === dst.col) return false;
+  return fitsTab(cards[0], dst.col);
+}
+function move(src, dst){
+  if (!legal(src, dst)) return false;
+  snapshot(); begin();
+  let cards;
+  if (src.from === 'waste') cards = [state.waste.pop()];
+  else if (src.from === 'found') cards = [state.found[src.f].pop()];
+  else cards = state.tab[src.col].splice(src.idx);
+  if (dst.to === 'found') state.found[dst.f].push(cards[0]); else state.tab[dst.col].push(...cards);
+  // scoring
+  if (dst.to === 'found' && src.from !== 'found') addScore(10);
+  if (src.from === 'waste' && dst.to === 'tab') addScore(5);
+  if (src.from === 'found' && dst.to === 'tab') addScore(-15);
+  if (src.from === 'tab'){ const t = top(state.tab[src.col]); if (t && !t.up){ t.up = true; addScore(5); } }
+  state.moves++; after(); return true;
+}
+function drawStock(){
+  if (state.won) return;
+  snapshot(); begin();
+  if (state.stock.length){
+    for (let i = 0; i < state.draw && state.stock.length; i++){ const c = state.stock.pop(); c.up = true; state.waste.push(c); }
+  } else if (state.waste.length){
+    state.stock = state.waste.reverse().map(c => ({ ...c, up: false })); state.waste = [];
+    state.passes++; addScore(state.draw === 1 ? -100 : -20);
+  } else { undoStack.pop(); return; }
+  state.moves++; after();
+}
+function after(){
+  if (state.found.every(f => f.length === 13)){
+    state.won = true;
+    const bonus = Math.round(700000 / Math.max(60, state.secs));
+    addScore(bonus);
+    if (state.score > best){ best = state.score; try { localStorage.setItem(BEST, String(best)); } catch (e) {} }
+    $('win-text').innerHTML = 'Score <b>' + state.score.toLocaleString() + '</b> (time bonus ' + bonus.toLocaleString() + ') in ' + clock(state.secs) + ' and ' + state.moves + ' moves.';
+    $('win').hidden = false; net.record(true);
+  }
+  save(); render(); updateStats();
+}
+function canFinish(){ return !state.won && !state.stock.length && !state.waste.length && state.tab.every(c => c.every(x => x.up)); }
+async function finish(){
+  $('finish-bar').hidden = true;
+  while (!state.won){
+    let moved = false;
+    for (let c = 0; c < 7 && !moved; c++){
+      const card = top(state.tab[c]); if (!card) continue;
+      for (let f = 0; f < 4 && !moved; f++) if (fitsFound(card, f)) moved = move({ from: 'tab', col: c, idx: state.tab[c].length - 1 }, { to: 'found', f });
+    }
+    if (!moved) break;
+    await new Promise(r => setTimeout(r, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 70));
+  }
+}
+// tap a card: send it somewhere sensible (foundation first, then a column)
+function autoMove(src){
+  const cards = cardsOf(src); if (!cards.length) return false;
+  if (cards.length === 1 && src.from !== 'found'){
+    for (let f = 0; f < 4; f++) if (fitsFound(cards[0], f) && top(state.found[f])) return move(src, { to: 'found', f });
+    for (let f = 0; f < 4; f++) if (fitsFound(cards[0], f)) return move(src, { to: 'found', f });
+  }
+  const fromEmptyBase = src.from === 'tab' && src.idx === 0;
+  for (let c = 0; c < 7; c++) if (state.tab[c].length && legal(src, { to: 'tab', col: c })) return move(src, { to: 'tab', col: c });
+  if (!fromEmptyBase) for (let c = 0; c < 7; c++) if (!state.tab[c].length && legal(src, { to: 'tab', col: c })) return move(src, { to: 'tab', col: c });
+  return false;
+}
+function undo(){
+  if (!undoStack.length || state.won) return;
+  const keep = { secs: state.secs }; state = JSON.parse(undoStack.pop()); state.secs = keep.secs;
+  save(); render(); updateStats();
+}
+
+/* ---------- drawing ---------- */
+const sol = $('sol');
+function cardEl(c, src){
+  const d = document.createElement('div');
+  d.className = 'sc' + (c.up ? (red(c.s) ? ' red' : '') : ' down');
+  if (c.up){
+    const face = c.r > 10;
+    d.innerHTML = '<span class="tl">' + RANK[c.r] + '<i>' + SUITS[c.s] + '</i></span><span class="ctr' + (face ? ' face' : '') + '">' + (face ? RANK[c.r] + SUITS[c.s] : SUITS[c.s]) + '</span>';
+    d.setAttribute('aria-label', RANK[c.r] + ' of ' + ['spades', 'hearts', 'diamonds', 'clubs'][c.s]);
+  }
+  if (src) d.dataset.src = src;
+  return d;
+}
+function render(){
+  const cw = sol.querySelector('.pile.stock').getBoundingClientRect().width;
+  sol.style.setProperty('--cw', cw + 'px');
+  const h = cw * 1.4;
+  // stock
+  const stock = sol.querySelector('[data-pile="stock"]'); stock.innerHTML = '';
+  stock.classList.toggle('empty', !state.stock.length); stock.classList.toggle('done', !state.stock.length && !state.waste.length);
+  if (state.stock.length){ const b = cardEl({ up: false }); b.style.top = '0'; stock.appendChild(b); }
+  // waste (fanned when turning 3)
+  const waste = sol.querySelector('[data-pile="waste"]'); waste.innerHTML = '';
+  const show = state.waste.slice(state.draw === 3 ? -3 : -1);
+  show.forEach((c, i) => { const e = cardEl(c, i === show.length - 1 ? 'waste' : null); e.style.top = '0'; e.style.left = (i * cw * .2) + 'px'; waste.appendChild(e); });
+  // foundations
+  for (let f = 0; f < 4; f++){
+    const el = sol.querySelector('[data-pile="f' + f + '"]'); el.innerHTML = '';
+    const t = top(state.found[f]); el.classList.toggle('slot', !t);
+    if (t){ const e = cardEl(t, 'found:' + f); e.style.top = '0'; el.appendChild(e); }
+  }
+  // columns: squeeze the overlap when a column gets long
+  for (let c = 0; c < 7; c++){
+    const el = sol.querySelector('[data-pile="t' + c + '"]'); el.innerHTML = '';
+    const col = state.tab[c], avail = el.getBoundingClientRect().height - h - 4;
+    el.classList.toggle('slot-col', !col.length);
+    let down = h * .13, up = h * .27;
+    const need = col.slice(0, -1).reduce((s, x) => s + (x.up ? up : down), 0);
+    if (need > avail && need > 0){ const k = Math.max(.35, avail / need); down *= k; up *= k; }
+    let y = 0;
+    col.forEach((card, i) => { const e = cardEl(card, card.up ? 'tab:' + c + ':' + i : null); e.style.top = y + 'px'; el.appendChild(e); y += card.up ? up : down; });
+  }
+  $('finish-bar').hidden = !canFinish();
+  $('undo').disabled = !undoStack.length || state.won;
+}
+function clock(s){ return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+function updateStats(){
+  document.querySelectorAll('[data-stat="score"]').forEach(e => e.textContent = state.score.toLocaleString());
+  document.querySelectorAll('[data-stat="moves"]').forEach(e => e.textContent = state.moves);
+  document.querySelectorAll('[data-stat="time"]').forEach(e => e.textContent = clock(state.secs));
+  document.querySelectorAll('[data-stat="best"]').forEach(e => e.textContent = best.toLocaleString());
+}
+function parseSrc(s){ const p = s.split(':'); return p[0] === 'waste' ? { from: 'waste' } : p[0] === 'found' ? { from: 'found', f: +p[1] } : { from: 'tab', col: +p[1], idx: +p[2] }; }
+function parseDst(k){ return k[0] === 'f' ? { to: 'found', f: +k.slice(1) } : k[0] === 't' ? { to: 'tab', col: +k.slice(1) } : null; }
+
+/* ---------- dragging and tapping ---------- */
+let drag = null;
+sol.addEventListener('pointerdown', e => {
+  if (state.won || e.button > 0) return;
+  const card = e.target.closest('.sc[data-src]');
+  if (!card){ if (e.target.closest('[data-pile="stock"]')) { drawStock(); } return; }
+  e.preventDefault();
+  const src = parseSrc(card.dataset.src), cards = cardsOf(src); if (!cards.length) return;
+  const els = src.from === 'tab' ? [...card.parentNode.children].slice(src.idx) : [card];
+  const r = card.getBoundingClientRect();
+  drag = { src, els, x0: e.clientX, y0: e.clientY, dx: e.clientX - r.left, dy: e.clientY - r.top, moving: false, ghost: null, id: e.pointerId };
+  try { sol.setPointerCapture(e.pointerId); } catch (err) {}
+});
+sol.addEventListener('pointermove', e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  if (!drag.moving){
+    if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 6) return;
+    drag.moving = true;
+    const g = document.createElement('div'); g.className = 'ghost'; g.style.setProperty('--cw', getComputedStyle(sol).getPropertyValue('--cw'));
+    const base = drag.els[0].getBoundingClientRect().top;
+    drag.els.forEach(el => { const c = el.cloneNode(true); c.style.left = '0'; c.style.top = (el.getBoundingClientRect().top - base) + 'px'; g.appendChild(c); el.classList.add('lift'); });
+    document.body.appendChild(g); drag.ghost = g;
+  }
+  drag.ghost.style.transform = 'translate(' + (e.clientX - drag.dx) + 'px,' + (e.clientY - drag.dy) + 'px)';
+  sol.querySelectorAll('.drop').forEach(x => x.classList.remove('drop'));
+  const t = target(e); if (t && legal(drag.src, parseDst(t.dataset.pile))) t.classList.add('drop');
+});
+function target(e){
+  // the pile under the dragged card's centre (more forgiving than the finger)
+  const x = e.clientX - drag.dx + drag.els[0].offsetWidth / 2, y = e.clientY - drag.dy + drag.els[0].offsetWidth * .5;
+  let best = null, bd = Infinity;
+  sol.querySelectorAll('[data-pile^="f"], [data-pile^="t"]').forEach(p => {
+    const r = p.getBoundingClientRect(), cx = Math.max(r.left, Math.min(x, r.right)), cy = Math.max(r.top, Math.min(y, r.bottom)), d = Math.hypot(x - cx, y - cy);
+    if (d < bd){ bd = d; best = p; }
+  });
+  return bd < 40 ? best : null;
+}
+function endDrag(e, cancel){
+  if (!drag || e.pointerId !== drag.id) return;
+  const d = drag; drag = null;
+  sol.querySelectorAll('.drop').forEach(x => x.classList.remove('drop'));
+  if (d.ghost) d.ghost.remove();
+  if (!d.moving){ if (!cancel && !autoMove(d.src)) d.els[0].classList.add('nope'); return; }
+  const t = cancel ? null : (drag = d, target(e)); drag = null;
+  if (!t || !move(d.src, parseDst(t.dataset.pile))) render();
+}
+sol.addEventListener('pointerup', e => endDrag(e, false));
+sol.addEventListener('pointercancel', e => endDrag(e, true));
+sol.addEventListener('animationend', e => e.target.classList.remove('nope'));
+
+$('undo').onclick = undo;
+$('new').onclick = () => newGame();
+$('again').onclick = () => newGame();
+$('finish').onclick = finish;
+document.addEventListener('keydown', e => {
+  if (/INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z'){ e.preventDefault(); undo(); }
+  else if (!e.metaKey && !e.ctrlKey && !e.altKey && e.key.toLowerCase() === 'u') undo();
+  else if (!e.metaKey && !e.ctrlKey && (e.key === ' ' || e.key.toLowerCase() === 'd') && document.activeElement.tagName !== 'BUTTON'){ e.preventDefault(); drawStock(); }
+});
+addEventListener('resize', () => render());
+
+// turn over 1 or 3 (starts a new game if one is under way)
+function showDraw(){ document.querySelectorAll('#draw-seg button').forEach(b => b.classList.toggle('on', +b.dataset.draw === drawPref)); }
+document.querySelectorAll('#draw-seg button').forEach(b => b.addEventListener('click', () => {
+  drawPref = +b.dataset.draw; try { localStorage.setItem(PREF, String(drawPref)); } catch (e) {}
+  showDraw();
+  if (!state.started){ newGame(); $('draw-msg').textContent = ''; } else $('draw-msg').textContent = 'Starts with your next game.';
+}));
+showDraw();
+
+// the clock: runs while the game is under way and the page is visible; 2 points off every 10 seconds
+setInterval(() => {
+  if (!state || !state.started || state.won || document.hidden) return;
+  state.secs++; net.pendingSecs++;
+  if (state.secs % 10 === 0) addScore(-2);
+  if (state.secs % 5 === 0) save();
+  updateStats();
+}, 1000);
+
+/* ======================= accounts & leaderboards ======================= */
+const net = {
+  sb: null, user: null, pendingSecs: 0, kind: 'score',
+  async record(finished){
+    if (!this.sb || !this.user) return;
+    const secs = Math.round(this.pendingSecs); this.pendingSecs -= secs;
+    const { data } = await this.sb.rpc('game_record', { p_game: 'solitaire', p_score: finished ? Math.round(state.score) : 0, p_seconds: secs, p_finished: !!finished });
+    if (data) this.renderMe(data);
+    this.loadBoard();
+  },
+  async loadBoard(){
+    const el = document.getElementById('lb');
+    if (!this.sb){ el.innerHTML = '<li class="lb-empty">Leaderboard unavailable right now.</li>'; return; }
+    const { data, error } = await this.sb.rpc('game_leaderboard', { p_game: 'solitaire', p_kind: this.kind, p_limit: 10 });
+    if (error){ el.innerHTML = '<li class="lb-empty">Couldn’t load the leaderboard.</li>'; return; }
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const val = v => this.kind === 'time' ? fmtLong(v) : Number(v).toLocaleString();
+    el.innerHTML = (data || []).length
+      ? data.map(r => '<li class="' + (r.me ? 'me' : '') + '"><span class="rk">' + r.rank + '</span><span class="nm">' + esc(r.name) + '</span><span class="vl">' + val(r.value) + '</span></li>').join('')
+      : '<li class="lb-empty">No one yet. Be the first!</li>';
+  },
+  renderMe(st){
+    if (!this.user) return;
+    const box = document.getElementById('me-stats'); if (!box || !st) return;
+    box.innerHTML = '<span>Best score</span><b>' + Number(st.best_score || 0).toLocaleString() + (st.score_rank ? ' <small>#' + st.score_rank + '</small>' : '') + '</b>' +
+      '<span>Time played</span><b>' + fmtLong(st.total_seconds || 0) + (st.time_rank ? ' <small>#' + st.time_rank + '</small>' : '') + '</b>' +
+      '<span>Wins</span><b>' + (st.games_played || 0) + '</b>';
+    const nm = document.getElementById('me-name'); if (nm) nm.textContent = st.name;
+    const setName = document.getElementById('name-box'); if (setName) setName.hidden = st.name !== 'Player';
+  },
+  renderAccount(){
+    const box = document.getElementById('account');
+    if (!this.sb){ box.innerHTML = '<p>Sign-in is unavailable right now. You can still play.</p>'; return; }
+    if (this.user){
+      box.innerHTML = '<h3>Playing as <span id="me-name">…</span></h3><div class="me-row" id="me-stats"></div>' +
+        '<div id="name-box" hidden><p style="margin-top:10px">Pick a name for the leaderboard:</p><input class="pinput" id="name-in" maxlength="40" placeholder="Your name"><button type="button" class="pbtn primary" id="name-save">Save name</button><div class="pmsg" id="name-msg"></div></div>' +
+        '<button type="button" class="link" id="sign-out">Sign out</button>';
+      document.getElementById('sign-out').onclick = async () => { await this.sb.auth.signOut(); };
+      document.getElementById('name-save').onclick = async () => {
+        const name = document.getElementById('name-in').value.trim(), msg = document.getElementById('name-msg');
+        if (!name){ msg.textContent = 'Type a name first.'; return; }
+        const { error } = await this.sb.from('customer_profiles').upsert({ id: this.user.id, email: this.user.email, full_name: name });
+        if (error){ msg.textContent = 'Couldn’t save: ' + error.message; return; }
+        const { data } = await this.sb.rpc('game_my_stats', { p_game: 'solitaire' }); this.renderMe(data); this.loadBoard();
+      };
+      this.sb.rpc('game_my_stats', { p_game: 'solitaire' }).then(({ data }) => this.renderMe(data));
+      return;
+    }
+    box.innerHTML = '<h3>Get on the leaderboard</h3><p>Sign in to put your best wins and time played on the leaderboard.</p>' +
+      '<button type="button" class="pbtn" id="g-in"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>Sign in with Google</button>' +
+      '<input class="pinput" id="em-in" type="email" placeholder="or your email" autocomplete="email">' +
+      '<button type="button" class="pbtn" id="em-send">Email me a code</button>' +
+      '<div id="code-box" hidden><input class="pinput" id="code-in" inputmode="numeric" maxlength="6" placeholder="6-digit code"><button type="button" class="pbtn primary" id="code-go">Sign in</button></div>' +
+      '<div class="pmsg" id="em-msg"></div>';
+    document.getElementById('g-in').onclick = () => { this.sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } }); };
+    let pendingEmail = '';
+    document.getElementById('em-send').onclick = async () => {
+      const email = document.getElementById('em-in').value.trim(), msg = document.getElementById('em-msg');
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ msg.textContent = 'Type your email first.'; return; }
+      msg.textContent = 'Sending…';
+      const { error } = await this.sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+      if (error){ msg.textContent = error.message; return; }
+      pendingEmail = email; document.getElementById('code-box').hidden = false; msg.textContent = 'Check your email for a 6-digit code.';
+    };
+    document.getElementById('code-go').onclick = async () => {
+      const token = document.getElementById('code-in').value.trim(), msg = document.getElementById('em-msg');
+      const { error } = await this.sb.auth.verifyOtp({ email: pendingEmail, token, type: 'email' });
+      msg.textContent = error ? 'That code didn’t work. Try again.' : '';
+    };
+  }
+};
+function fmtLong(s){ s = Math.round(Number(s) || 0); const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60; return h ? h + 'h ' + m + 'm' : m ? m + 'm ' + (s % 60) + 's' : s + 's'; }
+
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
+  net.kind = t.dataset.kind; net.loadBoard();
+}));
+document.getElementById('lb-toggle').addEventListener('click', () => document.getElementById('side-right').classList.toggle('open'));
+document.addEventListener('click', e => {
+  const side = document.getElementById('side-right');
+  if (side.classList.contains('open') && !side.contains(e.target) && e.target.id !== 'lb-toggle') side.classList.remove('open');
+});
+setInterval(() => { if (net.pendingSecs >= 5) net.record(false); }, 30000);
+document.addEventListener('visibilitychange', () => { if (document.hidden && net.pendingSecs >= 1) net.record(false); });
+function updateGuestNote(){ document.querySelectorAll('.guest-note').forEach(n => n.hidden = !!net.user); }
+document.querySelectorAll('.guest-note button').forEach(b => b.addEventListener('click', e => {
+  e.stopPropagation(); const side = $('side-right'); side.classList.add('open');
+  const btn = side.querySelector('#g-in, #em-in'); if (btn) btn.scrollIntoView({ block: 'center' });
+}));
+
+// pick up a game in progress, or deal a new one
+try { const g = JSON.parse(localStorage.getItem(SAVE)); if (g && g.tab && g.tab.length === 7 && !g.won) state = g; } catch (e) {}
+if (!state) newGame(); else { render(); updateStats(); }
+requestAnimationFrame(() => render());
+
+(async () => {
+  try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    net.sb = createClient('https://paycasfatsakidsriwqt.supabase.co', 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv');
+  } catch (e) { net.sb = null; }
+  if (!net.sb){ net.renderAccount(); net.loadBoard(); updateGuestNote(); return; }
+  const { data } = await net.sb.auth.getSession();
+  net.user = data && data.session ? data.session.user : null;
+  net.renderAccount(); net.loadBoard(); updateGuestNote();
+  net.sb.auth.onAuthStateChange((_ev, session) => {
+    const u = session ? session.user : null;
+    if ((u && u.id) === (net.user && net.user.id)) return;
+    net.user = u; net.renderAccount(); net.loadBoard(); updateGuestNote();
+  });
+})();
+</script>
+</body>
+</html>

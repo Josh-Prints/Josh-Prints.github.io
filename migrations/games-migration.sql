@@ -99,3 +99,9 @@ alter table public.game_stats add constraint game_stats_game_check check (game i
 alter table public.game_saves drop constraint if exists game_saves_game_check;
 alter table public.game_saves add constraint game_saves_game_check check (game in ('squish', 'dune'));
 -- game_record: the game check reads  if p_game not in ('squish', 'dune') then raise exception 'unknown game'; end if;
+
+-- Solitaire (added later): best score from a won game (capped at 20,000) and time played.
+alter table public.game_stats drop constraint if exists game_stats_game_check;
+alter table public.game_stats add constraint game_stats_game_check check (game in ('squish', 'dune', 'blackjack', 'casino', 'solitaire'));
+-- game_record: the game check reads  if p_game not in ('squish', 'dune', 'blackjack', 'casino', 'solitaire'),
+-- and solitaire scores are capped at 20,000 (cap := case when p_game = 'solitaire' then 20000 else 100000000 end).
