@@ -48,3 +48,7 @@
   admin/founder.html posts them; `update-check.js` (on every page) polls `live_announcements`
   every 8 s alongside the update check and shows each id/rev once per visitor (`vox-ann-seen2`); the look is a `style` jsonb.
   `window.VoxAnnounce.show()` renders it (also used for the founder preview).
+- Stripe card payments (`migrations/stripe-payments-migration.sql`, edge function
+  `supabase/functions/stripe-pay`): EXPERIMENTAL and founder-only (the user asked). Checkout
+  for quoted orders; the order is marked paid only after the function checks the session with
+  Stripe. Secret key = STRIPE_SECRET_KEY function secret; never put it in the repo or a page.
