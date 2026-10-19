@@ -184,7 +184,10 @@
     });
   }
 
+  // search engine crawlers skip images and scripts on purpose; what breaks for them isn't a visitor's problem
+  var isBot = /bot\b|crawler|spider|slurp|Google-InspectionTool|Lighthouse|PageSpeed/i.test(navigator.userAgent || '');
   function report(kind, message, extra, stack, opts) {
+    if (isBot) return;
     safe(function () {
       message = clip(message || 'Unknown error', 500);
       extra = extra || {};
@@ -222,9 +225,10 @@
       if (/ResizeObserver loop/i.test(msg)) return;
       var file = e.filename || '';
       if (/extension:\/\//i.test(file)) return;   // browser extensions are not our bugs
-      var crossOrigin = !file && /^Script error\.?$/i.test(msg);
+      // "Script error." with no file is the browser hiding an error from another site's script: nothing to go on
+      if (!file && /^Script error\.?$/i.test(msg)) return;
       report('js', msg || 'Script error', { file: clip(file.replace(location.origin, ''), 80), line: e.lineno, col: e.colno },
-        e.error && e.error.stack, { toast: !crossOrigin });
+        e.error && e.error.stack, { toast: true });
     });
   }, true);
 
@@ -288,8 +292,10 @@
           // is going away, this code never runs again; otherwise it is a real failure.
           setTimeout(function () {
             safe(function () {
-              if (unloading || document.visibilityState === 'hidden' || Date.now() - navAt < 4000 || Date.now() - hiddenAt < 20000) return;
+              // phones can take several seconds to leave a page after a link is tapped
+              if (unloading || document.visibilityState === 'hidden' || Date.now() - navAt < 15000 || Date.now() - hiddenAt < 20000) return;
               if (ep === 'auth/token') return;   // a login refresh that failed on a bad connection is retried by the page itself
+              if (ep === 'rpc/live_announcements') return;   // the background announcement check just tries again in 8 seconds
               addCrumb('api', method + ' ' + ep + ' → network error');
               report('network', method + ' ' + ep + ' → network error: ' + (msg || 'failed'),
                 { endpoint: ep, method: method, status: 0 }, null, { toast: true });
