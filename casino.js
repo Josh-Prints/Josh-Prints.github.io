@@ -43,7 +43,7 @@ export const bank = {
   },
   set(c){ try { const v = String(Math.max(0, Math.floor(c))); localStorage.setItem('casino-bank', v); localStorage.setItem('casino-bank-k', sig(v)); lastGoodChips = +v; } catch (e) {} },
   // is a guest hand still being played? (chips are out on the table)
-  busy(){ try { const b = JSON.parse(localStorage.getItem('bj-guest') || 'null'); return !!localStorage.getItem('tcp-guest') || !!(b && b.phase && b.phase !== 'bet'); } catch (e) { return false; } },
+  busy(){ try { const b = JSON.parse(localStorage.getItem('bj-guest') || 'null'); return !!localStorage.getItem('tcp-guest') || !!localStorage.getItem('hl-guest') || !!(b && b.phase && b.phase !== 'bet'); } catch (e) { return false; } },
   // there are no free chips any more: signed-in players buy chips with Vox points
   topup(){ throw Object.assign(new Error('free chips are gone: turn Vox points into chips'), { hint: 'casino_nofree' }); },
 };

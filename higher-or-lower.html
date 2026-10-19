@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Higher or Lower — Voxprints games</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@600;800&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="/looks.js"></script>
+<script src="/error-log.js"></script>
+<script src="/update-check.js" defer></script>
+<link rel="stylesheet" href="/casino.css?v=12">
+<style>
+  .table{ justify-content: flex-start; gap: 12px; max-width: 720px; }
+  .table > .trail-zone{ margin-top: auto; }
+  .trail-zone{ display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 64px; }
+  .trail-zone .lbl{ font-size: 13px; color: rgba(246,241,228,.6); letter-spacing: .06em; text-transform: uppercase; }
+  .trail{ --cw: clamp(30px, min(6vw, 6vh), 44px); min-height: calc(var(--cw) * 1.4); padding-left: calc(var(--cw) * .45); flex-wrap: nowrap; max-width: 100%; overflow: hidden; }
+  .pair{ display: flex; align-items: center; justify-content: center; gap: clamp(16px, 5vw, 40px); }
+  .big{ --cw: clamp(84px, min(19vw, 19vh), 140px); padding-left: 0; }
+  .big .pcard{ margin-left: 0; }
+  .slot-lbl{ text-align: center; font-size: 13px; color: rgba(246,241,228,.6); letter-spacing: .06em; text-transform: uppercase; margin-top: 6px; }
+  .winbox{ text-align: center; display: grid; gap: 2px; }
+  .winbox .mx{ font-family: 'Bodoni Moda', Georgia, serif; font-size: 30px; font-weight: 800; color: var(--brass); line-height: 1; }
+  .winbox .wv{ font-size: 15px; color: rgba(246,241,228,.8); }
+  .winbox[hidden]{ display: none; }
+  .guess{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: min(100%, 460px); }
+  .gbtn{ font: inherit; cursor: pointer; border-radius: 12px; padding: 12px 10px; border: 2px solid rgba(246,241,228,.35); background: rgba(0,0,0,.25); color: var(--ivory); display: grid; gap: 2px; justify-items: center; }
+  .gbtn b{ font: 700 24px 'Barlow Condensed', sans-serif; letter-spacing: .04em; }
+  .gbtn span{ font-size: 13px; opacity: .8; }
+  .gbtn:hover:not(:disabled){ border-color: var(--brass); }
+  .gbtn:disabled{ opacity: .35; cursor: default; }
+  .gbtn .ico{ width: 1.1em; height: 1.1em; }
+  .spot.betspot{ width: 96px; height: 96px; border-radius: 50%; font-size: 16px; letter-spacing: .06em; text-transform: uppercase; align-content: start; padding-top: 22px; }
+  .spot.betspot > .stake{ left: 50%; top: 66%; }
+  .controls{ display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .btn-row[hidden], .guess[hidden], .spot.betspot[hidden], #rack[hidden]{ display: none; }
+  .foot-notes{ margin-bottom: auto; }
+  @media (max-width: 640px){ .gbtn b{ font-size: 21px; } .winbox .mx{ font-size: 26px; } }
+</style>
+<link rel="stylesheet" href="/looks.css">
+</head>
+<body>
+  <div class="topbar">
+    <a href="/games.html#gambling" aria-label="Back to games">&larr;<span class="bk"> Games</span></a>
+    <span class="title">Higher or Lower</span>
+    <button type="button" class="tbtn lb-toggle" id="lb-toggle">Rules &amp; scores</button>
+    <button type="button" class="tbtn" id="mute" aria-pressed="false">Sound on</button>
+  </div>
+  <div class="mobile-stats">
+    <div class="stat"><div class="label">Chips</div><div class="value" data-stat="chips">0</div></div>
+    <div class="stat"><div class="label">Time</div><div class="value" data-stat="time">0:00</div></div>
+  </div>
+  <div class="stage">
+    <div class="side left">
+      <div class="stat"><div class="label">Chips</div><div class="value" data-stat="chips">0</div></div>
+      <div class="stat"><div class="label">Time</div><div class="value" data-stat="time">0:00</div></div>
+    </div>
+    <div class="board felt" id="board">
+      <main class="table">
+        <section class="trail-zone"><div class="lbl" id="trail-lbl"></div><div class="hand trail" id="trail"></div></section>
+        <div class="pair">
+          <div><div class="hand big" id="cur"></div><div class="slot-lbl">This card</div></div>
+          <div><div class="hand big" id="next"></div><div class="slot-lbl" id="left-lbl">Next card</div></div>
+        </div>
+        <div id="msg" class="cz-msg" role="status" aria-live="polite"></div>
+        <div class="winbox" id="winbox" hidden><div class="mx" id="mx">1.00x</div><div class="wv" id="wv"></div></div>
+        <div class="controls">
+          <div class="guess" id="guess" hidden>
+            <button type="button" class="gbtn" id="hi"><b><svg class="ico" aria-hidden="true"><use href="/icons.svg#chevron-up"/></svg> Higher</b><span id="hi-sub"></span></button>
+            <button type="button" class="gbtn" id="lo"><b><svg class="ico" aria-hidden="true"><use href="/icons.svg#chevron-down"/></svg> Lower</b><span id="lo-sub"></span></button>
+          </div>
+          <div class="btn-row act-row" hidden><button class="btn main" id="cash">Cash out</button></div>
+          <button type="button" class="spot betspot" data-k="bet" id="betspot">Bet</button>
+          <div id="rack"></div>
+          <div class="btn-row bet-row">
+            <button class="btn" id="undo">Undo</button>
+            <button class="btn" id="clear">Clear</button>
+            <span class="betamt" id="betamt"></span>
+            <button class="btn" id="rebet">Rebet</button>
+            <button class="btn main" id="deal">Deal</button>
+          </div>
+          <button class="btn main" id="rebuy" hidden>Get chips with Vox points</button>
+        </div>
+        <div class="foot-notes">
+          <p class="guest-note" hidden>You're not signed in, so your chips are only kept on this device and won't go on the leaderboard. <button type="button">Sign in</button></p>
+          <div class="ver">Version 2026-10-19a</div>
+        </div>
+      </main>
+    </div>
+    <div class="side right" id="side-right">
+      <div class="panel" id="account"><p>Loading…</p></div>
+      <div class="panel">
+        <h3>How to play</h3>
+        <ul class="rules">
+          <li>Bet, then deal. One card is turned over.</li>
+          <li>Guess whether the next card will be higher or lower. Aces are low: A, 2, 3 … 10, J, Q, K.</li>
+          <li>A card of the same rank counts as a wrong guess.</li>
+          <li>Each right guess multiplies your winnings. Unlikely guesses pay more: the buttons show how many cards are left that win, and what they pay.</li>
+          <li>Cash out any time after a right guess. A wrong guess loses your bet.</li>
+          <li>All the cards come from one shuffled deck, so cards you've seen won't come up again in that round.</li>
+          <li>Payouts are 97% of the true odds. Winnings stop growing at 1,000 times your bet.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Casino leaderboard</h3>
+        <p>Your chips are shared by every casino game. Out of chips? Turn <a class="rules-link" href="/games.html#vox">Vox points</a> into chips. Cheating gets you banned: <a class="rules-link" href="/terms.html#casino">casino rules</a>.</p>
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab on" data-kind="score">Chips</button>
+          <button type="button" class="tab" data-kind="time">Time played</button>
+        </div>
+        <ol class="lb" id="lb"><li class="lb-empty">Loading…</li></ol>
+      </div>
+    </div>
+  </div>
+
+<script type="module">
+/* Higher or Lower: one shuffled deck per round. Guess whether the next card is higher or lower (aces low, same rank
+   loses). Each right guess multiplies the winnings by 97% of the fair odds from the cards left; cash out any time
+   after a right guess. Multipliers are whole basis points (10000 = 1x), rounded down, capped at 1000x. The server's
+   hl_start(), hl_guess() and hl_cashout() play the same way for signed-in players. */
+import { $, sleep, reduced, fmt, newDeck, showChips, msg, sfx, casino, startShell, signedIn, cardEl, paintCard, chipRack, betBoard, openVox, bank } from '/casino.js?v=12';
+
+const RANKS = ['Ace', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King'];
+const CAP = 10000000;
+const step = (m, n, k) => k > 0 ? Math.min(CAP, Math.floor(m * 97 * n / (100 * k))) : 0;
+const payOf = (bet, m) => Number(BigInt(bet) * BigInt(m) / 10000n);
+const xs = m => (Math.floor(m / 100) / 100).toFixed(2) + 'x';
+function odds(deck, idx, cur){ let n = 0, hi = 0, lo = 0; for (let i = idx; i < 52; i++){ n++; const r = deck[i] % 13; if (r > cur % 13) hi++; else if (r < cur % 13) lo++; } return { n, hi, lo }; }
+function view(g, chips){
+  const o = odds(g.deck, g.idx, g.cur);
+  return { chips, phase: 'play', bet: g.bet, cur: g.cur, shown: g.shown.slice(), mult: g.mult, left: o.n, hi: o.hi, lo: o.lo,
+    hiMult: step(g.mult, o.n, o.hi), loMult: step(g.mult, o.n, o.lo), cashout: g.shown.length > 1 ? payOf(g.bet, g.mult) : 0 };
+}
+
+/* ---------- engines ---------- */
+const local = (() => {
+  const KEY = 'hl-guest';
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch (e) { return null; } };
+  const save = g => { try { g ? localStorage.setItem(KEY, JSON.stringify(g)) : localStorage.removeItem(KEY); } catch (e) {} };
+  const finish = (g, payout, card, won) => { const chips = bank.get() + payout; bank.set(chips); save(null); return { chips, phase: 'bet', bet: g.bet, shown: g.shown, mult: g.mult, card, won, payout, net: payout - g.bet }; };
+  return {
+    async state(){ const g = load(); return g ? view(g, bank.get()) : { chips: bank.get(), phase: 'bet' }; },
+    async start(bet){
+      if (load()) return this.state();
+      const chips = bank.get(); if (!(bet >= 5) || bet > chips) throw new Error('invalid bet');
+      const deck = newDeck(1), g = { deck, idx: 1, cur: deck[0], shown: [deck[0]], mult: 10000, bet };
+      bank.set(chips - bet); save(g); return view(g, chips - bet);
+    },
+    async guess(dir){
+      const g = load(); if (!g) throw new Error('no round in play');
+      const o = odds(g.deck, g.idx, g.cur), k = dir === 'hi' ? o.hi : o.lo; if (!k) throw new Error('that can’t happen');
+      const nxt = g.deck[g.idx], won = dir === 'hi' ? nxt % 13 > g.cur % 13 : nxt % 13 < g.cur % 13;
+      g.shown.push(nxt);
+      if (!won) return finish(g, 0, nxt, false);
+      g.mult = step(g.mult, o.n, k); g.idx++; g.cur = nxt;
+      if (g.idx >= 52 || g.mult >= CAP) return finish(g, payOf(g.bet, g.mult), nxt, true);
+      save(g); return { ...view(g, bank.get()), card: nxt, won: true };
+    },
+    async cashout(){ const g = load(); if (!g || g.shown.length < 2) throw new Error('guess first'); return finish(g, payOf(g.bet, g.mult), null, true); },
+  };
+})();
+const remote = {
+  state: () => casino.rpc('hl_state'),
+  start: bet => casino.rpc('hl_start', { p_bet: bet }),
+  guess: dir => casino.rpc('hl_guess', { p_dir: dir }),
+  cashout: () => casino.rpc('hl_cashout'),
+};
+const engine = () => signedIn() ? remote : local;
+
+/* ---------- table ---------- */
+let chips = 0, phase = 'bet', busy = false, cur = null;
+const spots = { bet: $('betspot') };
+const rack = chipRack($('rack'), { onPick: () => ui() });
+const board = betBoard({ spots, rack, free: () => chips, onChange: () => ui() });
+function ui(){
+  const st = board.total, betting = phase === 'bet';
+  board.lock(busy || !betting);
+  $('betspot').hidden = !betting; $('rack').hidden = !betting;
+  document.querySelector('.bet-row').hidden = !betting; document.querySelector('.act-row').hidden = betting; $('guess').hidden = betting;
+  $('betamt').textContent = st ? 'Bet ' + fmt(st) : 'No bet';
+  $('deal').disabled = busy || st < 5 || st > chips;
+  $('undo').disabled = $('clear').disabled = busy || !st;
+  $('rebet').disabled = busy || !board.canRebet();
+  if (cur && !betting){
+    $('hi').disabled = busy || !cur.hi; $('lo').disabled = busy || !cur.lo;
+    $('hi-sub').textContent = cur.hi ? cur.hi + ' of ' + cur.left + ' cards · pays ' + xs(cur.hiMult) : 'Can’t go higher';
+    $('lo-sub').textContent = cur.lo ? cur.lo + ' of ' + cur.left + ' cards · pays ' + xs(cur.loMult) : 'Can’t go lower';
+    $('cash').disabled = busy || !cur.cashout; $('cash').textContent = cur.cashout ? 'Cash out ' + fmt(cur.cashout) : 'Cash out after a right guess';
+    $('winbox').hidden = false; $('mx').textContent = xs(cur.mult); $('wv').textContent = 'Bet ' + fmt(cur.bet) + (cur.cashout ? ' · worth ' + fmt(cur.cashout) : '');
+    $('left-lbl').textContent = cur.left + ' cards left';
+  } else if (betting){ $('winbox').hidden = true; $('left-lbl').textContent = 'Next card'; }
+  rack.refresh(betting ? chips - st : 0, busy || !betting);
+  $('rebuy').hidden = busy || !betting || st > 0 || chips >= 1000;
+  if (!busy) showChips(betting ? chips - st : chips);
+}
+function trail(shown){
+  const prev = shown.slice(0, -1);
+  $('trail').innerHTML = ''; prev.slice(-12).forEach(c => $('trail').appendChild(cardEl(c)));
+  $('trail-lbl').textContent = prev.length ? 'Cards so far' : '';
+}
+function setCur(c){ $('cur').innerHTML = ''; $('cur').appendChild(cardEl(c)); }
+function setBack(){ $('next').innerHTML = ''; $('next').appendChild(cardEl(-1)); }
+function showRound(st){ cur = st; trail(st.shown); setCur(st.cur); setBack(); }
+async function deal(){
+  if (busy || phase !== 'bet') return;
+  const bet = board.bets.bet || 0; if (bet < 5 || bet > chips) return;
+  busy = true; casino.markInput(); sfx.unlock(); ui(); showChips(chips - bet);
+  let res;
+  try { res = await engine().start(bet); }
+  catch (e) { msg('Something went wrong', 'Your chips weren’t touched. Try again', 'lose'); busy = false; ui(); return; }
+  board.lock(true); $('trail').innerHTML = ''; $('trail-lbl').textContent = '';
+  $('cur').innerHTML = ''; setBack(); await sleep(reduced ? 0 : 150);
+  setCur(res.cur); sfx.card();
+  chips = res.chips; phase = 'play'; cur = res;
+  msg(RANKS[res.cur % 13], 'Higher or lower?');
+  busy = false; ui();
+}
+async function guess(dir){
+  if (busy || phase !== 'play' || !cur || !(dir === 'hi' ? cur.hi : cur.lo)) return;
+  busy = true; casino.markInput(); ui();
+  let res;
+  try { res = await engine().guess(dir); }
+  catch (e) { msg('Something went wrong', 'Refresh to pick up where you left off', 'lose'); busy = false; ui(); return; }
+  const card = $('next').firstChild; paintCard(card, res.card); card.classList.add('flip'); sfx.flip();
+  await sleep(reduced ? 0 : 650);
+  if (!res.won){
+    card.classList.add('dim');
+    msg(RANKS[res.card % 13] + '. ' + (res.card % 13 === cur.cur % 13 ? 'Same rank, that loses' : 'Wrong guess'), 'You lost ' + fmt(res.bet), 'lose'); sfx.lose();
+    chips = res.chips; phase = 'bet'; cur = null; board.settle([]); trail(res.shown); $('winbox').hidden = true;
+  } else if (res.phase === 'bet'){
+    msg(RANKS[res.card % 13] + '. Right!', 'Cashed out ' + fmt(res.payout) + ' at ' + xs(res.mult), 'win'); sfx.win(); sfx.coins(8);
+    chips = res.chips; phase = 'bet'; cur = null; board.settle(['bet']); trail(res.shown);
+  } else {
+    msg(RANKS[res.card % 13] + '. Right!', 'Keep going or cash out ' + fmt(res.cashout), 'win'); sfx.chip();
+    await sleep(reduced ? 0 : 250); showRound(res); chips = res.chips;
+  }
+  showChips(chips, true);
+  busy = false; ui();
+}
+async function cashout(){
+  if (busy || phase !== 'play' || !cur || !cur.cashout) return;
+  busy = true; casino.markInput(); ui();
+  let res;
+  try { res = await engine().cashout(); }
+  catch (e) { msg('Something went wrong', 'Refresh to pick up where you left off', 'lose'); busy = false; ui(); return; }
+  msg('Cashed out', 'You won ' + fmt(res.payout) + ' (' + xs(res.mult) + ')', 'win'); sfx.win(); sfx.coins(8);
+  chips = res.chips; phase = 'bet'; cur = null; board.settle(['bet']); $('winbox').hidden = true;
+  showChips(chips, true); busy = false; ui();
+}
+$('deal').onclick = deal;
+$('hi').onclick = () => guess('hi');
+$('lo').onclick = () => guess('lo');
+$('cash').onclick = cashout;
+$('undo').onclick = () => board.undo();
+$('clear').onclick = () => board.clear();
+$('rebet').onclick = () => board.rebet();
+$('rebuy').onclick = () => openVox();
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || /INPUT|TEXTAREA|BUTTON/.test(document.activeElement.tagName)) return;
+  const k = e.key.toLowerCase();
+  if (k === 'h' || k === 'arrowup'){ e.preventDefault(); guess('hi'); }
+  else if (k === 'l' || k === 'arrowdown'){ e.preventDefault(); guess('lo'); }
+  else if (k === 'c') cashout();
+  else if ((k === ' ' || k === 'enter') && phase === 'bet'){ e.preventDefault(); deal(); }
+});
+
+async function load(){
+  busy = true; ui();
+  try {
+    const st = await engine().state(); chips = st.chips; phase = st.phase;
+    if (st.phase === 'play'){ showRound(st); board.set({ bet: st.bet }); board.lock(true); msg(RANKS[st.cur % 13], 'Higher or lower?'); }
+    else { cur = null; $('cur').innerHTML = ''; $('next').innerHTML = ''; $('trail').innerHTML = ''; $('trail-lbl').textContent = ''; msg('Place your bet', 'Then guess higher or lower'); }
+  } catch (e) { msg('Couldn’t reach the table', 'Refresh to try again', 'lose'); }
+  busy = false; ui();
+}
+startShell();
+casino.onUser(load);
+ui();
+</script>
+</body>
+</html>

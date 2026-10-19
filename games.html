@@ -230,6 +230,11 @@
         <h2>Keno</h2>
         <p>Pick up to ten numbers, 20 balls drawn. Play now &rarr;</p>
       </a>
+      <a class="card game play" href="/higher-or-lower.html" style="--d:0.36s">
+        <div class="game-art bj-art"><svg viewBox="0 0 120 80" aria-hidden="true"><g transform="rotate(-8 40 42)"><rect x="22" y="18" width="34" height="48" rx="4.5" fill="#f6f1e4" stroke="#1b1b1b" stroke-opacity=".25"/><text x="27" y="31" font-family="Georgia,serif" font-weight="800" font-size="10" fill="#b3262e">7</text><text x="39" y="51" font-family="Georgia,serif" font-size="18" fill="#b3262e" text-anchor="middle">&#9830;</text></g><g transform="rotate(8 80 42)"><rect x="62" y="18" width="34" height="48" rx="4.5" fill="#7a1f2b" stroke="#c9a24b" stroke-width="1.5"/><rect x="66" y="22" width="26" height="40" rx="3" fill="none" stroke="#c9a24b" stroke-opacity=".6"/><text x="79" y="47" font-family="Georgia,serif" font-weight="800" font-size="18" fill="#ffe08a" text-anchor="middle">?</text></g><path d="M104 30 l6 -8 l6 8 M104 52 l6 8 l6 -8" fill="none" stroke="#ffe08a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h2>Higher or Lower</h2>
+        <p>Guess the next card, build your winnings, cash out in time. Play now &rarr;</p>
+      </a>
     </div>
     <section class="casino" id="casino" hidden>
       <div class="casino-head">
@@ -330,7 +335,7 @@ document.querySelectorAll('.ctab').forEach(t => t.addEventListener('click', () =
 if (!document.getElementById('casino').hidden) window.loadCasinoBoard();
 
 /* ---------- Vox points ---------- */
-import { safeRpc } from '/casino.js?v=11';
+import { safeRpc } from '/casino.js?v=12';
 const n = v => Number(v || 0).toLocaleString();
 const MEDAL = ['#e6c35c', '#c9ced6', '#d39b6a'];
 const place = r => '<div class="vplace' + (r.me ? ' me' : '') + '"><span class="pl" style="--m:' + MEDAL[r.place - 1] + '">' + r.place + '</span><span class="nm">' + esc(r.name) + (r.me ? ' (you)' : '') + '</span><span class="pt">' + n(r.points) + ' pts</span></div>';
