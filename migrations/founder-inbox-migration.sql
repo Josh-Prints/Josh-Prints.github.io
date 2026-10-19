@@ -225,3 +225,42 @@ grant execute on function public.founder_mail_send(jsonb, jsonb, text, text, tex
 
 -- every 2 minutes: copy new mail before Resend clears it
 select cron.schedule('founder-mail-sync', '*/2 * * * *', 'select public.founder_mail_sync();');
+
+-- ---------- sync health: the Home tab warns when mail stops coming in ----------
+create table if not exists public.founder_mail_sync_state (
+  id int primary key default 1 check (id = 1),
+  last_run_at timestamptz,
+  last_ok_at timestamptz,
+  last_error text
+);
+alter table public.founder_mail_sync_state enable row level security;
+revoke all on table public.founder_mail_sync_state from anon, authenticated;
+
+-- what the cron job runs: sync, then remember how it went
+create or replace function public.founder_mail_sync_logged() returns jsonb
+language plpgsql security definer set search_path to 'public' as $$
+declare r jsonb := public.founder_mail_sync(); ok boolean := coalesce((r->>'ok')::boolean, false);
+begin
+  insert into public.founder_mail_sync_state (id, last_run_at, last_ok_at, last_error)
+  values (1, now(), case when ok then now() end, case when ok then null else r->>'error' end)
+  on conflict (id) do update set last_run_at = now(),
+    last_ok_at = case when ok then now() else founder_mail_sync_state.last_ok_at end,
+    last_error = case when ok then null else excluded.last_error end;
+  return r;
+end $$;
+
+create or replace function public.founder_mail_health() returns jsonb
+language plpgsql security definer set search_path to 'public' as $$
+declare s public.founder_mail_sync_state;
+begin
+  if not public.is_founder() then raise exception 'founders only'; end if;
+  select * into s from public.founder_mail_sync_state where id = 1;
+  return jsonb_build_object(
+    'ok', s.last_error is null and s.last_run_at > now() - interval '15 minutes',
+    'error', case when s.last_run_at is null or s.last_run_at < now() - interval '15 minutes' then 'mail sync isn''t running' else s.last_error end,
+    'last_ok_at', s.last_ok_at, 'last_run_at', s.last_run_at);
+end $$;
+
+revoke all on function public.founder_mail_sync_logged(), public.founder_mail_health() from public, anon, authenticated;
+grant execute on function public.founder_mail_health() to authenticated;
+select cron.schedule('founder-mail-sync', '*/2 * * * *', 'select public.founder_mail_sync_logged();');

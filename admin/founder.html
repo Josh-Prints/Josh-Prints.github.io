@@ -2846,6 +2846,12 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
           hb('hb-todo-body').insertAdjacentHTML('afterbegin', '<div class="hb-alert err" data-er-alert>' + hbIco('triangle-alert') +
             '<span><b>' + hbPlural(errs.length, 'different error') + '</b> hit visitors in the last 24 hours. <button type="button" class="hb-link" data-goto="errors">Open Errors</button></span></div>');
       }).catch(() => {});
+      supabase.rpc('founder_mail_health').then(({ data: mh }) => {
+        if (!mh || mh.ok || hb('hb-todo-body').querySelector('[data-mail-alert]')) return;
+        const last = mh.last_ok_at ? ' Last worked ' + new Date(mh.last_ok_at).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) + '.' : '';
+        hb('hb-todo-body').insertAdjacentHTML('afterbegin', '<div class="hb-alert err" data-mail-alert>' + hbIco('mail') +
+          '<span><b>Email isn\'t arriving</b> (' + escapeHtml(mh.error || 'sync failed') + ').' + last + ' <button type="button" class="hb-link" data-goto="inbox">Open Inbox</button></span></div>');
+      });
       hbLoadedAt = Date.now();
     } finally {
       hbBusy = false;
