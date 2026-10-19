@@ -13,6 +13,7 @@
 <script src="/looks.js"></script>
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
+<script src="/game-ui.js?v=1" defer></script>
 <style>
   /* phones: no double-tap zoom, no accidental text selection or long-press pop-ups (typing boxes still work) */
   html{ touch-action: manipulation; }
@@ -93,6 +94,8 @@
   .over-card .ver{ margin-top: 10px; font-size: 11px; color: #8b949e; }
   .over-card.menu{ max-width: 340px; }
   .menu-btns{ display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 6px 0 4px; }
+  .menu-btns.col{ flex-direction: column; align-items: stretch; min-width: 220px; }
+  .pause-tip{ font-size: 12.5px !important; color: #8b949e !important; margin: 8px 0 0 !important; }
   .wallet{ display: inline-flex; align-items: center; gap: 7px; font-size: 15px; color: #ffe7a3; margin: 2px 0 12px; }
   .wallet b{ font-size: 20px; color: #fff; font-variant-numeric: tabular-nums; }
   .coin-ic{ width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff6c9 0 18%, #ffd34d 19% 62%, #c98a12 63%); box-shadow: 0 0 0 1px rgba(0,0,0,.25); display: inline-block; }
@@ -158,6 +161,7 @@
   @media (max-width: 980px){ .board{ border-radius: 14px; } }
 </style>
 <link rel="stylesheet" href="/looks.css">
+<link rel="stylesheet" href="/game-ui.css?v=1">
 </head>
 <body>
   <div class="topbar">
@@ -166,7 +170,7 @@
     <button type="button" class="tbtn lb-toggle" id="lb-toggle" aria-label="Leaderboard"><span class="lg">Leaderboard</span><span class="sm"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#crown"/></svg></span></button>
     <button type="button" class="tbtn" id="dbg" aria-pressed="false" hidden title="Founder debug: show the predicted flight path">Path</button>
     <button type="button" class="tbtn" id="mute" aria-pressed="false">Sound on</button>
-    <button type="button" class="tbtn" id="restart" aria-label="New run"><span class="lg">New run</span><span class="sm"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#repeat"/></svg></span></button>
+    <button type="button" class="tbtn" id="pause" aria-label="Pause" hidden>Pause</button>
   </div>
   <div class="mobile-stats">
     <div class="stat"><div class="label">Score</div><div class="value" data-stat="score">0</div></div>
@@ -201,7 +205,7 @@
             <li>A sandstorm is following you. Keep your speed up or it catches you.</li>
           </ul></details>
           <p class="guest-note" hidden>You're not signed in, so your coins, purchases and scores won't be saved. <button type="button">Sign in</button></p>
-          <div class="ver">Version 2026-10-14c</div>
+          <div class="ver">Version 2026-10-21a</div>
         </div>
       </div>
       <div class="over" id="shop" hidden>
@@ -216,6 +220,17 @@
           <p class="shop-msg" id="shop-msg"></p>
           <p class="guest-note" hidden>You're not signed in, so your coins, purchases and scores won't be saved. <button type="button">Sign in</button></p>
           <button type="button" class="play ghost" data-act="menu">Back</button>
+        </div>
+      </div>
+      <div class="over" id="paused" hidden>
+        <div class="over-card">
+          <h2>Paused</h2>
+          <div class="menu-btns col">
+            <button type="button" class="play" data-act="resume">Resume</button>
+            <button type="button" class="play ghost" data-act="restart">New run</button>
+            <button type="button" class="play ghost" data-act="quit">Quit to menu</button>
+          </div>
+          <p class="pause-tip">Space or tap to play again. Esc or P pauses.</p>
         </div>
       </div>
       <div class="over" id="over" hidden>
@@ -260,7 +275,7 @@ const MIN_VX = 110;
 const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
 let accent = '#4493f8';
 
-let pts = [], ball, holding = false, started = false, over = false, score = 0, best = 0, dist = 0;
+let paused = false, pts = [], ball, holding = false, started = false, over = false, score = 0, best = 0, dist = 0;
 let combo = 0, fever = 0, storm = 0, stormV = 0, playSecs = 0, airT = 0, grounded = false, camX = 0, zoom = 1;
 let pops = [], dust = [], trail = [], landings = [];
 let coins = [], coinCount = 0, flying = [], coinStreak = 0, coinStreakT = 0;
@@ -346,7 +361,8 @@ function newGame(){
   ball = { x: 0, y: groundY(0) - R, vx: 260, vy: 0 };
   holding = false; over = false; started = true; score = 0; dist = 0; combo = 0; fever = 0; playSecs = 0; airT = 0;
   storm = -700; stormV = 150; pops = []; dust = []; trail = []; flying = []; coinCount = 0; coinStreak = 0; lastSkyX = -1e9; banked = 0;
-  for (const k of ['start', 'shop', 'over']) document.getElementById(k).hidden = true;
+  for (const k of ['start', 'shop', 'over', 'paused']) document.getElementById(k).hidden = true;
+  paused = false; document.getElementById('pause').hidden = false;
   hud(); sfx.unlock();
 }
 
@@ -425,7 +441,7 @@ function step(){
 
 function endGame(){
   if (over) return;
-  over = true; holding = false;
+  over = true; holding = false; document.getElementById('pause').hidden = true;
   score = Math.round(score);
   if (score > best){ best = score; try { localStorage.setItem('dune-best', String(best)); } catch (e) {} }
   document.getElementById('over-text').textContent = 'Score ' + score.toLocaleString() + ' · ' + Math.round(dist / 10) + ' m · ' + coinCount + ' coins' + (net.user ? '' : ' · sign in to get on the leaderboard');
@@ -533,7 +549,7 @@ function draw(){
   const sky = ctx.createLinearGradient(0, 0, 0, H);
   for (const [o, c] of TH.sky) sky.addColorStop(o, c);
   ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
-  if (TH.stars){ ctx.fillStyle = '#fff'; for (const [sx2, sy2, sr] of STARS){ ctx.globalAlpha = 0.35 + 0.4 * Math.abs(Math.sin(performance.now() / 900 + sx2 * 20)); ctx.fillRect(((sx2 * W - camX * 0.03 * s) % W + W) % W, sy2 * H, sr, sr); } ctx.globalAlpha = 1; }
+  if (TH.stars){ ctx.fillStyle = '#fff'; for (const [sx2, sy2, sr] of STARS){ ctx.globalAlpha = 0.35 + 0.4 * Math.abs(Math.sin(performance.now() / 900 + sx2 * 20)); ctx.fillRect(((sx2 * W - camX * 0.03 * sc0) % W + W) % W, sy2 * H, sr, sr); } ctx.globalAlpha = 1; }
   if (TH.aurora){
     const tt = performance.now() / 4000;
     for (const [col, yb, amp] of [['rgba(80,255,170,.16)', 0.18, 40], ['rgba(170,110,255,.12)', 0.26, 55], ['rgba(80,220,255,.10)', 0.12, 30]]){
@@ -548,13 +564,15 @@ function draw(){
   glow.addColorStop(0, 'rgba(' + TH.glow + ',.5)'); glow.addColorStop(1, 'rgba(' + TH.glow + ',0)');
   ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = TH.sun; ctx.beginPath(); ctx.arc(sunX, sunY, H * TH.sunR, 0, Math.PI * 2); ctx.fill();
-  // far dunes (parallax)
+  // far dunes (parallax). Each layer has its own scale that only follows the camera zoom a little (the further
+  // away, the less), measured from the middle of the screen, so zooming in and out doesn't sweep them sideways.
   for (const [f, col, off] of [[0.25, TH.far[0], 150], [0.5, TH.far[1], 95]]){
+    const sf = sc0 * Math.pow(zoom, f), mid = W * 0.5;
     ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(0, H);
     for (let px = 0; px <= W + 8; px += 8){
-      const wx = camX * f + px / s;
+      const wx = camX * f + (px - mid) / sf;
       const wy = BASE - off + Math.sin(wx / 230) * 38 + Math.sin(wx / 97 + 1.3) * 14;
-      ctx.lineTo(px, Y(wy + (bottomY - BASE) * (1 - f) * 0));
+      ctx.lineTo(px, H - (bottomY - wy) * sf);
     }
     ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
   }
@@ -689,7 +707,7 @@ const sfx = (() => {
 let acc = 0, last = performance.now(), lastInput = 0;
 function frame(now){
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  if (started && !over){
+  if (started && !over && !paused){
     acc += dt; let n = 0;
     while (acc >= DT && n < 10){ step(); acc -= DT; n++; }
     if (n === 10) acc = 0;
@@ -700,16 +718,45 @@ function frame(now){
   draw();
   requestAnimationFrame(frame);
 }
-const press = on => { if (!started || over) return; holding = on; lastInput = performance.now(); if (on) sfx.unlock(); };
+const press = on => { if (!started || over || paused) return; holding = on; lastInput = performance.now(); if (on) sfx.unlock(); };
 cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); press(true); });
 cv.addEventListener('pointerup', () => press(false));
 cv.addEventListener('pointercancel', () => press(false));
 cv.addEventListener('contextmenu', e => e.preventDefault());
-addEventListener('keydown', e => { if (e.code === 'Space' || e.code === 'ArrowDown'){ e.preventDefault(); if (!e.repeat) press(true); } });
+addEventListener('keydown', e => {
+  if (e.code === 'Escape' || e.code === 'KeyP'){ if (paused) resume(); else pause(); return; }
+  if (e.code === 'Space' || e.code === 'ArrowDown'){ e.preventDefault(); if (paused){ if (!e.repeat) resume(); return; } if (!e.repeat) press(true); }
+});
 addEventListener('keyup', e => { if (e.code === 'Space' || e.code === 'ArrowDown') press(false); });
 addEventListener('blur', () => press(false));
 document.querySelectorAll('[data-act="new"]').forEach(b => b.addEventListener('click', newGame));
-document.getElementById('restart').addEventListener('click', () => { if (started && !over){ net.record(false); bankCoins(); } newGame(); });
+/* ---------- pause, resume, quit to the menu ---------- */
+function pause(){
+  if (!started || over || paused) return;
+  paused = true; holding = false;
+  document.getElementById('paused').hidden = false;
+  if (net.pendingSecs >= 1) net.record(false);
+  bankCoins();
+}
+function resume(){
+  if (!paused) return;
+  paused = false; last = performance.now(); acc = 0;
+  document.getElementById('paused').hidden = true;
+}
+// back to the start screen: the run is dropped (its coins are still saved) and the calm demo ride comes back
+function quitToMenu(){
+  if (started && !over){ net.record(false); bankCoins(); }
+  paused = false; started = false; over = false; holding = false;
+  document.getElementById('pause').hidden = true;
+  pts = [{ x: -800, y: BASE - 40, peak: true }, { x: -300, y: BASE + 30, peak: false }, { x: 120, y: BASE - 120, peak: true }];
+  coins = []; camX = -200; extendTerrain(3000); ball = { x: 0, y: groundY(0) - R, vx: 0, vy: 0 };
+  storm = -1e9; pops = []; dust = []; trail = []; flying = []; score = 0; dist = 0; coinCount = 0; combo = 0; fever = 0;
+  hud(); showScreen('start');
+}
+document.getElementById('pause').addEventListener('click', pause);
+document.querySelectorAll('[data-act="resume"]').forEach(b => b.addEventListener('click', resume));
+document.querySelectorAll('[data-act="restart"]').forEach(b => b.addEventListener('click', () => { if (started && !over){ net.record(false); bankCoins(); } newGame(); }));
+document.querySelectorAll('[data-act="quit"]').forEach(b => b.addEventListener('click', quitToMenu));
 // founder-only debug toggle (shown once the signed-in account is confirmed as the founder)
 let debugPath = false, debugPref = false;
 try { debugPref = localStorage.getItem('dune-debug-path') === '1'; } catch (e) {}
@@ -823,7 +870,7 @@ document.addEventListener('click', e => {
   if (side.classList.contains('open') && !side.contains(e.target) && e.target.id !== 'lb-toggle') side.classList.remove('open');
 });
 setInterval(() => { if (net.pendingSecs >= 5) net.record(false); }, 30000);
-document.addEventListener('visibilitychange', () => { if (document.hidden){ press(false); if (net.pendingSecs >= 1) net.record(false); if (started && !over) bankCoins(); } });
+document.addEventListener('visibilitychange', () => { if (document.hidden){ press(false); pause(); if (net.pendingSecs >= 1) net.record(false); if (started && !over) bankCoins(); } });
 
 
 /* ======================= wallet, menu and shop ======================= */
@@ -903,7 +950,7 @@ async function equip(key){
   setWallet(data); renderShop();
 }
 function showScreen(id){
-  for (const k of ['start', 'shop', 'over']) document.getElementById(k).hidden = k !== id;
+  for (const k of ['start', 'shop', 'over', 'paused']) document.getElementById(k).hidden = k !== id;
   if (id === 'shop') renderShop();
 }
 document.querySelectorAll('[data-act="shop"]').forEach(b => b.addEventListener('click', () => showScreen('shop')));

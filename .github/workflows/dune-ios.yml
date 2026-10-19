@@ -14,6 +14,8 @@ on:
       - error-log.js
       - icons.svg
       - favicon.svg
+      - game-ui.css
+      - game-ui.js
       - ios/dune/**
       - .github/workflows/dune-ios.yml
 
@@ -36,9 +38,11 @@ jobs:
           set -euo pipefail
           web=ios/dune/web
           rm -rf "$web" && mkdir -p "$web"
-          cp dune.html looks.js looks.css error-log.js icons.svg favicon.svg "$web"/
+          cp dune.html looks.js looks.css error-log.js icons.svg favicon.svg game-ui.css game-ui.js "$web"/
           # the app ships a fixed copy of the game, so the site's "new version, refresh" bar doesn't apply
           sed -i '' '/update-check\.js/d' "$web/dune.html"
+          # the app is already full screen
+          printf '\n#gui-fs{ display: none !important; }\n' >> "$web/game-ui.css"
           ls -la "$web"
 
       - name: Generate the Xcode project

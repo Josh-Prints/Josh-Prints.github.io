@@ -11,6 +11,7 @@
 <script src="/looks.js"></script>
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
+<script src="/game-ui.js?v=1" defer></script>
 <style>
   html{ touch-action: manipulation; }
   body{ -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
@@ -91,6 +92,9 @@
   /* the table */
   .board{ position: relative; flex: 1; min-width: 0; max-width: 1000px; height: 100%; border-radius: 18px; overflow: hidden;
     background: radial-gradient(ellipse at 50% 30%, #11654f, #07372b 75%); box-shadow: inset 0 0 0 1px rgba(0,0,0,.25); }
+  /* keep the table in proportion on wide screens: about 1.15 times as wide as it is tall, centred */
+  .board{ container-type: size; }
+  .sol{ width: min(100%, 115cqh); margin: 0 auto; right: 0; left: 0; }
   .sol{ --gap: clamp(5px, 1.3vw, 16px); position: absolute; inset: 0; padding: clamp(8px, 1.6vw, 18px); display: grid; grid-template-rows: auto 1fr; gap: calc(var(--gap) * 1.6); touch-action: none; }
   .row{ display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--gap); }
   .pile{ position: relative; aspect-ratio: 5 / 7; border-radius: 8px; }
@@ -159,6 +163,7 @@
   }
 </style>
 <link rel="stylesheet" href="/looks.css">
+<link rel="stylesheet" href="/game-ui.css?v=1">
 </head>
 <body>
   <div class="topbar">
@@ -172,6 +177,7 @@
     <div class="stat"><div class="label">Score</div><div class="value" data-stat="score">0</div></div>
     <div class="stat"><div class="label">Moves</div><div class="value" data-stat="moves">0</div></div>
     <div class="stat"><div class="label">Time</div><div class="value" data-stat="time">0:00</div></div>
+    <div class="stat"><div class="label">Best</div><div class="value" data-stat="best">0</div></div>
   </div>
   <div class="stage">
     <div class="side left">

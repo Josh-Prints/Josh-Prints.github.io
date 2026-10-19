@@ -1,0 +1,30 @@
+/* Every game page: the game fills the window. Stats sit in one slim row under the top bar, and everything else
+   (account, leaderboard, rules, Vox points) lives in a drawer opened from the top bar. Loaded after each page's
+   own styles. */
+.side.left{ display: none !important; }
+.mobile-stats{ display: flex !important; gap: 22px; padding: 4px 0 0; }
+.mobile-stats .stat .value{ font-size: 19px; }
+.mobile-stats .stat .label{ font-size: 10px; }
+.board{ max-width: none !important; }
+.stage{ gap: 0 !important; padding: 6px 8px 8px !important; }
+.topbar{ gap: 6px !important; padding: 6px max(10px, env(safe-area-inset-left, 0px)) !important; }
+.topbar .title{ font-size: 15px; }
+.tbtn.lb-toggle{ display: inline-flex !important; }
+.tbtn.gui-icon{ display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 34px; padding: 0 9px !important; }
+.tbtn.gui-icon[hidden]{ display: none !important; }
+.tbtn.gui-icon .lg, .tbtn.gui-icon .sm{ display: none !important; }
+.tbtn svg{ pointer-events: none; }
+.tbtn .gui-ico{ width: 18px; height: 18px; }
+/* the drawer */
+.side.right{ display: none !important; }
+.side.right.open{ display: flex !important; flex-direction: column; gap: 12px; position: fixed; z-index: 50; top: 52px; right: 10px; bottom: 10px; left: auto;
+  width: min(340px, calc(100% - 20px)); overflow-y: auto; background: var(--canvas); border: 1px solid var(--border); border-radius: 16px; padding: 12px 14px 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.45); }
+.gui-close{ align-self: flex-end; display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 13px; font-weight: 600; padding: 5px 10px; border-radius: 8px; cursor: pointer;
+  background: var(--canvas-inset); color: var(--fg); border: 1px solid var(--border); flex: none; }
+.gui-close svg{ width: 15px; height: 15px; pointer-events: none; }
+/* quieter notes on the table */
+.foot-notes .ver, .over-card .ver{ display: none !important; }
+.guest-note{ font-size: 12px !important; padding: 5px 10px !important; max-width: 440px !important; }
+/* in browser full screen, use the whole height */
+:fullscreen body, :-webkit-full-screen body{ height: 100vh; }
