@@ -171,7 +171,7 @@ h1 > span{ display:block; }
 .s-kinetic{ background:#0d1117; color:#e6edf3; }
 .s-kinetic .marq{ position:absolute; inset:-20%; display:flex; flex-direction:column; justify-content:center; gap:2px; opacity:.08; transform:rotate(-8deg); }
 .s-kinetic .marq div{ white-space:nowrap; font-size:clamp(56px,10vw,120px); font-weight:900; text-transform:uppercase; letter-spacing:-.02em; line-height:1; animation:mq 40s linear infinite; }
-.s-kinetic .marq div:nth-child(even){ animation-direction:reverse; color:transparent; -webkit-text-stroke:2px #e6edf3; }
+.s-kinetic .marq div:nth-child(even){ animation-direction:reverse; color:rgba(230,237,243,.45); }
 @keyframes mq{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
 .s-kinetic h1{ font-weight:800; letter-spacing:-.03em; font-size:clamp(40px,7vw,80px); }
 .s-kinetic .ch{ display:inline-block; animation:rise .9s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i) * 32ms); }
@@ -521,10 +521,15 @@ const RUN = {
     const cv = sec.querySelector('canvas'), ctx = cv.getContext('2d');
     let w, h, dpr, pts = [], raf, mouse = { x:-9999, y:-9999 };
     function size(){
-      dpr = Math.min(2, devicePixelRatio || 1); w = sec.clientWidth; h = sec.clientHeight;
+      const nw = sec.clientWidth, nh = sec.clientHeight;
+      // phones fire resize when the address bar shows or hides while scrolling: keep the same stars, just stretch them
+      if (nw === w && nh === h) return;
+      if (pts.length && w && h) for (const p of pts){ p.x *= nw / w; p.y *= nh / h; }
+      dpr = Math.min(2, devicePixelRatio || 1); w = nw; h = nh;
       cv.width = w * dpr; cv.height = h * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const n = Math.min(130, Math.round(w * h / 9000));
-      pts = Array.from({ length:n }, () => ({ x:Math.random() * w, y:Math.random() * h, vx:(Math.random() - .5) * .45, vy:(Math.random() - .5) * .45, r:Math.random() * 1.6 + .6 }));
+      while (pts.length > n) pts.pop();
+      while (pts.length < n) pts.push({ x:Math.random() * w, y:Math.random() * h, vx:(Math.random() - .5) * .45, vy:(Math.random() - .5) * .45, r:Math.random() * 1.6 + .6 });
     }
     function frame(){
       ctx.clearRect(0, 0, w, h);

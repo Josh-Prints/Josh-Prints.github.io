@@ -846,7 +846,7 @@
   :root[data-hs="kinetic"] body{ color:#e6edf3; }
   :root[data-hs="kinetic"] .hero .marq{ position:absolute; inset:-20%; display:flex; flex-direction:column; justify-content:center; gap:2px; opacity:.08; transform:rotate(-8deg); }
   :root[data-hs="kinetic"] .hero .marq div{ white-space:nowrap; font-size:clamp(56px,10vw,120px); font-weight:900; text-transform:uppercase; letter-spacing:-.02em; line-height:1; animation:mq 40s linear infinite; }
-  :root[data-hs="kinetic"] .hero .marq div:nth-child(even){ animation-direction:reverse; color:transparent; -webkit-text-stroke:2px #e6edf3; }
+  :root[data-hs="kinetic"] .hero .marq div:nth-child(even){ animation-direction:reverse; color:rgba(230,237,243,.45); }
   @keyframes mq{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
   :root[data-hs="kinetic"] #hero-headline{ font-weight:800; letter-spacing:-.03em; font-size:clamp(40px,7vw,80px); }
   :root[data-hs="kinetic"] .hero .ch{ display:inline-block; animation:rise .9s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i) * 32ms); }
@@ -1244,10 +1244,15 @@
     if (hs === 'particles'){
       var cv = deco.querySelector('canvas'), ctx = cv.getContext('2d'), w, h, pts = [], mouse = { x:-9999, y:-9999 };
       var size = function(){
-        var dpr = Math.min(2, devicePixelRatio || 1); w = deco.clientWidth; h = deco.clientHeight;
+        var dpr = Math.min(2, devicePixelRatio || 1), nw = deco.clientWidth, nh = deco.clientHeight;
+        // phones fire resize when the address bar shows or hides while scrolling: keep the same stars, just stretch them
+        if (nw === w && nh === h) return;
+        if (pts.length && w && h){ pts.forEach(function(p){ p.x *= nw / w; p.y *= nh / h; }); }
+        w = nw; h = nh;
         cv.width = w * dpr; cv.height = h * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         var n = Math.min(130, Math.round(w * h / 9000));
-        pts = []; for (var i = 0; i < n; i++) pts.push({ x:Math.random() * w, y:Math.random() * h, vx:(Math.random() - .5) * .45, vy:(Math.random() - .5) * .45, r:Math.random() * 1.6 + .6 });
+        while (pts.length > n) pts.pop();
+        while (pts.length < n) pts.push({ x:Math.random() * w, y:Math.random() * h, vx:(Math.random() - .5) * .45, vy:(Math.random() - .5) * .45, r:Math.random() * 1.6 + .6 });
       };
       var frame = function(){
         ctx.clearRect(0, 0, w, h);
