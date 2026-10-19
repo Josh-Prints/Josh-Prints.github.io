@@ -48,6 +48,14 @@
   .gtab[aria-selected="true"]{ background: var(--accent); color: #fff; border-color: transparent; }
   .gtab.gamble[aria-selected="true"]{ background: #1f8a5f; }
   .gtab.voxt[aria-selected="true"]{ background: #8957e5; }
+  /* who's playing right now */
+  .now{ display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: -4px 0 18px; font-size: 13.5px; }
+  .now[hidden]{ display: none; }
+  .now .lbl{ display: inline-flex; align-items: center; gap: 7px; font-weight: 700; color: var(--fg); }
+  .now a{ display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 11px; border-radius: 999px; background: var(--canvas-inset); border: 1px solid var(--border-muted); color: var(--fg); text-decoration: none; }
+  .now a:hover{ border-color: var(--border); }
+  .now a .g{ color: var(--fg-muted); }
+  .now a b{ font-variant-numeric: tabular-nums; }
   /* Vox points tab */
   .vox{ display: grid; gap: 18px; }
   .vox[hidden]{ display: none; }
@@ -166,6 +174,7 @@
       <button type="button" class="gtab gamble" role="tab" aria-selected="false" data-gtab="gambling">Gambling games</button>
       <button type="button" class="gtab voxt" role="tab" aria-selected="false" data-gtab="vox">Vox points</button>
     </div>
+    <div class="now" id="now" hidden><span class="lbl"><span class="live-dot"></span><span id="now-n">Playing now</span></span><span id="now-list" style="display:contents"></span></div>
     <p class="gamble-note" id="gamble-note" hidden>Just for fun: play chips only, never real money. No cheating: bookmarklets, scripts, console tricks and exploiting bugs are all bannable. <a href="/terms.html#casino">Casino rules</a></p>
     <div class="games" id="tab-games">
       <a class="card game play" href="/squish.html" style="--d:0.00s">
@@ -334,8 +343,30 @@ document.querySelectorAll('.ctab').forEach(t => t.addEventListener('click', () =
 }));
 if (!document.getElementById('casino').hidden) window.loadCasinoBoard();
 
+/* ---------- who's playing now, and the casino leaderboard live ---------- */
+import { startLive, onPeople, tickTo } from '/live.js?v=1';
+const PAGE = { Dune: '/dune.html', Squish: '/squish.html', Solitaire: '/solitaire.html', Blackjack: '/blackjack.html', Roulette: '/roulette.html', Slots: '/slots.html',
+  'Three Card Poker': '/three-card-poker.html', 'Three Card Poker Live': '/three-card-poker-live.html', Keno: '/keno.html', 'Higher or Lower': '/higher-or-lower.html' };
+client();
+startLive({ sb: () => sb, game: 'casino', watchOnly: true, ui: false, board: () => document.getElementById('clb'), kind: () => kind, replace: true });
+onPeople(list => {
+  const box = document.getElementById('now'), out = document.getElementById('now-list');
+  box.hidden = !list.length; if (!list.length) return;
+  document.getElementById('now-n').textContent = list.length + ' playing now';
+  const keep = {}; out.querySelectorAll('a[data-k]').forEach(a => keep[a.dataset.k] = a);
+  out.innerHTML = '';
+  list.slice().sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 12).forEach(p => {
+    let a = keep[p.key];
+    if (!a){ a = document.createElement('a'); a.dataset.k = p.key; a.innerHTML = '<span class="nm"></span><span class="g"></span><b></b>'; }
+    a.href = PAGE[p.title] || '/games.html';
+    a.querySelector('.nm').textContent = p.name; a.querySelector('.g').textContent = p.title + (p.playing ? '' : ' (menu)');
+    const v = a.querySelector('b'); if (p.score != null) tickTo(v, p.score); else v.textContent = '';
+    out.appendChild(a);
+  });
+});
+
 /* ---------- Vox points ---------- */
-import { safeRpc } from '/casino.js?v=12';
+import { safeRpc } from '/casino.js?v=13';
 const n = v => Number(v || 0).toLocaleString();
 const MEDAL = ['#e6c35c', '#c9ced6', '#d39b6a'];
 const place = r => '<div class="vplace' + (r.me ? ' me' : '') + '"><span class="pl" style="--m:' + MEDAL[r.place - 1] + '">' + r.place + '</span><span class="nm">' + esc(r.name) + (r.me ? ' (you)' : '') + '</span><span class="pt">' + n(r.points) + ' pts</span></div>';

@@ -12,7 +12,7 @@
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
 <script src="/game-ui.js?v=1" defer></script>
-<link rel="stylesheet" href="/casino.css?v=12">
+<link rel="stylesheet" href="/casino.css?v=13">
 <style>
   .table{ justify-content: flex-start; gap: 12px; max-width: 720px; }
   .table > .trail-zone{ margin-top: auto; }
@@ -123,7 +123,7 @@
    loses). Each right guess multiplies the winnings by 97% of the fair odds from the cards left; cash out any time
    after a right guess. Multipliers are whole basis points (10000 = 1x), rounded down, capped at 1000x. The server's
    hl_start(), hl_guess() and hl_cashout() play the same way for signed-in players. */
-import { $, sleep, reduced, fmt, newDeck, showChips, msg, sfx, casino, startShell, signedIn, cardEl, paintCard, chipRack, betBoard, openVox, bank } from '/casino.js?v=12';
+import { $, sleep, reduced, fmt, newDeck, showChips, msg, sfx, casino, startShell, signedIn, cardEl, paintCard, chipRack, betBoard, openVox, bank } from '/casino.js?v=13';
 
 const RANKS = ['Ace', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King'];
 const CAP = 10000000;

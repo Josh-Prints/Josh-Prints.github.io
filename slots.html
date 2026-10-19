@@ -12,7 +12,7 @@
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
 <script src="/game-ui.js?v=1" defer></script>
-<link rel="stylesheet" href="/casino.css?v=12">
+<link rel="stylesheet" href="/casino.css?v=13">
 <style>
   .table{ justify-content: flex-start; gap: 12px; }
   .machine{ margin-top: auto; } .foot-notes{ margin-bottom: auto; }
@@ -146,7 +146,7 @@
    equally likely, so how often a symbol appears on a strip sets the odds (the same way real machines work).
    With these strips and pays the machine returns 94.99% of what's bet over the long run.
    The server's slots_spin() uses the same strips and pays. */
-import { $, sleep, reduced, fmt, rand, bank, showChips, msg, sfx, casino, startShell, signedIn, openVox } from '/casino.js?v=12';
+import { $, sleep, reduced, fmt, rand, bank, showChips, msg, sfx, casino, startShell, signedIn, openVox } from '/casino.js?v=13';
 
 const STRIPS = ['BPLDLSCBLPBPRLCSPRLBCP', 'LBLSLRBCPLBLPSPCPLPRDB', 'LRPBLPBLBCRCSPLPLPCDCB'], N = 22;
 const PAY3 = { D: 800, S: 150, R: 50, C: 20, B: 20, P: 15, L: 10 }, CH2 = 5, CH1 = 2;

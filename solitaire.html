@@ -243,6 +243,7 @@
   </div>
 
 <script type="module">
+import { startLive } from '/live.js?v=1';
 /* Klondike solitaire. Cards are { s: suit 0-3 (spades, hearts, diamonds, clubs), r: 1-13, up }. Scoring follows the
    classic Windows "standard" rules; a won game adds a time bonus of 700,000 / seconds (counted as at least 60 s),
    so a won game scores at most about 12,500 (game_record caps solitaire at 20,000). */
@@ -572,6 +573,7 @@ document.addEventListener('click', e => {
   if (side.classList.contains('open') && !side.contains(e.target) && e.target.id !== 'lb-toggle') side.classList.remove('open');
 });
 setInterval(() => { if (net.pendingSecs >= 5) net.record(false); }, 30000);
+startLive({ sb: () => net.sb, user: () => net.user, game: 'solitaire', title: 'Solitaire', score: () => state && state.started && !state.won ? state.score : null, board: () => document.getElementById('lb'), kind: () => net.kind, reload: () => net.loadBoard() });
 document.addEventListener('visibilitychange', () => { if (document.hidden && net.pendingSecs >= 1) net.record(false); });
 function updateGuestNote(){ document.querySelectorAll('.guest-note').forEach(n => n.hidden = !!net.user); }
 document.querySelectorAll('.guest-note button').forEach(b => b.addEventListener('click', e => {

@@ -1,3 +1,4 @@
+import { startLive } from '/live.js?v=1';
 /* Shared by the casino game pages: sign-in panel, the casino leaderboard, time played, the guests' chip bank,
    sound, playing cards, dice, the chip rack and a betting board. Each game page imports what it needs and
    supplies its own rules: a `remote` engine (the server deals and pays out for signed-in players, so the
@@ -539,6 +540,9 @@ export function startShell(){
   document.addEventListener('visibilitychange', () => { if (document.hidden && casino.pendingSecs >= 1) casino.record(); });
 
   guard.start({ sb: () => casino.sb, user: () => casino.user, onUnlock: () => casino.changed() });
+  // who's playing, and live chips on the casino leaderboard
+  startLive({ sb: () => casino.sb, user: () => casino.user, game: 'casino', title: ((document.querySelector('.topbar .title') || {}).textContent || 'Casino').trim(),
+    score: () => shownChips, board: () => $('lb'), kind: () => casino.kind, replace: true, reload: () => casino.loadBoard() });
   (async () => {
     try {
       const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');

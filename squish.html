@@ -165,6 +165,7 @@
   </div>
 
 <script type="module">
+import { startLive } from '/live.js?v=1';
 /* Squish: a soft-body merge game.
    Floating bubbles are squashed side by side into a strip at the top; new ones drift in from the sides
    while there's room (two big ones fill it, small ones fit four).
@@ -1178,6 +1179,7 @@ document.addEventListener('click', e => {
 
 setInterval(() => { net.pushSave(false); }, 8000);
 setInterval(() => { if (net.pendingSecs >= 5) net.record(false); }, 30000);
+startLive({ sb: () => net.sb, user: () => net.user, game: 'squish', title: 'Squish', score: () => started && !over ? score : null, board: () => document.getElementById('lb'), kind: () => net.kind, reload: () => net.loadBoard() });
 document.addEventListener('visibilitychange', () => { if (document.hidden){ net.pushSave(true); if (net.pendingSecs >= 1) net.record(false); } });
 
 const MSG_TOAST = "Not signed in: this game won't be saved";

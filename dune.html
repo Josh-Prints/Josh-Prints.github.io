@@ -260,6 +260,7 @@
   </div>
 
 <script type="module">
+import { startLive } from '/live.js?v=1';
 /* Dune: roll a ball over endless sand dunes.
    Hold (touch, mouse or Space) to get heavy and dive into the hills; let go to fly. Land smoothly on a
    downslope for a speed boost; chain good landings for a combo. A sandstorm follows you, and if it
@@ -870,6 +871,7 @@ document.addEventListener('click', e => {
   if (side.classList.contains('open') && !side.contains(e.target) && e.target.id !== 'lb-toggle') side.classList.remove('open');
 });
 setInterval(() => { if (net.pendingSecs >= 5) net.record(false); }, 30000);
+startLive({ sb: () => net.sb, user: () => net.user, game: 'dune', title: 'Dune', score: () => started && !over ? score : null, board: () => document.getElementById('lb'), kind: () => net.kind, reload: () => net.loadBoard() });
 document.addEventListener('visibilitychange', () => { if (document.hidden){ press(false); pause(); if (net.pendingSecs >= 1) net.record(false); if (started && !over) bankCoins(); } });
 
 
