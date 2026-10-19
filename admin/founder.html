@@ -1369,29 +1369,53 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   }
   .founder-card h2{ margin:0 0 4px; font-size:16px; }
   /* ---- Announce tab ---- */
-  .an-grid{ display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:18px; align-items:start; }
-  @media (max-width: 860px){ .an-grid{ grid-template-columns: 1fr; } }
+  .an-grid{ display:grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); gap:18px; align-items:start; }
+  .an-side{ position:sticky; top:16px; }
+  @media (max-width: 900px){ .an-grid{ grid-template-columns: 1fr; } .an-side{ position:static; order:-1; } }
   .an-lbl{ display:block; margin-bottom:14px; font-size:13px; font-weight:600; }
-  .an-lbl span{ font-weight:400; color: var(--ink-dim); }
-  .an-row{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
-  .an-row .an-lbl{ margin-bottom:6px; }
-  .an-note{ margin:0 0 16px !important; font-size:12px !important; }
-  .an-themes{ display:flex; flex-wrap:wrap; gap:8px; margin:-6px 0 16px; }
-  .an-sw{ width:34px; height:34px; border-radius:50%; border:2px solid transparent; cursor:pointer; padding:0; box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); }
-  .an-sw[aria-checked="true"]{ border-color: var(--ink); box-shadow: 0 0 0 2px var(--bg), inset 0 0 0 1px rgba(255,255,255,.25); }
-  .an-sw.rainbow{ background-size:300% 100% !important; animation: an-rb 4s linear infinite; }
+  .an-lbl[hidden]{ display:none; }
+  .an-lbl span, .an-opt{ font-weight:400; color: var(--ink-dim); font-size:13px; }
+  .an-lbl output{ font-weight:400; color: var(--ink-dim); margin-left:4px; }
+  .an-lbl input[type=range]{ display:block; width:100%; margin-top:8px; accent-color: var(--accent); }
+  .an-sub{ font-size:13px; font-weight:600; margin:12px 0 8px; }
+  .an-cols{ display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:0 14px; }
+  .an-color{ display:block; width:100%; height:36px; margin-top:6px; padding:2px; border:1px solid rgba(var(--border-tint),0.18); border-radius:6px; background:var(--bg); cursor:pointer; box-sizing:border-box; }
+  .an-color:disabled{ opacity:.35; cursor:default; }
+  .an-check{ display:flex; align-items:center; gap:8px; font-size:13px; margin:0 0 10px; cursor:pointer; }
+  .an-check input{ accent-color: var(--accent); }
+  .an-seg{ display:inline-flex; border:1px solid rgba(var(--border-tint),0.2); border-radius:8px; overflow:hidden; margin-bottom:14px; }
+  .an-seg button{ font:inherit; font-size:13px; padding:7px 14px; border:0; background:none; color: var(--ink); cursor:pointer; }
+  .an-seg button + button{ border-left:1px solid rgba(var(--border-tint),0.2); }
+  .an-seg button[aria-pressed="true"]{ background: var(--accent); color:#fff; }
+  .an-presets{ display:flex; flex-wrap:wrap; gap:8px; }
+  .an-pre{ width:34px; height:34px; border-radius:50%; border:0; cursor:pointer; padding:0; box-shadow: inset 0 0 0 1px rgba(255,255,255,.25), 0 0 0 1px rgba(var(--border-tint),0.15); }
+  .an-pre:hover{ transform: scale(1.08); }
+  .an-pre.rainbow{ background-size:300% 100% !important; animation: an-rb 4s linear infinite; }
   @keyframes an-rb{ from{ background-position:0 0; } to{ background-position:300% 0; } }
-  .an-btns{ display:flex; gap:8px; flex-wrap:wrap; }
+  .an-icons{ display:flex; flex-wrap:wrap; gap:6px; }
+  .an-icons button{ width:36px; height:36px; display:grid; place-items:center; border-radius:8px; border:1px solid rgba(var(--border-tint),0.18); background:none; color: var(--ink); cursor:pointer; font:inherit; font-size:11px; }
+  .an-icons button[aria-pressed="true"]{ border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+  .an-pos{ display:grid; grid-template-columns: repeat(3, 1fr); gap:5px; width:150px; aspect-ratio: 16/11; margin-top:8px; padding:6px; border:1px solid rgba(var(--border-tint),0.2); border-radius:8px; box-sizing:border-box; }
+  .an-pos button{ border:1px dashed rgba(var(--border-tint),0.3); border-radius:4px; background:none; cursor:pointer; padding:0; }
+  .an-pos button[aria-pressed="true"]{ background: var(--accent); border:1px solid var(--accent); }
+  .an-dur{ display:grid; grid-template-columns: 80px minmax(110px,1fr); gap:8px; margin-bottom:8px; }
+  .an-cols.wide{ grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .an-dur .banner-textarea{ margin-top:6px; }
+  .an-dur input:disabled{ opacity:.4; }
+  .an-btns{ display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
   .an-btns .save-btn{ padding:9px 14px; font-size:13px; }
   .an-ghost{ background:none !important; border-color: rgba(var(--border-tint),0.25) !important; color: var(--ink) !important; }
   .an-msg{ margin-top:10px; font-size:13px; color: var(--ink-dim); min-height:18px; }
+  .an-editing{ font-size:13px; margin:4px 0 14px; padding:8px 10px; border-radius:8px; background: var(--accent-dim); color: var(--accent); }
+  .an-editing[hidden]{ display:none; }
+  .an-link{ font:inherit; background:none; border:0; padding:0; color:inherit; text-decoration:underline; cursor:pointer; }
   .an-replay{ float:right; font:inherit; font-size:12px; font-weight:400; background:none; border:1px solid rgba(var(--border-tint),0.2); color: var(--ink); border-radius:6px; padding:3px 10px; cursor:pointer; }
-  .an-stage{ margin-top:12px; min-height:150px; padding:18px; border-radius:10px; display:grid; align-content:start; justify-items:end;
+  .an-stage{ position:relative; overflow:hidden; margin-top:12px; aspect-ratio: 16/10; min-height:240px; border-radius:10px;
     background: repeating-linear-gradient(45deg, rgba(var(--border-tint),0.04) 0 10px, transparent 10px 20px), var(--bg); border:1px solid rgba(var(--border-tint),0.12); }
-  .an-stage .vox-ann{ width:min(360px,100%); }
   .an-item{ display:flex; gap:10px; align-items:center; padding:10px 0; border-top:1px solid rgba(var(--border-tint),0.10); font-size:13px; }
   .an-item:first-child{ border-top:0; }
-  .an-dot{ flex:none; width:14px; height:14px; border-radius:50%; }
+  .an-item.on{ background: var(--accent-dim); margin:0 -8px; padding:10px 8px; border-radius:8px; }
+  .an-dot{ flex:none; width:14px; height:14px; border-radius:50%; background-size:300% 100% !important; }
   .an-item .an-txt{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .an-item .an-when{ color: var(--ink-dim); font-size:12px; white-space:nowrap; }
   .an-item .an-replay{ float:none; }
@@ -2149,45 +2173,118 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
     <div class="debug-section" id="debug-section-announce">
       <div class="an-grid">
-        <div class="founder-card">
-          <h2><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#megaphone"/></svg> New announcement</h2>
-          <p class="hint">Shows as a notification on every open page.</p>
-          <label class="an-lbl">Title <span>(optional)</span>
-            <input type="text" class="banner-textarea" id="an-title" maxlength="80" placeholder="Big news">
-          </label>
-          <label class="an-lbl">Message
-            <textarea class="banner-textarea" id="an-body" rows="3" maxlength="400" placeholder="What's happening?"></textarea>
-          </label>
-          <div class="an-lbl">Colour</div>
-          <div class="an-themes" id="an-themes" role="radiogroup" aria-label="Colour"></div>
-          <div class="an-row">
-            <label class="an-lbl">Show for
-              <select class="banner-textarea" id="an-secs">
-                <option value="5">5 seconds</option><option value="8" selected>8 seconds</option><option value="15">15 seconds</option>
-                <option value="30">30 seconds</option><option value="60">1 minute</option><option value="0">Until closed</option>
-              </select>
+        <div class="an-form">
+          <div class="founder-card">
+            <h2 id="an-head"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#megaphone"/></svg> <span>New announcement</span></h2>
+            <div class="an-editing" id="an-editing" hidden>Editing a saved announcement. <button type="button" class="an-link" id="an-cancel">Start a new one instead</button></div>
+            <label class="an-lbl">Title
+              <input type="text" class="banner-textarea" id="an-title" maxlength="80" placeholder="Big news">
             </label>
-            <label class="an-lbl">Live for
-              <select class="banner-textarea" id="an-live">
-                <option value="10">10 minutes</option><option value="60" selected>1 hour</option><option value="360">6 hours</option>
-                <option value="1440">1 day</option><option value="10080">1 week</option>
-              </select>
+            <label class="an-lbl">Message
+              <textarea class="banner-textarea" id="an-body" rows="3" maxlength="600" placeholder="What's happening?"></textarea>
+            </label>
+            <label class="an-lbl">Label <span>(small text above the title, blank to hide)</span>
+              <input type="text" class="banner-textarea" data-k="kicker" maxlength="40">
             </label>
           </div>
-          <p class="hint an-note">Live for: how long new visitors will still get it.</p>
-          <div class="an-btns">
-            <button type="button" class="save-btn an-ghost" id="an-try">Preview on this page</button>
-            <button type="button" class="save-btn" id="an-send">Send to everyone</button>
+
+          <div class="founder-card">
+            <h2>Look</h2>
+            <div class="an-sub">Quick start</div>
+            <div class="an-presets" id="an-presets"></div>
+            <div class="an-sub">Background</div>
+            <div class="an-seg" data-seg="bg"><button type="button" data-v="solid">Solid</button><button type="button" data-v="gradient">Gradient</button><button type="button" data-v="rainbow">Rainbow</button></div>
+            <div class="an-cols">
+              <label class="an-lbl an-only" data-show="solid gradient">Colour 1<input type="color" class="an-color" data-k="c1"></label>
+              <label class="an-lbl an-only" data-show="gradient">Colour 2<input type="color" class="an-color" data-k="c2"></label>
+              <label class="an-lbl an-only" data-show="gradient">Angle <output data-o="angle"></output><input type="range" data-k="angle" min="0" max="360" step="5"></label>
+              <label class="an-lbl an-only" data-show="rainbow">Rainbow speed <output data-o="speed"></output><input type="range" data-k="speed" min="0.5" max="20" step="0.5"></label>
+            </div>
+            <div class="an-cols">
+              <label class="an-lbl">Text colour<input type="color" class="an-color" data-k="text"></label>
+              <label class="an-lbl">Border <span><input type="checkbox" id="an-border-on"> on</span><input type="color" class="an-color" data-k="border"></label>
+              <label class="an-lbl">Glow
+                <select class="banner-textarea" data-k="glow"><option value="none">None</option><option value="soft">Soft</option><option value="strong">Strong</option></select>
+              </label>
+            </div>
+            <div class="an-cols">
+              <label class="an-lbl">Font
+                <select class="banner-textarea" data-k="font"><option value="system">Clean</option><option value="rounded">Rounded</option><option value="serif">Serif</option><option value="mono">Mono</option><option value="display">Bold display</option><option value="hand">Handwritten</option></select>
+              </label>
+              <label class="an-lbl">Text size
+                <select class="banner-textarea" data-k="size"><option value="s">Small</option><option value="m">Medium</option><option value="l">Large</option><option value="xl">Huge</option></select>
+              </label>
+              <label class="an-lbl">Align
+                <select class="banner-textarea" data-k="align"><option value="left">Left</option><option value="center">Centre</option></select>
+              </label>
+            </div>
+            <label class="an-check"><input type="checkbox" data-k="upper"> Title in capitals</label>
+            <div class="an-sub">Icon</div>
+            <div class="an-icons" id="an-icons"></div>
           </div>
-          <div class="an-msg" id="an-msg" aria-live="polite"></div>
+
+          <div class="founder-card">
+            <h2>Layout</h2>
+            <div class="an-cols">
+              <div class="an-lbl">Position
+                <div class="an-pos" id="an-pos">
+                  <button type="button" data-v="tl" aria-label="Top left"></button><button type="button" data-v="tc" aria-label="Top centre"></button><button type="button" data-v="tr" aria-label="Top right"></button>
+                  <span></span><button type="button" data-v="c" aria-label="Middle"></button><span></span>
+                  <button type="button" data-v="bl" aria-label="Bottom left"></button><button type="button" data-v="bc" aria-label="Bottom centre"></button><button type="button" data-v="br" aria-label="Bottom right"></button>
+                </div>
+              </div>
+              <div>
+                <label class="an-lbl">Width <output data-o="width"></output><input type="range" data-k="width" min="220" max="720" step="10"></label>
+                <label class="an-lbl">Corners <output data-o="radius"></output><input type="range" data-k="radius" min="0" max="40" step="1"></label>
+                <label class="an-lbl">Entrance
+                  <select class="banner-textarea" data-k="anim"><option value="slide">Slide</option><option value="pop">Pop</option><option value="fade">Fade</option><option value="bounce">Bounce</option><option value="shake">Shake</option><option value="drop">Drop in</option><option value="spin">Spin</option><option value="none">None</option></select>
+                </label>
+              </div>
+            </div>
+            <label class="an-check"><input type="checkbox" data-k="dim"> Dim the page behind it</label>
+            <label class="an-check"><input type="checkbox" data-k="bar"> Countdown bar</label>
+          </div>
+
+          <div class="founder-card">
+            <h2>Button <span class="an-opt">(optional)</span></h2>
+            <div class="an-cols">
+              <label class="an-lbl">Text<input type="text" class="banner-textarea" data-k="btn_text" maxlength="40" placeholder="Play now"></label>
+              <label class="an-lbl">Link<input type="text" class="banner-textarea" data-k="btn_url" placeholder="/games.html or https://…"></label>
+            </div>
+            <div class="an-cols">
+              <label class="an-lbl">Button colour<input type="color" class="an-color" data-k="btn_bg"></label>
+              <label class="an-lbl">Button text colour<input type="color" class="an-color" data-k="btn_text_c"></label>
+            </div>
+          </div>
+
+          <div class="founder-card">
+            <h2>Timing</h2>
+            <div class="an-cols wide">
+              <div class="an-lbl">On screen for
+                <div class="an-dur"><input type="number" class="banner-textarea" id="an-secs-n" min="1" step="1" value="8">
+                  <select class="banner-textarea" id="an-secs-u"><option value="1">seconds</option><option value="60">minutes</option></select></div>
+                <label class="an-check"><input type="checkbox" id="an-forever"> Until they close it</label>
+              </div>
+              <div class="an-lbl">Live for <span>(new visitors still get it)</span>
+                <div class="an-dur"><input type="number" class="banner-textarea" id="an-live-n" min="1" step="1" value="1">
+                  <select class="banner-textarea" id="an-live-u"><option value="1">minutes</option><option value="60" selected>hours</option><option value="1440">days</option></select></div>
+              </div>
+            </div>
+            <label class="an-check" id="an-reshow-row" hidden><input type="checkbox" id="an-reshow"> Show it again to people who already saw it</label>
+            <div class="an-btns">
+              <button type="button" class="save-btn an-ghost" id="an-try">Preview on this page</button>
+              <button type="button" class="save-btn" id="an-send">Send to everyone</button>
+            </div>
+            <div class="an-msg" id="an-msg" aria-live="polite"></div>
+          </div>
         </div>
-        <div>
+        <div class="an-side">
           <div class="founder-card">
             <h2>Preview <button type="button" class="an-replay" id="an-replay">Replay</button></h2>
             <div class="an-stage" id="an-stage"></div>
           </div>
           <div class="founder-card">
-            <h2>Recent</h2>
+            <h2>Sent</h2>
             <div id="an-list"><p class="hint">Loading…</p></div>
           </div>
         </div>
@@ -3818,55 +3915,144 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   });
 
 
-  /* ---- Announce tab: founder notifications shown on every page (update-check.js) ---- */
-  const AN_THEMES = { blue: '#4493f8', green: '#2ea043', purple: '#8957e5', red: '#e5534b', orange: '#f0883e', gold: '#d4a72c', dark: '#2d333b',
-    rainbow: 'linear-gradient(90deg,#ff3b3b,#ff9f1c,#ffe14d,#3ddc84,#3b9cff,#8b5cf6,#ff3bd4,#ff3b3b)' };
-  const AN_NAMES = { blue: 'Blue', green: 'Green', purple: 'Purple', red: 'Red', orange: 'Orange', gold: 'Gold', dark: 'Dark', rainbow: 'Rainbow' };
-  let anTheme = 'blue', anReady = false;
-  const anDraft = () => ({ title: hb('an-title').value.trim(), body: hb('an-body').value.trim() || 'Your message here.', theme: anTheme, show_secs: +hb('an-secs').value });
+  /* ---- Announce tab: founder notifications shown on every page (update-check.js renders them) ---- */
+  const AN_DEF = { bg: 'gradient', c1: '#1f6feb', c2: '#4493f8', angle: 135, text: '#ffffff', speed: 4, icon: 'megaphone', kicker: 'Announcement', pos: 'tr', size: 'm',
+    width: 360, radius: 14, anim: 'slide', font: 'system', align: 'left', glow: 'none', border: '', bar: true, dim: false, upper: false,
+    btn_text: '', btn_url: '', btn_bg: '#ffffff', btn_text_c: '#111111' };
+  const AN_PRESETS = {
+    Blue: { bg: 'gradient', c1: '#1f6feb', c2: '#4493f8', text: '#ffffff', border: '', glow: 'none' },
+    Green: { bg: 'gradient', c1: '#1a7f37', c2: '#2ea043', text: '#ffffff', border: '', glow: 'none' },
+    Purple: { bg: 'gradient', c1: '#6e40c9', c2: '#8957e5', text: '#ffffff', border: '', glow: 'none' },
+    Red: { bg: 'gradient', c1: '#b62324', c2: '#e5534b', text: '#ffffff', border: '', glow: 'none' },
+    Orange: { bg: 'gradient', c1: '#bc4c00', c2: '#f0883e', text: '#ffffff', border: '', glow: 'none' },
+    Gold: { bg: 'gradient', c1: '#9a6700', c2: '#d4a72c', text: '#ffffff', border: '', glow: 'none' },
+    Sunset: { bg: 'gradient', c1: '#ff5f6d', c2: '#ffc371', text: '#ffffff', border: '', glow: 'none' },
+    Ocean: { bg: 'gradient', c1: '#0072ff', c2: '#00c6ff', text: '#ffffff', border: '', glow: 'none' },
+    Mint: { bg: 'gradient', c1: '#43e97b', c2: '#38f9d7', text: '#063b2a', border: '', glow: 'none' },
+    Neon: { bg: 'solid', c1: '#12002b', c2: '#12002b', text: '#ff7ef0', border: '#ff2bd6', glow: 'strong' },
+    Light: { bg: 'solid', c1: '#ffffff', c2: '#ffffff', text: '#1f2328', border: '#d0d7de', glow: 'none' },
+    Dark: { bg: 'gradient', c1: '#161b22', c2: '#2d333b', text: '#ffffff', border: '', glow: 'none' },
+    Rainbow: { bg: 'rainbow', text: '#ffffff', border: '', glow: 'soft' }
+  };
+  const AN_RAINBOW = 'linear-gradient(90deg,#ff3b3b,#ff9f1c,#ffe14d,#3ddc84,#3b9cff,#8b5cf6,#ff3bd4,#ff3b3b)';
+  const anSwatch = s => s.bg === 'rainbow' ? AN_RAINBOW : s.bg === 'solid' ? s.c1 : 'linear-gradient(135deg,' + s.c1 + ',' + s.c2 + ')';
+  let anS = { ...AN_DEF }, anEditing = null, anReady = false, anItems = [];
+  const anOut = { angle: v => v + '°', speed: v => v + 's', width: v => v + 'px', radius: v => v + 'px' };
+  function anSecs(){ return hb('an-forever').checked ? 0 : Math.min(3600, Math.max(1, Math.round(+hb('an-secs-n').value || 1) * +hb('an-secs-u').value)); }
+  function anLiveMins(){ return Math.max(1, Math.round(+hb('an-live-n').value || 1) * +hb('an-live-u').value); }
+  const anDraft = () => ({ title: hb('an-title').value.trim(), body: hb('an-body').value.trim() || 'Your message here.', style: { ...anS }, show_secs: anSecs() });
   function anPreview(){ if (window.VoxAnnounce) window.VoxAnnounce.show(anDraft(), { into: hb('an-stage') }); }
+  // put anS into every control
+  function anFill(){
+    const sec = hb('debug-section-announce');
+    sec.querySelectorAll('[data-k]').forEach(el => {
+      const v = anS[el.dataset.k];
+      if (el.type === 'checkbox') el.checked = !!v;
+      else if (el.dataset.k === 'border') el.value = v || '#ffffff';
+      else el.value = v == null ? '' : v;
+    });
+    hb('an-border-on').checked = !!anS.border;
+    sec.querySelector('[data-k="border"]').disabled = !anS.border;
+    sec.querySelectorAll('[data-o]').forEach(o => { o.textContent = anOut[o.dataset.o](anS[o.dataset.o]); });
+    sec.querySelectorAll('[data-seg="bg"] button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === anS.bg)));
+    sec.querySelectorAll('.an-only').forEach(el => { el.hidden = el.dataset.show.split(' ').indexOf(anS.bg) < 0; });
+    hb('an-icons').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === anS.icon)));
+    hb('an-pos').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === anS.pos)));
+    hb('an-secs-n').disabled = hb('an-secs-u').disabled = hb('an-forever').checked;
+  }
+  const anSet = patch => { Object.assign(anS, patch); anFill(); anPreview(); };
+  function anTiming(secs, mins){
+    hb('an-forever').checked = !secs;
+    if (secs && secs % 60 === 0){ hb('an-secs-n').value = secs / 60; hb('an-secs-u').value = '60'; }
+    else { hb('an-secs-n').value = secs || 8; hb('an-secs-u').value = '1'; }
+    if (mins >= 2880){ hb('an-live-n').value = Math.round(mins / 1440); hb('an-live-u').value = '1440'; }
+    else if (mins >= 120){ hb('an-live-n').value = Math.round(mins / 60); hb('an-live-u').value = '60'; }
+    else { hb('an-live-n').value = mins; hb('an-live-u').value = '1'; }
+  }
+  function anNew(){
+    anEditing = null; anS = { ...AN_DEF };
+    hb('an-title').value = ''; hb('an-body').value = ''; anTiming(8, 60);
+    hb('an-head').querySelector('span').textContent = 'New announcement';
+    hb('an-editing').hidden = true; hb('an-reshow-row').hidden = true;
+    hb('an-send').textContent = 'Send to everyone'; hb('an-msg').textContent = '';
+    anFill(); anPreview(); anRenderList();
+  }
+  function anEdit(a){
+    anEditing = a.id; anS = { ...AN_DEF, ...window.VoxAnnounce.style(a) };
+    hb('an-title').value = a.title || ''; hb('an-body').value = a.body || '';
+    const live = !a.stopped && new Date(a.ends_at) > Date.now();
+    anTiming(a.show_secs, live ? Math.max(1, Math.round((new Date(a.ends_at) - Date.now()) / 60000)) : 60);
+    hb('an-head').querySelector('span').textContent = 'Edit announcement';
+    hb('an-editing').hidden = false; hb('an-reshow-row').hidden = false; hb('an-reshow').checked = false;
+    hb('an-send').textContent = live ? 'Save changes' : 'Save and make live';
+    hb('an-msg').textContent = '';
+    anFill(); anPreview(); anRenderList();
+    hb('debug-section-announce').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
   const anAgo = t => { const m = Math.round((Date.now() - new Date(t)) / 60000); return m < 1 ? 'just now' : m < 60 ? m + 'm ago' : m < 1440 ? Math.round(m / 60) + 'h ago' : Math.round(m / 1440) + 'd ago'; };
-  async function anLoad(){
-    const { data, error } = await supabase.rpc('founder_announcements');
+  function anRenderList(){
     const box = hb('an-list');
-    if (error){ box.innerHTML = '<p class="hint">Couldn\'t load.</p>'; return; }
-    if (!data.length){ box.innerHTML = '<p class="hint">Nothing sent yet.</p>'; return; }
-    box.innerHTML = data.map(a => {
-      const live = !a.stopped && new Date(a.ends_at) > Date.now();
-      return '<div class="an-item"><span class="an-dot" style="background:' + (AN_THEMES[a.theme] || AN_THEMES.blue) + '"></span>' +
+    if (!anItems.length){ box.innerHTML = '<p class="hint">Nothing sent yet.</p>'; return; }
+    box.innerHTML = anItems.map(a => {
+      const live = !a.stopped && new Date(a.ends_at) > Date.now(), st = window.VoxAnnounce ? window.VoxAnnounce.style(a) : AN_DEF;
+      return '<div class="an-item' + (a.id === anEditing ? ' on' : '') + '"><span class="an-dot" style="background:' + anSwatch(st) + '"></span>' +
         '<span class="an-txt">' + escapeHtml(a.title ? a.title + ': ' + a.body : a.body) + '</span>' +
-        '<span class="an-when">' + (live ? '<span class="an-live">Live</span> · ' : '') + anAgo(a.created_at) + '</span>' +
+        '<span class="an-when">' + (live ? '<span class="an-live">Live</span> · ' : '') + anAgo(a.updated_at || a.created_at) + '</span>' +
+        '<button type="button" class="an-replay" data-edit="' + a.id + '">Edit</button>' +
         (live ? '<button type="button" class="an-replay" data-stop="' + a.id + '">Stop</button>' : '') + '</div>';
     }).join('');
+    box.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => anEdit(anItems.find(a => a.id === +b.dataset.edit)));
     box.querySelectorAll('[data-stop]').forEach(b => b.onclick = async () => {
       b.disabled = true;
       const { error } = await supabase.rpc('founder_announce_stop', { p_id: +b.dataset.stop });
       if (error) b.disabled = false; else anLoad();
     });
   }
+  async function anLoad(){
+    const { data, error } = await supabase.rpc('founder_announcements');
+    if (error){ hb('an-list').innerHTML = '<p class="hint">Couldn\'t load.</p>'; return; }
+    anItems = data || []; anRenderList();
+  }
   function anOpen(){
     if (!anReady){
       anReady = true;
-      hb('an-themes').innerHTML = Object.keys(AN_THEMES).map(k => '<button type="button" class="an-sw' + (k === 'rainbow' ? ' rainbow' : '') + '" role="radio" aria-checked="' + (k === anTheme) + '" data-theme="' + k + '" title="' + AN_NAMES[k] + '" aria-label="' + AN_NAMES[k] + '" style="background:' + AN_THEMES[k] + '"></button>').join('');
-      hb('an-themes').querySelectorAll('.an-sw').forEach(b => b.onclick = () => {
-        anTheme = b.dataset.theme;
-        hb('an-themes').querySelectorAll('.an-sw').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+      const sec = hb('debug-section-announce');
+      hb('an-presets').innerHTML = Object.keys(AN_PRESETS).map(k => '<button type="button" class="an-pre' + (k === 'Rainbow' ? ' rainbow' : '') + '" data-p="' + k + '" title="' + k + '" aria-label="' + k + '" style="background:' + anSwatch({ ...AN_DEF, ...AN_PRESETS[k] }) + (AN_PRESETS[k].border ? ';box-shadow:inset 0 0 0 2px ' + AN_PRESETS[k].border : '') + '"></button>').join('');
+      hb('an-presets').querySelectorAll('button').forEach(b => b.onclick = () => anSet(AN_PRESETS[b.dataset.p]));
+      hb('an-icons').innerHTML = window.VoxAnnounce.icons.map(i => '<button type="button" data-v="' + i + '" title="' + i + '" aria-label="' + i + '">' + (i === 'none' ? 'None' : '<svg class="ico" width="18" height="18" aria-hidden="true"><use href="/icons.svg#' + i + '"/></svg>') + '</button>').join('');
+      hb('an-icons').querySelectorAll('button').forEach(b => b.onclick = () => anSet({ icon: b.dataset.v }));
+      hb('an-pos').querySelectorAll('button').forEach(b => b.onclick = () => anSet({ pos: b.dataset.v }));
+      sec.querySelectorAll('[data-seg="bg"] button').forEach(b => b.onclick = () => anSet({ bg: b.dataset.v }));
+      sec.querySelectorAll('[data-k]').forEach(el => el.addEventListener('input', () => {
+        const k = el.dataset.k;
+        anS[k] = el.type === 'checkbox' ? el.checked : el.type === 'range' ? +el.value : k === 'border' ? (hb('an-border-on').checked ? el.value : '') : el.value;
+        const o = sec.querySelector('[data-o="' + k + '"]'); if (o) o.textContent = anOut[k](anS[k]);
         anPreview();
-      });
+      }));
+      hb('an-border-on').onchange = () => anSet({ border: hb('an-border-on').checked ? sec.querySelector('[data-k="border"]').value : '' });
       ['an-title', 'an-body'].forEach(id => hb(id).addEventListener('input', anPreview));
-      hb('an-secs').addEventListener('change', anPreview);
+      ['an-secs-n', 'an-secs-u'].forEach(id => hb(id).addEventListener('input', anPreview));
+      hb('an-forever').onchange = () => { anFill(); anPreview(); };
       hb('an-replay').onclick = anPreview;
-      hb('an-try').onclick = () => { if (window.VoxAnnounce) window.VoxAnnounce.show(anDraft()); };
+      hb('an-cancel').onclick = anNew;
+      hb('an-try').onclick = () => window.VoxAnnounce.show(anDraft());
       hb('an-send').onclick = async () => {
         const msg = hb('an-msg'), body = hb('an-body').value.trim();
         if (!body){ msg.textContent = 'Write a message first.'; hb('an-body').focus(); return; }
-        hb('an-send').disabled = true; msg.textContent = 'Sending…';
-        const { error } = await supabase.rpc('founder_announce', { p_title: hb('an-title').value.trim() || null, p_body: body, p_theme: anTheme, p_show_secs: +hb('an-secs').value, p_live_mins: +hb('an-live').value });
+        if (anS.btn_text && !/^(https?:\/\/|\/)/.test(anS.btn_url)){ msg.textContent = 'Button link must start with https:// or /'; return; }
+        hb('an-send').disabled = true; msg.textContent = 'Saving…';
+        const args = { p_title: hb('an-title').value.trim() || null, p_body: body, p_style: { ...anS }, p_show_secs: anSecs(), p_live_mins: anLiveMins() };
+        const { error } = anEditing
+          ? await supabase.rpc('founder_announce_update', { p_id: anEditing, ...args, p_reshow: hb('an-reshow').checked })
+          : await supabase.rpc('founder_announce', args);
         hb('an-send').disabled = false;
-        if (error){ msg.textContent = 'Couldn\'t send: ' + error.message; return; }
-        msg.textContent = 'Sent. Everyone sees it within 8 seconds.';
-        hb('an-title').value = ''; hb('an-body').value = ''; anPreview(); anLoad();
+        if (error){ msg.textContent = 'Couldn\'t save: ' + error.message; return; }
+        const was = anEditing;
+        await anLoad();
+        if (was){ anEdit(anItems.find(a => a.id === was) || anItems[0]); msg.textContent = 'Saved.'; }
+        else { anNew(); msg.textContent = 'Sent. Everyone sees it within 8 seconds.'; }
       };
+      anNew();
     }
     anPreview(); anLoad();
   }

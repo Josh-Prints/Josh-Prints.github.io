@@ -45,6 +45,6 @@
   and live ticking on the leaderboards (display only; the server's board is re-read
   every 15 s). New game pages should call `startLive` too (and bump `live.js?v=N`).
 - Founder announcements (`migrations/announcements-migration.sql`): the Announce tab in
-  admin/founder.html posts them; `update-check.js` (on every page) polls `current_announcement`
-  every 8 s alongside the update check and shows each one once per visitor (`vox-ann-seen`).
+  admin/founder.html posts them; `update-check.js` (on every page) polls `live_announcements`
+  every 8 s alongside the update check and shows each id/rev once per visitor (`vox-ann-seen2`); the look is a `style` jsonb.
   `window.VoxAnnounce.show()` renders it (also used for the founder preview).

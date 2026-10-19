@@ -3,7 +3,7 @@
    stylesheets it uses, skipping the browser cache, and compares them with what was there when the page
    loaded. If anything has changed, a bar offers a refresh. It doesn't reload by itself, so nobody loses a
    half-filled form, picked files or a game in progress.
-   On the same timer it asks for the newest founder announcement (current_announcement) and shows it once
+   On the same timer it asks for the live founder announcements (live_announcements) and shows each once
    as a notification. window.VoxAnnounce.show() is also used by the founder page's preview. */
 (function(){
   var EVERY = 8000;
@@ -58,80 +58,150 @@
 
   /* ---------- founder announcements ---------- */
   var SB = 'https://paycasfatsakidsriwqt.supabase.co', KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
-  var THEMES = {
-    blue: 'linear-gradient(135deg,#1f6feb,#4493f8)', green: 'linear-gradient(135deg,#1a7f37,#2ea043)',
-    purple: 'linear-gradient(135deg,#6e40c9,#8957e5)', red: 'linear-gradient(135deg,#b62324,#e5534b)',
-    orange: 'linear-gradient(135deg,#bc4c00,#f0883e)', gold: 'linear-gradient(135deg,#9a6700,#d4a72c)',
-    dark: 'linear-gradient(135deg,#161b22,#2d333b)',
-    rainbow: 'linear-gradient(90deg,#ff3b3b,#ff9f1c,#ffe14d,#3ddc84,#3b9cff,#8b5cf6,#ff3bd4,#ff3b3b)'
+  var RAINBOW = '#ff3b3b,#ff9f1c,#ffe14d,#3ddc84,#3b9cff,#8b5cf6,#ff3bd4,#ff3b3b';
+  // the old named themes (announcements saved before custom styles)
+  var PRESETS = {
+    blue: { c1: '#1f6feb', c2: '#4493f8' }, green: { c1: '#1a7f37', c2: '#2ea043' }, purple: { c1: '#6e40c9', c2: '#8957e5' },
+    red: { c1: '#b62324', c2: '#e5534b' }, orange: { c1: '#bc4c00', c2: '#f0883e' }, gold: { c1: '#9a6700', c2: '#d4a72c' },
+    dark: { c1: '#161b22', c2: '#2d333b' }, rainbow: { bg: 'rainbow' }
   };
+  var ICONS = ['megaphone', 'sparkles', 'party-popper', 'triangle-alert', 'lightbulb', 'tag', 'crown', 'music', 'mail', 'printer', 'package', 'shopping-cart', 'check', 'puzzle', 'pin', 'circle-dollar-sign', 'none'];
+  var FONTS = {
+    system: '-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif', serif: 'Georgia,"Times New Roman",serif',
+    mono: 'ui-monospace,"SF Mono",Menlo,Consolas,monospace', rounded: 'ui-rounded,"SF Pro Rounded","Nunito","Trebuchet MS",sans-serif',
+    display: 'Impact,"Arial Black","Helvetica Neue",sans-serif', hand: '"Comic Sans MS","Chalkboard SE","Marker Felt",cursive'
+  };
+  var SIZES = { s: [12, 13, 28], m: [14, 15, 34], l: [16, 19, 42], xl: [19, 25, 52] };   // body px, title px, icon px
+  var POS = ['tr', 'tc', 'tl', 'br', 'bc', 'bl', 'c'];
+  var ANIMS = ['slide', 'pop', 'fade', 'bounce', 'shake', 'drop', 'spin', 'none'];
   var annBusy = false, annStyled = false;
-  function seenId(){ try { return +localStorage.getItem('vox-ann-seen') || 0; } catch (e) { return 0; } }
+  var hex = function(v, d){ return /^#[0-9a-f]{6}$/i.test(v || '') ? v : d; };
+  var num = function(v, lo, hi, d){ v = Number(v); return isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
+  var pick = function(v, list, d){ return list.indexOf(v) >= 0 ? v : d; };
+  // a saved style (or an old theme name) -> a complete, safe style
+  function fullStyle(a){
+    var s = {}, k, p = PRESETS[a.theme] || PRESETS.blue, st = a.style || {};
+    for (k in p) s[k] = p[k];
+    for (k in st) s[k] = st[k];
+    var c1 = hex(s.c1, '#1f6feb');
+    return {
+      bg: pick(s.bg, ['solid', 'gradient', 'rainbow'], 'gradient'), c1: c1, c2: hex(s.c2, c1), angle: num(s.angle, 0, 360, 135),
+      text: hex(s.text, '#ffffff'), speed: num(s.speed, 0.5, 30, 4), icon: pick(s.icon, ICONS, 'megaphone'),
+      kicker: s.kicker == null ? 'Announcement' : String(s.kicker).slice(0, 40), pos: pick(s.pos, POS, 'tr'), size: pick(s.size, ['s', 'm', 'l', 'xl'], 'm'),
+      width: num(s.width, 220, 720, 360), radius: num(s.radius, 0, 40, 14), anim: pick(s.anim, ANIMS, 'slide'), font: pick(s.font, Object.keys(FONTS), 'system'),
+      align: pick(s.align, ['left', 'center'], 'left'), glow: pick(s.glow, ['none', 'soft', 'strong'], 'none'), border: hex(s.border, ''),
+      bar: s.bar !== false, dim: !!s.dim, upper: !!s.upper,
+      btn_text: s.btn_text ? String(s.btn_text).slice(0, 40) : '', btn_url: /^(https?:\/\/|\/)/.test(s.btn_url || '') ? String(s.btn_url) : '',
+      btn_bg: hex(s.btn_bg, '#ffffff'), btn_text_c: hex(s.btn_text_c, '#111111')
+    };
+  }
   function annStyle(){
     if (annStyled) return; annStyled = true;
     var st = document.createElement('style');
-    st.textContent = '.vox-ann-wrap{position:fixed;top:16px;right:16px;z-index:2147483001;display:grid;gap:10px;width:min(360px,calc(100% - 32px))}' +
-      '@media (max-width:600px){.vox-ann-wrap{left:16px;right:16px;width:auto}}' +
-      '.vox-ann{position:relative;overflow:hidden;display:flex;gap:12px;align-items:flex-start;padding:14px 40px 16px 14px;border-radius:14px;color:#fff;' +
-      'box-shadow:0 12px 34px rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.18);font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;' +
-      'animation:vox-ann-in .35s cubic-bezier(.2,.9,.3,1.2)}' +
-      '.vox-ann.rainbow{background-size:300% 100% !important;animation:vox-ann-in .35s cubic-bezier(.2,.9,.3,1.2),vox-ann-rb 4s linear infinite}' +
-      '.vox-ann.rainbow .vox-ann-txt{text-shadow:0 1px 2px rgba(0,0,0,.45)}' +
-      '.vox-ann.out{transition:opacity .3s,transform .3s;opacity:0;transform:translateY(-8px)}' +
-      '.vox-ann-ico{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.2)}' +
-      '.vox-ann-ico svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}' +
-      '.vox-ann-txt{min-width:0;overflow-wrap:anywhere}.vox-ann-k{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.85}' +
-      '.vox-ann-t{font-weight:700;font-size:15px;margin-top:1px}.vox-ann-b{margin-top:2px;white-space:pre-line}' +
-      '.vox-ann-x{position:absolute;top:8px;right:8px;width:26px;height:26px;border:0;border-radius:50%;background:rgba(0,0,0,.18);color:#fff;font-size:17px;line-height:1;cursor:pointer}' +
+    st.textContent = '.vox-ann-wrap{position:fixed;z-index:2147483001;display:grid;gap:10px;pointer-events:none;inset:16px}' +
+      '.vox-ann-wrap.in-stage{position:absolute;inset:12px;z-index:1}' +
+      '.vox-ann-wrap.tr{justify-items:end;align-content:start}.vox-ann-wrap.tc{justify-items:center;align-content:start}.vox-ann-wrap.tl{justify-items:start;align-content:start}' +
+      '.vox-ann-wrap.br{justify-items:end;align-content:end}.vox-ann-wrap.bc{justify-items:center;align-content:end}.vox-ann-wrap.bl{justify-items:start;align-content:end}' +
+      '.vox-ann-wrap.c{justify-items:center;align-content:center}' +
+      '.vox-ann-dim{position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.5);animation:vox-ann-fade .3s}.vox-ann-dim.in-stage{position:absolute;z-index:0;border-radius:inherit}' +
+      '.vox-ann{pointer-events:auto;position:relative;overflow:hidden;display:flex;gap:12px;align-items:flex-start;padding:14px 40px 16px 14px;box-sizing:border-box;max-width:100%;' +
+      'box-shadow:0 12px 34px rgba(0,0,0,.35);line-height:1.4;text-align:left}' +
+      '.vox-ann.center{flex-direction:column;align-items:center;text-align:center;padding:18px 40px 20px}' +
+      '.vox-ann.rainbow{background-size:300% 100% !important}.vox-ann.rainbow .vox-ann-txt{text-shadow:0 1px 2px rgba(0,0,0,.45)}' +
+      '.vox-ann.out{transition:opacity .3s,transform .3s;opacity:0;transform:scale(.96)}' +
+      '.vox-ann-ico{flex:none;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.2)}' +
+      '.vox-ann-ico svg{width:52%;height:52%}' +
+      '.vox-ann-txt{min-width:0;overflow-wrap:anywhere}.vox-ann-k{font-size:.78em;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.85}' +
+      '.vox-ann-t{font-weight:700;margin-top:1px}.vox-ann-b{margin-top:2px;white-space:pre-line}.vox-ann.upper .vox-ann-t{text-transform:uppercase}' +
+      '.vox-ann-btn{display:inline-block;margin-top:10px;padding:7px 14px;border-radius:999px;font-weight:700;text-decoration:none;font-size:.92em}' +
+      '.vox-ann-btn:hover{filter:brightness(.92)}' +
+      '.vox-ann-x{position:absolute;top:8px;right:8px;width:26px;height:26px;border:0;border-radius:50%;background:rgba(0,0,0,.18);color:inherit;font-size:17px;line-height:1;cursor:pointer;font-family:Arial,sans-serif}' +
       '.vox-ann-x:hover{background:rgba(0,0,0,.32)}' +
-      '.vox-ann-bar{position:absolute;left:0;bottom:0;height:3px;background:rgba(255,255,255,.75);transform-origin:left;animation:vox-ann-bar linear forwards}' +
-      '@keyframes vox-ann-in{from{opacity:0;transform:translateY(-12px) scale(.97)}to{opacity:1;transform:none}}' +
+      '.vox-ann-bar{position:absolute;left:0;bottom:0;height:3px;width:100%;background:currentColor;opacity:.7;transform-origin:left;animation:vox-ann-bar linear forwards}' +
+      '@keyframes vox-ann-slide{from{opacity:0;transform:translateY(var(--vox-dy,-14px))}to{opacity:1;transform:none}}' +
+      '@keyframes vox-ann-pop{0%{opacity:0;transform:scale(.6)}70%{opacity:1;transform:scale(1.05)}100%{transform:scale(1)}}' +
+      '@keyframes vox-ann-fade{from{opacity:0}to{opacity:1}}' +
+      '@keyframes vox-ann-bounce{0%{opacity:0;transform:translateY(var(--vox-dy2,-60px))}60%{opacity:1;transform:translateY(8px)}80%{transform:translateY(-4px)}100%{transform:none}}' +
+      '@keyframes vox-ann-shake{0%{opacity:0}10%,50%,90%{opacity:1;transform:translateX(-8px)}30%,70%{transform:translateX(8px)}100%{transform:none}}' +
+      '@keyframes vox-ann-drop{0%{opacity:0;transform:translateY(-120vh) rotate(-8deg)}70%{opacity:1;transform:translateY(10px) rotate(2deg)}100%{transform:none}}' +
+      '@keyframes vox-ann-spin{from{opacity:0;transform:rotate(-200deg) scale(.3)}to{opacity:1;transform:none}}' +
       '@keyframes vox-ann-rb{from{background-position:0 0}to{background-position:300% 0}}' +
       '@keyframes vox-ann-bar{from{transform:scaleX(1)}to{transform:scaleX(0)}}' +
-      '@media (prefers-reduced-motion:reduce){.vox-ann,.vox-ann.rainbow{animation:none}}';
+      '@media (prefers-reduced-motion:reduce){.vox-ann{animation:none !important}}';
     document.head.appendChild(st);
   }
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  // a: { title, body, theme, show_secs }; opts.into: element to show it in (the founder preview), opts.loop: restart the timer bar
+  // a: { title, body, theme, style, show_secs }; opts.into: element to show it in (the founder preview)
   function showAnn(a, opts){
     opts = opts || {}; annStyle();
-    var host = opts.into;
-    if (!host){
-      host = document.querySelector('.vox-ann-wrap');
-      if (!host){ host = document.createElement('div'); host.className = 'vox-ann-wrap'; (document.body || document.documentElement).appendChild(host); }
+    var s = fullStyle(a), secs = Math.max(0, +a.show_secs || 0), into = opts.into, host, dim = null;
+    if (into){
+      into.querySelectorAll('.vox-ann-wrap,.vox-ann-dim').forEach(function(x){ x.remove(); });
+      host = document.createElement('div'); into.appendChild(host);
+    } else {
+      host = document.querySelector('.vox-ann-wrap.' + s.pos + ':not(.in-stage)');
+      if (!host){ host = document.createElement('div'); (document.body || document.documentElement).appendChild(host); }
     }
-    var theme = THEMES[a.theme] ? a.theme : 'blue', secs = Math.max(0, +a.show_secs || 0);
+    host.className = 'vox-ann-wrap ' + s.pos + (into ? ' in-stage' : '');
+    if (s.dim){ dim = document.createElement('div'); dim.className = 'vox-ann-dim' + (into ? ' in-stage' : ''); host.parentNode.insertBefore(dim, host); }
+    var sz = SIZES[s.size], bg = s.bg === 'solid' ? s.c1 : s.bg === 'rainbow' ? 'linear-gradient(90deg,' + RAINBOW + ')' : 'linear-gradient(' + s.angle + 'deg,' + s.c1 + ',' + s.c2 + ')';
     var n = document.createElement('div');
-    n.className = 'vox-ann' + (theme === 'rainbow' ? ' rainbow' : ''); n.setAttribute('role', 'status');
-    n.style.background = THEMES[theme];
-    n.innerHTML = '<div class="vox-ann-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></div>' +
-      '<div class="vox-ann-txt"><div class="vox-ann-k">Announcement</div>' + (a.title ? '<div class="vox-ann-t">' + esc(a.title) + '</div>' : '') +
-      '<div class="vox-ann-b">' + esc(a.body) + '</div></div><button type="button" class="vox-ann-x" aria-label="Close">&times;</button>' +
-      (secs ? '<div class="vox-ann-bar" style="animation-duration:' + secs + 's"></div>' : '');
+    n.className = 'vox-ann' + (s.bg === 'rainbow' ? ' rainbow' : '') + (s.align === 'center' ? ' center' : '') + (s.upper ? ' upper' : '');
+    n.setAttribute('role', 'status');
+    var glowC = s.border || (s.bg === 'rainbow' ? '#8b5cf6' : s.c1), anims = [];
+    if (s.anim !== 'none') anims.push('vox-ann-' + s.anim + ' ' + (s.anim === 'shake' ? '.6s' : s.anim === 'fade' ? '.4s' : '.55s') + ' cubic-bezier(.2,.9,.3,1.1) both');
+    if (s.bg === 'rainbow') anims.push('vox-ann-rb ' + s.speed + 's linear infinite');
+    n.style.cssText = 'background:' + bg + ';color:' + s.text + ';font-family:' + FONTS[s.font] + ';font-size:' + sz[0] + 'px;width:' + s.width + 'px;border-radius:' + s.radius + 'px;' +
+      'border:' + (s.border ? '2px solid ' + s.border : '1px solid rgba(255,255,255,.18)') + ';' +
+      (s.glow !== 'none' ? 'box-shadow:0 12px 34px rgba(0,0,0,.35),0 0 ' + (s.glow === 'strong' ? '40px 8px ' : '22px 2px ') + glowC + ';' : '') +
+      (anims.length ? 'animation:' + anims.join(',') + ';' : '') +
+      (s.pos.charAt(0) === 'b' ? '--vox-dy:14px;--vox-dy2:60px;' : '');
+    var icon = s.icon === 'none' ? '' : '<div class="vox-ann-ico" style="width:' + sz[2] + 'px;height:' + sz[2] + 'px"><svg aria-hidden="true"><use href="/icons.svg#' + s.icon + '"/></svg></div>';
+    n.innerHTML = icon + '<div class="vox-ann-txt">' + (s.kicker ? '<div class="vox-ann-k">' + esc(s.kicker) + '</div>' : '') +
+      (a.title ? '<div class="vox-ann-t" style="font-size:' + sz[1] + 'px">' + esc(a.title) + '</div>' : '') +
+      '<div class="vox-ann-b">' + esc(a.body) + '</div>' +
+      (s.btn_text && s.btn_url ? '<a class="vox-ann-btn" href="' + esc(s.btn_url) + '" style="background:' + s.btn_bg + ';color:' + s.btn_text_c + '"' + (/^https?:/.test(s.btn_url) ? ' target="_blank" rel="noopener"' : '') + '>' + esc(s.btn_text) + '</a>' : '') +
+      '</div><button type="button" class="vox-ann-x" aria-label="Close">&times;</button>' +
+      (secs && s.bar ? '<div class="vox-ann-bar" style="animation-duration:' + secs + 's"></div>' : '');
     var gone = false;
-    function close(){ if (gone) return; gone = true; n.classList.add('out'); setTimeout(function(){ n.remove(); }, 300); }
+    function close(){
+      if (gone) return; gone = true; n.classList.add('out');
+      setTimeout(function(){ n.remove(); if (dim) dim.remove(); if (!host.children.length) host.remove(); }, 300);
+    }
     n.querySelector('.vox-ann-x').onclick = close;
-    if (secs && !opts.into){
+    if (dim && !into) dim.onclick = close;
+    if (secs && !into){
       // the timer pauses while the pointer is over it
       var left = secs * 1000, t0 = Date.now(), tm = setTimeout(close, left), bar = n.querySelector('.vox-ann-bar');
-      n.addEventListener('mouseenter', function(){ clearTimeout(tm); left -= Date.now() - t0; bar.style.animationPlayState = 'paused'; });
-      n.addEventListener('mouseleave', function(){ t0 = Date.now(); tm = setTimeout(close, Math.max(0, left)); bar.style.animationPlayState = 'running'; });
+      n.addEventListener('mouseenter', function(){ clearTimeout(tm); left -= Date.now() - t0; if (bar) bar.style.animationPlayState = 'paused'; });
+      n.addEventListener('mouseleave', function(){ t0 = Date.now(); tm = setTimeout(close, Math.max(0, left)); if (bar) bar.style.animationPlayState = 'running'; });
     }
-    if (opts.into) host.innerHTML = '';
     host.appendChild(n);
     return n;
   }
-  window.VoxAnnounce = { show: showAnn, themes: Object.keys(THEMES) };
+  window.VoxAnnounce = { show: showAnn, style: fullStyle, icons: ICONS, fonts: Object.keys(FONTS), anims: ANIMS };
+  // which announcements this browser has shown: { id: rev }
+  function seenMap(){
+    var m = {}; try { m = JSON.parse(localStorage.getItem('vox-ann-seen2')) || {}; } catch (e) {}
+    if (!m._old){ var old = 0; try { old = +localStorage.getItem('vox-ann-seen') || 0; } catch (e) {} m._old = old || -1; }
+    return m;
+  }
   function checkAnn(){
     if (annBusy || document.hidden || window.VOX_NO_ANNOUNCE) return;
     annBusy = true;
-    fetch(SB + '/rest/v1/rpc/current_announcement', { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: '{}', cache: 'no-store' })
+    fetch(SB + '/rest/v1/rpc/live_announcements', { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: '{}', cache: 'no-store' })
       .then(function(r){ return r.ok ? r.json() : null; })
-      .then(function(a){
+      .then(function(list){
         annBusy = false;
-        if (!a || !a.id || a.id <= seenId()) return;
-        try { localStorage.setItem('vox-ann-seen', String(a.id)); } catch (e) {}
-        showAnn(a);
+        if (!Array.isArray(list)) return;
+        var m = seenMap(), keep = { _old: m._old }, show = [];
+        list.forEach(function(a){
+          var rev = a.rev || 1, had = m[a.id] || (a.id <= m._old ? 1 : 0);
+          keep[a.id] = Math.max(had, rev);
+          if (rev > had) show.push(a);
+        });
+        try { localStorage.setItem('vox-ann-seen2', JSON.stringify(keep)); } catch (e) {}
+        show.reverse().forEach(function(a){ showAnn(a); });
       }, function(){ annBusy = false; });
   }
 
