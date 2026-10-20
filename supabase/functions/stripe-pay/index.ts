@@ -2,9 +2,10 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 // Card payments for quoted orders, through Stripe Checkout (Stripe's own payment page; card details never touch
-// the site). Two actions:
+// the site). Actions:
 //   checkout: make a Checkout Session for the order's quoted amount and return its URL
 //   confirm:  ask Stripe whether the order's session was paid, and if so mark the order paid
+//   refund:   refund a card-paid order through Stripe (all of it, or `amount` dollars)
 // The order is only ever marked paid from what Stripe itself reports, never from what the browser says.
 // The secret key is the STRIPE_SECRET_KEY function secret (or private_config.stripe_secret_key).
 // EXPERIMENTAL: only a signed-in founder can use it for now.
@@ -45,7 +46,7 @@ Deno.serve(async (req: Request) => {
   const bearer = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
   if (!/^eyJ[\w-]+\.[\w-]+\.[\w-]+$/.test(bearer)) return json({ error: "Not allowed" }, 401);
 
-  let body: { action?: string; orderId?: string };
+  let body: { action?: string; orderId?: string; amount?: number };
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
   const orderId = String(body.orderId || "");
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)) return json({ error: "Bad order id" }, 400);
@@ -56,9 +57,9 @@ Deno.serve(async (req: Request) => {
   const { data: prof } = await admin.from("admin_profiles").select("is_founder").eq("id", who.user.id).maybeSingle();
   if (!prof?.is_founder) return json({ error: "Not allowed" }, 403);
   const { data: order } = await admin.from("orders")
-    .select("id, full_name, email, status, quote_amount, deleted, design_name, order_type, paid_at, stripe_session_id")
+    .select("id, full_name, email, status, quote_amount, deleted, design_name, order_type, paid_at, paid_amount, paid_method, stripe_session_id, stripe_payment_intent, refunded_at")
     .eq("id", orderId).maybeSingle();
-  if (!order || order.deleted) return json({ error: "Order not found" }, 404);
+  if (!order || (order.deleted && body.action !== "refund")) return json({ error: "Order not found" }, 404);
   const key = await stripeKey(admin);
   if (!key) return json({ error: "Card payments aren't set up yet" }, 503);
 
@@ -97,6 +98,19 @@ Deno.serve(async (req: Request) => {
       });
       await admin.from("orders").update({ stripe_session_id: s.id }).eq("id", order.id);
       return json({ url: s.url });
+    }
+    if (body.action === "refund") {
+      if (!order.paid_at || order.paid_method !== "card" || !order.stripe_payment_intent) return json({ error: "Only card payments can be refunded here" }, 409);
+      if (order.refunded_at) return json({ error: "Already refunded" }, 409);
+      const paidCents = Math.round(Number(order.paid_amount) * 100);
+      const cents = body.amount == null ? paidCents : Math.round(Number(body.amount) * 100);
+      if (!(cents >= 1 && cents <= paidCents)) return json({ error: "Pick an amount up to " + (paidCents / 100).toFixed(2) }, 400);
+      const r = await stripe(key, "POST", "/refunds", {
+        payment_intent: order.stripe_payment_intent, amount: String(cents), "metadata[order_id]": order.id,
+      });
+      if (r.status === "failed" || r.status === "canceled") return json({ error: "Stripe couldn't refund this payment" }, 502);
+      await admin.from("orders").update({ refunded_at: new Date().toISOString(), refunded_amount: cents / 100 }).eq("id", order.id);
+      return json({ refunded: cents / 100, status: r.status });
     }
     return json({ error: "Unknown action" }, 400);
   } catch (e) {

@@ -122,6 +122,7 @@
   .head-quote{ font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size:26px; font-weight:700; text-align:right; }
   .paid-tag{ display:block; margin-top:4px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#1a7f37; }
   .paid-tag.no{ color: var(--ink-dim); }
+  .paid-tag.refund, .pay-row .refunded{ color:#bc4c00; }
   .pay-row[hidden]{ display:none; }
   .pay-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:14px; padding-top:14px; border-top:1px solid rgba(var(--border-tint),0.1); font-size:13.5px; }
   .head-quote small{ display:block; font-size:11px; font-weight:500; color: var(--ink-dim); text-transform:uppercase; letter-spacing:0.06em; }
@@ -742,7 +743,7 @@
         </div>
       </div>
       <div class="head-quote"><small>Quote</small>${order.quote_amount != null ? fmt(order.quote_amount) : '—'}
-        ${!isFounder ? '' : order.paid_at ? `<span class="paid-tag">Paid${order.paid_method ? ' · ' + escapeHtml(PAID_BY[order.paid_method] || order.paid_method) : ''}</span>` : (order.quote_amount != null ? '<span class="paid-tag no">Unpaid</span>' : '')}</div>`;
+        ${!isFounder ? '' : order.refunded_at ? '<span class="paid-tag refund">Refunded</span>' : order.paid_at ? `<span class="paid-tag">Paid${order.paid_method ? ' · ' + escapeHtml(PAID_BY[order.paid_method] || order.paid_method) : ''}</span>` : (order.quote_amount != null ? '<span class="paid-tag no">Unpaid</span>' : '')}</div>`;
   }
 
   function filesOf(o){
@@ -871,17 +872,47 @@
       <div class="pay-row" ${isFounder ? '' : 'hidden'}>
         ${order.paid_at
           ? `<span>Paid ${fmt(order.paid_amount ?? order.quote_amount)} by ${escapeHtml(PAID_BY[order.paid_method] || order.paid_method || '?')} on ${new Date(order.paid_at).toLocaleDateString()}</span>
-             ${order.paid_method === 'card' ? '' : '<button type="button" class="btn" id="unpaid-btn">Mark unpaid</button>'}`
+             ${order.paid_method === 'card' || order.refunded_at ? '' : '<button type="button" class="btn" id="unpaid-btn">Mark unpaid</button>'}`
           : `<span>Payment</span>
              <select id="paid-method"><option value="cash">Cash</option><option value="payid">PayID</option></select>
              <button type="button" class="btn" id="paid-btn">Mark paid</button>`}
         <span class="save-msg" id="pay-msg"></span>
-      </div>`;
+      </div>
+      ${isFounder && order.paid_at ? `<div class="pay-row">
+        ${order.refunded_at
+          ? `<span class="refunded">Refunded ${fmt(order.refunded_amount)} on ${new Date(order.refunded_at).toLocaleDateString()}</span>
+             ${order.paid_method === 'card' ? '' : '<button type="button" class="btn" id="unrefund-btn">Undo</button>'}`
+          : `<span>Refund</span>
+             <input type="text" id="refund-amt" inputmode="decimal" value="${Number(order.paid_amount ?? order.quote_amount ?? 0).toFixed(2)}" aria-label="Refund amount" style="width:90px;">
+             <button type="button" class="btn danger" id="refund-btn">${order.paid_method === 'card' ? 'Refund to card' : 'Mark refunded'}</button>`}
+        <span class="save-msg" id="refund-msg"></span>
+      </div>` : ''}`;
     const setPaid = async (paid) => {
       const { error } = await supabase.rpc('admin_set_order_paid', { p_id: order.id, p_method: paid ? $('paid-method').value : null, p_paid: paid });
       if (error){ $('pay-msg').textContent = error.message; return; }
       const { data: o } = await supabase.from('orders').select('*').eq('id', order.id).maybeSingle();
       if (o){ order = o; renderAll(); }
+    };
+    const reloadOrder = async () => { const { data: o } = await supabase.from('orders').select('*').eq('id', order.id).maybeSingle(); if (o){ order = o; renderAll(); } };
+    if ($('refund-btn')) $('refund-btn').onclick = async () => {
+      const amt = Number($('refund-amt').value), msg = $('refund-msg'), card = order.paid_method === 'card';
+      if (!(amt > 0) || amt > Number(order.paid_amount ?? order.quote_amount)){ msg.textContent = 'Enter an amount up to ' + fmt(order.paid_amount ?? order.quote_amount) + '.'; return; }
+      if (card && !confirm('Refund ' + fmt(amt) + ' to the customer\'s card? This can\'t be undone.')) return;
+      $('refund-btn').disabled = true; msg.textContent = 'Refunding…';
+      let error = null;
+      if (card){
+        const r = await supabase.functions.invoke('stripe-pay', { body: { action: 'refund', orderId: order.id, amount: amt } });
+        if (r.error){ error = r.error; try { const j = await r.error.context.json(); if (j && j.error) error = { message: j.error }; } catch (e) {} }
+      } else {
+        ({ error } = await supabase.rpc('admin_set_order_refunded', { p_id: order.id, p_amount: amt }));
+      }
+      if (error){ msg.textContent = error.message; $('refund-btn').disabled = false; return; }
+      await reloadOrder();
+    };
+    if ($('unrefund-btn')) $('unrefund-btn').onclick = async () => {
+      const { error } = await supabase.rpc('admin_set_order_refunded', { p_id: order.id, p_amount: null });
+      if (error){ $('refund-msg').textContent = error.message; return; }
+      await reloadOrder();
     };
     if ($('paid-btn')) $('paid-btn').onclick = () => setPaid(true);
     if ($('unpaid-btn')) $('unpaid-btn').onclick = () => setPaid(false);

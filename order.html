@@ -301,6 +301,7 @@
   .pay-box .pay-err{ font-size: 12.5px; color: #cf222e; width: 100%; }
   .pay-box.paid{ background: rgba(31,136,61,.12); }
   .pay-box.paid b{ color: #1a7f37; display:inline-flex; align-items:center; gap:6px; }
+  .pay-box .pay-refund{ width:100%; font-size:12.5px; font-weight:600; color:#bc4c00; }
   .pay-box .send-btn{ display:inline-flex; align-items:center; gap:8px; }
   .pay-box .send-btn.loading{ cursor:progress; animation:none; opacity:.85; }
   .pay-spin{ width:14px; height:14px; border-radius:50%; border:2px solid currentColor; border-right-color:transparent; border-bottom-color:transparent; animation:paySpin .7s linear infinite; }
@@ -1161,7 +1162,8 @@ h1{ animation: fadeInDown 0.5s ease both; }
     if (p.paid_at){
       box.className = 'pay-box paid'; box.hidden = false;
       box.innerHTML = '<b><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg>Paid ' + money(p.paid_amount) + '</b>' +
-        '<span class="pay-sub">' + (PAID_BY[p.paid_method] ? 'by ' + PAID_BY[p.paid_method] + ' · ' : '') + new Date(p.paid_at).toLocaleDateString() + '</span>';
+        '<span class="pay-sub">' + (PAID_BY[p.paid_method] ? 'by ' + PAID_BY[p.paid_method] + ' · ' : '') + new Date(p.paid_at).toLocaleDateString() + '</span>' +
+        (p.refunded_at ? '<span class="pay-refund">Refunded ' + money(p.refunded_amount) + ' · ' + new Date(p.refunded_at).toLocaleDateString() + '</span>' : '');
       return;
     }
     if (!p.can_pay){ box.hidden = true; return; }

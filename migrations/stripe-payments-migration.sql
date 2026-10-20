@@ -36,3 +36,36 @@ end $$;
 revoke all on function public.get_order_payment(uuid), public.admin_set_order_paid(uuid, text, boolean) from public, anon, authenticated;
 grant execute on function public.get_order_payment(uuid) to anon, authenticated;
 grant execute on function public.admin_set_order_paid(uuid, text, boolean) to authenticated;
+
+-- ---------- refunds, and recording that the customer agreed to the terms ----------
+alter table public.orders add column if not exists refunded_at timestamptz;
+alter table public.orders add column if not exists refunded_amount numeric;
+-- the order form requires ticking "I have read and agree"; new orders get the time they were placed
+alter table public.orders add column if not exists terms_accepted_at timestamptz;
+alter table public.orders alter column terms_accepted_at set default now();
+
+create or replace function public.get_order_payment(p_id uuid) returns jsonb
+language sql stable security definer set search_path = public as $$
+  select case when public.is_founder() then (
+    select jsonb_build_object('paid_at', paid_at, 'paid_amount', paid_amount, 'paid_method', paid_method,
+      'refunded_at', refunded_at, 'refunded_amount', refunded_amount,
+      'can_pay', paid_at is null and not deleted and quote_amount >= 0.5 and status in ('quoted', 'printing', 'completed'),
+      'amount', quote_amount)
+    from public.orders where id = p_id) end;
+$$;
+
+-- founders: record a refund made outside Stripe (cash / PayID), or clear it
+create or replace function public.admin_set_order_refunded(p_id uuid, p_amount numeric) returns jsonb
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_founder() then raise exception 'founders only'; end if;
+  if p_amount is null then
+    update public.orders set refunded_at = null, refunded_amount = null where id = p_id and coalesce(paid_method, '') <> 'card';
+  else
+    if p_amount <= 0 then raise exception 'pick an amount'; end if;
+    update public.orders set refunded_at = now(), refunded_amount = p_amount where id = p_id and paid_at is not null and coalesce(paid_method, '') <> 'card';
+  end if;
+  return public.get_order_payment(p_id);
+end $$;
+revoke all on function public.admin_set_order_refunded(uuid, numeric) from public, anon, authenticated;
+grant execute on function public.admin_set_order_refunded(uuid, numeric) to authenticated;
