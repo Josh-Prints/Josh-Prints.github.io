@@ -59,9 +59,8 @@
   `stripe_publishable_key_live` (public keys, picked to match the secret key's mode).
 
 ## To do (remind the user)
-- Stripe go-live: live account "VoxPrints" is set up with bank details (done). Still to do: store
-  the live publishable key (`pk_live_`, public, the user can paste it) as private_config
-  `stripe_publishable_key_live`; put the live `sk_live_` key in the STRIPE_SECRET_KEY
-  Supabase secret (the user does this, never via chat), refund/clear the $8 test card payment on
-  their own test order, decide whether card payments open beyond founders, recheck the Terms
-  payment wording, and optionally turn off Klarna/Zip in Stripe's payment methods.
+- Stripe go-live: live account "VoxPrints" has bank details, the live publishable key is stored
+  (private_config `stripe_publishable_key_live`), and the $8 test payment was refunded. Left: the user
+  swaps STRIPE_SECRET_KEY to the live restricted key (never via chat), does a small real payment +
+  refund to check, then decides whether card payments open beyond founders (and rechecks the Terms
+  payment wording); optionally turn off Klarna/Zip in Stripe's payment methods.
