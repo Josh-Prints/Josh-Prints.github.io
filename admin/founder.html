@@ -468,6 +468,10 @@
     font-size: 16px;
     width: 110px;
   }
+  .delete-btn{
+    background: none; border: 1px solid var(--err); color: var(--err); border-radius: 6px; padding: 7px 12px;
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size: 12px; cursor: pointer;
+  }
   .save-btn{
     background: var(--ok-dim);
     border: 1px solid var(--ok);
@@ -784,7 +788,7 @@
     opacity: 0.7;
     letter-spacing: 0;
   }
-  .rates-form-grid input{
+  .rates-form-grid input, .rates-form-grid select{
     background: var(--bg);
     border: 1px solid rgba(var(--border-tint),0.18);
     border-radius: 6px;
@@ -794,7 +798,7 @@
     font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
     outline: none;
   }
-  .rates-form-grid input:focus{ border-color: var(--accent); }
+  .rates-form-grid input:focus, .rates-form-grid select:focus{ border-color: var(--accent); }
   .rates-form-grid textarea{
     background: var(--bg);
     border: 1px solid rgba(var(--border-tint),0.18);
@@ -1371,7 +1375,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   /* ---- Announce tab ---- */
   .an-grid{ display:grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); gap:18px; align-items:start; }
   .an-side{ position:sticky; top:16px; }
-  @media (max-width: 900px){ .an-grid{ grid-template-columns: 1fr; } .an-side{ position:static; order:-1; } }
+  @media (max-width: 900px){ .an-grid{ grid-template-columns: minmax(0,1fr); } .an-side{ position:static; order:-1; } }
   .an-lbl{ display:block; margin-bottom:14px; font-size:13px; font-weight:600; }
   .an-lbl[hidden]{ display:none; }
   .an-lbl span, .an-opt{ font-weight:400; color: var(--ink-dim); font-size:13px; }
@@ -1811,6 +1815,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     #ai-panel{ left: 8px; bottom: 68px; }
   }
 </style>
+<link rel="stylesheet" href="/admin/mobile.css?v=1">
 </head>
 <body>
 

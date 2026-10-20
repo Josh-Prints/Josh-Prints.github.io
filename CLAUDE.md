@@ -64,6 +64,10 @@
   orders list (delete / restore) and the founder Inbox (archive). Use it for new list rows with a
   delete-like action.
 
+- Admin pages on phones: every admin page loads `/admin/mobile.css` last (dark controls via color-scheme, iOS control
+  resets, 16px text boxes so iPhone doesn't zoom, nothing wider than the screen). New admin pages should link it too;
+  check new admin UI at 390px wide for anything wider than the screen (iPhone then zooms the whole page out).
+
 ## To do (remind the user)
 - Stripe go-live: live account "VoxPrints" has bank details, the live publishable key is stored
   (private_config `stripe_publishable_key_live`), and the $8 test payment was refunded. Left: the user
