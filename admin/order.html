@@ -143,6 +143,16 @@
     padding: 18px 20px; margin-bottom: 16px; animation: fadeInUp 0.4s ease both;
   }
   .panel h3{ margin:0 0 14px; font-family: ui-monospace, 'SF Mono', monospace; font-size:11.5px; letter-spacing:0.08em; text-transform:uppercase; color: var(--ink-dim); display:flex; align-items:center; gap:7px; }
+  /* fold-away panels: tap the heading to open or close */
+  .panel.fold > h3{ cursor:pointer; user-select:none; -webkit-user-select:none; margin:-18px -20px 0; padding:18px 20px; border-radius: var(--radius); }
+  .panel.fold.open > h3{ margin-bottom: 0; padding-bottom: 14px; }
+  .panel.fold > h3::after{ content:''; margin-left:auto; width:7px; height:7px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform .2s ease; opacity:.7; }
+  .panel.fold:not(.open) > h3::after{ transform: rotate(-45deg); }
+  .panel.fold > h3:hover{ color: var(--ink); }
+  .panel.fold > h3:focus-visible{ outline: 2px solid var(--accent); outline-offset: -2px; }
+  .panel.fold:not(.open) > :not(h3){ display:none !important; }
+  .panel.fold:not(.open){ padding-bottom: 0; }
+  .panel.fold:not(.open) > h3{ margin-bottom: 0; }
   .kv{ display:grid; grid-template-columns: 110px 1fr; gap: 9px 12px; font-size:13.5px; margin:0; }
   .kv dt{ color: var(--ink-dim); font-size:12.5px; }
   .kv dd{ margin:0; word-break: break-word; }
@@ -591,6 +601,27 @@
 
   const ico = n => '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#' + n + '"/></svg>';
   const $ = id => document.getElementById(id);
+
+  // Panels fold away. Most-used ones start open; the rest start closed. Each browser remembers its own choice.
+  (function foldPanels(){
+    const OPEN = ['panel-claim', 'panel-status', 'panel-messages'];
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem('vox-admin-panels') || '{}') || {}; } catch (e) {}
+    const heads = p => { const h = p.querySelector(':scope > h3'); if (h && !h.hasAttribute('tabindex')){ h.tabIndex = 0; h.setAttribute('role', 'button'); } if (h) h.setAttribute('aria-expanded', p.classList.contains('open')); };
+    const toggle = p => {
+      const open = p.classList.toggle('open'); heads(p);
+      saved[p.id] = open; try { localStorage.setItem('vox-admin-panels', JSON.stringify(saved)); } catch (e) {}
+      if (open && p.id === 'panel-messages'){ const m = $('chat-messages'); if (m) m.scrollTop = m.scrollHeight; }
+    };
+    document.querySelectorAll('#order-content .panel').forEach(p => {
+      p.classList.add('fold');
+      p.classList.toggle('open', p.id in saved ? !!saved[p.id] : OPEN.includes(p.id));
+      heads(p);
+      new MutationObserver(() => heads(p)).observe(p, { childList: true });   // headings are re-rendered
+      p.addEventListener('click', e => { const h = e.target.closest('h3'); if (h && h.parentElement === p && !e.target.closest('button, a, input, select, label')) toggle(p); });
+      p.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.panel > h3')){ e.preventDefault(); toggle(p); } });
+    });
+  })();
   const orderId = new URLSearchParams(location.search).get('id');
 
   const STATUS_OPTIONS = ['new', 'acknowledged', 'quoted', 'printing', 'completed', 'sold', 'cancelled'];
