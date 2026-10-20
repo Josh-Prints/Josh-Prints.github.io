@@ -1,10 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-// Card payments for quoted orders, through Stripe Checkout (Stripe's own payment page; card details never touch
-// the site). Actions:
-//   checkout: make a Checkout Session for the order's quoted amount and return its URL
-//   confirm:  ask Stripe whether the order's session was paid, and if so mark the order paid
+// Card payments for quoted orders. Card details go straight from the browser to Stripe (Stripe's Payment Element
+// or hosted Checkout); they never touch our servers. Actions:
+//   intent:   make (or reuse) a PaymentIntent for the order's quoted amount, for the custom payment form on the
+//             order page; returns its client secret and the matching publishable key
+//   checkout: make a hosted Checkout Session instead and return its URL (the older flow)
+//   confirm:  ask Stripe whether the order's payment went through, and if so mark the order paid
 //   refund:   refund a card-paid order through Stripe (all of it, or `amount` dollars)
 // The order is only ever marked paid from what Stripe itself reports, never from what the browser says.
 // The secret key is the STRIPE_SECRET_KEY function secret (or private_config.stripe_secret_key).
@@ -26,6 +28,13 @@ async function stripeKey(admin: ReturnType<typeof createClient>) {
   const env = Deno.env.get("STRIPE_SECRET_KEY");
   if (env) return env;
   const { data } = await admin.from("private_config").select("value").eq("key", "stripe_secret_key").maybeSingle();
+  return (data?.value as string) || "";
+}
+
+// the publishable key that goes with the secret key's mode (publishable keys are public; stored in private_config)
+async function publishableKey(admin: ReturnType<typeof createClient>, secret: string) {
+  const name = secret.startsWith("sk_live_") || secret.startsWith("rk_live_") ? "stripe_publishable_key_live" : "stripe_publishable_key_test";
+  const { data } = await admin.from("private_config").select("value").eq("key", name).maybeSingle();
   return (data?.value as string) || "";
 }
 
@@ -66,14 +75,53 @@ Deno.serve(async (req: Request) => {
   try {
     if (body.action === "confirm") {
       if (order.paid_at) return json({ paid: true });
-      if (!order.stripe_session_id) return json({ paid: false });
-      const s = await stripe(key, "GET", "/checkout/sessions/" + encodeURIComponent(order.stripe_session_id));
-      if (s.payment_status !== "paid" || s.client_reference_id !== order.id) return json({ paid: false });
-      await admin.from("orders").update({
-        paid_at: new Date().toISOString(), paid_amount: s.amount_total / 100, paid_method: "card",
-        stripe_payment_intent: typeof s.payment_intent === "string" ? s.payment_intent : null,
+      const markPaid = (cents: number, pi: string | null) => admin.from("orders").update({
+        paid_at: new Date().toISOString(), paid_amount: cents / 100, paid_method: "card", stripe_payment_intent: pi,
       }).eq("id", order.id).is("paid_at", null);
-      return json({ paid: true });
+      // the custom form: the PaymentIntent itself
+      if (order.stripe_payment_intent) {
+        const pi = await stripe(key, "GET", "/payment_intents/" + encodeURIComponent(order.stripe_payment_intent)).catch(() => null);
+        if (pi?.status === "succeeded" && pi.metadata?.order_id === order.id) { await markPaid(pi.amount_received, pi.id); return json({ paid: true }); }
+        if (pi?.status === "processing") return json({ paid: false, processing: true });
+      }
+      // the hosted checkout
+      if (order.stripe_session_id) {
+        const s = await stripe(key, "GET", "/checkout/sessions/" + encodeURIComponent(order.stripe_session_id)).catch(() => null);
+        if (s?.payment_status === "paid" && s.client_reference_id === order.id) {
+          await markPaid(s.amount_total, typeof s.payment_intent === "string" ? s.payment_intent : null);
+          return json({ paid: true });
+        }
+      }
+      return json({ paid: false });
+    }
+
+    if (body.action === "intent") {
+      if (order.paid_at) return json({ error: "This order is already paid" }, 409);
+      const amount = Math.round(Number(order.quote_amount) * 100);
+      if (!PAYABLE.includes(order.status) || !(amount >= 50)) return json({ error: "This order can't be paid online yet" }, 409);
+      const pk = await publishableKey(admin, key);
+      if (!pk) return json({ error: "Card payments aren't set up yet" }, 503);
+      // reuse the order's unpaid PaymentIntent (updating the amount if the quote changed), else make a new one
+      if (order.stripe_payment_intent) {
+        try {
+          let pi = await stripe(key, "GET", "/payment_intents/" + encodeURIComponent(order.stripe_payment_intent));
+          if (pi.metadata?.order_id === order.id && ["requires_payment_method", "requires_confirmation", "requires_action"].includes(pi.status)) {
+            if (pi.amount !== amount) pi = await stripe(key, "POST", "/payment_intents/" + pi.id, { amount: String(amount) });
+            return json({ clientSecret: pi.client_secret, publishableKey: pk, amount });
+          }
+        } catch (_) { /* made with another key (test vs live): start a new one */ }
+      }
+      const name = "Voxprints order" + (order.design_name ? ": " + order.design_name : "");
+      const pi = await stripe(key, "POST", "/payment_intents", {
+        amount: String(amount),
+        currency: "aud",
+        "automatic_payment_methods[enabled]": "true",
+        description: name.slice(0, 200),
+        "metadata[order_id]": order.id,
+        ...(order.email ? { receipt_email: String(order.email) } : {}),
+      });
+      await admin.from("orders").update({ stripe_payment_intent: pi.id }).eq("id", order.id);
+      return json({ clientSecret: pi.client_secret, publishableKey: pk, amount });
     }
 
     if (body.action === "checkout") {
