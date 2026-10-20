@@ -302,6 +302,9 @@
   .pay-box.paid{ background: rgba(31,136,61,.12); }
   .pay-box.paid b{ color: #1a7f37; display:inline-flex; align-items:center; gap:6px; }
   .pay-box .send-btn{ display:inline-flex; align-items:center; gap:8px; }
+  .pay-box .send-btn.loading{ cursor:progress; animation:none; opacity:.85; }
+  .pay-spin{ width:14px; height:14px; border-radius:50%; border:2px solid currentColor; border-right-color:transparent; border-bottom-color:transparent; animation:paySpin .7s linear infinite; }
+  @keyframes paySpin{ to{ transform:rotate(360deg); } }
   .quote-amount{
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-weight: 700;
@@ -1168,9 +1171,10 @@ h1{ animation: fadeInDown 0.5s ease both; }
       '<div class="pay-err" id="pay-err" hidden></div>';
     document.getElementById('pay-btn').onclick = async () => {
       const btn = document.getElementById('pay-btn'), err = document.getElementById('pay-err');
-      btn.disabled = true; err.hidden = true;
+      const label = btn.innerHTML;
+      btn.disabled = true; btn.classList.add('loading'); btn.innerHTML = '<span class="pay-spin" aria-hidden="true"></span>Loading…'; err.hidden = true;
       try { const r = await payCall('checkout'); location.href = r.url; }
-      catch (e){ err.textContent = e.message; err.hidden = false; btn.disabled = false; }
+      catch (e){ err.textContent = e.message; err.hidden = false; btn.disabled = false; btn.classList.remove('loading'); btn.innerHTML = label; }
     };
   }
   // back from Stripe: ask the server to check with Stripe, then show the result

@@ -698,6 +698,14 @@
     settingsRow = s || null;
     // online payments are experimental: founders only for now
     if (isFounder === null){ const { data: st } = await supabase.rpc('my_admin_state'); isFounder = !!(st && st.is_founder); }
+    // a card payment started but not recorded (they paid and closed the tab before coming back): ask Stripe
+    if (isFounder && !order.paid_at && order.stripe_session_id){
+      supabase.functions.invoke('stripe-pay', { body: { action: 'confirm', orderId: order.id } }).then(async ({ data: r }) => {
+        if (!r || !r.paid) return;
+        const { data: o } = await supabase.from('orders').select('*').eq('id', order.id).maybeSingle();
+        if (o){ order = o; renderAll(); }
+      }, () => {});
+    }
     quoteDraft = draftRes && draftRes.data ? draftRes.data : null;
     customerCredit = Number(creditRes.data?.store_credit) || 0;
 
