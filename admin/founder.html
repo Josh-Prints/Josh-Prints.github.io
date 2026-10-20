@@ -2457,6 +2457,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+  import { swipeRow } from '/swipe.js?v=1';
 
   const SUPABASE_URL = 'https://paycasfatsakidsriwqt.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
@@ -3723,6 +3724,20 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         '<div class="ml-item-subj">' + escapeHtml(m.subject || '(no subject)') + '</div>' +
         '<div class="ml-item-snip">' + escapeHtml(m.snippet || '') + '</div></button>';
     }).join('');
+    // swipe left to archive (or bring back, in Archived)
+    hb('ml-list').querySelectorAll('.ml-item').forEach(it => {
+      const m = ml.list.find(x => x.id === it.dataset.id); if (!m) return;
+      swipeRow(it, {
+        label: m.archived ? 'Unarchive' : 'Archive', icon: 'archive-restore', color: m.archived ? '#1a7f37' : '#bc4c00',
+        action: async () => {
+          const { error } = await supabase.rpc('founder_mail_set', { p_id: m.id, p_read: null, p_archived: !m.archived });
+          if (error) return false;
+          ml.list = ml.list.filter(x => x.id !== m.id);
+          if (ml.current && ml.current.id === m.id) ml.current.archived = !m.archived;
+          mlLoadSettings();
+        },
+      });
+    });
   }
   function mlFrame(html){
     const doc = '<!doctype html><html><head><meta charset="utf-8"><base target="_blank">' +

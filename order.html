@@ -190,6 +190,13 @@
     text-decoration:none; color: var(--ink); transition: opacity 0.15s;
   }
   .my-order-row:first-child{ border-top:none; }
+  #my-orders-list .sw-wrap + .sw-wrap{ border-top: 1px solid rgba(var(--border-tint),0.08); border-radius: 0; }
+  #my-orders-list .sw-wrap{ border-radius: 0; }
+  #my-orders-list .sw-wrap > .my-order-row{ border-top: none; padding-left: 4px; padding-right: 4px; }
+  .my-order-row.removed{ color: var(--ink-dim); }
+  .my-order-row .removed-tag{ font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-dim); margin-left: 6px; }
+  .my-orders-toggle{ display:block; margin: 12px auto 0; background:none; border:0; padding:6px 10px; font:inherit; font-size:13px; color: var(--ink-dim); cursor:pointer; text-decoration: underline; }
+  .my-orders-toggle[hidden]{ display:none; }
   .my-order-row:hover{ opacity:0.75; }
   .my-order-row .meta{ font-size:12px; color: var(--ink-dim); margin-top:2px; }
   .theme-row{
@@ -830,6 +837,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
       <h2 style="margin:0 0 14px;">My orders</h2>
       <div id="my-orders-list"></div>
       <div id="my-orders-empty" style="display:none; color: var(--ink-dim); font-size: 14px; text-align:center; padding: 20px 0;">You haven't placed an order yet.</div>
+      <button type="button" class="my-orders-toggle" id="my-orders-toggle" hidden></button>
     </div>
   </div>
   <div id="not-found" style="display:none;">Order not found. Check your link.</div>
@@ -885,6 +893,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
 
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+  import { swipeRow } from '/swipe.js?v=1';
 
   const SUPABASE_URL = 'https://paycasfatsakidsriwqt.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
@@ -1045,30 +1054,52 @@ h1{ animation: fadeInDown 0.5s ease both; }
     if (e.key === 'Enter') document.getElementById('lookup-btn').click();
   });
 
+  // My orders: swipe an order left to remove it from this list (it's only hidden for the customer);
+  // "Show deleted" brings removed ones back into view, and swiping those restores them.
+  let myOrders = [], showRemoved = false;
   async function loadMyOrders(userId){
     const { data, error } = await supabase
       .from('orders')
-      .select('id, full_name, order_type, status, created_at')
+      .select('id, full_name, order_type, status, created_at, customer_hidden_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
     loadingEl.style.display = 'none';
     myOrdersEl.style.display = 'block';
-
-    if (error || !data || data.length === 0){
-      myOrdersEmptyEl.style.display = 'block';
-      return;
-    }
-    myOrdersListEl.innerHTML = data.map(o => `
-      <a class="my-order-row" href="order.html?order=${o.id}">
+    myOrders = error ? [] : (data || []);
+    renderMyOrders();
+  }
+  function renderMyOrders(){
+    const removed = myOrders.filter(o => o.customer_hidden_at);
+    const shown = myOrders.filter(o => showRemoved ? o.customer_hidden_at : !o.customer_hidden_at);
+    myOrdersEmptyEl.style.display = shown.length ? 'none' : 'block';
+    myOrdersEmptyEl.textContent = showRemoved ? 'No deleted orders.' : (myOrders.length ? 'No orders here.' : 'You haven\'t placed an order yet.');
+    const toggle = document.getElementById('my-orders-toggle');
+    toggle.hidden = !removed.length && !showRemoved;
+    toggle.textContent = showRemoved ? 'Back to my orders' : 'Show deleted (' + removed.length + ')';
+    toggle.onclick = () => { showRemoved = !showRemoved; renderMyOrders(); };
+    myOrdersListEl.innerHTML = shown.map(o => `
+      <a class="my-order-row${o.customer_hidden_at ? ' removed' : ''}" href="order.html?order=${o.id}" data-id="${o.id}">
         <span>
-          ${escapeHtml(o.order_type === 'design' ? 'Design order' : o.order_type === 'custom_model' ? 'Custom model' : 'Custom print')}
+          ${escapeHtml(o.order_type === 'design' ? 'Design order' : o.order_type === 'custom_model' ? 'Custom model' : 'Custom print')}${o.customer_hidden_at ? '<span class="removed-tag">Deleted</span>' : ''}
           <div class="meta">${STATUS_LABEL[o.status] || o.status} · ${new Date(o.created_at).toLocaleDateString()}</div>
           ${statusBar(o.status, false, true)}
         </span>
         <span>→</span>
       </a>
     `).join('');
+    myOrdersListEl.querySelectorAll('.my-order-row').forEach(row => {
+      const o = myOrders.find(x => x.id === row.dataset.id), hide = !o.customer_hidden_at;
+      swipeRow(row, {
+        label: hide ? 'Delete' : 'Restore', icon: hide ? 'trash-2' : 'archive-restore', color: hide ? '#cf222e' : '#1a7f37',
+        action: async () => {
+          const { error } = await supabase.rpc('set_my_order_hidden', { p_id: o.id, p_hidden: hide });
+          if (error) return false;
+          o.customer_hidden_at = hide ? new Date().toISOString() : null;
+          setTimeout(renderMyOrders, 300);
+        },
+      });
+    });
   }
 
   if (!orderId){

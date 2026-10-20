@@ -401,6 +401,7 @@
   .row-name{ display:flex; align-items:center; gap:8px; font-weight:600; font-size:15px; }
   .row-sub{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size:11.5px; color: var(--ink-dim); }
   .row-sub .order-type-badge{ margin-right: 0; }
+  .cust-removed{ font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--warn, #9a6700); }
   .row-claim{ min-width: 70px; text-align:right; }
   .row-quote{ min-width: 78px; text-align:right; font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size:14px; font-weight:600; }
   .row-pill{
@@ -1741,6 +1742,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+  import { swipeRow } from '/swipe.js?v=1';
 
   const SUPABASE_URL = 'https://paycasfatsakidsriwqt.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
@@ -2307,7 +2309,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       row.innerHTML = `
         <span class="row-main">
           <span class="row-name">${escapeHtml(order.full_name)}<span class="notif-dot job inline" id="job-dot-${order.id}"></span></span>
-          <span class="row-sub"><span class="order-type-badge">${escapeHtml(typeLabel)}</span><span>${created}</span>${order.filament_color ? `<span>${escapeHtml(order.filament_color)}${order.filament_type ? ' · ' + escapeHtml(order.filament_type) : ''}</span>` : ''}</span>
+          <span class="row-sub"><span class="order-type-badge">${escapeHtml(typeLabel)}</span>${order.customer_hidden_at ? '<span class="cust-removed">Removed by customer</span>' : ''}<span>${created}</span>${order.filament_color ? `<span>${escapeHtml(order.filament_color)}${order.filament_type ? ' · ' + escapeHtml(order.filament_type) : ''}</span>` : ''}</span>
         </span>
         <span class="row-claim">${order.claimed_by_id ? `<span class="claim-badge ${mine ? 'mine' : ''}">${escapeHtml(mine ? 'You' : (order.claimed_by || 'Claimed'))}</span>` : ''}</span>
         <span class="row-quote">${order.quote_amount != null ? '$' + Number(order.quote_amount).toFixed(2) : '—'}</span>
@@ -2315,6 +2317,15 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         <span class="row-chev"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#chevron-right"/></svg></span>
       `;
       ordersContainer.appendChild(row);
+      // swipe left: delete (or restore, in the Deleted list)
+      swipeRow(row, {
+        label: order.deleted ? 'Restore' : 'Delete', icon: order.deleted ? 'archive-restore' : 'trash-2', color: order.deleted ? '#1a7f37' : '#cf222e',
+        action: async () => {
+          const { error } = await supabase.from('orders').update({ deleted: !order.deleted }).eq('id', order.id);
+          if (error) return false;
+          order.deleted = !order.deleted;
+        },
+      });
     });
     refreshAllJobDots();
   }

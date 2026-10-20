@@ -116,6 +116,7 @@
   .order-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap; margin-bottom:18px; animation: fadeInUp 0.35s ease both; }
   .order-head h2{ margin:0; font-size:24px; letter-spacing:-0.01em; }
   .head-badges{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .cust-removed{ font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--warn, #9a6700); }
   .head-meta{ margin-top:8px; font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size:12px; color: var(--ink-dim); display:flex; gap:14px; flex-wrap:wrap; }
   .head-meta a{ color: var(--accent); text-decoration:none; }
   .head-meta a:hover{ text-decoration:underline; }
@@ -735,6 +736,7 @@
         <div class="head-badges">
           <span class="type-badge">${escapeHtml(typeLabel(order))}</span>
           <span class="pill s-${statusKey}">${order.deleted ? 'Deleted' : (STATUS_LABEL[order.status] || escapeHtml(order.status))}</span>
+          ${order.customer_hidden_at ? `<span class="cust-removed" title="${new Date(order.customer_hidden_at).toLocaleString()}">Removed by customer</span>` : ''}
         </div>
         <div class="head-meta">
           <span>${new Date(order.created_at).toLocaleString()}</span>

@@ -57,6 +57,11 @@
   The order page uses a fully custom form (Stripe Payment Element, `intent` action, styled from the
   page's CSS variables); publishable keys live in private_config as `stripe_publishable_key_test` /
   `stripe_publishable_key_live` (public keys, picked to match the secret key's mode).
+- Swipe actions (`swipe.js`, `swipeRow(row, {label, icon, color, action})`): swipe a row left for a
+  button, or all the way to run it. Used on My orders (customer hides an order: `customer_hidden_at`,
+  rpc `set_my_order_hidden`, "Show deleted" to restore; admins see "Removed by customer"), the admin
+  orders list (delete / restore) and the founder Inbox (archive). Use it for new list rows with a
+  delete-like action.
 
 ## To do (remind the user)
 - Stripe go-live: live account "VoxPrints" has bank details, the live publishable key is stored
