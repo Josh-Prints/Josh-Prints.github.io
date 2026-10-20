@@ -1,0 +1,45 @@
+/* The top-right menu (dropdown) and the home page sidebar's account row.
+   Layout: account card on top, icon links, then dark mode and sign out. Loaded after each page's own styles. */
+
+.menu-dropdown{ min-width: 236px; padding: 6px; }
+.menu-dropdown a,
+.menu-dropdown .theme-row,
+.menu-signout{
+  display:flex; align-items:center; gap:11px;
+  padding: 8px 10px; border-radius: 7px;
+  font-size: 14px; font-weight: 500; line-height: 1.2;
+}
+.menu-dropdown a:hover{ padding-left: 10px; }
+.menu-dropdown a .ico,
+.menu-dropdown .theme-row .ico,
+.menu-signout .ico{ width:16px; height:16px; flex-shrink:0; color: var(--fg-muted, var(--ink-dim)); }
+.menu-dropdown a:hover .ico{ color: var(--fg, var(--ink)); }
+.menu-dropdown .theme-row > span{ display:flex; align-items:center; gap:11px; }
+.menu-dropdown-divider{ margin: 5px 6px; }
+
+/* account card */
+.account-chip{ gap: 11px; padding: 8px 10px; }
+.menu-dropdown .account-chip{ margin-bottom: 1px; }
+.account-chip img{ width: 34px; height: 34px; }
+.account-id{ gap: 2px; }
+.account-chip .name{ font-size: 14.5px; }
+.account-credit{ font-family: inherit; font-size: 12px; color: var(--fg-muted, var(--ink-dim)); }
+.account-credit .ico{ display:none; }
+.account-edit-btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  width: 30px; height: 30px; border-radius: 7px; padding: 0; font-size: 14px; flex-shrink:0;
+}
+.account-edit-btn:hover{ background: var(--canvas-inset, var(--bg)); }
+
+/* sign out: its own quiet row */
+.menu-signout{
+  display:none; width:100%; box-sizing:border-box; border:0; background:none; cursor:pointer;
+  font-family: inherit; color: var(--fg-muted, var(--ink-dim)); text-align:left; text-decoration:none;
+  transition: background .15s, color .15s;
+}
+.menu-signout:hover{ background: var(--canvas-inset, var(--bg)); color: #cf222e; }
+.menu-signout:hover .ico{ color: #cf222e; }
+
+/* the dark mode row hides itself with some looks (looks.css): drop its divider too when nothing else follows */
+:root[data-hs]:not([data-hs="glow"]) .menu-dropdown-divider:has(+ .theme-row + .menu-signout:not([style*="flex"])){ display:none; }
+.menu-dropdown a:not([style*="none"]){ display:flex !important; }

@@ -693,6 +693,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
 }
 </style>
 <link rel="stylesheet" href="/looks.css">
+<link rel="stylesheet" href="/menu.css?v=1">
 </head>
 <body>
 <div class="topbar">
@@ -730,11 +731,6 @@ h1{ animation: fadeInDown 0.5s ease both; }
     <div class="menu-wrap">
       <button class="hamburger-btn" id="menu-btn" aria-label="Menu" aria-expanded="false"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#menu"/></svg></button>
       <div class="menu-dropdown" id="menu-dropdown">
-        <a href="index.html">Home</a>
-        <a href="browse.html">Browse designs</a>
-        <a href="estimate.html">Estimate cost</a>
-        <a href="order-form.html">Start an order</a>
-        <div class="menu-dropdown-divider"></div>
         <button type="button" class="google-btn" id="google-signin-btn">
           <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
           Sign in with Google
@@ -749,14 +745,19 @@ h1{ animation: fadeInDown 0.5s ease both; }
             <span class="account-credit" id="account-credit"></span>
           </div>
           <button type="button" class="account-edit-btn" id="account-edit-btn" aria-label="Edit profile" title="Edit profile"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pencil"/></svg></button>
-          <button type="button" class="account-signout-btn" id="account-signout-btn">Sign out</button>
         </div>
+        <div class="menu-dropdown-divider"></div>
+        <a href="index.html"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#house"/></svg> Home</a>
+        <a href="browse.html"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#search"/></svg> Browse designs</a>
+        <a href="estimate.html"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#calculator"/></svg> Estimate cost</a>
+        <a href="order-form.html"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#plus"/></svg> Start an order</a>
         <a href="admin/" id="admin-link" style="display:none;"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#wrench"/></svg> Admin dashboard</a>
         <div class="menu-dropdown-divider"></div>
         <div class="theme-row">
           <span><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#moon"/></svg> Dark mode</span>
           <button type="button" class="theme-switch" id="theme-switch" role="switch" aria-checked="false" aria-label="Toggle dark mode"><span class="thumb"></span></button>
         </div>
+        <button type="button" class="menu-signout" id="account-signout-btn"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#log-out"/></svg> Sign out</button>
       </div>
     </div>
   </div>
@@ -1501,6 +1502,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
       signInBtn.style.display = 'flex';
       emailCodeBtn.style.display = 'flex';
       accountChip.style.display = 'none';
+      signOutBtn.style.display = 'none';
       if (adminLink) adminLink.style.display = 'none';
       currentUser = null;
       currentProfileName = '';
@@ -1512,9 +1514,10 @@ h1{ animation: fadeInDown 0.5s ease both; }
       emailCodeBtn.style.display = 'none';
       resetEmailCodePanel();
       accountChip.style.display = 'flex';
-      accountName.textContent = (currentProfileName || user.email || '').split(' ')[0];
-      { const av = user.user_metadata?.avatar_url; if (av) accountAvatar.src = av; else accountAvatar.removeAttribute('src'); }
-      accountCredit.innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#credit-card"/></svg> $' + Number(profile?.store_credit || 0).toFixed(2);
+      signOutBtn.style.display = 'flex';
+      accountName.textContent = currentProfileName || user.email || '';
+      { const av = user.user_metadata?.avatar_url; if (av) accountAvatar.src = av; else accountAvatar.src = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 34 34"><rect width="34" height="34" fill="#4493f8"/><text x="17" y="22.5" text-anchor="middle" font-family="-apple-system,Segoe UI,sans-serif" font-size="15" font-weight="600" fill="#fff">' + ((currentProfileName || user.email || '?').trim()[0] || '?').toUpperCase().replace(/[<&]/g, '') + '</text></svg>'); }
+      accountCredit.textContent = '$' + Number(profile?.store_credit || 0).toFixed(2) + ' credit';
     }
 
     function openModal(mode){

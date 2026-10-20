@@ -1017,6 +1017,7 @@
   :root[data-hs]:not([data-hs="glow"]) .hero-sublinks a:hover{ opacity: 1; }
   :root[data-hs]:not([data-hs="glow"]) .theme-row:has(#theme-switch){ display: none; }
 </style>
+<link rel="stylesheet" href="/menu.css?v=1">
 </head>
 <body>
 
@@ -1098,13 +1099,13 @@
           <span class="account-credit" id="account-credit"></span>
         </div>
         <button type="button" class="account-edit-btn" id="account-edit-btn" aria-label="Edit profile" title="Edit profile"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pencil"/></svg></button>
-        <button type="button" class="account-signout-btn" id="account-signout-btn">Sign out</button>
       </div>
     </div>
     <div class="theme-row">
       <span><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#moon"/></svg> Dark mode</span>
       <button type="button" class="theme-switch" id="theme-switch" role="switch" aria-checked="false" aria-label="Toggle dark mode"><span class="thumb"></span></button>
     </div>
+    <button type="button" class="menu-signout" id="account-signout-btn"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#log-out"/></svg> Sign out</button>
   </div>
 
   <div class="account-modal-overlay" id="account-name-overlay">
@@ -1684,6 +1685,7 @@
       signInBtn.style.display = 'flex';
       emailCodeBtn.style.display = 'flex';
       accountChip.style.display = 'none';
+      signOutBtn.style.display = 'none';
       if (myOrdersLink) myOrdersLink.innerHTML = '<span class="icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#package"/></svg></span> Track an order';
       if (adminLink) adminLink.style.display = 'none';
       currentUser = null;
@@ -1696,9 +1698,10 @@
       emailCodeBtn.style.display = 'none';
       resetEmailCodePanel();
       accountChip.style.display = 'flex';
-      accountName.textContent = (currentProfileName || user.email || '').split(' ')[0];
-      { const av = user.user_metadata?.avatar_url; if (av) accountAvatar.src = av; else accountAvatar.removeAttribute('src'); }
-      accountCredit.innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#credit-card"/></svg> $' + Number(profile?.store_credit || 0).toFixed(2);
+      signOutBtn.style.display = 'flex';
+      accountName.textContent = currentProfileName || user.email || '';
+      { const av = user.user_metadata?.avatar_url; if (av) accountAvatar.src = av; else accountAvatar.src = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 34 34"><rect width="34" height="34" fill="#4493f8"/><text x="17" y="22.5" text-anchor="middle" font-family="-apple-system,Segoe UI,sans-serif" font-size="15" font-weight="600" fill="#fff">' + ((currentProfileName || user.email || '?').trim()[0] || '?').toUpperCase().replace(/[<&]/g, '') + '</text></svg>'); }
+      accountCredit.textContent = '$' + Number(profile?.store_credit || 0).toFixed(2) + ' credit';
       if (myOrdersLink) myOrdersLink.innerHTML = '<span class="icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#package"/></svg></span> My orders';
     }
 
