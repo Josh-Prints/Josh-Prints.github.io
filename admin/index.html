@@ -2309,7 +2309,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       row.innerHTML = `
         <span class="row-main">
           <span class="row-name">${escapeHtml(order.full_name)}<span class="notif-dot job inline" id="job-dot-${order.id}"></span></span>
-          <span class="row-sub"><span class="order-type-badge">${escapeHtml(typeLabel)}</span>${order.customer_hidden_at ? '<span class="cust-removed">Removed by customer</span>' : ''}<span>${created}</span>${order.filament_color ? `<span>${escapeHtml(order.filament_color)}${order.filament_type ? ' · ' + escapeHtml(order.filament_type) : ''}</span>` : ''}</span>
+          <span class="row-sub"><span class="order-type-badge">${escapeHtml(typeLabel)}</span>${order.deleted && order.customer_hidden_at ? '<span class="cust-removed">Deleted by customer</span>' : ''}<span>${created}</span>${order.filament_color ? `<span>${escapeHtml(order.filament_color)}${order.filament_type ? ' · ' + escapeHtml(order.filament_type) : ''}</span>` : ''}</span>
         </span>
         <span class="row-claim">${order.claimed_by_id ? `<span class="claim-badge ${mine ? 'mine' : ''}">${escapeHtml(mine ? 'You' : (order.claimed_by || 'Claimed'))}</span>` : ''}</span>
         <span class="row-quote">${order.quote_amount != null ? '$' + Number(order.quote_amount).toFixed(2) : '—'}</span>
@@ -2321,8 +2321,10 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       swipeRow(row, {
         label: order.deleted ? 'Restore' : 'Delete', icon: order.deleted ? 'archive-restore' : 'trash-2', color: order.deleted ? '#1a7f37' : '#cf222e',
         action: async () => {
-          const { error } = await supabase.from('orders').update({ deleted: !order.deleted }).eq('id', order.id);
+          // restoring also clears "deleted by customer", so it's back in their list too
+          const { error } = await supabase.from('orders').update(order.deleted ? { deleted: false, customer_hidden_at: null } : { deleted: true }).eq('id', order.id);
           if (error) return false;
+          if (order.deleted) order.customer_hidden_at = null;
           order.deleted = !order.deleted;
         },
       });

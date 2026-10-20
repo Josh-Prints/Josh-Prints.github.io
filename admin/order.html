@@ -736,7 +736,7 @@
         <div class="head-badges">
           <span class="type-badge">${escapeHtml(typeLabel(order))}</span>
           <span class="pill s-${statusKey}">${order.deleted ? 'Deleted' : (STATUS_LABEL[order.status] || escapeHtml(order.status))}</span>
-          ${order.customer_hidden_at ? `<span class="cust-removed" title="${new Date(order.customer_hidden_at).toLocaleString()}">Removed by customer</span>` : ''}
+          ${order.deleted && order.customer_hidden_at ? `<span class="cust-removed" title="${new Date(order.customer_hidden_at).toLocaleString()}">Deleted by customer</span>` : ''}
         </div>
         <div class="head-meta">
           <span>${new Date(order.created_at).toLocaleString()}</span>
@@ -994,9 +994,10 @@
   }
   async function setDeleted(deleted){
     if (deleted && !confirm('Delete this order? The customer will no longer be able to message you about it.')) return;
-    const { error } = await supabase.from('orders').update({ deleted }).eq('id', order.id);
+    // restoring also clears "deleted by customer", so it's back in their list too
+    const { error } = await supabase.from('orders').update(deleted ? { deleted } : { deleted, customer_hidden_at: null }).eq('id', order.id);
     if (error){ alert('Could not update: ' + error.message); return; }
-    order.deleted = deleted; renderAll();
+    order.deleted = deleted; if (!deleted) order.customer_hidden_at = null; renderAll();
   }
   async function markDiscountUsed(){
     if (!confirm("Mark this account's signup discount as used? They will no longer see it as available.")) return;

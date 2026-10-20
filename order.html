@@ -1054,13 +1054,13 @@ h1{ animation: fadeInDown 0.5s ease both; }
     if (e.key === 'Enter') document.getElementById('lookup-btn').click();
   });
 
-  // My orders: swipe an order left to remove it from this list (it's only hidden for the customer);
-  // "Show deleted" brings removed ones back into view, and swiping those restores them.
+  // My orders: swipe an order left to delete it (for the shop too); orders the shop deleted show as deleted
+  // here as well. "Show deleted" lists them, and swiping one there restores it for both.
   let myOrders = [], showRemoved = false;
   async function loadMyOrders(userId){
     const { data, error } = await supabase
       .from('orders')
-      .select('id, full_name, order_type, status, created_at, customer_hidden_at')
+      .select('id, full_name, order_type, status, created_at, deleted, customer_hidden_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -1070,8 +1070,9 @@ h1{ animation: fadeInDown 0.5s ease both; }
     renderMyOrders();
   }
   function renderMyOrders(){
-    const removed = myOrders.filter(o => o.customer_hidden_at);
-    const shown = myOrders.filter(o => showRemoved ? o.customer_hidden_at : !o.customer_hidden_at);
+    const gone = o => o.deleted || o.customer_hidden_at;
+    const removed = myOrders.filter(gone);
+    const shown = myOrders.filter(o => showRemoved ? gone(o) : !gone(o));
     myOrdersEmptyEl.style.display = shown.length ? 'none' : 'block';
     myOrdersEmptyEl.textContent = showRemoved ? 'No deleted orders.' : (myOrders.length ? 'No orders here.' : 'You haven\'t placed an order yet.');
     const toggle = document.getElementById('my-orders-toggle');
@@ -1079,9 +1080,9 @@ h1{ animation: fadeInDown 0.5s ease both; }
     toggle.textContent = showRemoved ? 'Back to my orders' : 'Show deleted (' + removed.length + ')';
     toggle.onclick = () => { showRemoved = !showRemoved; renderMyOrders(); };
     myOrdersListEl.innerHTML = shown.map(o => `
-      <a class="my-order-row${o.customer_hidden_at ? ' removed' : ''}" href="order.html?order=${o.id}" data-id="${o.id}">
+      <a class="my-order-row${gone(o) ? ' removed' : ''}" href="order.html?order=${o.id}" data-id="${o.id}">
         <span>
-          ${escapeHtml(o.order_type === 'design' ? 'Design order' : o.order_type === 'custom_model' ? 'Custom model' : 'Custom print')}${o.customer_hidden_at ? '<span class="removed-tag">Deleted</span>' : ''}
+          ${escapeHtml(o.order_type === 'design' ? 'Design order' : o.order_type === 'custom_model' ? 'Custom model' : 'Custom print')}${gone(o) ? '<span class="removed-tag">Deleted</span>' : ''}
           <div class="meta">${STATUS_LABEL[o.status] || o.status} · ${new Date(o.created_at).toLocaleDateString()}</div>
           ${statusBar(o.status, false, true)}
         </span>
@@ -1089,13 +1090,13 @@ h1{ animation: fadeInDown 0.5s ease both; }
       </a>
     `).join('');
     myOrdersListEl.querySelectorAll('.my-order-row').forEach(row => {
-      const o = myOrders.find(x => x.id === row.dataset.id), hide = !o.customer_hidden_at;
+      const o = myOrders.find(x => x.id === row.dataset.id), hide = !gone(o);
       swipeRow(row, {
         label: hide ? 'Delete' : 'Restore', icon: hide ? 'trash-2' : 'archive-restore', color: hide ? '#cf222e' : '#1a7f37',
         action: async () => {
           const { error } = await supabase.rpc('set_my_order_hidden', { p_id: o.id, p_hidden: hide });
           if (error) return false;
-          o.customer_hidden_at = hide ? new Date().toISOString() : null;
+          o.customer_hidden_at = hide ? new Date().toISOString() : null; o.deleted = hide;
           setTimeout(renderMyOrders, 300);
         },
       });
