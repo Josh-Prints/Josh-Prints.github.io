@@ -54,3 +54,10 @@
   `supabase/functions/stripe-pay`): EXPERIMENTAL and founder-only (the user asked). Checkout
   for quoted orders; the order is marked paid only after the function checks the session with
   Stripe. Secret key = STRIPE_SECRET_KEY function secret; never put it in the repo or a page.
+
+## To do (remind the user)
+- Stripe go-live: the user still has to add bank details (BSB/account, NAB) in Stripe's live
+  onboarding from their phone. After that: put the live `sk_live_` key in the STRIPE_SECRET_KEY
+  Supabase secret (the user does this, never via chat), refund/clear the $8 test card payment on
+  their own test order, decide whether card payments open beyond founders, recheck the Terms
+  payment wording, and optionally turn off Klarna/Zip in Stripe's payment methods.
