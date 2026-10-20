@@ -1,11 +1,11 @@
 /* Swipe-to-act rows, like iOS Mail. Swipe a row left to show a button (red Delete by default); tap the
    button, or keep swiping past most of the row, to run it. Works with touch and mouse drag; vertical
    scrolling still works because only clearly sideways drags count.
-   It has a feel to it: the row is stiff for the first few pixels, then gives and opens, then resists again
-   past the button until it breaks free and snaps to "let go to delete". Each of those steps clicks the
-   phone's haptics (vibrate on Android; the iOS 18+ switch tick on iPhone).
+   It moves in clicks: a stiff peek, then it snaps out to the full button and resists, then pulled further
+   it slides the whole row away (let go to act). Each step ticks the phone's haptics (vibrate on Android;
+   the iOS 18+ switch tick on iPhone).
 
-     import { swipeRow } from '/swipe.js?v=2';
+     import { swipeRow } from '/swipe.js?v=3';
      swipeRow(rowEl, { label: 'Delete', icon: 'trash-2', color: '#cf222e', action: async () => { ... } });
 
    action() returning (or resolving to) false, or throwing, snaps the row back. Otherwise the row folds
@@ -33,17 +33,16 @@ export function haptic(strong){
 }
 
 /* ---------- the resistance curve: finger distance -> how far the row moves ---------- */
-const STIFF = 28, K1 = 0.4, K2 = 1.05, K3 = 0.28;
-const D_STIFF = STIFF * K1;
-const RAW_OPEN = STIFF + (BTN - D_STIFF) / K2;           // finger distance where the button is fully out
-const commitAt = w => Math.max(RAW_OPEN + 80, w * 0.62);   // finger distance where it breaks free
+// Step 0: a stiff peek, up to PEEK px. Step 1: it clicks out to the full button and then resists.
+// Step 2: pulled far enough, it slides all the way off (let go to act, pull back to cancel).
+const PEEK = 44, RAW_OPEN = 64, K_OPEN = 0.22;
+const RAW_OPEN_REST = RAW_OPEN + 4;                       // where an already-open row starts
+const commitAt = w => Math.max(RAW_OPEN + 110, w * 0.5);  // finger distance where it slides away
 function travel(raw, w){
   if (raw <= 0) return 0;
-  if (raw <= STIFF) return raw * K1;                       // stiff at first
-  if (raw <= RAW_OPEN) return D_STIFF + (raw - STIFF) * K2; // then it gives
-  const T = commitAt(w);
-  if (raw < T) return BTN + (raw - RAW_OPEN) * K3;         // resisting past the button
-  return Math.min(w, w * 0.74 + (raw - T) * 0.5);          // broke free: let go to act
+  if (raw < RAW_OPEN) return PEEK * (1 - Math.pow(1 - raw / RAW_OPEN, 1.6));   // stiff, easing into the peek
+  if (raw < commitAt(w)) return BTN + (raw - RAW_OPEN) * K_OPEN;              // clicked open, resisting
+  return w;                                                                    // slid away
 }
 
 function style(){
@@ -56,7 +55,8 @@ function style(){
     '.sw-wrap:not(.sw-on)>.sw-act{visibility:hidden}' +
     '.sw-wrap.sw-on>.sw-row{opacity:1 !important}' +
     '.sw-wrap>.sw-row.sw-anim{transition:transform .25s cubic-bezier(.2,.8,.2,1) !important}' +
-    '.sw-wrap.sw-moving>.sw-row.sw-snap{transition:transform .14s cubic-bezier(.2,.9,.3,1.25) !important}' +
+    '.sw-wrap.sw-moving>.sw-row.sw-snap{transition:transform .16s cubic-bezier(.2,.9,.3,1.25) !important}' +
+    '.sw-wrap.sw-moving.sw-far>.sw-row.sw-snap{transition:transform .22s cubic-bezier(.3,.8,.3,1) !important}' +
     '.sw-act{position:absolute;inset:0 0 0 auto;width:100%;display:flex;align-items:center;justify-content:flex-end;padding:0 18px;border:0;margin:0;' +
       'background:var(--sw-color,#cf222e);color:#fff;font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}' +
     '.sw-act .sw-in{display:flex;flex-direction:column;align-items:center;gap:5px;width:' + (BTN - 36) + 'px;transition:transform .18s cubic-bezier(.2,.9,.3,1.4),opacity .15s;opacity:.55;transform:scale(.82)}' +
@@ -134,7 +134,7 @@ export function swipeRow(row, opts = {}){
   row.addEventListener('pointerdown', e => {
     if (busy || (e.pointerType === 'mouse' && e.button !== 0)) return;
     x0 = e.clientX; y0 = e.clientY; dx = base; dragging = true; decided = false; moved = false;
-    raw0 = base ? RAW_OPEN : 0; step = base ? 1 : 0;
+    raw0 = base ? RAW_OPEN_REST : 0; step = base ? 1 : 0;
   });
   row.addEventListener('pointermove', e => {
     if (!dragging) return;
@@ -154,7 +154,7 @@ export function swipeRow(row, opts = {}){
     const now = raw >= commitAt(w) ? 2 : raw >= RAW_OPEN ? 1 : 0;
     if (now !== step){
       haptic(now === 2);
-      if (now === 2 || step === 2){ row.classList.add('sw-snap'); clearTimeout(row._snap); row._snap = setTimeout(() => row.classList.remove('sw-snap'), 150); }
+      row.classList.add('sw-snap'); clearTimeout(row._snap); row._snap = setTimeout(() => row.classList.remove('sw-snap'), now === 2 || step === 2 ? 230 : 150);
       step = now;
     }
     wrap.classList.toggle('sw-ready', step >= 1);
@@ -167,7 +167,7 @@ export function swipeRow(row, opts = {}){
     if (!moved) return;
     row.classList.remove('sw-snap');
     if (step === 2){ wrap.classList.remove('sw-far'); run(); }
-    else if (-dx >= BTN * 0.55) api.open();
+    else if (step === 1) api.open();
     else api.close();
   };
   row.addEventListener('pointerup', end);
