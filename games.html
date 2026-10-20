@@ -341,7 +341,7 @@ document.querySelectorAll('.ctab').forEach(t => t.addEventListener('click', () =
 if (!document.getElementById('casino').hidden) window.loadCasinoBoard();
 
 /* ---------- who's playing now, and the casino leaderboard live ---------- */
-import { startLive, onPeople, tickTo } from '/live.js?v=1';
+import { startLive, onPeople, tickTo } from '/live.js?v=2';
 const PAGE = { Dune: '/dune.html', Squish: '/squish.html', Solitaire: '/solitaire.html', Blackjack: '/blackjack.html', Roulette: '/roulette.html', Slots: '/slots.html',
   'Three Card Poker': '/three-card-poker.html', 'Three Card Poker Live': '/three-card-poker-live.html', Keno: '/keno.html', 'Higher or Lower': '/higher-or-lower.html' };
 client();
@@ -363,7 +363,7 @@ onPeople(list => {
 });
 
 /* ---------- Vox points ---------- */
-import { safeRpc } from '/casino.js?v=14';
+import { safeRpc } from '/casino.js?v=15';
 const n = v => Number(v || 0).toLocaleString();
 const MEDAL = ['#e6c35c', '#c9ced6', '#d39b6a'];
 const place = r => '<div class="vplace' + (r.me ? ' me' : '') + '"><span class="pl" style="--m:' + MEDAL[r.place - 1] + '">' + r.place + '</span><span class="nm">' + esc(r.name) + (r.me ? ' (you)' : '') + '</span><span class="pt">' + n(r.points) + ' pts</span></div>';

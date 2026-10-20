@@ -43,7 +43,9 @@
   `vox-live` and shares {game, title, name, score} about twice a second. It drives the
   "N playing" top-bar button, the "Playing now" drawer panel, the strip on games.html,
   and live ticking on the leaderboards (display only; the server's board is re-read
-  every 15 s). New game pages should call `startLive` too (and bump `live.js?v=N`).
+  every 15 s). Presence is only re-sent when who/where/playing changes (Supabase drops clients that
+  update presence too often: ClientPresenceRateLimitReached); scores go out as a "score" broadcast
+  about once a second. New game pages should call `startLive` too (and bump `live.js?v=N`).
 - Founder announcements (`migrations/announcements-migration.sql`): the Announce tab in
   admin/founder.html posts them; `update-check.js` (on every page) polls `live_announcements`
   every 8 s alongside the update check and shows each id/rev once per visitor (`vox-ann-seen2`); the look is a `style` jsonb.

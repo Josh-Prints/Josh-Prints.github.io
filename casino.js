@@ -1,4 +1,4 @@
-import { startLive } from '/live.js?v=1';
+import { startLive } from '/live.js?v=2';
 /* Shared by the casino game pages: sign-in panel, the casino leaderboard, time played, the guests' chip bank,
    sound, playing cards, dice, the chip rack and a betting board. Each game page imports what it needs and
    supplies its own rules: a `remote` engine (the server deals and pays out for signed-in players, so the

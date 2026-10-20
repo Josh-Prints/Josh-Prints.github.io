@@ -1,6 +1,8 @@
 /* Live: who's playing what right now, and live scores on the leaderboards.
-   Every game page joins one Supabase Realtime presence channel for the whole site and shares
-   { game, title, name, score } about once a second while you play. Everyone else's pages show:
+   Every game page joins one Supabase Realtime channel for the whole site. Presence says who is here and in which
+   game ({ game, title, name, playing }); it is only re-sent when that changes, because Supabase drops clients that
+   update presence too often. The score, which changes constantly, goes out as a small broadcast about once a
+   second instead. Everyone else's pages show:
    - a "N playing" button in the top bar,
    - a "Playing now" list in the side drawer (who, which game, their score ticking up),
    - the leaderboard updating live: when someone's run beats a score on the board, their number ticks up and
@@ -14,6 +16,8 @@ const fmt = n => Math.round(Number(n) || 0).toLocaleString();
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 let opts = null, channel = null, people = [], subscribed = false, lastSent = 0, sentSig = '', name = null, nameFor = undefined, hiddenSince = 0;
+let presence = [], lastScoreSent = 0, scoreSent = null;
+const scores = {};   // latest broadcast score for each tab key
 const watchers = [];
 
 /* ---------- numbers that tick up (or down) to their new value ---------- */
@@ -57,9 +61,16 @@ function flatten(state){
   for (const key of Object.keys(state)){ const m = state[key] && state[key][0]; if (m && m.game) out.push({ key, game: m.game, title: m.title || m.game, name: m.name || 'Guest', score: m.score == null ? null : Number(m.score), playing: !!m.playing }); }
   return out;
 }
+// presence plus the newest broadcast score
+function merge(){
+  const keys = new Set(presence.map(p => p.key));
+  for (const k of Object.keys(scores)) if (!keys.has(k)) delete scores[k];
+  people = presence.map(p => !p.playing ? { ...p, score: null } : p.key in scores ? { ...p, score: scores[p.key] } : p);
+}
+function myScore(){ const sc = opts.score ? opts.score() : null; return sc == null || !isFinite(sc) ? null : Math.round(sc); }
 function payload(){
-  const sc = opts.score ? opts.score() : null;
-  return { game: opts.game, title: opts.title || opts.game, name: name || 'Guest', score: sc == null || !isFinite(sc) ? null : Math.round(sc), playing: sc != null };
+  const sc = myScore();
+  return { game: opts.game, title: opts.title || opts.game, name: name || 'Guest', score: sc, playing: sc != null };
 }
 async function refreshName(){
   const u = opts.user ? opts.user() : null, id = u ? u.id : null;
@@ -71,15 +82,28 @@ function send(force){
   if (!channel || !subscribed || opts.watchOnly) return;
   if (document.hidden){ if (!hiddenSince) hiddenSince = Date.now(); if (Date.now() - hiddenSince > 60000 && sentSig !== 'gone'){ channel.untrack(); sentSig = 'gone'; } return; }
   hiddenSince = 0;
-  const p = payload(), sig = JSON.stringify(p), now = Date.now();
-  if (sig === sentSig || (!force && now - lastSent < 450)) return;
-  sentSig = sig; lastSent = now; channel.track(p);
+  const p = payload(), now = Date.now();
+  // presence: only when who/where/playing changes (the score rides along but doesn't count), or every 20 s
+  const sig = JSON.stringify({ ...p, score: undefined });
+  if (force || (sig !== sentSig && now - lastSent > 3000) || now - lastSent > 20000){
+    sentSig = sig; lastSent = now; channel.track(p); scoreSent = p.score; return;
+  }
+  // score: a broadcast, at most about once a second
+  if (p.score !== scoreSent && now - lastScoreSent > 1000){
+    scoreSent = p.score; lastScoreSent = now;
+    scores[TAB] = p.score; merge(); render();
+    channel.send({ type: 'broadcast', event: 'score', payload: { k: TAB, s: p.score } });
+  }
 }
 function connect(){
   const sb = opts.sb && opts.sb(); if (!sb || channel) return;
   try {
-    channel = sb.channel(CHANNEL, { config: { presence: { key: TAB } } });
-    channel.on('presence', { event: 'sync' }, () => { people = flatten(channel.presenceState()); render(); });
+    channel = sb.channel(CHANNEL, { config: { presence: { key: TAB }, broadcast: { self: false } } });
+    channel.on('presence', { event: 'sync' }, () => { presence = flatten(channel.presenceState()); merge(); render(); });
+    channel.on('broadcast', { event: 'score' }, ({ payload: m }) => {
+      if (!m || typeof m.k !== 'string') return;
+      scores[m.k] = m.s == null ? null : Number(m.s); merge(); render();
+    });
     channel.subscribe(status => {
       if (status === 'SUBSCRIBED'){ subscribed = true; sentSig = ''; send(true); }
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){ subscribed = false; }
