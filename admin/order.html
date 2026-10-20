@@ -581,6 +581,7 @@
 
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+  import { richText, pasteFiles } from '/chat-media.js?v=1';
 
   const SUPABASE_URL = 'https://paycasfatsakidsriwqt.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
@@ -632,6 +633,8 @@
   pdfModal.addEventListener('click', e => { if (e.target === pdfModal) closePdfModal(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closePdfModal(); });
   document.addEventListener('click', e => {
+    const gif = e.target.closest('.chat-gif');
+    if (gif){ pdfModalFrame.style.display = 'none'; pdfModalImg.style.display = 'block'; pdfModalImg.src = gif.src; pdfModal.classList.add('open'); return; }
     const p = e.target.closest('.pdf-preview, .img-preview');
     if (!p) return;
     if (p.classList.contains('img-preview')){ pdfModalFrame.style.display = 'none'; pdfModalImg.style.display = 'block'; pdfModalImg.src = p.dataset.url; }
@@ -1120,12 +1123,19 @@
       const fl = (m.files && m.files.length > 0) ? m.files : (m.file_path ? [{ path: m.file_path, name: m.file_name }] : []);
       return `<div class="chat-msg ${m.sender}">
         <div class="who">${m.sender === 'admin' ? escapeHtml(adminLabel(m)) : 'Customer'}</div>
-        ${m.body ? `<div>${escapeHtml(m.body)}</div>` : ''}
+        ${m.body ? richText(m.body) : ''}
         ${fl.map(f => renderAttachment(publicFileUrl(f.path), f.name)).join('')}
       </div>`;
     }).join('');
     if (nearBottom) box.scrollTop = box.scrollHeight;
   }
+  // pasting a GIF or picture into the reply box attaches it
+  pasteFiles($('chat-body'), files => {
+    const dt = new DataTransfer();
+    Array.from($('chat-attach').files).concat(files).forEach(f => dt.items.add(f));
+    $('chat-attach').files = dt.files;
+    $('chat-attach').dispatchEvent(new Event('change'));
+  });
   $('chat-attach').addEventListener('change', () => {
     const n = $('chat-attach').files.length;
     $('chat-attach-label').innerHTML = ico('paperclip') + ' ' + (n === 0 ? 'Attach file' : n === 1 ? escapeHtml($('chat-attach').files[0].name) : n + ' files');

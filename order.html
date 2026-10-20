@@ -894,6 +894,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
   import { swipeRow } from '/swipe.js?v=3';
+  import { richText, pasteFiles } from '/chat-media.js?v=1';
 
   const SUPABASE_URL = 'https://paycasfatsakidsriwqt.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
@@ -1015,6 +1016,8 @@ h1{ animation: fadeInDown 0.5s ease both; }
   document.getElementById('pdf-modal-close').addEventListener('click', closePdfModal);
   pdfModal.addEventListener('click', (e) => { if (e.target === pdfModal) closePdfModal(); });
   document.addEventListener('click', (e) => {
+    const gif = e.target.closest('.chat-gif');
+    if (gif){ openPdfModal(gif.src, true); return; }
     const preview = e.target.closest('.pdf-preview, .img-preview');
     if (preview) openPdfModal(preview.dataset.url, preview.classList.contains('img-preview'));
   });
@@ -1380,7 +1383,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
       return `
       <div class="msg ${m.sender}${isNewest ? ' new-arrival' : ''}">
         <div class="who">${m.sender === 'admin' ? escapeHtml(m.sender_name || 'Josh') : 'You'}</div>
-        ${m.body ? `<div>${escapeHtml(m.body)}</div>` : ''}
+        ${m.body ? richText(m.body) : ''}
         ${fileLinks.map(f => renderAttachment(publicFileUrl(f.path), f.name)).join('')}
       </div>
     `;
@@ -1394,6 +1397,12 @@ h1{ animation: fadeInDown 0.5s ease both; }
     e.target.value = '';
     document.getElementById('attach-label').innerHTML = attachedFiles.length
       ? `<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> ${attachedFiles.length} file${attachedFiles.length > 1 ? 's' : ''}` : '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file';
+  });
+
+  // pasting a GIF or picture into the message box attaches it
+  pasteFiles(document.getElementById('msg-body'), files => {
+    attachedFiles.push(...files);
+    document.getElementById('attach-label').innerHTML = `<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> ${attachedFiles.length} file${attachedFiles.length > 1 ? 's' : ''}`;
   });
 
   function sanitizeFileName(name){
