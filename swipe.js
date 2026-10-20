@@ -1,8 +1,11 @@
 /* Swipe-to-act rows, like iOS Mail. Swipe a row left to show a button (red Delete by default); tap the
    button, or keep swiping past most of the row, to run it. Works with touch and mouse drag; vertical
    scrolling still works because only clearly sideways drags count.
+   It has a feel to it: the row is stiff for the first few pixels, then gives and opens, then resists again
+   past the button until it breaks free and snaps to "let go to delete". Each of those steps clicks the
+   phone's haptics (vibrate on Android; the iOS 18+ switch tick on iPhone).
 
-     import { swipeRow } from '/swipe.js?v=1';
+     import { swipeRow } from '/swipe.js?v=2';
      swipeRow(rowEl, { label: 'Delete', icon: 'trash-2', color: '#cf222e', action: async () => { ... } });
 
    action() returning (or resolving to) false, or throwing, snaps the row back. Otherwise the row folds
@@ -10,6 +13,38 @@
 
 const BTN = 84;            // width of the revealed button
 let openRow = null;        // only one row open at a time
+
+/* ---------- haptics ---------- */
+// Android: navigator.vibrate. iPhone: Safari has no vibrate, but toggling an <input type=checkbox switch>
+// (iOS 18+) plays the system haptic tick, so a hidden one is clicked through its label.
+let iosTick = null;
+export function haptic(strong){
+  try { if (navigator.vibrate){ navigator.vibrate(strong ? 18 : 8); return; } } catch (_) {}
+  try {
+    if (!iosTick){
+      iosTick = document.createElement('label');
+      iosTick.setAttribute('aria-hidden', 'true');
+      iosTick.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
+      const inp = document.createElement('input'); inp.type = 'checkbox'; inp.setAttribute('switch', ''); inp.tabIndex = -1;
+      iosTick.appendChild(inp); document.body.appendChild(iosTick);
+    }
+    iosTick.click();
+  } catch (_) {}
+}
+
+/* ---------- the resistance curve: finger distance -> how far the row moves ---------- */
+const STIFF = 28, K1 = 0.4, K2 = 1.05, K3 = 0.28;
+const D_STIFF = STIFF * K1;
+const RAW_OPEN = STIFF + (BTN - D_STIFF) / K2;           // finger distance where the button is fully out
+const commitAt = w => Math.max(RAW_OPEN + 80, w * 0.62);   // finger distance where it breaks free
+function travel(raw, w){
+  if (raw <= 0) return 0;
+  if (raw <= STIFF) return raw * K1;                       // stiff at first
+  if (raw <= RAW_OPEN) return D_STIFF + (raw - STIFF) * K2; // then it gives
+  const T = commitAt(w);
+  if (raw < T) return BTN + (raw - RAW_OPEN) * K3;         // resisting past the button
+  return Math.min(w, w * 0.74 + (raw - T) * 0.5);          // broke free: let go to act
+}
 
 function style(){
   if (document.getElementById('swipe-css')) return;
@@ -21,11 +56,14 @@ function style(){
     '.sw-wrap:not(.sw-on)>.sw-act{visibility:hidden}' +
     '.sw-wrap.sw-on>.sw-row{opacity:1 !important}' +
     '.sw-wrap>.sw-row.sw-anim{transition:transform .25s cubic-bezier(.2,.8,.2,1) !important}' +
+    '.sw-wrap.sw-moving>.sw-row.sw-snap{transition:transform .14s cubic-bezier(.2,.9,.3,1.25) !important}' +
     '.sw-act{position:absolute;inset:0 0 0 auto;width:100%;display:flex;align-items:center;justify-content:flex-end;padding:0 18px;border:0;margin:0;' +
       'background:var(--sw-color,#cf222e);color:#fff;font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}' +
-    '.sw-act .sw-in{display:flex;flex-direction:column;align-items:center;gap:5px;width:' + (BTN - 36) + 'px;transition:transform .2s}' +
+    '.sw-act .sw-in{display:flex;flex-direction:column;align-items:center;gap:5px;width:' + (BTN - 36) + 'px;transition:transform .18s cubic-bezier(.2,.9,.3,1.4),opacity .15s;opacity:.55;transform:scale(.82)}' +
     '.sw-act svg{width:18px;height:18px}' +
-    '.sw-wrap.sw-far .sw-act .sw-in{transform:scale(1.12)}' +
+    '.sw-wrap.sw-ready .sw-act .sw-in{opacity:1;transform:scale(1)}' +
+    '.sw-wrap.sw-far .sw-act .sw-in{transform:scale(1.18)}' +
+    '.sw-wrap.sw-far .sw-act{filter:brightness(1.12)}' +
     '.sw-wrap.sw-gone{transition:height .25s ease,margin .25s ease,opacity .25s ease;opacity:0}' +
     '@media (prefers-reduced-motion:reduce){.sw-wrap>.sw-row.sw-anim,.sw-wrap.sw-gone{transition:none !important}}';
   document.head.appendChild(s);
@@ -64,7 +102,7 @@ export function swipeRow(row, opts = {}){
   row.classList.add('sw-row');
   if (o.bg !== false && getComputedStyle(row).backgroundColor.replace(/\s/g, '').match(/^(transparent|rgba\(0,0,0,0\))$/)) row.style.background = o.bg || solidBg(wrap.parentElement);
 
-  let x0 = 0, y0 = 0, dx = 0, base = 0, dragging = false, decided = false, busy = false, moved = false;
+  let x0 = 0, y0 = 0, dx = 0, base = 0, raw0 = 0, raw = 0, step = 0, dragging = false, decided = false, busy = false, moved = false;
   const set = (v, anim) => {
     row.classList.toggle('sw-anim', !!anim); row.style.transform = v ? 'translateX(' + v + 'px)' : '';
     if (v) wrap.classList.add('sw-on');
@@ -73,11 +111,12 @@ export function swipeRow(row, opts = {}){
   };
   const api = {
     wrap,
-    close(){ base = 0; set(0, true); if (openRow === api) openRow = null; },
-    open(){ closeOpen(api); base = -BTN; set(-BTN, true); openRow = api; },
+    close(){ base = 0; set(0, true); wrap.classList.remove('sw-ready', 'sw-far'); if (openRow === api) openRow = null; },
+    open(){ closeOpen(api); base = -BTN; set(-BTN, true); wrap.classList.add('sw-ready'); wrap.classList.remove('sw-far'); openRow = api; },
   };
   async function run(){
     if (busy) return; busy = true;
+    haptic(true);
     set(-wrap.offsetWidth, true);
     let ok;
     try { ok = await o.action(); } catch (e) { ok = false; }
@@ -94,7 +133,8 @@ export function swipeRow(row, opts = {}){
 
   row.addEventListener('pointerdown', e => {
     if (busy || (e.pointerType === 'mouse' && e.button !== 0)) return;
-    x0 = e.clientX; y0 = e.clientY; dx = 0; dragging = true; decided = false; moved = false;
+    x0 = e.clientX; y0 = e.clientY; dx = base; dragging = true; decided = false; moved = false;
+    raw0 = base ? RAW_OPEN : 0; step = base ? 1 : 0;
   });
   row.addEventListener('pointermove', e => {
     if (!dragging) return;
@@ -107,17 +147,27 @@ export function swipeRow(row, opts = {}){
       row.style.animation = 'none';   // an entrance animation holding its last frame would override the drag
       try { row.setPointerCapture(e.pointerId); } catch (_) {}
     }
-    dx = Math.min(0, base + mx);
-    if (dx < -wrap.offsetWidth) dx = -wrap.offsetWidth;
+    const w = wrap.offsetWidth;
+    raw = raw0 - mx;
+    dx = -travel(raw, w);
+    // the clicks: button fully out (1), broke free (2); each crossing ticks the haptics
+    const now = raw >= commitAt(w) ? 2 : raw >= RAW_OPEN ? 1 : 0;
+    if (now !== step){
+      haptic(now === 2);
+      if (now === 2 || step === 2){ row.classList.add('sw-snap'); clearTimeout(row._snap); row._snap = setTimeout(() => row.classList.remove('sw-snap'), 150); }
+      step = now;
+    }
+    wrap.classList.toggle('sw-ready', step >= 1);
+    wrap.classList.toggle('sw-far', step === 2);
     set(dx, false);
-    wrap.classList.toggle('sw-far', dx < -wrap.offsetWidth * 0.55);
   });
   const end = () => {
     if (!dragging) return; dragging = false;
     wrap.classList.remove('sw-moving');
     if (!moved) return;
-    if (dx < -wrap.offsetWidth * 0.55){ wrap.classList.remove('sw-far'); run(); }
-    else if (dx < -BTN / 2) api.open();
+    row.classList.remove('sw-snap');
+    if (step === 2){ wrap.classList.remove('sw-far'); run(); }
+    else if (-dx >= BTN * 0.55) api.open();
     else api.close();
   };
   row.addEventListener('pointerup', end);
