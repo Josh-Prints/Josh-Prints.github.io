@@ -68,6 +68,13 @@
   resets, 16px text boxes so iPhone doesn't zoom, nothing wider than the screen). New admin pages should link it too;
   check new admin UI at 390px wide for anything wider than the screen (iPhone then zooms the whole page out).
 
+- Account bans (`migrations/account-ban-migration.sql`): founders ban/unban customers on admin/customers.html
+  (rpc `admin_set_customer_ban`, `customer_profiles.banned_at/ban_reason`). Banned accounts can't place orders (trigger
+  on orders, also matches a banned account's email for guest orders) or play: `assert_account_ok()` is the first line of
+  casino_row, bj_row, casino_borrow, vox_from_dune, game_record, dune_add_coins/buy/equip, beat_tapper_save_*; keep it
+  when redefining those, and add it to new game action functions. update-check.js covers game pages and the order form
+  with an "Account banned" screen (path list `GATED`; add new game pages there).
+
 ## To do (remind the user)
 - Stripe go-live: live account "VoxPrints" has bank details, the live publishable key is stored
   (private_config `stripe_publishable_key_live`), and the $8 test payment was refunded. Left: the user

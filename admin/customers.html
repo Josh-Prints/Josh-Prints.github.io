@@ -187,6 +187,15 @@
     border: 1px solid rgba(var(--border-tint),0.12);
   }
   .chip.discount{ background: var(--ok-subtle); color: var(--ok); border-color: var(--ok-subtle); }
+  .customer-card.banned{ border-color: var(--err); }
+  .ban-tag{ display:inline-block; margin-left:8px; padding:1px 7px; border-radius:999px; font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color: var(--err); border:1px solid var(--err); vertical-align:2px; }
+  .ban-why{ font-size:12.5px; color: var(--err); margin-top:8px; }
+  .cust-actions{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px; padding-top:12px; border-top:1px solid rgba(var(--border-tint),0.08); }
+  .ban-btn{ background:none; border:1px solid var(--err); color: var(--err); border-radius:6px; padding:6px 12px; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; }
+  .ban-btn:hover{ background: rgba(207,34,46,0.08); }
+  .ban-btn.solid{ background: var(--err); color:#fff; }
+  .ban-btn.plain{ border-color: rgba(var(--border-tint),0.18); color: var(--ink-dim); }
+  .ban-reason{ flex:1; min-width:160px; padding:6px 10px; font:inherit; font-size:13px; border:1px solid rgba(var(--border-tint),0.18); border-radius:6px; background: var(--bg); color: var(--ink); }
   .credit-edit-btn{
     background:none; border:none; cursor:pointer; font-size:12px; padding:0 0 0 4px; opacity:0.6; color: var(--ink-dim);
   }
@@ -407,7 +416,11 @@
   });
 
   function showLogin(){ loginView.style.display = 'flex'; dashView.style.display = 'none'; }
-  function showDashboard(){ loginView.style.display = 'none'; dashView.style.display = 'block'; loadAll(); }
+  let isFounder = false;
+  function showDashboard(){
+    loginView.style.display = 'none'; dashView.style.display = 'block'; loadAll();
+    supabase.rpc('my_admin_state').then(({ data }) => { isFounder = !!(data && data.is_founder); if (customers.length) render(); });
+  }
 
   async function loadAll(){
     custListEl.innerHTML = `<div class="cust-list-spinner"><svg class="logo-loading" width="128" height="128" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
@@ -506,11 +519,11 @@
         .map(([status, count]) => `<span class="chip">${count} ${escapeHtml(STATUS_LABEL[status] || status)}</span>`)
         .join('');
       return `
-        <div class="customer-card" style="animation-delay:${Math.min(i * 0.03, 0.3)}s;">
+        <div class="customer-card${c.banned_at ? ' banned' : ''}" style="animation-delay:${Math.min(i * 0.03, 0.3)}s;">
           <div class="cust-head">
             <img class="cust-avatar" src="${c.avatar_url || ''}" alt="" onerror="this.style.visibility='hidden'">
             <div class="cust-id">
-              <div class="cust-name">${escapeHtml(c.full_name || 'Unnamed')}</div>
+              <div class="cust-name">${escapeHtml(c.full_name || 'Unnamed')}${c.banned_at ? '<span class="ban-tag">Banned</span>' : ''}</div>
               <div class="cust-email">${escapeHtml(c.email || '')}</div>
             </div>
             <div class="cust-joined">Joined ${joined}</div>
@@ -529,6 +542,10 @@
             ${statusChips}
             ${c.discount_available ? '<span class="chip discount"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#party-popper"/></svg> Discount available</span>' : ''}
           </div>` : ''}
+          ${c.banned_at ? `<div class="ban-why">Banned ${new Date(c.banned_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}${c.ban_reason ? ': ' + escapeHtml(c.ban_reason) : ''}</div>` : ''}
+          ${isFounder ? `<div class="cust-actions" id="ban-row-${c.id}">${c.banned_at
+            ? `<button type="button" class="ban-btn plain" data-unban="${c.id}">Unban</button>`
+            : `<button type="button" class="ban-btn" data-ban-open="${c.id}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#lock"/></svg> Ban account</button>`}</div>` : ''}
         </div>
       `;
     }).join('');
@@ -536,7 +553,31 @@
 
   searchInput.addEventListener('input', render);
 
+  const $ban = id => document.getElementById('ban-row-' + id);
+  async function setBan(id, ban, reason, btn){
+    if (btn){ btn.disabled = true; btn.textContent = '…'; }
+    const { data, error } = await supabase.rpc('admin_set_customer_ban', { p_user: id, p_ban: ban, p_reason: reason || null });
+    if (error){ alert('Couldn’t save: ' + error.message); render(); return; }
+    const c = customers.find(x => x.id === id);
+    if (c){ c.banned_at = data.at; c.ban_reason = data.reason; }
+    render();
+  }
+
   custListEl.addEventListener('click', async (e) => {
+    const open = e.target.closest('[data-ban-open]');
+    if (open){
+      const id = open.dataset.banOpen;
+      $ban(id).innerHTML = `<input type="text" class="ban-reason" id="ban-reason-${id}" maxlength="200" placeholder="Reason (optional)">
+        <button type="button" class="ban-btn solid" data-ban="${id}">Ban</button><button type="button" class="ban-btn plain" data-ban-cancel>Cancel</button>`;
+      document.getElementById('ban-reason-' + id).focus();
+      return;
+    }
+    if (e.target.closest('[data-ban-cancel]')){ render(); return; }
+    const ban = e.target.closest('[data-ban]');
+    if (ban){ const id = ban.dataset.ban; setBan(id, true, document.getElementById('ban-reason-' + id).value.trim(), ban); return; }
+    const unban = e.target.closest('[data-unban]');
+    if (unban){ setBan(unban.dataset.unban, false, null, unban); return; }
+
     const editBtn = e.target.closest('.credit-edit-btn');
     if (editBtn){
       const id = editBtn.dataset.id;

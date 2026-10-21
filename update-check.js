@@ -212,3 +212,55 @@
   setInterval(function(){ check(); checkAnn(); }, EVERY);
   document.addEventListener('visibilitychange', function(){ if (!document.hidden){ check(); checkAnn(); } });
 })();
+
+/* Account bans: a banned customer can still read the site, but game pages and the order form are covered by a
+   "banned" screen. The server refuses their orders and game actions too (account-ban-migration.sql); this is
+   just so they see why. */
+(function(){
+  var GATED = /^\/(games|blackjack|beat-tapper|dune|higher-or-lower|keno|roulette|slots|solitaire|squish|three-card-poker|three-card-poker-live|order-form)(\.html)?$/;
+  if (!GATED.test(location.pathname)) return;
+  var SB = 'https://paycasfatsakidsriwqt.supabase.co', KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
+  var TOKEN_KEY = 'sb-paycasfatsakidsriwqt-auth-token', shown = false, busy = false;
+  function token(){ try { var t = JSON.parse(localStorage.getItem(TOKEN_KEY)); return t && t.access_token; } catch (e) { return null; } }
+  function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function show(b){
+    if (shown) return; shown = true;
+    var st = document.createElement('style');
+    st.textContent = '#vx-ban{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:20px;background:#0d1117;color:#e6edf3;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}' +
+      ':root[data-theme="light"] #vx-ban{background:#f6f8fa;color:#1f2328}' +
+      '#vx-ban *{text-shadow:none;letter-spacing:normal;text-transform:none;font-family:inherit;animation:none}' +
+      '#vx-ban .bx{max-width:380px;width:100%;text-align:center}' +
+      '#vx-ban .ic{width:52px;height:52px;margin:0 auto 14px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(248,81,73,.14);color:#f85149}' +
+      '#vx-ban .ic svg{width:24px;height:24px}' +
+      '#vx-ban h1{margin:0 0 6px;font-size:22px;font-weight:700;color:inherit;background:none;-webkit-text-fill-color:currentColor}' +
+      '#vx-ban p{margin:0 0 18px;opacity:.7;font-size:14px}' +
+      '#vx-ban .why{margin:-8px 0 18px;font-size:13.5px;opacity:.85}' +
+      '#vx-ban nav{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}' +
+      '#vx-ban a,#vx-ban button{font:inherit;font-size:13.5px;font-weight:600;padding:8px 14px;border-radius:8px;border:1px solid rgba(127,127,127,.35);background:none;color:inherit;text-decoration:none;cursor:pointer}' +
+      '#vx-ban a.main{background:#4493f8;border-color:#4493f8;color:#fff}';
+    var d = document.createElement('div'); d.id = 'vx-ban'; d.setAttribute('role', 'alertdialog'); d.setAttribute('aria-modal', 'true');
+    d.innerHTML = '<div class="bx"><div class="ic"><svg aria-hidden="true"><use href="/icons.svg#lock"/></svg></div>' +
+      '<h1>Account banned</h1><p>This account can’t place orders or play games.</p>' +
+      (b.reason ? '<div class="why">Reason: ' + esc(b.reason) + '</div>' : '') +
+      '<nav><a class="main" href="/">Home</a><a href="/order.html">My orders</a><a href="/terms.html">Terms</a><a href="/privacy.html">Privacy</a><button type="button" id="vx-ban-out">Sign out</button></nav></div>';
+    document.documentElement.appendChild(st); document.documentElement.appendChild(d);
+    if (document.body){ document.body.inert = true; document.body.style.overflow = 'hidden'; }
+    document.getElementById('vx-ban-out').onclick = function(){
+      var t = token();
+      var done = function(){ try { localStorage.removeItem(TOKEN_KEY); } catch (e) {} location.href = '/'; };
+      if (!t) return done();
+      fetch(SB + '/auth/v1/logout', { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + t } }).then(done, done);
+    };
+  }
+  function check(){
+    var t = token(); if (!t || shown || busy) return;
+    busy = true;
+    fetch(SB + '/rest/v1/rpc/my_account_ban', { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: '{}' })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(b){ busy = false; if (b && b.banned) show(b); }, function(){ busy = false; });
+  }
+  check();
+  setInterval(check, 30000);
+  addEventListener('storage', function(e){ if (e.key === TOKEN_KEY) check(); });
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) check(); });
+})();
