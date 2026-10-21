@@ -120,7 +120,7 @@
    loses). Each right guess multiplies the winnings by 97% of the fair odds from the cards left; cash out any time
    after a right guess. Multipliers are whole basis points (10000 = 1x), rounded down, capped at 1000x. The server's
    hl_start(), hl_guess() and hl_cashout() play the same way for signed-in players. */
-import { $, sleep, reduced, fmt, newDeck, showChips, msg, sfx, casino, startShell, signedIn, cardEl, paintCard, chipRack, betBoard, openVox, bank } from '/casino.js?v=15';
+import { $, sleep, reduced, fmt, newDeck, showChips, msg, sfx, casino, startShell, signedIn, cardEl, paintCard, chipRack, betBoard, openVox, bank } from '/casino.js?v=16';
 
 const RANKS = ['Ace', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King'];
 const CAP = 10000000;
@@ -136,9 +136,13 @@ function view(g, chips){
 
 /* ---------- engines ---------- */
 const local = (() => {
+  // The deck and the round in play live only in this page's memory, never in storage, so they can't be read ahead or
+  // rigged from outside. Storage only gets a "round in play" marker (bank.busy() reads it); a round left by reloading is lost.
   const KEY = 'hl-guest';
-  const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch (e) { return null; } };
-  const save = g => { try { g ? localStorage.setItem(KEY, JSON.stringify(g)) : localStorage.removeItem(KEY); } catch (e) {} };
+  let mem = null;
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  const load = () => mem ? JSON.parse(JSON.stringify(mem)) : null;
+  const save = g => { mem = g || null; try { g ? localStorage.setItem(KEY, '1') : localStorage.removeItem(KEY); } catch (e) {} };
   const finish = (g, payout, card, won) => { const chips = bank.get() + payout; bank.set(chips); save(null); return { chips, phase: 'bet', bet: g.bet, shown: g.shown, mult: g.mult, card, won, payout, net: payout - g.bet }; };
   return {
     async state(){ const g = load(); return g ? view(g, bank.get()) : { chips: bank.get(), phase: 'bet' }; },

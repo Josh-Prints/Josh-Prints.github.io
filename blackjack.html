@@ -123,7 +123,7 @@
    stands on all 17s, blackjack pays 3 to 2, double on any two cards, split up to four hands (split aces get one
    card each, double after split allowed), late surrender, insurance. bjApply() is the whole rulebook as one
    step function; the server's bj2_apply() follows it step for step for signed-in players. */
-import { $, sleep, reduced, fmt, newDeck, bank, showChips, msg, sfx, casino, startShell, signedIn, cardEl, paintCard, chipRack, betBoard, openVox } from '/casino.js?v=15';
+import { $, sleep, reduced, fmt, newDeck, bank, showChips, msg, sfx, casino, startShell, signedIn, cardEl, paintCard, chipRack, betBoard, openVox } from '/casino.js?v=16';
 
 const val = c => c % 13 === 0 ? 11 : c % 13 >= 9 ? 10 : c % 13 + 1;
 function tot(h){ let t = 0, a = 0; for (const c of h){ if (c < 0) continue; t += val(c); if (c % 13 === 0) a++; } while (t > 21 && a){ t -= 10; a--; } return { t, soft: a > 0 }; }
@@ -205,9 +205,14 @@ const view = s => ({ phase: s.phase, dealer: s.phase === 'bet' ? s.dealer : [s.d
 
 /* ---------- engines ---------- */
 const local = (() => {
+  // The shoe and the hand in play live only in this page's memory, never in storage, so they can't be read ahead or
+  // stacked from outside. Storage only gets a "hand in play" marker (bank.busy() reads it); a hand left mid-play
+  // by reloading is lost, like walking away from the table.
   const KEY = 'bj-guest';
-  const load = () => { try { const g = JSON.parse(localStorage.getItem(KEY)); if (g && Array.isArray(g.shoe)) return g; } catch (e) {} return { shoe: [], phase: 'bet' }; };
-  const save = g => { try { localStorage.setItem(KEY, JSON.stringify(g)); } catch (e) {} };
+  let mem = { shoe: [], phase: 'bet' };
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  const load = () => JSON.parse(JSON.stringify(mem));
+  const save = g => { mem = g; try { g.phase === 'bet' ? localStorage.removeItem(KEY) : localStorage.setItem(KEY, '{"phase":"' + g.phase + '"}'); } catch (e) {} };
   function step(s, act){
     const chips = bank.get(), r = bjApply(s, act);
     if (r.stake > chips) throw new Error('not enough chips');

@@ -171,7 +171,7 @@
 /* Three Card Poker Live: shared tables where up to six signed-in players play against the same dealer.
    Everything happens on the server (mtcp_* functions): the deck, everyone's cards, the clock and the payouts.
    This page just shows the table, refreshing every second, and sends your bets and Play / Fold. */
-import { $, sleep, reduced, fmt, esc, showChips, msg as showMsg, sfx, casino, startShell, signedIn, cardEl, chipRack, betBoard } from '/casino.js?v=15';
+import { $, sleep, reduced, fmt, esc, showChips, msg as showMsg, sfx, casino, startShell, signedIn, cardEl, chipRack, betBoard } from '/casino.js?v=16';
 
 // the table refreshes every second; only redraw (and re-animate) the message when its wording changes
 let lastMsg = '';

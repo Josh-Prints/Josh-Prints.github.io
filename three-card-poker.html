@@ -117,7 +117,7 @@
 /* Three Card Poker: Ante / Play against the dealer (who needs Queen high to play), the Ante bonus, and the
    Pair Plus side bet (40 / 30 / 6 / 3 / 1). One deck, shuffled every hand. The server's tcp_deal() and
    tcp_decide() deal and pay the same way for signed-in players. */
-import { $, sleep, reduced, fmt, short, newDeck, bank, showChips, msg, sfx, casino, startShell, signedIn, cardEl, paintCard, chipRack, betBoard, chipColour, openVox } from '/casino.js?v=15';
+import { $, sleep, reduced, fmt, short, newDeck, bank, showChips, msg, sfx, casino, startShell, signedIn, cardEl, paintCard, chipRack, betBoard, chipColour, openVox } from '/casino.js?v=16';
 
 const CAT = ['High card', 'Pair', 'Flush', 'Straight', 'Three of a kind', 'Straight flush'];
 const PAIR_PLUS = [0, 1, 3, 6, 30, 40], ANTE_BONUS = [0, 0, 0, 1, 4, 5];
@@ -158,9 +158,13 @@ function resolve(player, dealer, ante, pair, play){
 
 /* ---------- engines ---------- */
 const local = (() => {
+  // The deck and the round in play live only in this page's memory, never in storage, so they can't be read ahead or
+  // rigged from outside. Storage only gets a "round in play" marker (bank.busy() reads it); a round left by reloading is lost.
   const KEY = 'tcp-guest';
-  const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch (e) { return null; } };
-  const save = g => { try { g ? localStorage.setItem(KEY, JSON.stringify(g)) : localStorage.removeItem(KEY); } catch (e) {} };
+  let mem = null;
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  const load = () => mem ? JSON.parse(JSON.stringify(mem)) : null;
+  const save = g => { mem = g || null; try { g ? localStorage.setItem(KEY, '1') : localStorage.removeItem(KEY); } catch (e) {} };
   const finish = (g, play, extra) => {
     const r = resolve(g.player, g.dealer, g.ante, g.pair, play);
     const chips = bank.get() - (extra || 0) + r.payout; bank.set(chips); save(null);

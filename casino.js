@@ -248,13 +248,26 @@ export function showBan(reason, sb){
 
 /* ======================= cheat lockouts ======================= */
 // Catches common bookmarklet tricks: fake clicks and key presses, scripts pulled in from other sites,
-// a rigged random number generator, and hand-edited guest chips. Each catch locks you out of the casino:
+// a rigged random number generator, patched built-ins (storage, JSON, arrays), and hand-edited guest chips. Each catch locks you out of the casino:
 // 5 minutes the first time, 10 the second, an hour every time after. Signed-in strikes are kept and
 // enforced by the server (casino_flag); guests' are kept on the device.
 const LOCK_MINS = n => n <= 1 ? 5 : n === 2 ? 10 : 60;
 // the real random functions, kept from page load so a swapped-in fake is spotted
 const RNG = { random: Math.random, grv: self.Crypto && Crypto.prototype.getRandomValues };
 const rngSwapped = () => { try { return Math.random !== RNG.random ? 'Math.random' : RNG.grv && (crypto.getRandomValues !== RNG.grv || Crypto.prototype.getRandomValues !== RNG.grv) ? 'getRandomValues' : ''; } catch (e) { return ''; } };
+// the built-ins the games deal, shuffle and keep chips with: a patched one (e.g. Storage getItem rewritten to stack
+// the deck) is spotted whether it was swapped before this file loaded (not native code) or after (changed since load)
+const fnSrc = Function.prototype.toString;
+const BUILTINS = () => ({
+  'Storage.getItem': Storage.prototype.getItem, 'Storage.setItem': Storage.prototype.setItem, 'Storage.removeItem': Storage.prototype.removeItem,
+  'JSON.parse': JSON.parse, 'JSON.stringify': JSON.stringify,
+  'Array.pop': Array.prototype.pop, 'Array.push': Array.prototype.push, 'Array.slice': Array.prototype.slice,
+  'Array.splice': Array.prototype.splice, 'Array.sort': Array.prototype.sort, 'Math.floor': Math.floor,
+  'Function.toString': Function.prototype.toString,
+});
+const BUILTINS0 = BUILTINS();
+const isNative = f => { try { return typeof f === 'function' && /\{\s*\[native code\]\s*\}\s*$/.test(fnSrc.call(f)); } catch (e) { return false; } };
+const builtinPatched = () => { try { const now = BUILTINS(); for (const k in now) if (now[k] !== BUILTINS0[k] || !isNative(now[k])) return k; } catch (e) {} return ''; };
 const SCRIPT_HOSTS = new Set([location.host, 'cdn.jsdelivr.net']);
 export const guard = {
   sb: () => null, user: () => casino.user, until: 0, strikes: 0, timer: null, started: false, pending: false, onUnlock: [],
@@ -329,7 +342,7 @@ export const guard = {
       }
     }).observe(document.documentElement, { childList: true, subtree: true });
     // 3) a rigged random number generator
-    setInterval(() => { const w = rngSwapped(); if (w) this.flag('rigged-random', w); }, 1500);
+    setInterval(() => { const w = rngSwapped(); if (w) this.flag('rigged-random', w); const b = builtinPatched(); if (b) this.flag('patched-builtin', b); }, 1500);
     // 4) hand-edited guest chips (also checked on every read in bank.get)
     setInterval(() => { if (!this.user()) bank.get(); }, 3000);
     this.check();
