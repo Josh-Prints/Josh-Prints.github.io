@@ -334,6 +334,21 @@
   @media (prefers-reduced-motion: reduce){ .pay-box.open, .pay-box.done, .pf-skel, .pf-check circle, .pf-check path{ animation: none; stroke-dashoffset: 0; } }
   .pay-box .pay-refund{ width:100%; font-size:12.5px; font-weight:600; color:#bc4c00; }
   .pay-box .send-btn{ display:inline-flex; align-items:center; gap:8px; }
+  .pay-box.checkout{ display:block; padding: 16px; background: rgba(var(--border-tint),0.03); border: 1px solid rgba(var(--border-tint),0.12); }
+  .co-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom: 12px; }
+  .co-head b{ font-size: 15px; }
+  .co-amt{ font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .co-opts{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .co-opt{ display:flex; align-items:center; gap:12px; text-align:left; padding: 14px; border-radius: 10px; cursor:pointer; font: inherit; color: var(--ink);
+    background: var(--bg-raised); border: 1px solid rgba(var(--border-tint),0.16); transition: border-color .15s, background .15s; }
+  .co-opt:hover{ border-color: var(--accent); }
+  .co-opt:disabled{ opacity: .6; cursor: progress; }
+  .co-opt .ico{ width: 22px; height: 22px; flex: none; color: var(--accent); }
+  .co-opt b{ display:block; font-size: 14px; }
+  .co-opt span span{ display:block; font-size: 12px; color: var(--ink-dim); }
+  @media (max-width: 420px){ .co-opts{ grid-template-columns: 1fr; } }
+  .pay-box.chosen{ background: rgba(var(--border-tint),0.04); }
+  .pay-link{ background:none; border:0; padding:0; font: inherit; font-size: 13px; font-weight: 600; color: var(--accent); cursor:pointer; }
   .pay-box .send-btn.loading{ cursor:progress; animation:none; opacity:.85; }
   .pay-spin{ width:14px; height:14px; border-radius:50%; border:2px solid currentColor; border-right-color:transparent; border-bottom-color:transparent; animation:paySpin .7s linear infinite; }
   @keyframes paySpin{ to{ transform:rotate(360deg); } }
@@ -931,15 +946,20 @@ h1{ animation: fadeInDown 0.5s ease both; }
   };
 
   // the stages an order goes through, in order (cancelled orders show a greyed-out bar)
-  const STEPS = ['new', 'acknowledged', 'quoted', 'printing', 'completed', 'sold'];
+  const ALL_STEPS = ['new', 'acknowledged', 'quoted', 'printing', 'completed', 'sold'];
   const STEP_LABEL = { new: 'New', acknowledged: 'Seen', quoted: 'Quoted', printing: 'Printing', completed: 'Done', sold: 'Sold' };
-  function statusBar(status, deleted, mini){
+  // instant-buy orders skip the quote: New -> Printing -> Done -> Sold
+  const INSTANT_STEPS = ['new', 'printing', 'completed', 'sold'];
+  const instantStatus = st => st === 'acknowledged' || st === 'quoted' ? 'new' : st;
+  function statusBar(status, deleted, mini, instant){
+    const STEPS = instant ? INSTANT_STEPS : ALL_STEPS;
+    if (instant) status = instantStatus(status);
     const off = deleted || status === 'cancelled' || STEPS.indexOf(status) < 0;
     // a cancelled order keeps the bar greyed out at the start
     const i = off ? 0 : STEPS.indexOf(status), n = STEPS.length, at = k => ((k + .5) / n * 100) + '%';
     const live = !off && (status === 'new' || status === 'printing');
     const label = deleted ? 'Deleted' : (STATUS_LABEL[status] || status);
-    return '<div class="sbar' + (off ? ' off' : '') + (mini ? ' mini' : '') + '" role="progressbar" aria-label="Order progress" aria-valuemin="1" aria-valuemax="' + n + '" aria-valuenow="' + (off ? 0 : i + 1) + '" aria-valuetext="' + escapeHtml(label) + '">' +
+    return '<div class="sbar' + (off ? ' off' : '') + (mini ? ' mini' : '') + '" style="--n:' + n + '" role="progressbar" aria-label="Order progress" aria-valuemin="1" aria-valuemax="' + n + '" aria-valuenow="' + (off ? 0 : i + 1) + '" aria-valuetext="' + escapeHtml(label) + '">' +
       '<div class="sbar-track"><div class="sbar-fill" style="width:' + (off ? 0 : i / (n - 1) * 100) + '%"></div>' +
       STEPS.map((s, k) => '<span class="sbar-dot' + (k < i ? ' done' : k === i && !off ? ' now' + (live ? ' live' : '') : '') + '" style="left:' + (k / (n - 1) * 100) + '%"></span>').join('') + '</div>' +
       (mini ? '' : '<ol class="sbar-steps">' + STEPS.map((s, k) => '<li class="' + (off ? '' : k < i ? 'done' : k === i ? 'now' : '') + '">' + STEP_LABEL[s] + '</li>').join('') + '</ol>') +
@@ -1068,7 +1088,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
   async function loadMyOrders(userId){
     const { data, error } = await supabase
       .from('orders')
-      .select('id, full_name, order_type, status, created_at, deleted, customer_hidden_at')
+      .select('id, full_name, order_type, status, created_at, deleted, customer_hidden_at, instant_buy')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -1092,7 +1112,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
         <span>
           ${escapeHtml(o.order_type === 'design' ? 'Design order' : o.order_type === 'custom_model' ? 'Custom model' : 'Custom print')}${gone(o) ? '<span class="removed-tag">Deleted</span>' : ''}
           <div class="meta">${STATUS_LABEL[o.status] || o.status} · ${new Date(o.created_at).toLocaleDateString()}</div>
-          ${statusBar(o.status, false, true)}
+          ${statusBar(o.status, false, true, o.instant_buy)}
         </span>
         <span>→</span>
       </a>
@@ -1188,13 +1208,17 @@ h1{ animation: fadeInDown 0.5s ease both; }
   }
 
   async function loadOrder(){
-    const { data: order, error } = await supabase.rpc('get_order', { p_id: orderId });
+    const [{ data: order, error }, { data: chk }] = await Promise.all([
+      supabase.rpc('get_order', { p_id: orderId }),
+      supabase.rpc('get_order_checkout', { p_id: orderId }),
+    ]);
     const orderRow = Array.isArray(order) ? order[0] : order;
     if (error || !orderRow) return false;
+    orderRow.instant = !!(chk && chk.instant);
 
     maybeMarkOrderSeen(orderRow.deleted);
 
-    const snapshot = `${orderRow.status}|${orderRow.quote_amount}`;
+    const snapshot = `${orderRow.status}|${orderRow.quote_amount}|${chk && chk.pay_choice}|${chk && chk.paid}`;
     if (snapshot !== lastStatusSnapshot){
       lastStatusSnapshot = snapshot;
       renderOrder(orderRow);
@@ -1227,14 +1251,45 @@ h1{ animation: fadeInDown 0.5s ease both; }
       return;
     }
     if (!p.can_pay){ box.hidden = true; return; }
+    if (p.instant && p.pay_choice === 'cash'){
+      box.className = 'pay-box chosen'; box.hidden = false;
+      box.innerHTML = '<span><b>Cash on pickup</b> <span class="pay-sub">' + money(p.amount) + '</span></span>' +
+        '<button type="button" class="pay-link" id="pay-btn">Pay by card instead</button><div class="pay-err" id="pay-err" hidden></div>';
+      wirePayBtn(box, p);
+      return;
+    }
+    if (p.instant){
+      // instant buy: choose how to pay
+      box.className = 'pay-box checkout'; box.hidden = false;
+      box.innerHTML = '<div class="co-head"><b>Checkout</b><span class="co-amt">' + money(p.amount) + '</span></div>' +
+        '<div class="co-opts">' +
+          '<button type="button" class="co-opt" id="pay-btn"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#credit-card"/></svg><span><b>Card or Apple Pay</b><span>Pay now</span></span></button>' +
+          '<button type="button" class="co-opt" id="cash-btn"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#circle-dollar-sign"/></svg><span><b>Cash</b><span>Pay on pickup</span></span></button>' +
+        '</div><div class="pay-err" id="pay-err" hidden></div>';
+      wirePayBtn(box, p);
+      if (params.get('checkout')) box.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      document.getElementById('cash-btn').onclick = async () => {
+        const b = document.getElementById('cash-btn'), err = document.getElementById('pay-err');
+        b.disabled = true; err.hidden = true;
+        const { error } = await supabase.rpc('instant_pay_cash', { p_id: orderId });
+        if (error){ err.textContent = error.message; err.hidden = false; b.disabled = false; return; }
+        lastStatusSnapshot = null; loadOrder();
+      };
+      return;
+    }
     box.className = 'pay-box'; box.hidden = false;
     box.innerHTML = '<span><b>' + money(p.amount) + '</b> <span class="pay-sub">due</span></span>' +
       '<button type="button" class="send-btn" id="pay-btn"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#credit-card"/></svg>Pay now</button>' +
       '<div class="pay-err" id="pay-err" hidden></div>';
+    wirePayBtn(box, p);
+  }
+  // the button that opens the card form
+  function wirePayBtn(box, p){
     document.getElementById('pay-btn').onclick = async () => {
       const btn = document.getElementById('pay-btn'), err = document.getElementById('pay-err');
       const label = btn.innerHTML;
-      btn.disabled = true; btn.classList.add('loading'); btn.innerHTML = '<span class="pay-spin" aria-hidden="true"></span>Loading…'; err.hidden = true;
+      btn.disabled = true; btn.classList.add('loading'); err.hidden = true;
+      if (!btn.classList.contains('co-opt')) btn.innerHTML = '<span class="pay-spin" aria-hidden="true"></span>Loading…';
       try { await openPayForm(box, p.amount); }
       catch (e){ err.textContent = e.message; err.hidden = false; btn.disabled = false; btn.classList.remove('loading'); btn.innerHTML = label; }
     };
@@ -1353,9 +1408,10 @@ h1{ animation: fadeInDown 0.5s ease both; }
       document.getElementById('composer-wrap').style.display = 'flex';
     }
 
-    document.getElementById('status-text').innerHTML = escapeHtml(order.deleted ? 'Deleted' : (STATUS_LABEL[order.status] || order.status));
+    const shownStatus = order.instant ? instantStatus(order.status) : order.status;
+    document.getElementById('status-text').innerHTML = escapeHtml(order.deleted ? 'Deleted' : (STATUS_LABEL[shownStatus] || shownStatus));
     const barBox = document.getElementById('status-bar');
-    barBox.innerHTML = statusBar(order.status, order.deleted, false);
+    barBox.innerHTML = statusBar(order.status, order.deleted, false, order.instant);
     // grow the bar from the start so the progress is easy to see
     const fill = barBox.querySelector('.sbar-fill'), w = fill.style.width;
     fill.style.width = '0%'; requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.width = w; }));

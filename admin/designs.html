@@ -188,6 +188,7 @@
     letter-spacing:0.04em; color: var(--ink-dim); margin-left:6px;
   }
   .tile-badge.pin{ color: var(--warn); }
+  .tile-badge.instant{ color: var(--accent); }
 
   /* ---- modal (add/edit) ---- */
   .modal-overlay{
@@ -420,6 +421,10 @@
       <div class="checkbox-row">
         <input type="checkbox" id="p-active" checked>
         <label for="p-active" style="margin:0;">Visible to customers</label>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="p-instant">
+        <label for="p-instant" style="margin:0;">Instant buy <span style="color:var(--ink-dim);font-weight:400;">· pay upfront, no quote</span></label>
       </div>
       <div class="field">
         <div class="checkbox-row" style="margin-bottom:8px;">
@@ -677,7 +682,7 @@
       tile.innerHTML = `
         <div class="tile-img">${img ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;" alt="">` : 'No image'}</div>
         <div class="tile-body">
-          <div class="tile-name">${escapeHtml(p.name)}${!p.active ? '<span class="tile-badge">Hidden</span>' : ''}${p.pinned ? '<span class="tile-badge pin"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pin"/></svg> Pinned</span>' : ''}</div>
+          <div class="tile-name">${escapeHtml(p.name)}${!p.active ? '<span class="tile-badge">Hidden</span>' : ''}${p.instant_buy ? '<span class="tile-badge instant">Instant buy</span>' : ''}${p.pinned ? '<span class="tile-badge pin"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pin"/></svg> Pinned</span>' : ''}</div>
           <div class="tile-price">${p.price != null ? '$' + Number(p.price).toFixed(2) : 'No price set'}</div>
           ${photoCount > 1 ? `<div class="tile-model-badge"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#image"/></svg> ${photoCount} photos</div>` : ''}
           ${p.model_path ? `<div class="tile-model-badge"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#box"/></svg> ${escapeHtml(p.model_name || '3D file')}</div>` : ''}
@@ -739,6 +744,7 @@
     document.getElementById('p-price').value = design?.price ?? '';
     document.getElementById('p-desc').value = design?.description || '';
     document.getElementById('p-active').checked = design ? design.active : true;
+    document.getElementById('p-instant').checked = !!design?.instant_buy;
     photoInput.value = '';
     document.getElementById('p-model').value = '';
     document.getElementById('model-drop-label').textContent = 'Drop an STL, OBJ, 3MF, or STEP file, or tap to browse';
@@ -851,7 +857,9 @@
     const price = priceRaw === '' ? null : Number(priceRaw);
     const description = document.getElementById('p-desc').value.trim();
     const active = document.getElementById('p-active').checked;
+    const instantBuy = document.getElementById('p-instant').checked;
     if (!name) return;
+    if (instantBuy && !(price >= 0.5)){ errorEl.textContent = 'Instant buy needs a price of at least $0.50.'; errorEl.style.display = 'block'; return; }
 
     const saveBtn = document.getElementById('modal-save');
     saveBtn.disabled = true;
@@ -888,7 +896,7 @@
       }
 
       const payload = {
-        name, price, description: description || null, active,
+        name, price, description: description || null, active, instant_buy: instantBuy,
         image_path: photoPaths[0] || null,
         image_paths: photoPaths.slice(1)
       };

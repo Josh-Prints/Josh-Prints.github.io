@@ -64,6 +64,12 @@
   No buy-now-pay-later: stripe-pay passes excluded_payment_method_types (klarna, zip, afterpay_clearpay, affirm) on every
   PaymentIntent / Checkout Session (the user wanted them gone). Don't use payment_method_types: this account's API
   version rejects it ("no longer supported"); payment methods otherwise follow the Stripe dashboard.
+- Instant buy (`migrations/instant-buy-migration.sql`): designs ticked "Instant buy" in admin/designs.html (needs a
+  price) skip the quote. Browse shows "Buy now"; ordering goes to order.html?order=..&checkout=1 where the customer picks
+  card / Apple Pay (stripe-pay, open to anyone with the link for instant orders) or cash on pickup (rpc `instant_pay_cash`).
+  The server sets orders.instant_buy and quote_amount = design price at insert (trigger trg_c_instant_buy), never the
+  customer. Their progress bar is New -> Printing -> Done -> Sold (acknowledged/quoted show as New). Admin pages show
+  "Instant buy" with Paid / Cash on pickup / Awaiting payment to every admin.
 - Swipe actions (`swipe.js`, `swipeRow(row, {label, icon, color, action})`): swipe a row left for a
   button, or all the way to run it. Used on My orders (deletes go both ways: rpc `set_my_order_hidden` sets
   `orders.deleted` and `customer_hidden_at` = deleted by the customer; shop deletes show in the

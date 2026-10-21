@@ -11,7 +11,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // The order is only ever marked paid from what Stripe itself reports, never from what the browser says.
 // Buy-now-pay-later (Klarna, Zip, Afterpay, Affirm) is excluded from every payment; cards and Apple Pay stay.
 // The secret key is the STRIPE_SECRET_KEY function secret (or private_config.stripe_secret_key).
-// EXPERIMENTAL: only signed-in admins can pay for now; only founders can refund.
+// Who can pay: admins (EXPERIMENTAL), and anyone with the link to an instant-buy order (customers and guests).
+// Only founders can refund.
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -57,7 +58,6 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
   const bearer = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
-  if (!/^eyJ[\w-]+\.[\w-]+\.[\w-]+$/.test(bearer)) return json({ error: "Not allowed" }, 401);
 
   let body: { action?: string; orderId?: string; amount?: number };
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
@@ -65,17 +65,23 @@ Deno.serve(async (req: Request) => {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)) return json({ error: "Bad order id" }, 400);
 
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
-  const { data: who } = await admin.auth.getUser(bearer);
-  if (!who?.user) return json({ error: "Not allowed" }, 401);
-  // paying: any admin who isn't suspended; refunds: founders only
-  const { data: prof } = await admin.from("admin_profiles").select("is_founder, suspended_until").eq("id", who.user.id).maybeSingle();
-  const suspended = !!prof?.suspended_until && new Date(prof.suspended_until as string).getTime() > Date.now();
-  if (!prof || suspended) return json({ error: "Not allowed" }, 403);
-  if (body.action === "refund" && !prof.is_founder) return json({ error: "Not allowed" }, 403);
+  // who's asking: a signed-in user (JWT) or a guest (the site's publishable key)
+  let staff = false, founder = false;
+  if (/^eyJ[\w-]+\.[\w-]+\.[\w-]+$/.test(bearer)) {
+    const { data: who } = await admin.auth.getUser(bearer);
+    if (who?.user) {
+      const { data: prof } = await admin.from("admin_profiles").select("is_founder, suspended_until").eq("id", who.user.id).maybeSingle();
+      const suspended = !!prof?.suspended_until && new Date(prof.suspended_until as string).getTime() > Date.now();
+      staff = !!prof && !suspended; founder = staff && !!prof?.is_founder;
+    }
+  }
   const { data: order } = await admin.from("orders")
-    .select("id, full_name, email, status, quote_amount, deleted, design_name, order_type, paid_at, paid_amount, paid_method, stripe_session_id, stripe_payment_intent, refunded_at")
+    .select("id, full_name, email, status, quote_amount, deleted, design_name, order_type, paid_at, paid_amount, paid_method, stripe_session_id, stripe_payment_intent, refunded_at, instant_buy")
     .eq("id", orderId).maybeSingle();
   if (!order || (order.deleted && body.action !== "refund")) return json({ error: "Order not found" }, 404);
+  // paying: admins (experimental) and anyone with the link to an instant-buy order; refunds: founders only
+  if (body.action === "refund" ? !founder : !(staff || order.instant_buy)) return json({ error: "Not allowed" }, 403);
+  const payable = (o: typeof order) => PAYABLE.includes(o.status) || (o.instant_buy && ["new", "acknowledged"].includes(o.status));
   const key = await stripeKey(admin);
   if (!key) return json({ error: "Card payments aren't set up yet" }, 503);
 
@@ -84,6 +90,7 @@ Deno.serve(async (req: Request) => {
       if (order.paid_at) return json({ paid: true });
       const markPaid = (cents: number, pi: string | null) => admin.from("orders").update({
         paid_at: new Date().toISOString(), paid_amount: cents / 100, paid_method: "card", stripe_payment_intent: pi,
+        ...(order.instant_buy ? { pay_choice: "card" } : {}),
       }).eq("id", order.id).is("paid_at", null);
       // the custom form: the PaymentIntent itself
       if (order.stripe_payment_intent) {
@@ -105,7 +112,7 @@ Deno.serve(async (req: Request) => {
     if (body.action === "intent") {
       if (order.paid_at) return json({ error: "This order is already paid" }, 409);
       const amount = Math.round(Number(order.quote_amount) * 100);
-      if (!PAYABLE.includes(order.status) || !(amount >= 50)) return json({ error: "This order can't be paid online yet" }, 409);
+      if (!payable(order) || !(amount >= 50)) return json({ error: "This order can't be paid online yet" }, 409);
       const pk = await publishableKey(admin, key);
       if (!pk) return json({ error: "Card payments aren't set up yet" }, 503);
       // reuse the order's unpaid PaymentIntent (updating the amount if the quote changed), else make a new one
@@ -142,7 +149,7 @@ Deno.serve(async (req: Request) => {
     if (body.action === "checkout") {
       if (order.paid_at) return json({ error: "This order is already paid" }, 409);
       const amount = Math.round(Number(order.quote_amount) * 100);
-      if (!PAYABLE.includes(order.status) || !(amount >= 50)) return json({ error: "This order can't be paid online yet" }, 409);
+      if (!payable(order) || !(amount >= 50)) return json({ error: "This order can't be paid online yet" }, 409);
       const back = `${SITE}/order.html?order=${order.id}`;
       const name = "Voxprints order" + (order.design_name ? ": " + order.design_name : "");
       const s = await stripe(key, "POST", "/checkout/sessions", {

@@ -123,6 +123,8 @@
   .head-quote{ font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size:26px; font-weight:700; text-align:right; }
   .paid-tag{ display:block; margin-top:4px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#1a7f37; }
   .paid-tag.no{ color: var(--ink-dim); }
+  .paid-tag.cash{ color: var(--warn, #9a6700); }
+  .instant-badge{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:3px 9px; border-radius:20px; color:#fff; background: var(--accent); }
   .paid-tag.refund, .pay-row .refunded{ color:#bc4c00; }
   .pay-row[hidden]{ display:none; }
   .pay-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:14px; padding-top:14px; border-top:1px solid rgba(var(--border-tint),0.1); font-size:13.5px; }
@@ -772,6 +774,7 @@
           <span class="type-badge">${escapeHtml(typeLabel(order))}</span>
           <span class="pill s-${statusKey}">${order.deleted ? 'Deleted' : (STATUS_LABEL[order.status] || escapeHtml(order.status))}</span>
           ${order.deleted && order.customer_hidden_at ? `<span class="cust-removed" title="${new Date(order.customer_hidden_at).toLocaleString()}">Deleted by customer</span>` : ''}
+          ${order.instant_buy ? '<span class="instant-badge">Instant buy</span>' : ''}
         </div>
         <div class="head-meta">
           <span>${new Date(order.created_at).toLocaleString()}</span>
@@ -780,7 +783,15 @@
         </div>
       </div>
       <div class="head-quote"><small>Quote</small>${order.quote_amount != null ? fmt(order.quote_amount) : '—'}
-        ${!isFounder ? '' : order.refunded_at ? '<span class="paid-tag refund">Refunded</span>' : order.paid_at ? `<span class="paid-tag">Paid${order.paid_method ? ' · ' + escapeHtml(PAID_BY[order.paid_method] || order.paid_method) : ''}</span>` : (order.quote_amount != null ? '<span class="paid-tag no">Unpaid</span>' : '')}</div>`;
+        ${order.instant_buy ? instantTag() : !isFounder ? '' : order.refunded_at ? '<span class="paid-tag refund">Refunded</span>' : order.paid_at ? `<span class="paid-tag">Paid${order.paid_method ? ' · ' + escapeHtml(PAID_BY[order.paid_method] || order.paid_method) : ''}</span>` : (order.quote_amount != null ? '<span class="paid-tag no">Unpaid</span>' : '')}</div>`;
+  }
+
+  // instant-buy orders: how they're paying, shown to every admin
+  function instantTag(){
+    if (order.refunded_at) return '<span class="paid-tag refund">Refunded</span>';
+    if (order.paid_at) return `<span class="paid-tag">Paid${order.paid_method ? ' · ' + escapeHtml(PAID_BY[order.paid_method] || order.paid_method) : ''}</span>`;
+    if (order.pay_choice === 'cash') return '<span class="paid-tag cash">Cash on pickup</span>';
+    return '<span class="paid-tag no">Awaiting payment</span>';
   }
 
   function filesOf(o){
