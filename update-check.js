@@ -45,6 +45,7 @@
 })();
 
 (function(){
+  try { var cu = new URL(location.href); if (cu.searchParams.has('_r')){ cu.searchParams.delete('_r'); history.replaceState(null, '', cu.pathname + cu.search + cu.hash); } } catch (e) {}
   var EVERY = 8000;
   var base = null, shown = false, busy = false;
 
@@ -83,19 +84,24 @@
     shown = true;
     var bar = document.createElement('div');
     bar.setAttribute('role', 'status');
-    bar.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:2147483000;display:flex;align-items:center;gap:12px;' +
+    bar.id = 'vx-update-bar';
+    bar.style.cssText = 'position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);touch-action:manipulation;z-index:2147483000;display:flex;align-items:center;gap:12px;' +
       'padding:10px 12px 10px 16px;border-radius:999px;background:#161b22;color:#e6edf3;border:1px solid #30363d;box-shadow:0 10px 30px rgba(0,0,0,.35);' +
       'font:600 14px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;max-width:calc(100% - 24px);';
     bar.innerHTML = '<span>A new version of this page is available.</span>' +
-      '<button type="button" style="font:inherit;padding:7px 14px;border-radius:999px;border:0;background:#4493f8;color:#fff;cursor:pointer;white-space:nowrap">Refresh</button>' +
-      '<button type="button" aria-label="Dismiss" style="font:inherit;font-size:18px;line-height:1;padding:2px 6px;border:0;background:none;color:#8b949e;cursor:pointer">&times;</button>';
+      '<button type="button" style="font:inherit;min-height:40px;padding:9px 18px;border-radius:999px;border:0;background:#4493f8;color:#fff;cursor:pointer;white-space:nowrap">Refresh</button>' +
+      '<button type="button" aria-label="Dismiss" style="font:inherit;font-size:22px;line-height:1;min-width:40px;min-height:40px;padding:2px 6px;border:0;background:none;color:#8b949e;cursor:pointer">&times;</button>';
     var b = bar.querySelectorAll('button');
     // iPhone Safari keeps old scripts and styles cached after a plain reload, so the page came back unchanged and the
     // button seemed broken: first re-download this page and its scripts / styles into the cache, then reload.
     b[0].onclick = function(){
       if (b[0].disabled) return;
       b[0].disabled = true; b[0].textContent = 'Refreshing…';
-      var go = function(){ location.reload(); };
+      // load the page under a one-off address so iOS can't serve it from its cache (the marker is removed again on load)
+      var go = function(){
+        var u = new URL(location.href); u.searchParams.set('_r', Date.now());
+        location.replace(u.href);
+      };
       var fresh = urls().map(function(p){ return fetch(p, { cache: 'reload', credentials: 'same-origin' }).catch(function(){}); });
       Promise.all(fresh).then(go, go);
       setTimeout(go, 4000);   // never get stuck if a download hangs
