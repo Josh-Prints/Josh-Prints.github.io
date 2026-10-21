@@ -1019,7 +1019,7 @@
 
 <script type="module">
   // Model upload: read the file here in the browser, guess filament and print time, and fill in the sliders.
-  import { readModel, estimatePrint } from '/model-estimate.js?v=1';
+  import { readModel, estimatePrint } from '/model-estimate.js?v=2';
   const $ = id => document.getElementById(id);
   let model = null;
   const setNum = (id, v) => { const n = $(id); n.value = v; n.dispatchEvent(new Event('input')); };

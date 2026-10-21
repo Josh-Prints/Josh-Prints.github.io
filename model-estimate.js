@@ -5,18 +5,18 @@
      const m = await readModel(file);            // { volume mm³, area mm², size [x, y, z] mm, triangles }
      const e = estimatePrint(m, { material: 'PLA', scale: 1 });   // { grams, hours, plastic mm³ }
 
-   The guess follows Bambu Studio's standard profile: 0.2 mm layers, 2 walls, ~1 mm top/bottom, 15% infill, no
-   supports, on a Bambu-class printer. It's a ballpark: the slicer's numbers can differ by a fair bit either way. */
+   The guess follows Creality Print's standard 0.20 mm profile on the shop's Creality K1C: 2 walls, ~1 mm top/bottom,
+   15% grid infill, no supports. It's a ballpark: the slicer's numbers can differ by a fair bit either way. */
 
 const DENSITY = { PLA: 1.24, ABS: 1.04, TPU: 1.21 };   // g/cm³
-const SPEED = { PLA: 1, ABS: 0.9, TPU: 0.45 };         // TPU has to print slowly
+const SPEED = { PLA: 1, ABS: 0.9, TPU: 0.35 };         // TPU has to print slowly
 const LAYER = 0.2;            // mm
 const SHELL = 1.0;            // mm of walls / top / bottom around every surface
 const INFILL = 0.17;          // share of the inside that gets printed (15% infill plus line overlap)
-const SHELL_RATE = 4.5;       // mm³/s for walls and skins (outer walls go slow)
-const INFILL_RATE = 12;       // mm³/s for infill
-const PER_LAYER = 4;          // s per layer: layer change, travel, seams
-const START = 300;            // s: heating, bed levelling, purge line
+const SHELL_RATE = 5.5;       // mm³/s for walls and skins, averaged with the slower outer wall (K1C)
+const INFILL_RATE = 15;       // mm³/s for infill (K1C)
+const PER_LAYER = 3;          // s per layer: layer change, travel, seams
+const START = 180;            // s: heating and purge line
 
 export function estimatePrint(m, { material = 'PLA', scale = 1 } = {}){
   const s = scale, V = m.volume * s * s * s, A = m.area * s * s, h = m.size[2] * s;
