@@ -51,7 +51,8 @@
   every 8 s alongside the update check and shows each id/rev once per visitor (`vox-ann-seen2`); the look is a `style` jsonb.
   `window.VoxAnnounce.show()` renders it (also used for the founder preview).
 - Stripe card payments (`migrations/stripe-payments-migration.sql`, edge function
-  `supabase/functions/stripe-pay`): EXPERIMENTAL and founder-only (the user asked). Checkout
+  `supabase/functions/stripe-pay`): EXPERIMENTAL; paying is open to all admins who aren't suspended (the user asked),
+  customers still don't see it. Refunds and marking orders paid by hand stay founder-only. Checkout
   for quoted orders; the order is marked paid only after the function checks the session with
   Stripe. Secret key = STRIPE_SECRET_KEY function secret; never put it in the repo or a page.
   The order page uses a fully custom form (Stripe Payment Element, `intent` action, styled from the
@@ -79,5 +80,5 @@
 - Stripe go-live: live account "VoxPrints" has bank details, the live publishable key is stored
   (private_config `stripe_publishable_key_live`), and the $8 test payment was refunded. Left: the user
   swaps STRIPE_SECRET_KEY to the live restricted key (never via chat), does a small real payment +
-  refund to check, then decides whether card payments open beyond founders (and rechecks the Terms
+  refund to check, then decides whether card payments open beyond admins (and rechecks the Terms
   payment wording); optionally turn off Klarna/Zip in Stripe's payment methods.

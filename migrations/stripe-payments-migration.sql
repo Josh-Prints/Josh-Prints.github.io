@@ -69,3 +69,15 @@ begin
 end $$;
 revoke all on function public.admin_set_order_refunded(uuid, numeric) from public, anon, authenticated;
 grant execute on function public.admin_set_order_refunded(uuid, numeric) to authenticated;
+
+-- ---------- card payments open to all admins ----------
+-- Paying by card (the order page's Pay box) is shown to every admin who isn't suspended. Refunds and marking orders
+-- paid / refunded by hand stay founder-only (admin_set_order_paid, admin_set_order_refunded, the stripe-pay refund action).
+create or replace function public.get_order_payment(p_id uuid) returns jsonb language sql stable security definer set search_path = public as $$
+  select case when public.is_admin() and not public.is_suspended() then (
+    select jsonb_build_object('paid_at', paid_at, 'paid_amount', paid_amount, 'paid_method', paid_method,
+      'refunded_at', refunded_at, 'refunded_amount', refunded_amount,
+      'can_pay', paid_at is null and not deleted and quote_amount >= 0.5 and status in ('quoted', 'printing', 'completed'),
+      'amount', quote_amount)
+    from public.orders where id = p_id) end;
+$$;

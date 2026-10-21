@@ -10,7 +10,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 //   refund:   refund a card-paid order through Stripe (all of it, or `amount` dollars)
 // The order is only ever marked paid from what Stripe itself reports, never from what the browser says.
 // The secret key is the STRIPE_SECRET_KEY function secret (or private_config.stripe_secret_key).
-// EXPERIMENTAL: only a signed-in founder can use it for now.
+// EXPERIMENTAL: only signed-in admins can pay for now; only founders can refund.
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -63,8 +63,11 @@ Deno.serve(async (req: Request) => {
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
   const { data: who } = await admin.auth.getUser(bearer);
   if (!who?.user) return json({ error: "Not allowed" }, 401);
-  const { data: prof } = await admin.from("admin_profiles").select("is_founder").eq("id", who.user.id).maybeSingle();
-  if (!prof?.is_founder) return json({ error: "Not allowed" }, 403);
+  // paying: any admin who isn't suspended; refunds: founders only
+  const { data: prof } = await admin.from("admin_profiles").select("is_founder, suspended_until").eq("id", who.user.id).maybeSingle();
+  const suspended = !!prof?.suspended_until && new Date(prof.suspended_until as string).getTime() > Date.now();
+  if (!prof || suspended) return json({ error: "Not allowed" }, 403);
+  if (body.action === "refund" && !prof.is_founder) return json({ error: "Not allowed" }, 403);
   const { data: order } = await admin.from("orders")
     .select("id, full_name, email, status, quote_amount, deleted, design_name, order_type, paid_at, paid_amount, paid_method, stripe_session_id, stripe_payment_intent, refunded_at")
     .eq("id", orderId).maybeSingle();
