@@ -9,7 +9,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 //   confirm:  ask Stripe whether the order's payment went through, and if so mark the order paid
 //   refund:   refund a card-paid order through Stripe (all of it, or `amount` dollars)
 // The order is only ever marked paid from what Stripe itself reports, never from what the browser says.
-// Cards only (which includes Apple Pay / Google Pay): buy-now-pay-later (Klarna, Zip) and the rest are never offered.
+// Buy-now-pay-later (Klarna, Zip, Afterpay, Affirm) is excluded from every payment; cards and Apple Pay stay.
 // The secret key is the STRIPE_SECRET_KEY function secret (or private_config.stripe_secret_key).
 // EXPERIMENTAL: only signed-in admins can pay for now; only founders can refund.
 
@@ -17,6 +17,9 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SITE = "https://voxprints.com";
 const PAYABLE = ["quoted", "printing", "completed"];
+// buy-now-pay-later is never offered (the user asked); everything else follows the Stripe dashboard's settings
+const NO_BNPL = ["klarna", "zip", "afterpay_clearpay", "affirm"];
+const noBnpl = (): Record<string, string> => Object.fromEntries(NO_BNPL.map((t, i) => ["excluded_payment_method_types[" + i + "]", t]));
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -110,22 +113,27 @@ Deno.serve(async (req: Request) => {
         try {
           let pi = await stripe(key, "GET", "/payment_intents/" + encodeURIComponent(order.stripe_payment_intent));
           if (pi.metadata?.order_id === order.id && ["requires_payment_method", "requires_confirmation", "requires_action"].includes(pi.status)) {
-            const cardOnly = Array.isArray(pi.payment_method_types) && pi.payment_method_types.length === 1 && pi.payment_method_types[0] === "card";
-            if (pi.amount !== amount || !cardOnly) {
-              pi = await stripe(key, "POST", "/payment_intents/" + pi.id, { amount: String(amount), "payment_method_types[0]": "card" });
+            const excluded: string[] = Array.isArray(pi.excluded_payment_method_types) ? pi.excluded_payment_method_types : [];
+            if (pi.amount !== amount || NO_BNPL.some(t => !excluded.includes(t))) {
+              pi = await stripe(key, "POST", "/payment_intents/" + pi.id, { amount: String(amount), ...noBnpl() });
             }
             return json({ clientSecret: pi.client_secret, publishableKey: pk, amount });
           }
         } catch (_) { /* made with another key (test vs live): start a new one */ }
       }
       const name = "Voxprints order" + (order.design_name ? ": " + order.design_name : "");
-      const pi = await stripe(key, "POST", "/payment_intents", {
+      const form: Record<string, string> = {
         amount: String(amount),
         currency: "aud",
-        "payment_method_types[0]": "card",   // cards only (Apple Pay / Google Pay are card wallets): no Klarna, Zip etc.
+        "automatic_payment_methods[enabled]": "true",
         description: name.slice(0, 200),
         "metadata[order_id]": order.id,
         ...(order.email ? { receipt_email: String(order.email) } : {}),
+      };
+      // if Stripe ever stops accepting the exclusion list, take payments anyway rather than break the Pay button
+      const pi = await stripe(key, "POST", "/payment_intents", { ...form, ...noBnpl() }).catch((e: Error) => {
+        if (!/excluded_payment_method_types/.test(e.message)) throw e;
+        return stripe(key, "POST", "/payment_intents", form);
       });
       await admin.from("orders").update({ stripe_payment_intent: pi.id }).eq("id", order.id);
       return json({ clientSecret: pi.client_secret, publishableKey: pk, amount });
@@ -139,7 +147,7 @@ Deno.serve(async (req: Request) => {
       const name = "Voxprints order" + (order.design_name ? ": " + order.design_name : "");
       const s = await stripe(key, "POST", "/checkout/sessions", {
         mode: "payment",
-        "payment_method_types[0]": "card",
+        ...noBnpl(),
         client_reference_id: order.id,
         "metadata[order_id]": order.id,
         "payment_intent_data[metadata][order_id]": order.id,
