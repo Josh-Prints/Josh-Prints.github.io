@@ -5,6 +5,18 @@
    half-filled form, picked files or a game in progress.
    On the same timer it asks for the live founder announcements (live_announcements) and shows each once
    as a notification. window.VoxAnnounce.show() is also used by the founder page's preview. */
+/* Taps: on iPhone, two quick taps on a button count as "double-tap to zoom" and the second tap is swallowed, so
+   buttons tapped in a row (bets, chips, + / -, hit / stand) seemed to work only half the time. touch-action:
+   manipulation turns that off for controls only; pinch-zoom and scrolling still work. Injected here because this
+   script is on every page. */
+(function(){
+  try {
+    var st = document.createElement('style'); st.id = 'vx-taps';
+    st.textContent = 'a,button,input,select,textarea,label,summary,[role=button],[onclick],.btn{touch-action:manipulation}';
+    (document.head || document.documentElement).appendChild(st);
+  } catch (e) {}
+})();
+
 (function(){
   var EVERY = 8000;
   var base = null, shown = false, busy = false;

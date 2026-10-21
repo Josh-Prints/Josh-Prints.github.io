@@ -975,7 +975,7 @@ function guestToast(){
 document.querySelectorAll('.guest-note button').forEach(b => b.addEventListener('click', e => {
   e.stopPropagation();
   const side = document.getElementById('side-right'); side.classList.add('open');
-  const btn = side.querySelector('#g-in, #em-in'); if (btn) btn.scrollIntoView({ block: 'center' });
+  const btn = side.querySelector('#g-in, #em-in'); if (btn){ btn.scrollIntoView({ block: 'center', behavior: 'smooth' }); const pnl = btn.closest('.panel') || btn; pnl.animate([{ boxShadow: '0 0 0 0 rgba(68,147,248,0)' }, { boxShadow: '0 0 0 4px rgba(68,147,248,.9)' }, { boxShadow: '0 0 0 0 rgba(68,147,248,0)' }], { duration: 1200, easing: 'ease-out' }); btn.focus({ preventScroll: true }); }
 }));
 
 (async () => {

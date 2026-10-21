@@ -533,7 +533,7 @@ export function startShell(){
   document.addEventListener('click', e => { if (side.classList.contains('open') && !side.contains(e.target) && e.target.id !== 'lb-toggle') side.classList.remove('open'); });
   document.querySelectorAll('.guest-note button').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation(); side.classList.add('open');
-    const t = side.querySelector('#g-in, #em-in'); if (t) t.scrollIntoView({ block: 'center' });
+    const btn = side.querySelector('#g-in, #em-in'); if (btn){ btn.scrollIntoView({ block: 'center', behavior: 'smooth' }); const pnl = btn.closest('.panel') || btn; pnl.animate([{ boxShadow: '0 0 0 0 rgba(68,147,248,0)' }, { boxShadow: '0 0 0 4px rgba(68,147,248,.9)' }, { boxShadow: '0 0 0 0 rgba(68,147,248,0)' }], { duration: 1200, easing: 'ease-out' }); btn.focus({ preventScroll: true }); }  // the panel may already be on screen: flash it so the tap visibly does something
   }));
   // time played: counts while the tab is visible and you've done something in the last 2 minutes
   let playSecs = 0, lastT = performance.now(), lastShown = -1;

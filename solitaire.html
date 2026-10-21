@@ -576,7 +576,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && net
 function updateGuestNote(){ document.querySelectorAll('.guest-note').forEach(n => n.hidden = !!net.user); }
 document.querySelectorAll('.guest-note button').forEach(b => b.addEventListener('click', e => {
   e.stopPropagation(); const side = $('side-right'); side.classList.add('open');
-  const btn = side.querySelector('#g-in, #em-in'); if (btn) btn.scrollIntoView({ block: 'center' });
+  const btn = side.querySelector('#g-in, #em-in'); if (btn){ btn.scrollIntoView({ block: 'center', behavior: 'smooth' }); const pnl = btn.closest('.panel') || btn; pnl.animate([{ boxShadow: '0 0 0 0 rgba(68,147,248,0)' }, { boxShadow: '0 0 0 4px rgba(68,147,248,.9)' }, { boxShadow: '0 0 0 0 rgba(68,147,248,0)' }], { duration: 1200, easing: 'ease-out' }); btn.focus({ preventScroll: true }); }
 }));
 
 // pick up a game in progress, or deal a new one

@@ -1616,9 +1616,12 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       // onAuthStateChange fires automatically and does the rest.
     });
 
-    signOutBtn.addEventListener('click', async () => {
-      await supabase.auth.signOut();
+    // update the page straight away; the server sign-out finishes in the background (waiting on it made taps feel dead)
+    signOutBtn.addEventListener('click', () => {
+      if (signOutBtn.disabled) return;
+      signOutBtn.disabled = true;
       renderSignedOut();
+      supabase.auth.signOut().catch(() => {}).finally(() => { signOutBtn.disabled = false; });
     });
 
     supabase.auth.onAuthStateChange(async (_event, session) => {
