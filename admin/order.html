@@ -627,6 +627,9 @@
   const orderId = new URLSearchParams(location.search).get('id');
 
   const STATUS_OPTIONS = ['new', 'acknowledged', 'quoted', 'printing', 'completed', 'sold', 'cancelled'];
+  // instant-buy orders skip Acknowledged and Quoted: those show as New and aren't offered
+  const INSTANT_HIDDEN = ['acknowledged', 'quoted'];
+  const shownStatus = o => o.instant_buy && INSTANT_HIDDEN.includes(o.status) ? 'new' : o.status;
   const STATUS_LABEL = { new:'New', acknowledged:'Acknowledged', quoted:'Quoted', printing:'Printing', completed:'Completed', sold:'Sold', cancelled:'Cancelled' };
   const PAID_BY = { card: 'card', cash: 'cash', payid: 'PayID' };
   let isFounder = null;
@@ -763,16 +766,16 @@
   function shortId(){ return String(order.id).slice(0, 8); }
 
   /* ---------- rendering ---------- */
-  function renderAll(){ renderHead(); renderRequest(); renderStatusPanel(); renderClaim(); renderActions(); updateChatState(); }
+  function renderAll(){ $('panel-quote').style.display = order.instant_buy ? 'none' : ''; renderHead(); renderRequest(); renderStatusPanel(); renderClaim(); renderActions(); updateChatState(); }
 
   function renderHead(){
-    const statusKey = order.deleted ? 'deleted' : order.status;
+    const statusKey = order.deleted ? 'deleted' : shownStatus(order);
     $('order-head').innerHTML = `
       <div>
         <h2>${escapeHtml(order.full_name || 'Unnamed')}</h2>
         <div class="head-badges">
           <span class="type-badge">${escapeHtml(typeLabel(order))}</span>
-          <span class="pill s-${statusKey}">${order.deleted ? 'Deleted' : (STATUS_LABEL[order.status] || escapeHtml(order.status))}</span>
+          <span class="pill s-${statusKey}">${order.deleted ? 'Deleted' : (STATUS_LABEL[shownStatus(order)] || escapeHtml(order.status))}</span>
           ${order.deleted && order.customer_hidden_at ? `<span class="cust-removed" title="${new Date(order.customer_hidden_at).toLocaleString()}">Deleted by customer</span>` : ''}
           ${order.instant_buy ? '<span class="instant-badge">Instant buy</span>' : ''}
         </div>
@@ -908,7 +911,7 @@
       <h3>${ico('pencil')} Status &amp; quote</h3>
       <div class="stack">
         <div><label class="fld" for="status-select">Status</label>
-          <select id="status-select">${STATUS_OPTIONS.map(s => `<option value="${s}" ${s === order.status ? 'selected' : ''}>${STATUS_LABEL[s]}</option>`).join('')}</select></div>
+          <select id="status-select">${STATUS_OPTIONS.filter(s => !(order.instant_buy && INSTANT_HIDDEN.includes(s))).map(s => `<option value="${s}" ${s === shownStatus(order) ? 'selected' : ''}>${STATUS_LABEL[s]}</option>`).join('')}</select></div>
         <div><label class="fld" for="quote-input">Quote ($)</label>
           <input type="text" id="quote-input" inputmode="decimal" placeholder="0.00" value="${order.quote_amount ?? ''}"></div>
       </div>

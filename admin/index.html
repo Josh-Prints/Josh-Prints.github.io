@@ -1765,6 +1765,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   let activeFilter = 'all';
 
   const STATUS_OPTIONS = ['new', 'acknowledged', 'quoted', 'printing', 'completed', 'sold', 'cancelled'];
+  // instant-buy orders skip Acknowledged and Quoted: those show as New
+  const shownStatus = o => o.instant_buy && (o.status === 'acknowledged' || o.status === 'quoted') ? 'new' : o.status;
   const STATUS_LABEL = {
     new: 'New', acknowledged: 'Acknowledged', quoted: 'Quoted', printing: 'Printing',
     completed: 'Completed', sold: 'Sold', cancelled: 'Cancelled'
@@ -2274,7 +2276,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       ? currentOrders.filter(o => o.deleted)
       : activeFilter === 'all'
         ? currentOrders.filter(o => !o.deleted)
-        : currentOrders.filter(o => !o.deleted && o.status === activeFilter);
+        : currentOrders.filter(o => !o.deleted && shownStatus(o) === activeFilter);
 
     if (onlyMine) filtered = filtered.filter(o => o.claimed_by_id === myUserId);
 
@@ -2305,8 +2307,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         : order.order_type === 'design' ? `Design: ${order.design_name || 'Unknown'}`
         : 'Custom Print';
       const created = new Date(order.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-      const statusKey = order.deleted ? 'deleted' : order.status;
-      const statusText = order.deleted ? 'Deleted' : (STATUS_LABEL[order.status] || order.status);
+      const statusKey = order.deleted ? 'deleted' : shownStatus(order);
+      const statusText = order.deleted ? 'Deleted' : (STATUS_LABEL[shownStatus(order)] || shownStatus(order));
       const mine = order.claimed_by_id && order.claimed_by_id === myUserId;
 
       row.innerHTML = `
