@@ -495,6 +495,8 @@
   }
 
   button[type="submit"]:hover{ filter: brightness(1.06); }
+  #field-test[hidden]{ display:none; }
+  .hint-dim{ color: var(--ink-dim); }
   .agree{ display:flex; align-items:flex-start; justify-content:flex-start; gap:10px; margin:0; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size:14px; color:var(--ink); text-transform:none; letter-spacing:0; font-weight:400; cursor:pointer; line-height:1.4; }
   .agree input{ width:18px; height:18px; margin:1px 0 0; flex:none; accent-color: var(--accent); cursor:pointer; }
   .agree a{ color: var(--accent); }
@@ -985,6 +987,10 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       <div class="field-error">Please tick to agree.</div>
     </div>
 
+    <div class="field agree-field" id="field-test" hidden>
+      <label class="agree"><input type="checkbox" id="test-order"> <span>Test order <span class="hint-dim">· no alerts or emails</span></span></label>
+    </div>
+
     <button type="submit" id="submit-btn">
       <span class="progress-fill" id="progress-fill"></span>
       <span class="btn-label" id="btn-label">Send order</span>
@@ -1392,7 +1398,8 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
           user_id: currentUser ? currentUser.id : null,
           signup_discount_snapshot: currentDiscountAvailable,
           promo_code: validatedPromo ? validatedPromo.code : null,
-          promo_description: validatedPromo ? validatedPromo.description : null
+          promo_description: validatedPromo ? validatedPromo.description : null,
+          is_test: !!document.getElementById('test-order')?.checked   // admins only: the server ignores it for anyone else
         });
 
       if (insertError) throw insertError;
@@ -1477,6 +1484,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       signOutBtn.style.display = 'none';
       if (myOrdersLink) myOrdersLink.innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#package"/></svg> Track an order';
       if (adminLink) adminLink.style.display = 'none';
+      { const tf = document.getElementById('field-test'); if (tf){ tf.hidden = true; document.getElementById('test-order').checked = false; } }
       fieldFullName.style.display = '';
       fieldEmail.style.display = '';
       document.getElementById('full_name').required = true;
@@ -1536,6 +1544,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       if (!adminLink) return;
       const { data } = await supabase.from('admin_profiles').select('id').eq('id', userId).maybeSingle();
       adminLink.style.display = data ? 'block' : 'none';
+      const tf = document.getElementById('field-test'); if (tf){ tf.hidden = !data; if (!data) document.getElementById('test-order').checked = false; }
     }
 
     editBtn.addEventListener('click', () => openModal('edit'));

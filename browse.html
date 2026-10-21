@@ -245,6 +245,9 @@
   .tile-name{ font-weight:600; font-size:14.5px; margin-bottom:4px; }
   .tile-desc{ color: var(--fg-muted); font-size:13px; line-height:1.4; margin-bottom:8px;
     display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  #field-test[hidden]{ display:none; }
+  .test-row{ display:flex; align-items:center; gap:8px; font-size:14px; cursor:pointer; text-transform:none; letter-spacing:0; }
+  .hint-dim{ color: var(--fg-subtle); }
   .tile-instant{ display:inline-block; margin-left:8px; padding:1px 8px; border-radius:999px; font-size:11px; font-weight:700; letter-spacing:.02em; color:#fff; background: var(--accent); vertical-align: 2px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
   .tile-price{ font-family: ui-monospace, monospace; font-size:13px; color: var(--accent); font-weight:600; }
   .tile-model-row{ display:flex; gap:8px; margin-top:8px; }
@@ -590,6 +593,9 @@
         <div class="field">
           <label for="m-notes">Notes (optional)</label>
           <textarea id="m-notes" placeholder="Color, size, anything else…"></textarea>
+        </div>
+        <div class="field" id="field-test" hidden>
+          <label class="test-row"><input type="checkbox" id="test-order"> Test order <span class="hint-dim">· no alerts or emails</span></label>
         </div>
         <div class="modal-error" id="modal-error"></div>
         <div class="modal-actions">
@@ -947,7 +953,8 @@
         filament_id: selectedFilament ? selectedFilament.id : null,
         filament_color: selectedFilament ? selectedFilament.color_name : null,
         filament_type: selectedFilament ? selectedFilament.type : null,
-        filament_price_per_100g: selectedFilament ? selectedFilament.price_per_100g : null
+        filament_price_per_100g: selectedFilament ? selectedFilament.price_per_100g : null,
+        is_test: !!document.getElementById('test-order')?.checked   // admins only: the server ignores it for anyone else
       });
       if (error) throw error;
 
@@ -1016,6 +1023,7 @@
       accountChip.style.display = 'none';
       signOutBtn.style.display = 'none';
       if (adminLink) adminLink.style.display = 'none';
+      { const tf = document.getElementById('field-test'); if (tf){ tf.hidden = true; document.getElementById('test-order').checked = false; } }
       if (myOrdersLink) myOrdersLink.innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#package"/></svg> Track an order';
       currentUser = null;
       currentProfileName = '';
@@ -1061,6 +1069,7 @@
       if (!adminLink) return;
       const { data } = await supabase.from('admin_profiles').select('id').eq('id', userId).maybeSingle();
       adminLink.style.display = data ? 'block' : 'none';
+      const tf = document.getElementById('field-test'); if (tf){ tf.hidden = !data; if (!data) document.getElementById('test-order').checked = false; }
     }
 
     editBtn.addEventListener('click', () => openModal('edit'));

@@ -401,6 +401,7 @@
   .row-name{ display:flex; align-items:center; gap:8px; font-weight:600; font-size:15px; }
   .row-sub{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size:11.5px; color: var(--ink-dim); }
   .row-sub .order-type-badge{ margin-right: 0; }
+  .test-tag{ font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--warn, #9a6700); }
   .instant-tag{ font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); }
   .instant-tag.paid{ color: var(--ok, #1a7f37); }
   .cust-removed{ font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--warn, #9a6700); }
@@ -2314,7 +2315,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       row.innerHTML = `
         <span class="row-main">
           <span class="row-name">${escapeHtml(order.full_name)}<span class="notif-dot job inline" id="job-dot-${order.id}"></span></span>
-          <span class="row-sub"><span class="order-type-badge">${escapeHtml(typeLabel)}</span>${order.deleted && order.customer_hidden_at ? '<span class="cust-removed">Deleted by customer</span>' : ''}${order.instant_buy ? `<span class="instant-tag${order.paid_at ? ' paid' : ''}">Instant · ${order.paid_at ? 'Paid' : order.pay_choice === 'cash' ? 'Cash' : 'Unpaid'}</span>` : ''}<span>${created}</span>${order.filament_color ? `<span>${escapeHtml(order.filament_color)}${order.filament_type ? ' · ' + escapeHtml(order.filament_type) : ''}</span>` : ''}</span>
+          <span class="row-sub"><span class="order-type-badge">${escapeHtml(typeLabel)}</span>${order.deleted && order.customer_hidden_at ? '<span class="cust-removed">Deleted by customer</span>' : ''}${order.is_test ? '<span class="test-tag">Test</span>' : ''}${order.instant_buy ? `<span class="instant-tag${order.paid_at ? ' paid' : ''}">Instant · ${order.paid_at ? 'Paid' : order.pay_choice === 'cash' ? 'Cash' : 'Unpaid'}</span>` : ''}<span>${created}</span>${order.filament_color ? `<span>${escapeHtml(order.filament_color)}${order.filament_type ? ' · ' + escapeHtml(order.filament_type) : ''}</span>` : ''}</span>
         </span>
         <span class="row-claim">${order.claimed_by_id ? `<span class="claim-badge ${mine ? 'mine' : ''}">${escapeHtml(mine ? 'You' : (order.claimed_by || 'Claimed'))}</span>` : ''}</span>
         <span class="row-quote">${order.quote_amount != null ? '$' + Number(order.quote_amount).toFixed(2) : '—'}</span>

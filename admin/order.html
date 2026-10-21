@@ -124,6 +124,7 @@
   .paid-tag{ display:block; margin-top:4px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#1a7f37; }
   .paid-tag.no{ color: var(--ink-dim); }
   .paid-tag.cash{ color: var(--warn, #9a6700); }
+  .test-badge{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:3px 9px; border-radius:20px; color: var(--warn, #9a6700); border:1px solid var(--warn, #9a6700); }
   .instant-badge{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:3px 9px; border-radius:20px; color:#fff; background: var(--accent); }
   .paid-tag.refund, .pay-row .refunded{ color:#bc4c00; }
   .pay-row[hidden]{ display:none; }
@@ -778,6 +779,7 @@
           <span class="pill s-${statusKey}">${order.deleted ? 'Deleted' : (STATUS_LABEL[shownStatus(order)] || escapeHtml(order.status))}</span>
           ${order.deleted && order.customer_hidden_at ? `<span class="cust-removed" title="${new Date(order.customer_hidden_at).toLocaleString()}">Deleted by customer</span>` : ''}
           ${order.instant_buy ? '<span class="instant-badge">Instant buy</span>' : ''}
+          ${order.is_test ? '<span class="test-badge">Test order</span>' : ''}
         </div>
         <div class="head-meta">
           <span>${new Date(order.created_at).toLocaleString()}</span>

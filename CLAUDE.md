@@ -70,6 +70,11 @@
   The server sets orders.instant_buy and quote_amount = design price at insert (trigger trg_c_instant_buy), never the
   customer. Their progress bar is New -> Printing -> Done -> Sold (acknowledged/quoted show as New). Admin pages show
   "Instant buy" with Paid / Cash on pickup / Awaiting payment to every admin.
+- Test orders (`migrations/test-orders-migration.sql`): admins tick "Test order" on order-form.html / the browse order
+  modal (`orders.is_test` on insert; trigger trg_d_test_order clears it for non-admins). A test order stays
+  quiet: notify_new_order (Discord), notify_order_confirmation, notify_order_status_change, discord_push_pending,
+  send_unread_reminders and the founder digest / to-do all skip `is_test`. Any new notification or report that reads
+  orders should skip is_test too. Admin pages tag them "Test".
 - Swipe actions (`swipe.js`, `swipeRow(row, {label, icon, color, action})`): swipe a row left for a
   button, or all the way to run it. Used on My orders (deletes go both ways: rpc `set_my_order_hidden` sets
   `orders.deleted` and `customer_hidden_at` = deleted by the customer; shop deletes show in the
