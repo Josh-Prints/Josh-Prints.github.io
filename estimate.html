@@ -324,6 +324,31 @@
     margin-bottom: 16px;
   }
 
+  /* model upload */
+  .drop{ position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; text-align:center;
+    padding: 22px 16px; border: 1.5px dashed var(--border); border-radius: 10px; background: var(--canvas-inset); cursor:pointer;
+    transition: border-color .15s, background .15s; }
+  .drop:hover, .drop.over{ border-color: var(--accent); background: var(--accent-subtle); }
+  .drop input{ position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; }
+  .drop .ico{ width:22px; height:22px; color: var(--accent); }
+  .drop-t{ font-size:14.5px; font-weight:600; }
+  .drop-s{ font-size:12.5px; color: var(--fg-subtle); }
+  .model-res{ display:none; }
+  .model-res.on{ display:block; }
+  .model-head{ display:flex; align-items:center; gap:10px; }
+  .model-name{ flex:1; min-width:0; font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .model-x{ border:1px solid var(--border); background:none; color: var(--fg-muted); border-radius:6px; padding:5px 10px; font:inherit; font-size:12.5px; cursor:pointer; }
+  .model-x:hover{ background: var(--btn-hover-bg); color: var(--fg); }
+  .model-stats{ display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:8px; margin:14px 0 10px; }
+  .model-stat{ background: var(--canvas-inset); border:1px solid var(--border-muted); border-radius:8px; padding:10px 12px; min-width:0; }
+  .model-stat b{ display:block; font-size:15px; font-variant-numeric: tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .model-stat span{ font-size:11.5px; color: var(--fg-subtle); }
+  .model-foot{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; font-size:12.5px; color: var(--fg-subtle); }
+  .model-foot select{ font:inherit; font-size:13px; color: var(--fg); background: var(--canvas-inset); border:1px solid var(--border); border-radius:6px; padding:4px 8px; }
+  .model-err{ color:#cf222e; font-size:13px; margin-top:10px; display:none; }
+  .model-err.on{ display:block; }
+  @media (max-width: 420px){ .model-stats{ grid-template-columns: 1fr 1fr; } .model-stat:first-child{ grid-column: 1 / -1; } }
+
   .input-group{ margin-bottom: 18px; }
   .input-group:last-child{ margin-bottom: 0; }
   .input-label{ display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
@@ -515,7 +540,7 @@
   <div class="page-head">
     <div class="eyebrow">Free estimate</div>
     <h1>What might your print cost?</h1>
-    <p>Move the sliders to get a rough idea. Every quote is confirmed by hand once you send through your model.</p>
+    <p>Upload your model or move the sliders. Every quote is confirmed by hand.</p>
   </div>
 
   <div class="wrap">
@@ -524,6 +549,32 @@
       <div class="total-label">Estimated cost</div>
       <div class="total-value" id="totalVal">$0.00</div>
       <div class="total-note">Ballpark only — your final quote may vary</div>
+    </div>
+
+    <div class="card" id="model-card">
+      <div class="card-title">Your model</div>
+      <label class="drop" id="drop">
+        <input type="file" id="model-file" accept=".stl,.3mf,.obj">
+        <svg class="ico" aria-hidden="true"><use href="/icons.svg#upload"/></svg>
+        <span class="drop-t">Upload an STL, 3MF or OBJ</span>
+        <span class="drop-s">Fills in the numbers below. Stays on your device.</span>
+      </label>
+      <div class="model-res" id="model-res">
+        <div class="model-head">
+          <span class="model-name" id="model-name"></span>
+          <button type="button" class="model-x" id="model-clear">Remove</button>
+        </div>
+        <div class="model-stats">
+          <div class="model-stat"><b id="m-size"></b><span>Size (mm)</span></div>
+          <div class="model-stat"><b id="m-grams"></b><span>Filament</span></div>
+          <div class="model-stat"><b id="m-time"></b><span>Print time</span></div>
+        </div>
+        <div class="model-foot">
+          <span>0.2 mm layers, 15% infill, no supports</span>
+          <label>Units <select id="model-units"><option value="1">mm</option><option value="10">cm</option><option value="25.4">inches</option></select></label>
+        </div>
+      </div>
+      <div class="model-err" id="model-err"></div>
     </div>
 
     <div class="card">
@@ -965,6 +1016,53 @@
   })();
 </script>
 
+
+<script type="module">
+  // Model upload: read the file here in the browser, guess filament and print time, and fill in the sliders.
+  import { readModel, estimatePrint } from '/model-estimate.js?v=1';
+  const $ = id => document.getElementById(id);
+  let model = null;
+  const setNum = (id, v) => { const n = $(id); n.value = v; n.dispatchEvent(new Event('input')); };
+  const hm = h => { const m = Math.max(1, Math.round(h * 60)); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + (m % 60) + ' m' : ''); };
+  function show(){
+    if (!model) return;
+    const scale = +$('model-units').value, mat = typeof activePreset === 'string' && activePreset in { PLA: 1, ABS: 1, TPU: 1 } ? activePreset : 'PLA';
+    const e = estimatePrint(model, { material: mat, scale });
+    $('m-size').textContent = model.size.map(v => (v * scale).toFixed(v * scale < 10 ? 1 : 0)).join(' × ');
+    $('m-grams').textContent = Math.round(e.grams) + ' g';
+    $('m-time').textContent = hm(e.hours);
+    setNum('filGramsNum', Math.max(1, Math.round(e.grams)));
+    setNum('printHrsNum', Math.max(0.25, Math.round(e.hours * 4) / 4));
+  }
+  function err(t){ $('model-err').textContent = t || ''; $('model-err').classList.toggle('on', !!t); }
+  async function load(file){
+    if (!file) return;
+    err(''); $('drop').querySelector('.drop-t').textContent = 'Reading…';
+    try {
+      if (file.size > 200 * 1024 * 1024) throw new Error('That file is too big (200 MB max)');
+      model = await readModel(file);
+      // a model under 3 units on every side was probably made in cm or inches
+      const big = Math.max(...model.size);
+      $('model-units').value = big < 3 ? '25.4' : big < 8 ? '10' : '1';
+      $('model-name').textContent = file.name;
+      $('drop').style.display = 'none'; $('model-res').classList.add('on');
+      show();
+    } catch (e){
+      model = null; err(e.message || 'Couldn’t read that file');
+    } finally {
+      $('drop').querySelector('.drop-t').textContent = 'Upload an STL, 3MF or OBJ';
+      $('model-file').value = '';
+    }
+  }
+  $('model-file').addEventListener('change', e => load(e.target.files[0]));
+  const drop = $('drop');
+  ['dragenter', 'dragover'].forEach(k => drop.addEventListener(k, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(k => drop.addEventListener(k, () => drop.classList.remove('over')));
+  drop.addEventListener('drop', e => { e.preventDefault(); load(e.dataTransfer.files[0]); });
+  $('model-units').addEventListener('change', show);
+  document.querySelectorAll('.preset-btn').forEach(b => b.addEventListener('click', () => setTimeout(show)));
+  $('model-clear').addEventListener('click', () => { model = null; $('model-res').classList.remove('on'); $('drop').style.display = ''; err(''); });
+</script>
 </body>
 </html>
 <!-- build 2026-10-13T23:52:28Z -->
