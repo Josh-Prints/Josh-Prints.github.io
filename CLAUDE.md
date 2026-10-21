@@ -61,6 +61,8 @@
   Apple Pay / Google Pay: an Express Checkout Element above the card form (only shown when the device has a wallet);
   voxprints.com is registered as a payment method domain on the live account (pmd_1USvrvEMFfJwllH0xzMDlgaL). A new
   domain (or test mode) needs registering too, or Apple Pay won't show.
+  Cards only: stripe-pay sets payment_method_types=[card] on every PaymentIntent / Checkout Session (the user wanted
+  Klarna, Zip and other buy-now-pay-later gone), so dashboard payment-method switches don't add anything to the site.
 - Swipe actions (`swipe.js`, `swipeRow(row, {label, icon, color, action})`): swipe a row left for a
   button, or all the way to run it. Used on My orders (deletes go both ways: rpc `set_my_order_hidden` sets
   `orders.deleted` and `customer_hidden_at` = deleted by the customer; shop deletes show in the
@@ -84,4 +86,4 @@
   (private_config `stripe_publishable_key_live`), and the $8 test payment was refunded. Left: the user
   swaps STRIPE_SECRET_KEY to the live restricted key (never via chat), does a small real payment +
   refund to check, then decides whether card payments open beyond admins (and rechecks the Terms
-  payment wording); optionally turn off Klarna/Zip in Stripe's payment methods.
+  payment wording). Klarna/Zip are blocked by the site (cards only); turning them off in Stripe's dashboard too is optional.

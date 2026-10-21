@@ -9,6 +9,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 //   confirm:  ask Stripe whether the order's payment went through, and if so mark the order paid
 //   refund:   refund a card-paid order through Stripe (all of it, or `amount` dollars)
 // The order is only ever marked paid from what Stripe itself reports, never from what the browser says.
+// Cards only (which includes Apple Pay / Google Pay): buy-now-pay-later (Klarna, Zip) and the rest are never offered.
 // The secret key is the STRIPE_SECRET_KEY function secret (or private_config.stripe_secret_key).
 // EXPERIMENTAL: only signed-in admins can pay for now; only founders can refund.
 
@@ -109,7 +110,10 @@ Deno.serve(async (req: Request) => {
         try {
           let pi = await stripe(key, "GET", "/payment_intents/" + encodeURIComponent(order.stripe_payment_intent));
           if (pi.metadata?.order_id === order.id && ["requires_payment_method", "requires_confirmation", "requires_action"].includes(pi.status)) {
-            if (pi.amount !== amount) pi = await stripe(key, "POST", "/payment_intents/" + pi.id, { amount: String(amount) });
+            const cardOnly = Array.isArray(pi.payment_method_types) && pi.payment_method_types.length === 1 && pi.payment_method_types[0] === "card";
+            if (pi.amount !== amount || !cardOnly) {
+              pi = await stripe(key, "POST", "/payment_intents/" + pi.id, { amount: String(amount), "payment_method_types[0]": "card" });
+            }
             return json({ clientSecret: pi.client_secret, publishableKey: pk, amount });
           }
         } catch (_) { /* made with another key (test vs live): start a new one */ }
@@ -118,7 +122,7 @@ Deno.serve(async (req: Request) => {
       const pi = await stripe(key, "POST", "/payment_intents", {
         amount: String(amount),
         currency: "aud",
-        "automatic_payment_methods[enabled]": "true",
+        "payment_method_types[0]": "card",   // cards only (Apple Pay / Google Pay are card wallets): no Klarna, Zip etc.
         description: name.slice(0, 200),
         "metadata[order_id]": order.id,
         ...(order.email ? { receipt_email: String(order.email) } : {}),
@@ -135,6 +139,7 @@ Deno.serve(async (req: Request) => {
       const name = "Voxprints order" + (order.design_name ? ": " + order.design_name : "");
       const s = await stripe(key, "POST", "/checkout/sessions", {
         mode: "payment",
+        "payment_method_types[0]": "card",
         client_reference_id: order.id,
         "metadata[order_id]": order.id,
         "payment_intent_data[metadata][order_id]": order.id,
