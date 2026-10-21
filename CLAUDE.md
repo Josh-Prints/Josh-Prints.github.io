@@ -75,6 +75,10 @@
   quiet: notify_new_order (Discord), notify_order_confirmation, notify_order_status_change, discord_push_pending,
   send_unread_reminders and the founder digest / to-do all skip `is_test`. Any new notification or report that reads
   orders should skip is_test too. Admin pages tag them "Test".
+- SEO: public pages (index, browse, estimate, order-form, games, terms, privacy) have a description, canonical, Open Graph /
+  Twitter tags and og-image.png in <head>; index also has LocalBusiness JSON-LD. Private pages (order, quote, viewer, admin/*,
+  game pages) carry `noindex, nofollow`. robots.txt and sitemap.xml are at the root: add new public pages to sitemap.xml and
+  give them the same tags; add `noindex` to any new private or game page.
 - Swipe actions (`swipe.js`, `swipeRow(row, {label, icon, color, action})`): swipe a row left for a
   button, or all the way to run it. Used on My orders (deletes go both ways: rpc `set_my_order_hidden` sets
   `orders.deleted` and `customer_hidden_at` = deleted by the customer; shop deletes show in the

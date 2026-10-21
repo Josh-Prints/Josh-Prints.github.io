@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /order.html
+
+Sitemap: https://voxprints.com/sitemap.xml
