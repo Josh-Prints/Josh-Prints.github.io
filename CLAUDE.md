@@ -58,6 +58,9 @@
   The order page uses a fully custom form (Stripe Payment Element, `intent` action, styled from the
   page's CSS variables); publishable keys live in private_config as `stripe_publishable_key_test` /
   `stripe_publishable_key_live` (public keys, picked to match the secret key's mode).
+  Apple Pay / Google Pay: an Express Checkout Element above the card form (only shown when the device has a wallet);
+  voxprints.com is registered as a payment method domain on the live account (pmd_1USvrvEMFfJwllH0xzMDlgaL). A new
+  domain (or test mode) needs registering too, or Apple Pay won't show.
 - Swipe actions (`swipe.js`, `swipeRow(row, {label, icon, color, action})`): swipe a row left for a
   button, or all the way to run it. Used on My orders (deletes go both ways: rpc `set_my_order_hidden` sets
   `orders.deleted` and `customer_hidden_at` = deleted by the customer; shop deletes show in the

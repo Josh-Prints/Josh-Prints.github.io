@@ -313,6 +313,10 @@
   .pf-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 14px; }
   .pf-title{ font-weight: 700; font-size: 15px; }
   .pf-secure{ display:inline-flex; align-items:center; gap:5px; font-size: 12px; color: var(--ink-dim); }
+  .pf-express{ margin-bottom: 4px; }
+  .pf-express[hidden]{ display:none; }
+  .pf-or{ display:flex; align-items:center; gap:10px; margin: 14px 0; font-size: 12px; color: var(--ink-dim); }
+  .pf-or::before, .pf-or::after{ content:''; flex:1; height:1px; background: rgba(var(--border-tint),0.14); }
   .pf-element{ min-height: 120px; }
   .pf-skel{ height: 44px; border-radius: 10px; margin-bottom: 12px; background: linear-gradient(90deg, rgba(var(--border-tint),0.05), rgba(var(--border-tint),0.11), rgba(var(--border-tint),0.05)); background-size: 200% 100%; animation: pfSkel 1.2s linear infinite; }
   .pf-skel.short{ width: 55%; }
@@ -1276,27 +1280,32 @@ h1{ animation: fadeInDown 0.5s ease both; }
     box.className = 'pay-box open'; box.hidden = false;
     box.innerHTML =
       '<div class="pf-head"><span class="pf-title">Payment</span><span class="pf-secure"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#lock"/></svg>Secure</span></div>' +
+      '<div class="pf-express" id="pf-express" hidden><div id="pf-express-el"></div><div class="pf-or"><span>or pay by card</span></div></div>' +
       '<div class="pf-element" id="pf-element"><div class="pf-skel"></div><div class="pf-skel"></div><div class="pf-skel short"></div></div>' +
       '<div class="pay-err" id="pay-err" role="alert" hidden></div>' +
       '<button type="button" class="send-btn pf-pay" id="pf-pay" disabled><span class="pf-label">Pay ' + money(amount) + '</span></button>' +
       '<div class="pf-foot">Secured by Stripe</div>';
-    const pe = elements.create('payment', { layout: { type: 'tabs' }, fields: { billingDetails: { address: { country: 'never', postalCode: 'auto' } } } });
+    // Apple Pay / Google Pay: a one-tap button above the card form, shown only on devices that have one set up
+    const xp = elements.create('expressCheckout', {
+      buttonType: { applePay: 'buy', googlePay: 'buy' }, buttonHeight: 46, buttonTheme: { applePay: payLook().theme === 'night' ? 'white' : 'black' },
+      paymentMethods: { applePay: 'always', googlePay: 'auto', link: 'never', amazonPay: 'never', paypal: 'never', klarna: 'never' },
+    });
+    xp.mount('#pf-express-el');
+    xp.on('ready', ({ availablePaymentMethods }) => { if (availablePaymentMethods && (availablePaymentMethods.applePay || availablePaymentMethods.googlePay)) document.getElementById('pf-express').hidden = false; });
+    xp.on('confirm', async () => {
+      err.hidden = true;
+      const { error, paymentIntent } = await stripe.confirmPayment({ elements, redirect: 'if_required', confirmParams: { return_url: returnUrl } });
+      if (error){ err.textContent = error.message || 'Payment didn’t go through. Try again.'; err.hidden = false; return; }
+      paid(paymentIntent);
+    });
+    // the card form: wallets live in the button above, not as tabs here
+    const pe = elements.create('payment', { layout: { type: 'tabs' }, wallets: { applePay: 'never', googlePay: 'never' }, fields: { billingDetails: { address: { country: 'never', postalCode: 'auto' } } } });
     pe.mount('#pf-element');
     pe.on('ready', () => { box.querySelectorAll('.pf-skel').forEach(x => x.remove()); document.getElementById('pf-pay').disabled = false; });
     const btn = document.getElementById('pf-pay'), err = document.getElementById('pay-err');
-    btn.onclick = async () => {
-      btn.disabled = true; btn.classList.add('loading'); err.hidden = true;
-      btn.innerHTML = '<span class="pay-spin" aria-hidden="true"></span>Paying…';
-      const { error, paymentIntent } = await stripe.confirmPayment({
-        elements, redirect: 'if_required',
-        confirmParams: { return_url: location.origin + location.pathname + '?order=' + encodeURIComponent(orderId) + '&paid=1', payment_method_data: { billing_details: { address: { country: 'AU' } } } },
-      });
-      if (error){
-        err.textContent = error.type === 'card_error' || error.type === 'validation_error' ? error.message : 'Payment didn’t go through. Try again.';
-        err.hidden = false; btn.disabled = false; btn.classList.remove('loading'); btn.innerHTML = '<span class="pf-label">Pay ' + money(amount) + '</span>';
-        return;
-      }
-      // paid: let the server check with Stripe and record it, then celebrate
+    const returnUrl = location.origin + location.pathname + '?order=' + encodeURIComponent(orderId) + '&paid=1';
+    // paid: let the server check with Stripe and record it, then celebrate
+    async function paid(paymentIntent){
       let done = false;
       for (let i = 0; i < 5 && !done; i++){
         try { done = (await payCall('confirm')).paid; } catch (e) {}
@@ -1306,6 +1315,20 @@ h1{ animation: fadeInDown 0.5s ease both; }
       box.innerHTML = '<svg class="pf-check" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24"/><path d="M15 27l7 7 15-15"/></svg>' +
         '<div><b>' + (done || (paymentIntent && paymentIntent.status === 'succeeded') ? 'Payment received' : 'Payment processing') + '</b><span class="pay-sub">' + money(amount) + ' · thanks!</span></div>';
       setTimeout(() => loadPayment(false), 3500);
+    }
+    btn.onclick = async () => {
+      btn.disabled = true; btn.classList.add('loading'); err.hidden = true;
+      btn.innerHTML = '<span class="pay-spin" aria-hidden="true"></span>Paying…';
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements, redirect: 'if_required',
+        confirmParams: { return_url: returnUrl, payment_method_data: { billing_details: { address: { country: 'AU' } } } },
+      });
+      if (error){
+        err.textContent = error.type === 'card_error' || error.type === 'validation_error' ? error.message : 'Payment didn’t go through. Try again.';
+        err.hidden = false; btn.disabled = false; btn.classList.remove('loading'); btn.innerHTML = '<span class="pf-label">Pay ' + money(amount) + '</span>';
+        return;
+      }
+      paid(paymentIntent);
     };
   }
   // back from Stripe: ask the server to check with Stripe, then show the result
