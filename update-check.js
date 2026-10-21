@@ -90,7 +90,16 @@
       '<button type="button" style="font:inherit;padding:7px 14px;border-radius:999px;border:0;background:#4493f8;color:#fff;cursor:pointer;white-space:nowrap">Refresh</button>' +
       '<button type="button" aria-label="Dismiss" style="font:inherit;font-size:18px;line-height:1;padding:2px 6px;border:0;background:none;color:#8b949e;cursor:pointer">&times;</button>';
     var b = bar.querySelectorAll('button');
-    b[0].onclick = function(){ location.reload(); };
+    // iPhone Safari keeps old scripts and styles cached after a plain reload, so the page came back unchanged and the
+    // button seemed broken: first re-download this page and its scripts / styles into the cache, then reload.
+    b[0].onclick = function(){
+      if (b[0].disabled) return;
+      b[0].disabled = true; b[0].textContent = 'Refreshing…';
+      var go = function(){ location.reload(); };
+      var fresh = urls().map(function(p){ return fetch(p, { cache: 'reload', credentials: 'same-origin' }).catch(function(){}); });
+      Promise.all(fresh).then(go, go);
+      setTimeout(go, 4000);   // never get stuck if a download hangs
+    };
     b[1].onclick = function(){ bar.remove(); };
     (document.body || document.documentElement).appendChild(bar);
   }
