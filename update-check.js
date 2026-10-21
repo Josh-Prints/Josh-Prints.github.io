@@ -17,6 +17,33 @@
   } catch (e) {}
 })();
 
+/* Mouse clicks: many buttons shrink or shift a few pixels while pressed (:active transforms). A click only counts if
+   the button is still under the pointer when the mouse button comes up, so pressing near a button's edge could
+   shrink it out from under the pointer and the click was silently lost: buttons seemed to work at random on a PC.
+   While a mouse button is held on a control, its transform is locked where it was; the press shows as a slight
+   darkening instead. Touch keeps the press animation (taps don't have this problem). */
+(function(){
+  var held = null;
+  function release(){
+    var el = held; held = null; if (!el) return;
+    // after the click has been dispatched
+    setTimeout(function(){ el.style.removeProperty('transform'); el.style.removeProperty('filter'); }, 0);
+  }
+  addEventListener('pointerdown', function(e){
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;
+    var el = e.target && e.target.closest && e.target.closest('a[href], button, [role=button], label, summary, .btn');
+    if (!el || el.closest('.sw-wrap') || el.style.transform) return;
+    release();
+    var t = getComputedStyle(el).transform;
+    el.style.setProperty('transform', t && t !== 'none' ? t : 'none', 'important');
+    el.style.setProperty('filter', 'brightness(.92)');
+    held = el;
+  }, true);
+  addEventListener('pointerup', release, true);
+  addEventListener('pointercancel', release, true);
+  addEventListener('blur', release);
+})();
+
 (function(){
   var EVERY = 8000;
   var base = null, shown = false, busy = false;
