@@ -78,3 +78,36 @@ begin
 end $$;
 drop trigger if exists trg_e_spam_scan on public.orders;
 create trigger trg_e_spam_scan before insert on public.orders for each row execute function public.spam_order_insert();
+
+-- Flagged orders: the customer sees a notice and can ask for a review (Discord ping to the admins).
+--   orders.review_requested_at   set by request_spam_review(); admin list/order page show "Review requested"
+alter table public.orders add column if not exists review_requested_at timestamptz;
+
+create or replace function public.get_order_checkout(p_id uuid) returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object('instant', o.instant_buy, 'pay_choice', o.pay_choice, 'paid', o.paid_at is not null,
+    'paid_method', o.paid_method, 'amount', o.quote_amount, 'status', o.status, 'deleted', o.deleted,
+    'spam', o.is_spam, 'review_requested', o.review_requested_at is not null)
+  from public.orders o where o.id = p_id;
+$$;
+
+create or replace function public.request_spam_review(p_id uuid) returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare o public.orders; hook text; mention jsonb; msg text;
+begin
+  update public.orders set review_requested_at = now()
+  where id = p_id and is_spam and not deleted and review_requested_at is null returning * into o;
+  if o.id is null then return public.get_order_checkout(p_id); end if;
+  begin
+    select value into hook from public.private_config where key = 'discord_webhook_url';
+    if hook is not null and hook <> '' then
+      mention := public.discord_mention();
+      msg := trim(coalesce(mention->>'content', '') || ' **Spam review requested** · ' || left(coalesce(o.full_name, ''), 60) || ' (' || left(coalesce(o.email, ''), 80) || ')' ||
+        E'\nFlagged: ' || coalesce(array_to_string(o.spam_reasons, ', '), '') || E'\nhttps://voxprints.com/admin/order.html?id=' || o.id::text);
+      perform extensions.http(('POST', hook, array[extensions.http_header('Content-Type', 'application/json')], 'application/json',
+        (jsonb_build_object('content', left(msg, 1900)) || (mention - 'content'))::text)::extensions.http_request);
+    end if;
+  exception when others then null;
+  end;
+  return public.get_order_checkout(p_id);
+end $$;
+revoke all on function public.request_spam_review(uuid) from public, anon, authenticated;
+grant execute on function public.request_spam_review(uuid) to anon, authenticated;

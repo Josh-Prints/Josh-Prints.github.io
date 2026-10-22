@@ -809,7 +809,7 @@
   // guest orders the server scanned: spam is held back quietly (no alerts or emails); "Review" ones went through
   function spamNote(){
     const why = (order.spam_reasons || []).map(escapeHtml).join(' · ');
-    if (order.is_spam) return `<div class="spam-note spam"><b>Marked as spam</b><span>${why || 'Flagged by an admin'}</span><button type="button" class="btn small" data-spam="0">Not spam</button></div>`;
+    if (order.is_spam) return `<div class="spam-note spam"><b>Marked as spam</b><span>${why || 'Flagged by an admin'}${order.review_requested_at ? ' · <b>Review requested</b>' : ''}</span><button type="button" class="btn small" data-spam="0">Not spam</button></div>`;
     if (order.spam_score >= 3) return `<div class="spam-note review"><b>Looks suspicious</b><span>${why}</span><button type="button" class="btn small" data-spam="1">Mark as spam</button></div>`;
     return '';
   }

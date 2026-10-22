@@ -79,6 +79,9 @@
   (guest email / name / notes checks, offensive or repeated text for everyone). score >= 5 sets `orders.is_spam` and the order
   stays quiet like a test order (same functions skip it; keep them skipping `is_spam` too); 3-4 only shows a "Review" tag.
   Admin orders list has a Spam chip; the order page has "Not spam" / "Mark as spam". Tune weights with create or replace on spam_scan.
+  The customer's order page shows a "Held for review" box with a "Request review" button (rpc `request_spam_review` sets
+  `orders.review_requested_at` and pings Discord; `get_order_checkout` returns `spam` / `review_requested`, never the reasons).
+  Admin list and order page show "Review requested".
 - SEO: public pages (index, browse, estimate, order-form, games, terms, privacy) have a description, canonical, Open Graph /
   Twitter tags and og-image.png in <head>; index also has LocalBusiness JSON-LD. Private pages (order, quote, viewer, admin/*,
   game pages) carry `noindex, nofollow`. robots.txt and sitemap.xml are at the root: add new public pages to sitemap.xml and

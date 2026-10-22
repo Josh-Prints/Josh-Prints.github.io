@@ -303,6 +303,8 @@
   @media (max-width: 520px){ .sbar-steps{ font-size: 10.5px; } }
   @media (prefers-reduced-motion: reduce){ .sbar-fill{ transition: none; } .sbar-dot.now.live{ animation: none; } }
 
+  .spam-box{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin: 4px 0 14px; padding: 12px 14px; border-radius: 10px; border:1px solid var(--err, #cf222e); font-size:14px; }
+  .spam-box span{ color: var(--ink-dim); }
   .pay-box{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin: 4px 0 14px; padding: 12px 14px; border-radius: 10px; background: var(--accent-dim, rgba(68,147,248,.1)); }
   .pay-box[hidden]{ display:none; }
   .pay-box .pay-sub{ font-size: 12.5px; color: var(--ink-dim); }
@@ -874,6 +876,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
         <span class="quote-amount" id="quote-amount"></span>
       </div>
       <div id="status-bar"></div>
+      <div class="spam-box" id="spam-box" hidden></div>
       <div class="pay-box" id="pay-box" hidden></div>
       <div class="detail-row"><span class="label">Name</span><span class="value" id="d-name"></span></div>
       <div class="detail-row"><span class="label">Order type</span><span class="value" id="d-type"></span></div>
@@ -1216,6 +1219,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
     const orderRow = Array.isArray(order) ? order[0] : order;
     if (error || !orderRow) return false;
     orderRow.instant = !!(chk && chk.instant);
+    renderSpam(chk);
 
     maybeMarkOrderSeen(orderRow.deleted);
 
@@ -1226,6 +1230,22 @@ h1{ animation: fadeInDown 0.5s ease both; }
       loadPayment(orderRow.deleted);
     }
     return true;
+  }
+
+  function renderSpam(chk){
+    const box = document.getElementById('spam-box');
+    if (!chk || !chk.spam || chk.deleted){ box.hidden = true; return; }
+    box.hidden = false;
+    box.innerHTML = chk.review_requested
+      ? '<b>Review requested</b><span>We will take a look.</span>'
+      : '<span><b>Held for review</b> We could not verify this order.</span><button type="button" class="send-btn" id="spam-review-btn">Request review</button>';
+    const b = document.getElementById('spam-review-btn');
+    if (b) b.onclick = async () => {
+      b.disabled = true;
+      const { data, error } = await supabase.rpc('request_spam_review', { p_id: orderId });
+      if (error){ b.disabled = false; return; }
+      renderSpam(data);
+    };
   }
 
   /* ---------- paying by card (Stripe Checkout through the stripe-pay function) ---------- */
