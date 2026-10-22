@@ -125,6 +125,11 @@
   .paid-tag{ display:block; margin-top:4px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#1a7f37; }
   .paid-tag.no{ color: var(--ink-dim); }
   .paid-tag.cash{ color: var(--warn, #9a6700); }
+  .spam-note{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:12px 0 4px; padding:10px 12px; border-radius:10px; font-size:13px; border:1px solid var(--err, #cf222e); }
+  .spam-note.review{ border-color: var(--warn, #9a6700); }
+  .spam-note b{ color: var(--err, #cf222e); }
+  .spam-note.review b{ color: var(--warn, #9a6700); }
+  .spam-note span{ flex:1; min-width:160px; color: var(--ink-dim); }
   .test-badge{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:3px 9px; border-radius:20px; color: var(--warn, #9a6700); border:1px solid var(--warn, #9a6700); }
   .instant-badge{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:3px 9px; border-radius:20px; color:#fff; background: var(--accent); }
   .paid-tag.refund, .pay-row .refunded{ color:#bc4c00; }
@@ -782,6 +787,7 @@
           ${order.instant_buy ? '<span class="instant-badge">Instant buy</span>' : ''}
           ${order.is_test ? '<span class="test-badge">Test order</span>' : ''}
         </div>
+        ${spamNote()}
         <div class="head-meta">
           <span>${new Date(order.created_at).toLocaleString()}</span>
           <span>#${shortId()}</span>
@@ -799,6 +805,22 @@
     if (order.pay_choice === 'cash') return '<span class="paid-tag cash">Cash on pickup</span>';
     return '<span class="paid-tag no">Awaiting payment</span>';
   }
+
+  // guest orders the server scanned: spam is held back quietly (no alerts or emails); "Review" ones went through
+  function spamNote(){
+    const why = (order.spam_reasons || []).map(escapeHtml).join(' · ');
+    if (order.is_spam) return `<div class="spam-note spam"><b>Marked as spam</b><span>${why || 'Flagged by an admin'}</span><button type="button" class="btn small" data-spam="0">Not spam</button></div>`;
+    if (order.spam_score >= 3) return `<div class="spam-note review"><b>Looks suspicious</b><span>${why}</span><button type="button" class="btn small" data-spam="1">Mark as spam</button></div>`;
+    return '';
+  }
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-spam]'); if (!b) return;
+    b.disabled = true;
+    const toSpam = b.dataset.spam === '1';
+    const { error } = await supabase.from('orders').update({ is_spam: toSpam }).eq('id', order.id);
+    if (error){ b.disabled = false; alert('Could not save: ' + error.message); return; }
+    order.is_spam = toSpam; renderHead();
+  });
 
   function filesOf(o){
     return (o.files && o.files.length > 0) ? o.files : (o.file_path ? [{ path: o.file_path, name: o.file_name }] : []);

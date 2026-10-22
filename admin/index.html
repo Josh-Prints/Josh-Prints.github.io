@@ -402,6 +402,8 @@
   .row-name{ display:flex; align-items:center; gap:8px; font-weight:600; font-size:15px; }
   .row-sub{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace; font-size:11.5px; color: var(--ink-dim); }
   .row-sub .order-type-badge{ margin-right: 0; }
+  .spam-tag{ font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--err, #cf222e); }
+  .review-tag{ font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--warn, #9a6700); }
   .test-tag{ font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--warn, #9a6700); }
   .instant-tag{ font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); }
   .instant-tag.paid{ color: var(--ok, #1a7f37); }
@@ -1555,6 +1557,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     <button class="chip" data-filter="completed">Completed</button>
     <button class="chip" data-filter="sold">Sold</button>
     <button class="chip" data-filter="cancelled">Cancelled</button>
+    <button class="chip" data-filter="spam">Spam<span id="spam-count"></span></button>
     <button class="chip" data-filter="deleted">Deleted</button>
     <button class="chip" id="only-mine-chip"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#hand"/></svg> Claimed by me</button>
     <select class="sort-select" id="sort-select">
@@ -2274,11 +2277,16 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   }
 
   function renderOrders(){
+    const spamN = currentOrders.filter(o => !o.deleted && o.is_spam).length;
+    const sc = document.getElementById('spam-count'); if (sc) sc.textContent = spamN ? ' ' + spamN : '';
+    // guest orders the server flagged as spam live under Spam, not in the other lists
     let filtered = activeFilter === 'deleted'
       ? currentOrders.filter(o => o.deleted)
-      : activeFilter === 'all'
-        ? currentOrders.filter(o => !o.deleted)
-        : currentOrders.filter(o => !o.deleted && shownStatus(o) === activeFilter);
+      : activeFilter === 'spam'
+        ? currentOrders.filter(o => !o.deleted && o.is_spam)
+        : activeFilter === 'all'
+          ? currentOrders.filter(o => !o.deleted && !o.is_spam)
+          : currentOrders.filter(o => !o.deleted && !o.is_spam && shownStatus(o) === activeFilter);
 
     if (onlyMine) filtered = filtered.filter(o => o.claimed_by_id === myUserId);
 
@@ -2316,7 +2324,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       row.innerHTML = `
         <span class="row-main">
           <span class="row-name">${escapeHtml(order.full_name)}<span class="notif-dot job inline" id="job-dot-${order.id}"></span></span>
-          <span class="row-sub"><span class="order-type-badge">${escapeHtml(typeLabel)}</span>${order.deleted && order.customer_hidden_at ? '<span class="cust-removed">Deleted by customer</span>' : ''}${order.is_test ? '<span class="test-tag">Test</span>' : ''}${order.instant_buy ? `<span class="instant-tag${order.paid_at ? ' paid' : ''}">Instant · ${order.paid_at ? 'Paid' : order.pay_choice === 'cash' ? 'Cash' : 'Unpaid'}</span>` : ''}<span>${created}</span>${order.filament_color ? `<span>${escapeHtml(order.filament_color)}${order.filament_type ? ' · ' + escapeHtml(order.filament_type) : ''}</span>` : ''}</span>
+          <span class="row-sub"><span class="order-type-badge">${escapeHtml(typeLabel)}</span>${order.deleted && order.customer_hidden_at ? '<span class="cust-removed">Deleted by customer</span>' : ''}${order.is_test ? '<span class="test-tag">Test</span>' : ''}${order.is_spam ? `<span class="spam-tag" title="${escapeHtml((order.spam_reasons || []).join(', '))}">Spam</span>` : order.spam_score >= 3 ? `<span class="review-tag" title="${escapeHtml((order.spam_reasons || []).join(', '))}">Review</span>` : ''}${order.instant_buy ? `<span class="instant-tag${order.paid_at ? ' paid' : ''}">Instant · ${order.paid_at ? 'Paid' : order.pay_choice === 'cash' ? 'Cash' : 'Unpaid'}</span>` : ''}<span>${created}</span>${order.filament_color ? `<span>${escapeHtml(order.filament_color)}${order.filament_type ? ' · ' + escapeHtml(order.filament_type) : ''}</span>` : ''}</span>
         </span>
         <span class="row-claim">${order.claimed_by_id ? `<span class="claim-badge ${mine ? 'mine' : ''}">${escapeHtml(mine ? 'You' : (order.claimed_by || 'Claimed'))}</span>` : ''}</span>
         <span class="row-quote">${order.quote_amount != null ? '$' + Number(order.quote_amount).toFixed(2) : '—'}</span>
