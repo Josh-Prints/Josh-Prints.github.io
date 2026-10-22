@@ -103,6 +103,8 @@
   casino_row, bj_row, casino_borrow, vox_from_dune, game_record, dune_add_coins/buy/equip, beat_tapper_save_*; keep it
   when redefining those, and add it to new game action functions. update-check.js covers game pages and the order form
   with an "Account banned" screen (path list `GATED`; add new game pages there).
+  Guests dodge account bans with a new email, so `blocked_identities` (kind email/name, lower-case) is also checked by the order
+  trigger; add rows by SQL for anyone who keeps coming back.
 
 ## To do (remind the user)
 - Stripe go-live: live account "VoxPrints" has bank details, the live publishable key is stored

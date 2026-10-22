@@ -84,3 +84,22 @@ begin
     execute patched;
   end loop;
 end $$;
+
+-- Block list for guest orders: bans only catch accounts, so a banned person can still order as a guest with a new
+-- email. Rows here (lower-case email or full name) are refused by the same order trigger. No policies = server only;
+-- add rows with SQL.
+create table if not exists public.blocked_identities (
+  kind text not null check (kind in ('email','name')), value text not null, reason text, created_at timestamptz not null default now(),
+  primary key (kind, value));
+alter table public.blocked_identities enable row level security;
+
+create or replace function public.ban_guard_order_insert() returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if public.is_admin() then return new; end if;
+  if public.account_banned(auth.uid()) or public.account_banned(new.user_id) or public.account_banned_email(new.email)
+     or exists (select 1 from public.blocked_identities b where (b.kind = 'email' and b.value = lower(btrim(coalesce(new.email, ''))))
+                or (b.kind = 'name' and b.value = lower(btrim(coalesce(new.full_name, ''))))) then
+    raise exception 'This account is banned' using hint = 'account_banned';
+  end if;
+  return new;
+end $$;
