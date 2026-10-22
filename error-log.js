@@ -146,6 +146,20 @@
       return (o && (o.access_token || (o.currentSession && o.currentSession.access_token))) || null;
     });
   }
+  // A login that expired or was ended (a tab left open, a phone offline) makes the next calls come back 401: the page
+  // already shows the sign-in screen, so those aren't bugs. True if the request carried an expired token, or the login just failed to refresh.
+  function sessionEnded(init, input) {
+    return safe(function () {
+      var h = (init && init.headers) || (input && input.headers) || {};
+      var auth = typeof h.get === 'function' ? h.get('Authorization') : (h.Authorization || h.authorization || '');
+      var t = String(auth || '').replace(/^Bearer\s+/i, '');
+      if (t && t !== KEY) {
+        var exp = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp;
+        if (exp && exp * 1000 < Date.now() + 5000) return true;
+      }
+      return crumbs.slice(-8).some(function (c) { return /auth\/token → (400|401|403)|network error|offline/.test(c.d); });
+    }) === true;
+  }
   function send(payload) {
     if (!realFetch) return;
     var body = JSON.stringify({ p: payload });
@@ -225,6 +239,8 @@
       if (/ResizeObserver loop/i.test(msg)) return;
       var file = e.filename || '';
       if (/extension:\/\//i.test(file)) return;   // browser extensions are not our bugs
+      var stk = e.error && e.error.stack;
+      if (stk && !/https?:\/\//.test(stk) && /<anonymous>/.test(stk)) return;   // code injected into the page by an extension: no frame from our files
       // "Script error." with no file is the browser hiding an error from another site's script: nothing to go on
       if (!file && /^Script error\.?$/i.test(msg)) return;
       report('js', msg || 'Script error', { file: clip(file.replace(location.origin, ''), 80), line: e.lineno, col: e.colno },
@@ -269,13 +285,16 @@
           if (ep === 'auth/verify') return;                              // a mistyped sign-in code is not a bug
           if (ep === 'auth/logout' && s === 403) return;                 // signing out of a session that already ended
           if (ep === 'auth/otp' && s === 429) return;                    // asked for a code too soon; the page says so
+          if (s === 401 && sessionEnded(init, input)) return;            // expired / ended login: the page asks them to sign in again
           res.clone().text().then(function (txt) {
             var msg = '';
             safe(function () { var j = JSON.parse(txt); msg = j.message || j.msg || j.error_description || j.error || ''; });
             if (!msg) msg = clip(txt, 160);
             if (ep === 'auth/token' && s === 400 && /refresh token/i.test(msg)) return;   // an old login that expired: the page just asks them to sign in again
             // a game or form rule saying no ("not enough points", "safe word needed", "wait 30 seconds"): the page shows it, it isn't a bug
-            if (s === 400 && /^rpc\//.test(ep) && safe(function () { return JSON.parse(txt).code === 'P0001'; })) return;
+            // (the same goes for a database rule refusing a form, e.g. a banned account or an unverified email)
+            if (s === 400 && /^(rpc|rest)\//.test(ep) && safe(function () { return JSON.parse(txt).code === 'P0001'; })) return;
+            if (s === 401 && /JWT expired/i.test(msg)) return;
             report('http', method + ' ' + ep + ' → ' + s + (msg ? ': ' + msg : ''), { endpoint: ep, method: method, status: s },
               null, { toast: s >= 500 });
           }, function () {

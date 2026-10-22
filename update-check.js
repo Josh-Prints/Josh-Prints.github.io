@@ -308,6 +308,8 @@
   }
   function check(){
     var t = token(); if (!t || shown || busy) return;
+    // an expired login is refreshed by the page's own client (the storage event below re-runs this); calling with it only gets a 401
+    try { var exp = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp; if (exp && exp * 1000 < Date.now()) return; } catch (e) {}
     busy = true;
     fetch(SB + '/rest/v1/rpc/my_account_ban', { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: '{}' })
       .then(function(r){ return r.ok ? r.json() : null; })
