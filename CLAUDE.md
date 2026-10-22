@@ -82,6 +82,10 @@
   The customer's order page shows a "Held for review" box with a "Request review" button (rpc `request_spam_review` sets
   `orders.review_requested_at` and pings Discord; `get_order_checkout` returns `spam` / `review_requested`, never the reasons).
   Admin list and order page show "Review requested".
+- Guest email check (`migrations/email-verify-migration.sql`, `/email-verify.js`): a guest (no account) must verify their email with a
+  6-digit code (Resend) before an order is accepted; trigger trg_b_email_verified enforces it, signed-in customers and admins skip it.
+  order-form.html and the browse.html order modal call `VoxVerify.ensure(supabase, email, {google})` before inserting and show a
+  "Sign in with Google" strip at the top (`VoxGuestSignin`). The code screen says "Check your spam". New pages that insert guest orders must do the same.
 - SEO: public pages (index, browse, estimate, order-form, games, terms, privacy) have a description, canonical, Open Graph /
   Twitter tags and og-image.png in <head>; index also has LocalBusiness JSON-LD. Private pages (order, quote, viewer, admin/*,
   game pages) carry `noindex, nofollow`. robots.txt and sitemap.xml are at the root: add new public pages to sitemap.xml and

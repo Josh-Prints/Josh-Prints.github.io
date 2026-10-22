@@ -25,6 +25,7 @@
 <script src="/looks.js"></script>
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
+<script src="/email-verify.js?v=1" defer></script>
 <style>
   .ico{ vertical-align:-0.18em; flex-shrink:0; }
   :root{
@@ -1350,6 +1351,8 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       return;
     }
 
+    if (!currentUser && !(await VoxVerify.ensure(supabase, email, { google: () => document.getElementById('google-signin-btn').click() }))) return;
+
     setBusy(true, 10);
 
     // Re-check right before submitting — covers a code typed but never
@@ -1453,6 +1456,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
   (function(){
     const signInBtn = document.getElementById('google-signin-btn');
     if (!signInBtn) return;
+    const guestStrip = window.VoxGuestSignin ? VoxGuestSignin(document.getElementById('order-form')) : null;
     const accountChip = document.getElementById('account-chip');
     const accountName = document.getElementById('account-name');
     const accountCredit = document.getElementById('account-credit');
@@ -1495,6 +1499,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
     function renderSignedOut(){
       signInBtn.style.display = 'flex';
       emailCodeBtn.style.display = 'flex';
+      if (guestStrip) guestStrip.hidden = false;
       accountChip.style.display = 'none';
       signOutBtn.style.display = 'none';
       if (myOrdersLink) myOrdersLink.innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#package"/></svg> Track an order';
@@ -1516,6 +1521,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
 
       signInBtn.style.display = 'none';
       emailCodeBtn.style.display = 'none';
+      if (guestStrip) guestStrip.hidden = true;
       resetEmailCodePanel();
       accountChip.style.display = 'flex';
       signOutBtn.style.display = 'flex';

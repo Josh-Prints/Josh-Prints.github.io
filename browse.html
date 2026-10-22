@@ -25,6 +25,7 @@
 <script src="/looks.js"></script>
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
+<script src="/email-verify.js?v=1" defer></script>
 <style>
   .ico{ vertical-align:-0.18em; flex-shrink:0; }
   :root{
@@ -948,6 +949,8 @@
     const notes = document.getElementById('m-notes').value.trim();
     if (!fullName || !email || !selectedDesign) return;
 
+    if (!currentUser && !(await VoxVerify.ensure(supabase, email, { google: () => document.getElementById('google-signin-btn').click() }))) return;
+
     const submitBtn = document.getElementById('modal-submit');
     submitBtn.disabled = true;
     submitBtn.textContent = 'Placing…';
@@ -995,6 +998,7 @@
   // ---- customer account (Google sign-in) ----
   (function(){
     const signInBtn = document.getElementById('google-signin-btn');
+    const guestStrip = window.VoxGuestSignin ? VoxGuestSignin(form) : null;
     if (!signInBtn) return;
     const accountChip = document.getElementById('account-chip');
     const accountName = document.getElementById('account-name');
@@ -1035,6 +1039,7 @@
     function renderSignedOut(){
       signInBtn.style.display = 'flex';
       emailCodeBtn.style.display = 'flex';
+      if (guestStrip) guestStrip.hidden = false;
       accountChip.style.display = 'none';
       signOutBtn.style.display = 'none';
       if (adminLink) adminLink.style.display = 'none';
@@ -1048,6 +1053,7 @@
       currentProfileName = profile?.full_name || '';
       signInBtn.style.display = 'none';
       emailCodeBtn.style.display = 'none';
+      if (guestStrip) guestStrip.hidden = true;
       resetEmailCodePanel();
       accountChip.style.display = 'flex';
       signOutBtn.style.display = 'flex';
