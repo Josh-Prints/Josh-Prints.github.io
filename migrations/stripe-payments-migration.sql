@@ -19,13 +19,13 @@ language sql stable security definer set search_path = public as $$
     from public.orders where id = p_id) end;
 $$;
 
--- founders: mark an order paid by cash / PayID, or clear it
+-- founders: mark an order paid by cash / PayID / tap (card tapped on a phone or reader), or clear it
 create or replace function public.admin_set_order_paid(p_id uuid, p_method text, p_paid boolean) returns jsonb
 language plpgsql security definer set search_path = public as $$
 begin
   if not public.is_founder() then raise exception 'founders only'; end if;
   if p_paid then
-    if p_method not in ('cash', 'payid', 'card') then raise exception 'pick a payment method'; end if;
+    if p_method not in ('cash', 'payid', 'card', 'tap') then raise exception 'pick a payment method'; end if;
     update public.orders set paid_at = coalesce(paid_at, now()), paid_amount = coalesce(paid_amount, quote_amount), paid_method = p_method where id = p_id;
   else
     update public.orders set paid_at = null, paid_amount = null, paid_method = null where id = p_id;

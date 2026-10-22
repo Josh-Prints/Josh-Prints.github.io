@@ -638,7 +638,7 @@
   const INSTANT_HIDDEN = ['acknowledged', 'quoted'];
   const shownStatus = o => o.instant_buy && INSTANT_HIDDEN.includes(o.status) ? 'new' : o.status;
   const STATUS_LABEL = { new:'New', acknowledged:'Acknowledged', quoted:'Quoted', printing:'Printing', completed:'Completed', sold:'Sold', cancelled:'Cancelled' };
-  const PAID_BY = { card: 'card', cash: 'cash', payid: 'PayID' };
+  const PAID_BY = { card: 'card', cash: 'cash', payid: 'PayID', tap: 'tap' };
   let isFounder = null;
 
   let order = null;
@@ -950,7 +950,7 @@
           ? `<span>Paid ${fmt(order.paid_amount ?? order.quote_amount)} by ${escapeHtml(PAID_BY[order.paid_method] || order.paid_method || '?')} on ${new Date(order.paid_at).toLocaleDateString()}</span>
              ${order.paid_method === 'card' || order.refunded_at ? '' : '<button type="button" class="btn" id="unpaid-btn">Mark unpaid</button>'}`
           : `<span>Payment</span>
-             <select id="paid-method"><option value="cash">Cash</option><option value="payid">PayID</option></select>
+             <select id="paid-method"><option value="cash">Cash</option><option value="payid">PayID</option><option value="tap">Tap</option></select>
              <button type="button" class="btn" id="paid-btn">Mark paid</button>`}
         <span class="save-msg" id="pay-msg"></span>
       </div>

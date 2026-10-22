@@ -1250,7 +1250,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
 
   /* ---------- paying by card (Stripe Checkout through the stripe-pay function) ---------- */
   const money = v => '$' + Number(v || 0).toFixed(2);
-  const PAID_BY = { card: 'card', cash: 'cash', payid: 'PayID' };
+  const PAID_BY = { card: 'card', cash: 'cash', payid: 'PayID', tap: 'tap' };
   async function payCall(action){
     const { data, error } = await supabase.functions.invoke('stripe-pay', { body: { action, orderId } });
     if (error){
