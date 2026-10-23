@@ -11,7 +11,7 @@
 <script src="/looks.js"></script>
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
-<script src="/msg-actions.js?v=4"></script>
+<script src="/msg-actions.js?v=5"></script>
 <style>
   .ico{ vertical-align:-0.18em; flex-shrink:0; }
   :root{
@@ -1483,6 +1483,8 @@ h1{ animation: fadeInDown 0.5s ease both; }
     save: (id, text) => supabase.rpc('edit_order_message', { p_order_id: orderId, p_id: id, p_body: text }).then(({ error }) => { if (error) throw error; }),
     remove: id => supabase.rpc('delete_order_message', { p_order_id: orderId, p_id: id }).then(({ error }) => { if (error) throw error; }),
     refresh: () => { msgSig = ''; loadMessages(); },
+    react: (id, emoji) => supabase.rpc('toggle_order_reaction', { p_order_id: orderId, p_message_id: id, p_emoji: emoji }).then(({ error }) => { if (error) throw error; }),
+    reactions: () => supabase.rpc('get_order_reactions', { p_order_id: orderId }).then(({ data }) => data || []),
   });
 
   function renderMessages(list){

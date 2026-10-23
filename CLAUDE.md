@@ -17,7 +17,7 @@
 - Keep UI text short, like a normal website: labels, short headings and one-line
   hints. No explanatory paragraphs, long rule lists or chatty messages ("Not enough
   chips.", not "You don't have that many chips free."). The user called this out.
-- No emojis anywhere in the site's UI (buttons, labels, messages, toasts). The
+- No emojis anywhere in the site's UI (except message reactions, which the user asked for) (buttons, labels, messages, toasts). The
   user dislikes them. Use the line icons from `/icons.svg` instead
   (`<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#name"/></svg>`),
   or plain text. Playing-card suit symbols (♠♥♦♣) are fine.
@@ -118,6 +118,9 @@
   message down (~0.45 s, mouse or finger) to show Edit / Delete. Deleted = `deleted_at` set and text/files cleared, and the message is
   left out of every chat; edits leave no mark (the user wanted no "(edited)" / "deleted" labels). order.html reads `get_order_messages_v2`.
   Time labels: `VoxMsg.times(list)` gives one label above a group; a new one only once a message is 30+ min after the last label.
+  Reactions (`migrations/message-reactions-migration.sql`, table message_reactions): holding any message shows a row of 4 emoji
+  (thumbs up/down, heart, fire) plus "+" for any one emoji; chips under the bubble toggle. Pass `react` / `reactions` to VoxMsg.wire
+  (rpc toggle_/get_order_reactions, toggle_/get_admin_reactions). These emoji are the one exception to the no-emoji rule (the user asked).
   New chats should use the same helper.
 - SEO: public pages (index, browse, estimate, order-form, games, terms, privacy) have a description, canonical, Open Graph /
   Twitter tags and og-image.png in <head>; index also has LocalBusiness JSON-LD. Private pages (order, quote, viewer, admin/*,
