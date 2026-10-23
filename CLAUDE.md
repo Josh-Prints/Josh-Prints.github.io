@@ -110,6 +110,10 @@
   Guests dodge account bans with a new email, so `blocked_identities` (kind email/name, lower-case) is also checked by the order
   trigger; add rows by SQL for anyone who keeps coming back.
 
+- Database functions are callable from any browser with the public key: new SECURITY DEFINER functions must `revoke all ... from public, anon, authenticated`
+  and grant only what a page needs, and must never run caller-supplied SQL (a leftover `exec_sql(sql_query)` did, open to anon; revoked 2026-10-23).
+  Run the Supabase security advisor after schema changes. New tables: enable RLS and revoke anon/authenticated table grants unless a page reads them.
+
 ## To do (remind the user)
 - Stripe go-live: live account "VoxPrints" has bank details, the live publishable key is stored
   (private_config `stripe_publishable_key_live`), and the $8 test payment was refunded. Left: the user
