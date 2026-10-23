@@ -88,6 +88,12 @@
   6-digit code (Resend) before an order is accepted; trigger trg_b_email_verified enforces it, signed-in customers and admins skip it.
   order-form.html and the browse.html order modal call `VoxVerify.ensure(supabase, email, {google})` before inserting and show a
   "Sign in with Google" strip at the top (`VoxGuestSignin`). The code screen says "Check your spam". New pages that insert guest orders must do the same.
+- Emergency mode (`migrations/emergency-mode-migration.sql`, edge function `site-emergency`, `/emergency.html`): the switch at the bottom
+  of Founder > Settings needs a founder AND the site master key (SITE_MASTER_KEY edge function secret, never in the repo or DB; 5 wrong
+  keys = 15 min lock). On: every page pulses red with a warning bar + "Learn more" (update-check.js, `window.VoxEmergency`), and the
+  server refuses new orders (admins too), messages, cash choice, email codes, games (`assert_account_ok`) and new card payments
+  (stripe-pay). New customer-facing actions should call `assert_site_open()` first. DROP FUNCTION / CREATE TRIGGER on this DB tend
+  to hang through the MCP tool: prefer `create or replace` inside existing functions.
 - SEO: public pages (index, browse, estimate, order-form, games, terms, privacy) have a description, canonical, Open Graph /
   Twitter tags and og-image.png in <head>; index also has LocalBusiness JSON-LD. Private pages (order, quote, viewer, admin/*,
   game pages) carry `noindex, nofollow`. robots.txt and sitemap.xml are at the root: add new public pages to sitemap.xml and
@@ -100,7 +106,7 @@
   delete-like action.
 
 - Admin pages are always near-black (the user asked): `/admin/mobile.css` forces one dark palette over each page's own light/dark colours and
-  hides the theme switch. Use the CSS variables (not hard-coded light colours) in new admin UI.
+  hides the dark-mode switch (`.theme-row:has(#theme-switch)`; other `.theme-row` setting rows stay). Use the CSS variables (not hard-coded light colours) in new admin UI.
 - Admin pages on phones: every admin page loads `/admin/mobile.css` last (dark controls via color-scheme, iOS control
   resets, 16px text boxes so iPhone doesn't zoom, nothing wider than the screen). New admin pages should link it too;
   check new admin UI at 390px wide for anything wider than the screen (iPhone then zooms the whole page out).

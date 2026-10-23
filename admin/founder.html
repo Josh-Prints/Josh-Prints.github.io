@@ -1369,6 +1369,22 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     height:1px; background: rgba(var(--border-tint),0.10); margin: 26px 0 22px;
   }
 
+  /* ---- Emergency mode switch ---- */
+  .em-title{ color: var(--err); }
+  .em-card{ border: 1px solid rgba(248,81,73,.35); border-radius: 10px; }
+  .em-switch[aria-checked="true"]{ background: var(--err) !important; border-color: var(--err) !important; }
+  .em-hint{ margin: 0; padding: 0 12px 10px; font-size: 13px; color: var(--ink-dim); }
+  .em-hint.on{ color: var(--err); font-weight: 600; }
+  .em-modal-card{ border-color: rgba(248,81,73,.45); }
+  .em-lbl{ display:block; margin: 0 0 12px; font-size: 13px; font-weight: 600; }
+  .em-lbl input, .em-lbl textarea{ display:block; width:100%; box-sizing:border-box; margin-top:6px; padding:9px 12px; font: inherit; font-weight:400;
+    border:1px solid rgba(var(--border-tint),0.18); border-radius:6px; background: var(--bg); color: var(--ink); }
+  .em-err{ min-height: 18px; font-size: 13px; color: var(--err); margin-bottom: 8px; }
+  .em-actions{ display:flex; justify-content:flex-end; gap:10px; }
+  .em-cancel, .em-go{ padding: 9px 16px; border-radius: 8px; font: 600 14px inherit; font-family: inherit; cursor: pointer; }
+  .em-cancel{ background: none; color: var(--ink); border: 1px solid rgba(var(--border-tint),0.2); }
+  .em-go{ background: var(--err); color: #fff; border: 1px solid var(--err); }
+  .em-go:disabled{ opacity: .6; cursor: default; }
   /* ---- Founder page ---- */
   .founder-wrap{ max-width: 860px; margin: 0 auto; padding: 24px 18px 80px; }
   .founder-card{
@@ -1819,7 +1835,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     #ai-panel{ left: 8px; bottom: 68px; }
   }
 </style>
-<link rel="stylesheet" href="/admin/mobile.css?v=2">
+<link rel="stylesheet" href="/admin/mobile.css?v=3">
 </head>
 <body>
 
@@ -2085,6 +2101,32 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
             <button class="save-btn" id="promo-add-btn" type="button">Add code</button>
           </div>
           <div id="promo-msg"></div>
+        </div>
+      </div>
+
+      <h2 class="settings-section-title em-title">Emergency mode</h2>
+      <div class="modal-body em-card" id="em-card">
+        <div class="theme-row">
+          <span><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#triangle-alert"/></svg> <b>EMERGENCY MODE</b></span>
+          <button type="button" class="theme-switch em-switch" id="em-toggle" role="switch" aria-checked="false" aria-label="Emergency mode"><span class="thumb"></span></button>
+        </div>
+        <p class="em-hint" id="em-state">Off</p>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="em-modal" role="dialog" aria-modal="true" aria-labelledby="em-modal-title">
+      <div class="modal-card em-modal-card">
+        <div class="modal-head"><h2 id="em-modal-title">Turn on emergency mode</h2></div>
+        <p class="modal-sub" id="em-modal-sub">Pauses orders, payments, messages and games. Shows your report to everyone.</p>
+        <div id="em-report-fields">
+          <label class="em-lbl">Title<input type="text" id="em-title" maxlength="80" placeholder="e.g. Site under attack"></label>
+          <label class="em-lbl">Report<textarea id="em-report" rows="5" maxlength="4000" placeholder="What happened and what customers should do."></textarea></label>
+        </div>
+        <label class="em-lbl">Site master key<input type="password" id="em-key" autocomplete="off" spellcheck="false"></label>
+        <div class="em-err" id="em-err" role="alert"></div>
+        <div class="em-actions">
+          <button type="button" class="em-cancel" id="em-cancel">Cancel</button>
+          <button type="button" class="em-go" id="em-go">Turn on</button>
         </div>
       </div>
     </div>
@@ -3062,6 +3104,54 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   });
 
   /* ---- Ordering open / closed ---- */
+  // ---- Emergency mode: the switch needs the site master key, which only the site-emergency function can check ----
+  (function(){
+    const $e = id => document.getElementById(id);
+    const tgl = $e('em-toggle'), stateEl = $e('em-state'), modal = $e('em-modal'), err = $e('em-err'), go = $e('em-go');
+    let active = false;
+    function paint(st){
+      active = !!(st && st.active);
+      tgl.setAttribute('aria-checked', String(active));
+      stateEl.textContent = active ? 'ON since ' + new Date(st.started_at).toLocaleString() + (st.title ? ' · ' + st.title : '') : 'Off';
+      stateEl.classList.toggle('on', active);
+    }
+    async function load(){ const { data } = await supabase.rpc('emergency_status'); if (data) paint(data); }
+    function open(){
+      err.textContent = ''; $e('em-key').value = '';
+      $e('em-report-fields').hidden = active;
+      $e('em-modal-title').textContent = active ? 'Turn off emergency mode' : 'Turn on emergency mode';
+      $e('em-modal-sub').textContent = active ? 'Reopens orders, payments, messages and games.' : 'Pauses orders, payments, messages and games. Shows your report to everyone.';
+      go.textContent = active ? 'Turn off' : 'Turn on';
+      modal.classList.add('open');
+      (active ? $e('em-key') : $e('em-title')).focus();
+    }
+    function close(){ modal.classList.remove('open'); }
+    tgl.addEventListener('click', open);
+    $e('em-cancel').addEventListener('click', close);
+    modal.addEventListener('click', e => { if (e.target === modal) close(); });
+    $e('em-key').addEventListener('keydown', e => { if (e.key === 'Enter') go.click(); });
+    go.addEventListener('click', async () => {
+      const key = $e('em-key').value;
+      const body = { action: active ? 'off' : 'on', key };
+      if (!active){
+        body.title = $e('em-title').value.trim(); body.report = $e('em-report').value.trim();
+        if (!body.title){ err.textContent = 'Add a title.'; return; }
+      }
+      if (!key){ err.textContent = 'Enter the master key.'; return; }
+      go.disabled = true; err.textContent = '';
+      const { error } = await supabase.functions.invoke('site-emergency', { body });
+      go.disabled = false;
+      if (error){
+        let m = 'Something went wrong.';
+        try { const j = await error.context.json(); if (j && j.error) m = j.error; } catch (e) {}
+        err.textContent = m; return;
+      }
+      $e('em-key').value = ''; close(); await load();
+      if (window.VoxEmergency) window.VoxEmergency.check();
+    });
+    load();
+  })();
+
   const ordersEnabledToggle = document.getElementById('orders-enabled-toggle');
   const ordersClosedInput = document.getElementById('orders-closed-input');
   const ordersMsgEl = document.getElementById('orders-msg');

@@ -19,7 +19,7 @@ html{ -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   --app: #05070a; --panel: #0b0e13; --panel2: #10141a; --panel3: #151a21; --line: #1c222b; --line2: #272e39; --ruler: #080a0e;
 }
 /* the light / dark switch has nothing to do here */
-.theme-toggle-btn, .theme-row{ display: none !important; }
+.theme-toggle-btn, .theme-row:has(#theme-switch){ display: none !important; }
 
 /* iPhone/iPad Safari only: drop its own rounded, shaded control styling so the page's styles show as designed */
 @supports (-webkit-touch-callout: none){

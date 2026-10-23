@@ -320,3 +320,62 @@
   addEventListener('storage', function(e){ if (e.key === TOKEN_KEY) check(); });
   document.addEventListener('visibilitychange', function(){ if (!document.hidden) check(); });
 })();
+
+/* Emergency mode (migrations/emergency-mode-migration.sql): while a founder has it on, every page pulses red, shows
+   flashing warning lights and a bar with a "Learn more" link to /emergency.html (the founder's report). The server
+   refuses orders, payments, messages and games on its own; this is only the look. The last state is kept for the tab
+   so the next page shows it straight away. */
+(function(){
+  var SB = 'https://paycasfatsakidsriwqt.supabase.co', KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
+  var on = false, busy = false, onReportPage = /\/emergency(\.html)?$/.test(location.pathname);
+  var CSS =
+    ':root:root:root:root{--accent:#ff3b3b;--accent-dim:rgba(255,59,59,.18);--btn-primary-hover:#ff5c5c}' +
+    '@keyframes vxEmPulse{0%,100%{opacity:.55}50%{opacity:1}}' +
+    '@keyframes vxEmLight{0%,49%{opacity:1;box-shadow:0 0 14px 4px #ff2a2a}50%,100%{opacity:.25;box-shadow:none}}' +
+    '#vx-em-glow{position:fixed;inset:0;pointer-events:none;z-index:2147482000;' +
+      'background:radial-gradient(ellipse at center,rgba(255,0,0,0) 45%,rgba(255,0,0,.28) 100%),rgba(255,0,0,.07);' +
+      'box-shadow:inset 0 0 120px 24px rgba(255,0,0,.55);animation:vxEmPulse 1.6s ease-in-out infinite}' +
+    '#vx-em-bar{position:fixed;left:0;right:0;bottom:0;z-index:2147482001;display:flex;align-items:center;gap:12px;' +
+      'padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:#140000;color:#fff;border-top:2px solid #ff2a2a;' +
+      'font:600 14px/1.3 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;box-shadow:0 -6px 24px rgba(255,0,0,.35)}' +
+    '#vx-em-bar .l{width:12px;height:12px;border-radius:50%;background:#ff2a2a;flex:none;animation:vxEmLight .9s steps(1) infinite}' +
+    '#vx-em-bar .l.b{animation-delay:.45s}' +
+    '#vx-em-bar .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+    '#vx-em-bar .t b{letter-spacing:.08em;color:#ff5c5c;margin-right:6px}' +
+    '#vx-em-bar a{flex:none;color:#fff;background:#ff2a2a;text-decoration:none;padding:7px 14px;border-radius:8px;font-weight:700}' +
+    'html.vx-em body{padding-bottom:64px}' +
+    '@media (prefers-reduced-motion:reduce){#vx-em-glow,#vx-em-bar .l{animation:none}}';
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
+  function apply(st){
+    var want = !!(st && st.active);
+    try { sessionStorage.setItem('vx-em', JSON.stringify(want ? { active: true, title: st.title } : { active: false })); } catch (e) {}
+    var html = document.documentElement;
+    if (!want){
+      if (!on) return; on = false;
+      html.classList.remove('vx-em');
+      ['vx-em-css', 'vx-em-glow', 'vx-em-bar'].forEach(function(id){ var n = document.getElementById(id); if (n) n.remove(); });
+      return;
+    }
+    on = true;
+    html.classList.add('vx-em');
+    if (!document.getElementById('vx-em-css')){ var c = document.createElement('style'); c.id = 'vx-em-css'; c.textContent = CSS; (document.head || html).appendChild(c); }
+    if (!document.body){ document.addEventListener('DOMContentLoaded', function(){ apply(st); }, { once: true }); return; }
+    if (!document.getElementById('vx-em-glow')){ var g = document.createElement('div'); g.id = 'vx-em-glow'; g.setAttribute('aria-hidden', 'true'); document.body.appendChild(g); }
+    if (onReportPage) return;
+    var bar = document.getElementById('vx-em-bar');
+    if (!bar){ bar = document.createElement('div'); bar.id = 'vx-em-bar'; bar.setAttribute('role', 'alert'); document.body.appendChild(bar); }
+    bar.innerHTML = '<span class="l" aria-hidden="true"></span><span class="l b" aria-hidden="true"></span>' +
+      '<span class="t"><b>EMERGENCY</b>' + esc(st.title || 'The site is paused') + '</span><a href="/emergency.html">Learn more</a>';
+  }
+  function check(){
+    if (busy) return; busy = true;
+    fetch(SB + '/rest/v1/rpc/emergency_status', { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: '{}', cache: 'no-store' })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(st){ busy = false; if (st) apply(st); }, function(){ busy = false; });
+  }
+  window.VoxEmergency = { check: check };
+  try { var last = JSON.parse(sessionStorage.getItem('vx-em') || 'null'); if (last && last.active) apply(last); } catch (e) {}
+  check();
+  setInterval(function(){ if (!document.hidden) check(); }, 8000);
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) check(); });
+})();

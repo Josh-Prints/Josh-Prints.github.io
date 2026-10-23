@@ -84,6 +84,11 @@ Deno.serve(async (req: Request) => {
   const payable = (o: typeof order) => PAYABLE.includes(o.status) || (o.instant_buy && ["new", "acknowledged"].includes(o.status));
   const key = await stripeKey(admin);
   if (!key) return json({ error: "Card payments aren't set up yet" }, 503);
+  // emergency mode: no new payments (checking an old one and refunds still work)
+  if (body.action === "intent" || body.action === "checkout") {
+    const { data: em } = await admin.from("site_emergency").select("active").eq("id", 1).maybeSingle();
+    if (em?.active) return json({ error: "Payments are paused" }, 503);
+  }
 
   try {
     if (body.action === "confirm") {

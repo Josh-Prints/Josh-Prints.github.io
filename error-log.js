@@ -298,6 +298,7 @@
             // (the same goes for a database rule refusing a form, e.g. a banned account or an unverified email)
             if (s === 400 && /^(rpc|rest)\//.test(ep) && safe(function () { return JSON.parse(txt).code === 'P0001'; })) return;
             if (s === 401 && /JWT expired/i.test(msg)) return;
+            if (/^(orders|payments) are paused$|^the site is paused$/i.test(msg)) return;   // emergency mode doing its job
             report('http', method + ' ' + ep + ' → ' + s + (msg ? ': ' + msg : ''), { endpoint: ep, method: method, status: s },
               null, { toast: s >= 500 });
           }, function () {
