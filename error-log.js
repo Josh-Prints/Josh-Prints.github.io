@@ -157,7 +157,10 @@
         var exp = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp;
         if (exp && exp * 1000 < Date.now() + 5000) return true;
       }
-      return crumbs.slice(-8).some(function (c) { return /auth\/token → (400|401|403)|network error|offline/.test(c.d); });
+      if (crumbs.slice(-8).some(function (c) { return /auth\/token → (400|401|403)|network error|offline/.test(c.d); })) return true;
+      // the same call worked earlier on this page and now gets 401: the login ended while the tab sat open
+      var u = String(typeof input === 'string' ? input : (input && input.url) || ''), ep = endpointOf(u), m = ((init && init.method) || 'GET').toUpperCase();
+      return crumbs.some(function (c) { return c.k === 'api' && c.d.indexOf(m + ' ' + ep + ' → 200') === 0; });
     }) === true;
   }
   function send(payload) {

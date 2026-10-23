@@ -2209,6 +2209,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       // signed out or the session expired: stop polling tables only a signed-in admin can read
       myUserId = null;
       if (unreadPollTimer){ clearInterval(unreadPollTimer); unreadPollTimer = null; }
+      if (adminChatPollTimer){ clearInterval(adminChatPollTimer); adminChatPollTimer = null; }
       showLogin();
       return;
     }

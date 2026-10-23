@@ -692,7 +692,7 @@
     loginErr.classList.remove('show');
     supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
   });
-  function showLogin(){ $('login-view').style.display = 'flex'; $('dash-view').style.display = 'none'; $('ai-fab').hidden = true; $('ai-panel').hidden = true; }
+  function showLogin(){ try { if (chatTimer){ clearInterval(chatTimer); chatTimer = null; } } catch (e) {} $('login-view').style.display = 'flex'; $('dash-view').style.display = 'none'; $('ai-fab').hidden = true; $('ai-panel').hidden = true; }
   // Retries a lookup a couple of times so a network blip while confirming the
   // login never looks like 'not an admin' (which signs the person out).
   async function withRetry(fn){
