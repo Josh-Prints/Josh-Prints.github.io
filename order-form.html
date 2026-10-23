@@ -421,6 +421,11 @@
   .fil-opt.is-disabled{ pointer-events: none; }
   .fil-opt.is-disabled .card{ opacity: 0.45; }
   .fil-opt.is-disabled .meta{ font-style: italic; }
+  .fil-group{ grid-column: 1 / -1; font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color: var(--ink-dim); margin: 8px 0 -2px; }
+  .fil-group:first-child{ margin-top:0; }
+  .fil-more{ grid-column: 1 / -1; justify-self:start; padding:7px 14px; border-radius:999px; border:1px solid rgba(var(--border-tint),0.18);
+    background: var(--bg); color: var(--ink); font: inherit; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+  .fil-more:hover{ border-color: var(--accent); color: var(--accent); }
   .fil-empty-note{ font-size: 13px; color: var(--ink-dim); display:flex; align-items:center; gap:6px; }
 
   .dropzone{
@@ -810,7 +815,8 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
   .steps-title b{ color: var(--ink); font-weight:700; }
   .step{ display:none; }
   .step.on{ display:block; animation: fadeInUp .3s ease both; }
-  .step .fil-picker{ max-height: 46vh; overflow-y:auto; padding:2px; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
+  .step .fil-picker{ max-height: 40vh; overflow-y:auto; padding:2px; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
+  #field-fil.invalid .fil-picker{ outline: 1px solid var(--err); outline-offset: 4px; border-radius: 8px; }
   .step-nav{ display:flex; gap:10px; margin-top:6px; }
   .step-btn{ flex:1; padding:14px 18px; border-radius:8px; font: inherit; font-size:15px; font-weight:700; cursor:pointer;
     border:1px solid rgba(var(--border-tint),0.18); background: var(--bg-raised); color: var(--ink); }
@@ -928,7 +934,35 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       <div class="steps-dots" id="steps-dots"></div>
       <div class="steps-title"><span id="step-count"></span> <b id="step-title"></b></div>
     </div>
-    <section class="step" data-title="Your file">
+    <section class="step" data-title="Your details">
+    <div class="field" id="field-full_name">
+      <label for="full_name">Full name <span class="req">*</span></label>
+      <input type="text" id="full_name" name="full_name" placeholder="e.g. Alex Rivera" required autocomplete="name">
+      <div class="field-error">Please add your full name.</div>
+    </div>
+
+    <div class="field" id="field-email">
+      <label for="email">Email <span class="req">*</span></label>
+      <input type="text" id="email" name="email" placeholder="e.g. alex@email.com" required autocomplete="email" inputmode="email">
+      <div class="field-error" id="email-error">Please add a valid email address.</div>
+    </div>
+
+    <div class="field" id="field-order_type" hidden>
+      <label id="order-type-label">Order type <span class="req">*</span></label>
+      <div class="order-types" role="radiogroup" aria-labelledby="order-type-label">
+        <label class="order-type">
+          <input type="radio" name="order_type" value="custom_print" required checked>
+          <div class="card">
+            <div class="name">Custom Print</div>
+            <div class="desc">Print a file you already have</div>
+          </div>
+        </label>
+      </div>
+      <div class="field-error">Please choose an order type.</div>
+    </div>
+
+    </section>
+    <section class="step" data-title="File and colour">
     <div class="field" id="field-file">
       <label>3D file <span class="req">*</span></label>
       <div class="dropzone" id="dropzone">
@@ -941,10 +975,9 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       <div class="field-error">Add a file.</div>
     </div>
 
-    </section>
-    <section class="step" data-title="Colour">
-    <div class="field">
-      <label>Filament <span style="text-transform:none; letter-spacing:0;">(optional)</span></label>
+    <div class="field" id="field-fil">
+      <label>Filament <span class="req">*</span></label>
+      <div class="field-error">Pick a filament.</div>
       <div class="fil-picker" id="fil-picker">
         <div class="fil-empty-note"><svg class="logo-loading" width="13" height="13" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg"><polygon points="200,40.2 231.4,58.3 200,76.5 168.6,58.3" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.00s"/>
       <polygon points="150.9,68.5 182.3,86.7 150.9,104.8 119.5,86.7" fill="#5fa8ff" stroke="#5fa8ff" stroke-width="10" stroke-linejoin="round" style="animation-delay:0.24s"/>
@@ -977,10 +1010,10 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
     </div>
 
     </section>
-    <section class="step" data-title="Details">
+    <section class="step" data-title="Description">
     <div class="field">
-      <label for="notes">Notes</label>
-      <textarea id="notes" name="notes" placeholder="Size, material, colour, deadline, anything I should know"></textarea>
+      <label for="notes">Description</label>
+      <textarea id="notes" name="notes" placeholder="Size, colour, deadline, anything I should know"></textarea>
     </div>
 
     <div class="field">
@@ -990,34 +1023,6 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
     </div>
 
     <div class="discount-banner" id="discount-banner"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#party-popper"/></svg> You have 35% off your next order under 4 hours — I'll apply it to your quote.</div>
-
-    </section>
-    <section class="step" data-title="Your details">
-    <div class="field" id="field-full_name">
-      <label for="full_name">Full name <span class="req">*</span></label>
-      <input type="text" id="full_name" name="full_name" placeholder="e.g. Alex Rivera" required autocomplete="name">
-      <div class="field-error">Please add your full name.</div>
-    </div>
-
-    <div class="field" id="field-email">
-      <label for="email">Email <span class="req">*</span></label>
-      <input type="text" id="email" name="email" placeholder="e.g. alex@email.com" required autocomplete="email" inputmode="email">
-      <div class="field-error" id="email-error">Please add a valid email address.</div>
-    </div>
-
-    <div class="field" id="field-order_type" hidden>
-      <label id="order-type-label">Order type <span class="req">*</span></label>
-      <div class="order-types" role="radiogroup" aria-labelledby="order-type-label">
-        <label class="order-type">
-          <input type="radio" name="order_type" value="custom_print" required checked>
-          <div class="card">
-            <div class="name">Custom Print</div>
-            <div class="desc">Print a file you already have</div>
-          </div>
-        </label>
-      </div>
-      <div class="field-error">Please choose an order type.</div>
-    </div>
 
     <div class="field agree-field" id="field-agree">
       <label class="agree"><input type="checkbox" id="agree-terms"> <span>I have read and agree to the <a href="/terms.html" target="_blank">Terms and Conditions</a> and <a href="/privacy.html" target="_blank">Privacy Policy</a></span></label>
@@ -1060,40 +1065,58 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
 </div>
 
 <script>
-  // order form in steps: Next checks the step, Enter moves on instead of sending, Send only on the last step
+  // order form in steps: Next checks the step, Enter moves on instead of sending, Send only on the last step.
+  // A step with nothing to fill in (signed in: no name / email boxes) is skipped.
   (function(){
     var form = document.getElementById('order-form');
     var steps = Array.prototype.slice.call(form.querySelectorAll('.step'));
     var back = document.getElementById('step-back'), next = document.getElementById('step-next');
-    var dots = document.getElementById('steps-dots'), cur = 0;
-    dots.innerHTML = steps.map(function(){ return '<i></i>'; }).join('');
+    var dots = document.getElementById('steps-dots'), cur = -1;
+    var EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    function usable(s){ return Array.prototype.some.call(s.querySelectorAll('.field, button[type="submit"]'), function(f){ return !f.hidden && f.style.display !== 'none'; }); }
+    function live(){ return steps.filter(usable); }
     function show(n){
-      cur = Math.max(0, Math.min(steps.length - 1, n));
-      steps.forEach(function(s, i){ s.classList.toggle('on', i === cur); });
-      Array.prototype.forEach.call(dots.children, function(d, i){ d.classList.toggle('on', i <= cur); });
-      document.getElementById('step-count').textContent = (cur + 1) + ' of ' + steps.length + ' ·';
-      document.getElementById('step-title').textContent = steps[cur].dataset.title;
-      back.hidden = cur === 0;
-      next.hidden = cur === steps.length - 1;
+      var list = live(); if (!list.length) return;
+      n = Math.max(0, Math.min(list.length - 1, n));
+      var target = list[n];
+      steps.forEach(function(s){ s.classList.toggle('on', s === target); });
+      cur = n;
+      dots.innerHTML = list.map(function(_, i){ return '<i' + (i <= n ? ' class="on"' : '') + '></i>'; }).join('');
+      document.getElementById('step-count').textContent = (n + 1) + ' of ' + list.length + ' ·';
+      document.getElementById('step-title').textContent = target.dataset.title;
+      back.hidden = n === 0;
+      next.hidden = n === list.length - 1;
       var top = form.getBoundingClientRect().top + window.scrollY - 90;
       if (window.scrollY > top) window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
     }
-    function ok(n){
-      if (steps[n].querySelector('#field-file')){
-        var has = window.VoxOrderFiles && window.VoxOrderFiles() > 0;
-        document.getElementById('field-file').classList.toggle('invalid', !has);
-        return has;
+    function flag(id, bad){ var f = document.getElementById(id); if (f) f.classList.toggle('invalid', bad); return !bad; }
+    function ok(sec){
+      var good = true, f;
+      f = sec.querySelector('#field-full_name');
+      if (f && !f.hidden && f.style.display !== 'none') good = flag('field-full_name', !document.getElementById('full_name').value.trim()) && good;
+      f = sec.querySelector('#field-email');
+      if (f && !f.hidden && f.style.display !== 'none'){
+        var v = document.getElementById('email').value.trim();
+        document.getElementById('email-error').textContent = v ? 'That email address doesn’t look right.' : 'Please add your email.';
+        good = flag('field-email', !EMAIL.test(v)) && good;
       }
-      return true;
+      if (sec.querySelector('#field-file')) good = flag('field-file', !(window.VoxOrderFiles && window.VoxOrderFiles() > 0)) && good;
+      if (sec.querySelector('#field-fil')) good = flag('field-fil', !(window.VoxOrderFil ? window.VoxOrderFil() : true)) && good;
+      if (!good){ var bad = sec.querySelector('.field.invalid input, .field.invalid'); if (bad && bad.focus) try { bad.focus({ preventScroll: true }); } catch (e) {} }
+      return good;
     }
-    next.addEventListener('click', function(){ if (ok(cur)) show(cur + 1); });
+    next.addEventListener('click', function(){ var l = live(); if (ok(l[cur])) show(cur + 1); });
     back.addEventListener('click', function(){ show(cur - 1); });
     // capture runs before the page's own submit handler
     document.addEventListener('submit', function(e){
       if (e.target !== form) return;
-      if (cur < steps.length - 1){ e.preventDefault(); e.stopImmediatePropagation(); if (ok(cur)) show(cur + 1); return; }
-      for (var i = 0; i < steps.length - 1; i++) if (!ok(i)){ e.preventDefault(); e.stopImmediatePropagation(); show(i); return; }
+      var l = live();
+      if (cur < l.length - 1){ e.preventDefault(); e.stopImmediatePropagation(); if (ok(l[cur])) show(cur + 1); return; }
+      for (var i = 0; i < l.length - 1; i++) if (!ok(l[i])){ e.preventDefault(); e.stopImmediatePropagation(); show(i); return; }
     }, true);
+    // signing in hides the name / email boxes: move off that step
+    var watch = new MutationObserver(function(){ var title = cur >= 0 && live()[cur]; show(title ? Math.max(0, live().indexOf(title)) : 0); });
+    ['field-full_name', 'field-email'].forEach(function(id){ var el = document.getElementById(id); if (el) watch.observe(el, { attributes: true, attributeFilter: ['style', 'hidden'] }); });
     window.VoxOrderStep = show;
     show(0);
   })();
@@ -1166,34 +1189,61 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
     renderFilamentPicker();
   }
 
+  // colour picker like the designs page: "Featured" colours first (admin Filaments), else the most ordered;
+  // "More colours" shows every colour grouped by type, most used type first
+  let filPop = {}, filExpanded = false;
+  const FIL_SHORT = 8;
+  supabase.rpc('filament_popularity').then(({ data }) => {
+    (data || []).forEach(r => { filPop[r.filament_id] = r.n; });
+    if (filaments.length) renderFilamentPicker();
+  }, () => {});
+  const pop = f => filPop[f.id] || 0;
+  window.VoxOrderFil = () => !!selectedFilament || !filaments.some(f => f.active);
   function renderFilamentPicker(){
     const el = document.getElementById('fil-picker');
     if (filaments.length === 0){
       el.innerHTML = '<div class="fil-empty-note">No filament options set up yet — I\'ll confirm colour with you directly.</div>';
       return;
     }
-    // Active colours first, disabled ones after — sort is stable so each
-    // group keeps its existing sort_order/created_at ordering.
-    const sorted = [...filaments].sort((a, b) => (b.active ? 1 : 0) - (a.active ? 1 : 0));
-    el.innerHTML = sorted.map(f => {
+    const byPop = [...filaments].sort((a, b) => (b.active - a.active) || (pop(b) - pop(a)));
+    const opt = f => {
       const img = filPublicUrl(f.image_path);
       const disabled = !f.active;
+      const on = selectedFilament && selectedFilament.id === f.id;
       return `
         <label class="fil-opt${disabled ? ' is-disabled' : ''}">
-          <input type="radio" name="fil-choice" value="${f.id}" ${disabled ? 'disabled' : ''}>
+          <input type="radio" name="fil-choice" value="${f.id}" ${disabled ? 'disabled' : ''} ${on ? 'checked' : ''}>
           <div class="card">
             <div class="swatch" style="${img ? `background-image:url(${img})` : ''}"></div>
             <div class="name">${escapeHtml(f.color_name)}</div>
             <div class="meta">${disabled ? 'Currently unavailable' : `${escapeHtml(f.type)} · $${Number(f.price_per_100g).toFixed(2)}/100g`}</div>
           </div>
-        </label>
-      `;
-    }).join('');
+        </label>`;
+    };
+    const anyFeat = byPop.some(f => f.featured && f.active);
+    const canExpand = anyFeat ? byPop.some(f => !f.featured) : byPop.length > FIL_SHORT;
+    let html;
+    if (!filExpanded && canExpand){
+      const top = anyFeat ? byPop.filter(f => f.featured && f.active) : byPop.slice(0, FIL_SHORT);
+      if (selectedFilament && !top.some(f => f.id === selectedFilament.id)){ const sel = byPop.find(f => f.id === selectedFilament.id); if (sel) top.push(sel); }
+      html = top.map(opt).join('') + `<button type="button" class="fil-more" id="fil-more">More colours <svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#chevron-down"/></svg></button>`;
+    } else {
+      const groups = {};
+      byPop.forEach(f => { (groups[f.type || 'Other'] = groups[f.type || 'Other'] || []).push(f); });
+      const sum = t => groups[t].reduce((n, f) => n + pop(f), 0);
+      const types = Object.keys(groups).sort((a, b) => sum(b) - sum(a) || groups[b].length - groups[a].length || a.localeCompare(b));
+      html = types.map(t => `<div class="fil-group">${escapeHtml(t)}</div>` + groups[t].map(opt).join('')).join('') +
+        (canExpand ? `<button type="button" class="fil-more" id="fil-more">Less <svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#chevron-up"/></svg></button>` : '');
+    }
+    el.innerHTML = html;
     el.querySelectorAll('input[name="fil-choice"]').forEach(input => {
       input.addEventListener('change', () => {
         selectedFilament = filaments.find(f => f.id === input.value) || null;
+        document.getElementById('field-fil').classList.remove('invalid');
       });
     });
+    const more = document.getElementById('fil-more');
+    if (more) more.addEventListener('click', () => { filExpanded = !filExpanded; renderFilamentPicker(); });
   }
   loadFilaments();
 
