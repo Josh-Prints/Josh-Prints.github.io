@@ -5,9 +5,10 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // The key lives only in the SITE_MASTER_KEY function secret (Supabase dashboard > Edge Functions > Secrets), never in
 // the database or the repo, so a database leak can't reveal it. Wrong keys are counted: 5 misses in 15 minutes from one
 // founder (or 20 from anyone) locks the switch for 15 minutes. Every attempt is logged in site_emergency_attempts.
-//   action "on":  { key, title, report }  pauses the site, copies everyone's data into the private secure_store schema and
-//                 signs everyone out except founders (rpc emergency_lockdown; see migrations/emergency-mode-migration.sql)
-//   action "off": { key }
+//   action "on":  { key, title, report, run }  pauses the site, copies everyone's data into the private secure_store
+//                 schema (rpc emergency_snapshot) and signs everyone out except founders (rpc emergency_signout)
+//   action "off": { key, run }
+// Each step is written to site_emergency_log under `run` (a uuid from the page) so the founder page can show it live.
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -17,6 +18,7 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...CORS, "Content-Type": "application/json" } });
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // compare the typed key with the secret without leaking timing: hash both, then compare every byte
 async function sameKey(a: string, b: string) {
@@ -32,10 +34,11 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
-  let body: { action?: string; key?: string; title?: string; report?: string };
+  let body: { action?: string; key?: string; title?: string; report?: string; run?: string };
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
   const action = body.action;
   if (action !== "on" && action !== "off") return json({ error: "Unknown action" }, 400);
+  const run = UUID.test(String(body.run || "")) ? String(body.run) : crypto.randomUUID();
 
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
   const bearer = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
@@ -46,8 +49,11 @@ Deno.serve(async (req: Request) => {
   const suspended = !!prof?.suspended_until && new Date(prof.suspended_until as string).getTime() > Date.now();
   if (!prof?.is_founder || suspended) return json({ error: "Founders only" }, 403);
 
+  const log = (step: string, ok = true, detail: string | null = null) =>
+    admin.from("site_emergency_log").insert({ run_id: run, action, step, ok, detail, by_user: uid }).then(() => {}, () => {});
+
   const secret = Deno.env.get("SITE_MASTER_KEY") || "";
-  if (secret.length < 8) return json({ error: "Master key isn't set up" }, 503);
+  if (secret.length < 8) { await log("Master key isn't set up", false); return json({ error: "Master key isn't set up", run }, 503); }
 
   // lockout after repeated wrong keys
   const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
@@ -55,28 +61,56 @@ Deno.serve(async (req: Request) => {
     admin.from("site_emergency_attempts").select("id", { count: "exact", head: true }).eq("ok", false).eq("user_id", uid).gte("at", since),
     admin.from("site_emergency_attempts").select("id", { count: "exact", head: true }).eq("ok", false).gte("at", since),
   ]);
-  if ((mine || 0) >= 5 || (all || 0) >= 20) return json({ error: "Too many wrong keys. Try again in 15 minutes." }, 429);
+  if ((mine || 0) >= 5 || (all || 0) >= 20) {
+    await log("Locked: too many wrong keys", false);
+    return json({ error: "Too many wrong keys. Try again in 15 minutes.", run }, 429);
+  }
 
   const ok = await sameKey(String(body.key || ""), secret);
   await admin.from("site_emergency_attempts").insert({ user_id: uid, ok, action });
-  if (!ok) return json({ error: "Wrong master key" }, 403);
+  if (!ok) { await log("Wrong master key", false); return json({ error: "Wrong master key", run }, 403); }
+  await log("Master key accepted");
 
   const now = new Date().toISOString();
-  let row, lockdown: Record<string, unknown> | null = null;
+  let row, signedOut: number | null = null, snapshot: string | null = null, failed = false;
   if (action === "on") {
     const title = String(body.title || "").trim().slice(0, 80);
     const report = String(body.report || "").trim().slice(0, 4000);
-    if (!title) return json({ error: "Add a title" }, 400);
-    ({ data: row } = await admin.from("site_emergency").update({
+    if (!title) return json({ error: "Add a title", run }, 400);
+    const { data, error } = await admin.from("site_emergency").update({
       active: true, title, report, started_at: now, ended_at: null, changed_by: uid, updated_at: now,
-    }).eq("id", 1).select().single());
-    // copy everyone's data into the private secure_store schema and sign everyone out (founders stay signed in)
-    const { data: ld, error: le } = await admin.rpc("emergency_lockdown", { p_reason: title });
-    lockdown = le ? { error: le.message } : ld;
+    }).eq("id", 1).select().single();
+    row = data;
+    if (error || !row?.active) { await log("Couldn't turn emergency mode on", false, error?.message || null); return json({ error: "Couldn't turn it on", run }, 500); }
+    await log("Emergency mode on", true, title);
+    await log("Paused: new orders, payments, messages, email codes, games");
+
+    // 1. secure copy of everyone's data
+    await log("Copying data to secure storage…");
+    const { data: snap, error: se } = await admin.rpc("emergency_snapshot", { p_reason: title });
+    if (se) { failed = true; await log("Secure copy failed", false, se.message); }
+    else {
+      snapshot = snap?.snapshot || null;
+      for (const [t, n] of Object.entries((snap?.tables || {}) as Record<string, number>)) await log("Copied " + t, true, n + " rows");
+      await log("Secure copy saved", true, "secure_store, " + snapshot);
+    }
+
+    // 2. sign everyone out (founders keep their session so the switch can be turned off)
+    await log("Signing everyone out…");
+    const { data: n, error: oe } = await admin.rpc("emergency_signout");
+    if (oe) { failed = true; await log("Sign-out failed", false, oe.message); }
+    else { signedOut = Number(n) || 0; await log("Signed out " + signedOut + " sessions", true, "founders stay signed in"); }
+
+    await log("Customer data hidden from everyone but founders");
   } else {
-    ({ data: row } = await admin.from("site_emergency").update({
+    const { data, error } = await admin.from("site_emergency").update({
       active: false, ended_at: now, changed_by: uid, updated_at: now,
-    }).eq("id", 1).select().single());
+    }).eq("id", 1).select().single();
+    row = data;
+    if (error || row?.active) { await log("Couldn't turn emergency mode off", false, error?.message || null); return json({ error: "Couldn't turn it off", run }, 500); }
+    await log("Emergency mode off");
+    await log("Reopened: orders, payments, messages, email codes, games");
+    await log("Customer data visible again", true, "people sign in again as normal");
   }
 
   // tell the admins on Discord (never blocks the switch)
@@ -88,12 +122,15 @@ Deno.serve(async (req: Request) => {
       const ping = role ? `<@&${role}> ` : "";
       const content = action === "on"
         ? `${ping}**EMERGENCY MODE ON**: ${row?.title || ""}\nOrders, payments, messages and games are paused. ` +
-          (lockdown && !lockdown.error ? `Data copied to secure storage (${lockdown.snapshot}); ${lockdown.signed_out} sessions signed out.` : `Lockdown failed: ${lockdown?.error || "unknown"}`)
+          (snapshot ? `Data copied to secure storage (${snapshot}). ` : "Secure copy FAILED. ") +
+          (signedOut != null ? `${signedOut} sessions signed out.` : "Sign-out FAILED.")
         : `${ping}**Emergency mode off**. The site is open again.`;
-      await fetch(hook, { method: "POST", headers: { "Content-Type": "application/json" },
+      const r = await fetch(hook, { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: content.slice(0, 1900), allowed_mentions: role ? { roles: [role] } : { parse: [] } }) });
+      await log(r.ok ? "Discord alerted" : "Discord alert failed", r.ok, r.ok ? null : "status " + r.status);
     }
-  } catch (_) { /* ignore */ }
+  } catch (e) { await log("Discord alert failed", false, (e as Error).message); }
 
-  return json({ active: !!row?.active, title: row?.title, started_at: row?.started_at, lockdown });
+  await log(failed ? "Finished with problems" : "Done", !failed);
+  return json({ active: !!row?.active, title: row?.title, started_at: row?.started_at, run, snapshot, signed_out: signedOut, failed });
 });

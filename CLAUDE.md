@@ -95,7 +95,8 @@
   (stripe-pay). Turning it on also runs rpc `emergency_lockdown` (service role only): copies every people-data table into the
   private `secure_store` schema (`<table>__<stamp>`, logged in secure_store.snapshots), deletes every login session except founders',
   and pages sign non-founders out locally. Restrictive `emergency_lock` policies + wrapped get_order* / get_recent_customers hide
-  customer data from everyone but founders while it's on. New customer-facing actions should call `assert_site_open()` first;
+  customer data from everyone but founders while it's on. Every step is logged to `site_emergency_log` (rpc `emergency_log`, founders only):
+  shown live in the switch window and as a history under the switch. New customer-facing actions should call `assert_site_open()` first;
   new tables with people's data need an `emergency_lock` policy and a place in emergency_snapshot's list. DROP FUNCTION / CREATE TRIGGER on this DB tend
   to hang through the MCP tool: prefer `create or replace` inside existing functions.
 - SEO: public pages (index, browse, estimate, order-form, games, terms, privacy) have a description, canonical, Open Graph /

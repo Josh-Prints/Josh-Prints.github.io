@@ -1381,6 +1381,19 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     border:1px solid rgba(var(--border-tint),0.18); border-radius:6px; background: var(--bg); color: var(--ink); }
   .em-err{ min-height: 18px; font-size: 13px; color: var(--err); margin-bottom: 8px; }
   .em-actions{ display:flex; justify-content:flex-end; gap:10px; }
+  .em-log{ list-style:none; margin:0 0 14px; padding:10px 12px; max-height:260px; overflow-y:auto; border-radius:8px; background:#020304;
+    border:1px solid rgba(var(--border-tint),0.10); font: 12.5px/1.55 ui-monospace,'SF Mono','Roboto Mono',monospace; }
+  .em-log li{ display:flex; gap:8px; align-items:baseline; }
+  .em-log .t{ color: var(--ink-dim); flex:none; }
+  .em-log .s{ flex:none; width:1.2em; text-align:center; }
+  .em-log .ok .s{ color: var(--ok); }
+  .em-log .bad .s, .em-log .bad .m{ color: var(--err); }
+  .em-log .d{ color: var(--ink-dim); }
+  .em-log .run{ margin-top:8px; padding-top:6px; border-top:1px dashed rgba(var(--border-tint),0.12); color: var(--ink-dim); }
+  .em-log .run:first-child{ margin-top:0; padding-top:0; border-top:0; }
+  .em-log .em-empty{ color: var(--ink-dim); }
+  .em-history{ padding: 0 12px 12px; }
+  .em-history summary{ cursor:pointer; font-size:13px; color: var(--ink-dim); margin-bottom:8px; }
   .em-cancel, .em-go{ padding: 9px 16px; border-radius: 8px; font: 600 14px inherit; font-family: inherit; cursor: pointer; }
   .em-cancel{ background: none; color: var(--ink); border: 1px solid rgba(var(--border-tint),0.2); }
   .em-go{ background: var(--err); color: #fff; border: 1px solid var(--err); }
@@ -2111,6 +2124,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
           <button type="button" class="theme-switch em-switch" id="em-toggle" role="switch" aria-checked="false" aria-label="Emergency mode"><span class="thumb"></span></button>
         </div>
         <p class="em-hint" id="em-state">Off</p>
+        <details class="em-history" id="em-history"><summary>Log</summary><ol class="em-log" id="em-history-list"><li class="em-empty">Nothing yet</li></ol></details>
       </div>
     </div>
 
@@ -2124,6 +2138,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         </div>
         <label class="em-lbl">Site master key<input type="password" id="em-key" autocomplete="off" spellcheck="false"></label>
         <div class="em-err" id="em-err" role="alert"></div>
+        <ol class="em-log" id="em-log" aria-live="polite" hidden></ol>
         <div class="em-actions">
           <button type="button" class="em-cancel" id="em-cancel">Cancel</button>
           <button type="button" class="em-go" id="em-go">Turn on</button>
@@ -3115,9 +3130,25 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       stateEl.textContent = active ? 'ON since ' + new Date(st.started_at).toLocaleString() + (st.title ? ' · ' + st.title : '') : 'Off';
       stateEl.classList.toggle('on', active);
     }
-    async function load(){ const { data } = await supabase.rpc('emergency_status'); if (data) paint(data); }
+    async function load(){ const { data } = await supabase.rpc('emergency_status'); if (data) paint(data); loadHistory(); }
+    // the step-by-step log (site_emergency_log): live while the switch runs, history under the switch
+    const escE = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+    const tm = at => new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    function lineHtml(l){
+      return '<li class="' + (l.ok ? 'ok' : 'bad') + '"><span class="t">' + tm(l.at) + '</span><span class="s">' + (l.ok ? '&#10003;' : '&#10007;') + '</span>' +
+        '<span><span class="m">' + escE(l.step) + '</span>' + (l.detail ? ' <span class="d">' + escE(l.detail) + '</span>' : '') + '</span></li>';
+    }
+    async function loadHistory(){
+      const { data } = await supabase.rpc('emergency_log', { p_run: null, p_limit: 120 });
+      const list = $e('em-history-list');
+      if (!Array.isArray(data) || !data.length){ list.innerHTML = '<li class="em-empty">Nothing yet</li>'; return; }
+      const runs = [];   // data is oldest first; show the newest run first, each run's steps in order
+      data.forEach(l => { const last = runs[runs.length - 1]; if (last && last.id === l.run) last.lines.push(l); else runs.push({ id: l.run, lines: [l] }); });
+      list.innerHTML = runs.reverse().map(r => '<li class="run">' + new Date(r.lines[0].at).toLocaleString() + ' · turned ' + escE(r.lines[0].action) + '</li>' + r.lines.map(lineHtml).join('')).join('');
+    }
     function open(){
-      err.textContent = ''; $e('em-key').value = '';
+      err.textContent = ''; $e('em-key').value = ''; $e('em-log').hidden = true; $e('em-log').innerHTML = '';
+      $e('em-cancel').textContent = 'Cancel'; go.hidden = false;
       $e('em-report-fields').hidden = active;
       $e('em-modal-title').textContent = active ? 'Turn off emergency mode' : 'Turn on emergency mode';
       $e('em-modal-sub').textContent = active ? 'Reopens orders, payments, messages and games.' : 'Pauses everything, secures customer data and signs everyone out. Shows your report.';
@@ -3139,16 +3170,27 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       }
       if (!key){ err.textContent = 'Enter the master key.'; return; }
       go.disabled = true; err.textContent = '';
+      // watch the steps as the server does them
+      body.run = crypto.randomUUID();
+      const logEl = $e('em-log'); logEl.hidden = false; logEl.innerHTML = '<li class="ok"><span class="t">' + tm(Date.now()) + '</span><span class="s">&#8230;</span><span>Sending</span></li>';
+      let shown = 0;
+      const poll = async () => {
+        const { data } = await supabase.rpc('emergency_log', { p_run: body.run, p_limit: 300 });
+        if (Array.isArray(data) && data.length !== shown){ shown = data.length; logEl.innerHTML = data.map(lineHtml).join(''); logEl.scrollTop = logEl.scrollHeight; }
+      };
+      const timer = setInterval(poll, 400);
       const { data: res, error } = await supabase.functions.invoke('site-emergency', { body });
+      clearInterval(timer); await poll();
       go.disabled = false;
       if (error){
         let m = 'Something went wrong.';
         try { const j = await error.context.json(); if (j && j.error) m = j.error; } catch (e) {}
-        err.textContent = m; return;
+        err.textContent = m; loadHistory(); return;
       }
-      $e('em-key').value = ''; close(); await load();
-      const ld = res && res.lockdown;
-      if (ld) stateEl.textContent += ld.error ? ' · Lockdown failed: ' + ld.error : ' · Data secured, ' + ld.signed_out + ' signed out';
+      // keep the window open on the finished log
+      $e('em-key').value = ''; go.hidden = true; $e('em-cancel').textContent = 'Close';
+      if (res && res.failed) err.textContent = 'Finished with problems. Check the log.';
+      await load();
       if (window.VoxEmergency) window.VoxEmergency.check();
     });
     load();

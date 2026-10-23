@@ -162,3 +162,22 @@ end $$;
 -- Note: a function that copied auth.users too never got through the Supabase MCP tool (the request hung every time), so
 -- logins stay in auth only; customer_profiles holds the names / emails and is copied. If any of these functions are
 -- redefined later (get_order etc.), keep the "where not public.site_emergency_active()" wrapper.
+
+-- ===== Step-by-step log =====
+-- The site-emergency function writes every step (key check, each table copied, sessions signed out, Discord, done / failed)
+-- to site_emergency_log under a run id from the page. Founder > Settings shows it live in the switch window and keeps a
+-- history under the switch. The function now calls emergency_snapshot and emergency_signout itself (one log line each).
+create table if not exists public.site_emergency_log (
+  id bigserial primary key, run_id uuid, at timestamptz not null default clock_timestamp(), action text, step text, ok boolean not null default true, detail text, by_user uuid);
+alter table public.site_emergency_log enable row level security;
+revoke all on table public.site_emergency_log from anon, authenticated;
+
+create or replace function public.emergency_log(p_run uuid default null, p_limit int default 60) returns jsonb language sql stable security definer set search_path = public as $$
+  select case when public.is_founder() then coalesce((
+    select jsonb_agg(jsonb_build_object('id', id, 'run', run_id, 'at', at, 'action', action, 'step', step, 'ok', ok, 'detail', detail) order by id)
+    from (select * from public.site_emergency_log where p_run is null or run_id = p_run order by id desc limit least(greatest(p_limit, 1), 300)) x
+  ), '[]'::jsonb) end;
+$$;
+revoke all on function public.emergency_log(uuid, int) from public, anon, authenticated;
+grant execute on function public.emergency_log(uuid, int) to authenticated;
+grant execute on function public.emergency_snapshot(text), public.emergency_signout() to service_role;
