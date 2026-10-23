@@ -393,6 +393,30 @@
   window.VoxEmergency = { check: check };
   try { var last = JSON.parse(sessionStorage.getItem('vx-em') || 'null'); if (last && last.active) apply(last); } catch (e) {}
   check();
+  // fallback: every 8 s while visible, every 20 s in a background tab
   setInterval(function(){ if (!document.hidden) check(); }, 8000);
+  setInterval(function(){ if (document.hidden) check(); }, 20000);
   document.addEventListener('visibilitychange', function(){ if (!document.hidden) check(); });
+
+  // instant: the site-emergency function broadcasts on the Realtime channel "vox-emergency" when the switch flips, so
+  // every open page re-checks within a second (a plain Phoenix websocket, so pages don't need supabase-js for this)
+  var ws = null, hb = null, ref = 0, retry = 1000;
+  function connect(){
+    if (!window.WebSocket) return;
+    try { ws = new WebSocket(SB.replace(/^http/, 'ws') + '/realtime/v1/websocket?apikey=' + encodeURIComponent(KEY) + '&vsn=1.0.0'); } catch (e) { return; }
+    ws.onopen = function(){
+      retry = 1000;
+      ws.send(JSON.stringify({ topic: 'realtime:vox-emergency', event: 'phx_join', ref: String(++ref),
+        payload: { config: { broadcast: { self: false, ack: false }, presence: { key: '' }, private: false } } }));
+      clearInterval(hb);
+      hb = setInterval(function(){ try { ws.send(JSON.stringify({ topic: 'phoenix', event: 'heartbeat', payload: {}, ref: String(++ref) })); } catch (e) {} }, 25000);
+    };
+    ws.onmessage = function(m){
+      var d = null; try { d = JSON.parse(m.data); } catch (e) { return; }
+      if (d && d.event === 'broadcast' && d.payload && d.payload.event === 'emergency'){ busy = false; check(); }
+    };
+    ws.onclose = function(){ clearInterval(hb); setTimeout(connect, retry); retry = Math.min(retry * 2, 30000); };
+    ws.onerror = function(){ try { ws.close(); } catch (e) {} };
+  }
+  connect();
 })();

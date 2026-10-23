@@ -96,7 +96,9 @@
   private `secure_store` schema (`<table>__<stamp>`, logged in secure_store.snapshots), deletes every login session except founders',
   and pages sign non-founders out locally. Restrictive `emergency_lock` policies + wrapped get_order* / get_recent_customers hide
   customer data from everyone but founders while it's on. Every step is logged to `site_emergency_log` (rpc `emergency_log`, founders only):
-  shown live in the switch window and as a history under the switch. New customer-facing actions should call `assert_site_open()` first;
+  shown live in the switch window and as a history under the switch. Instant spread: the function broadcasts `emergency` on the Realtime
+  channel `vox-emergency` (REST broadcast API) and update-check.js keeps a plain websocket on it, so open pages go red / sign out within
+  a second; the 8 s (visible) / 20 s (background) status check is the fallback. New customer-facing actions should call `assert_site_open()` first;
   new tables with people's data need an `emergency_lock` policy and a place in emergency_snapshot's list. DROP FUNCTION / CREATE TRIGGER on this DB tend
   to hang through the MCP tool: prefer `create or replace` inside existing functions.
 - SEO: public pages (index, browse, estimate, order-form, games, terms, privacy) have a description, canonical, Open Graph /

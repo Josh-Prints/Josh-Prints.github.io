@@ -18,6 +18,15 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...CORS, "Content-Type": "application/json" } });
+// tell every open page right now: a Realtime broadcast on "vox-emergency" (update-check.js listens and re-checks)
+async function broadcast(active: boolean) {
+  const r = await fetch(SUPABASE_URL + "/realtime/v1/api/broadcast", {
+    method: "POST",
+    headers: { apikey: SERVICE_KEY, Authorization: "Bearer " + SERVICE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ messages: [{ topic: "vox-emergency", event: "emergency", payload: { active } }] }),
+  });
+  return r.ok ? null : "status " + r.status;
+}
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // compare the typed key with the secret without leaking timing: hash both, then compare every byte
@@ -84,6 +93,8 @@ Deno.serve(async (req: Request) => {
     if (error || !row?.active) { await log("Couldn't turn emergency mode on", false, error?.message || null); return json({ error: "Couldn't turn it on", run }, 500); }
     await log("Emergency mode on", true, title);
     await log("Paused: new orders, payments, messages, email codes, games");
+    const be = await broadcast(true).catch((e: Error) => e.message);
+    await log(be ? "Live alert to open pages failed" : "Every open page told: going red, signing out", !be, be);
 
     // 1. secure copy of everyone's data
     await log("Copying data to secure storage…");
@@ -109,6 +120,8 @@ Deno.serve(async (req: Request) => {
     row = data;
     if (error || row?.active) { await log("Couldn't turn emergency mode off", false, error?.message || null); return json({ error: "Couldn't turn it off", run }, 500); }
     await log("Emergency mode off");
+    const be = await broadcast(false).catch((e: Error) => e.message);
+    await log(be ? "Live alert to open pages failed" : "Every open page told: back to normal", !be, be);
     await log("Reopened: orders, payments, messages, email codes, games");
     await log("Customer data visible again", true, "people sign in again as normal");
   }
