@@ -49,12 +49,14 @@
   var EVERY = 8000;
   var base = null, shown = false, busy = false;
 
-  // the page itself plus same-site scripts and stylesheets (not third-party ones)
+  // the page itself plus same-site scripts and stylesheets (not third-party ones), each under the exact address the page
+  // loads it from: "/casino.js?v=17" is a different cache entry from "/casino.js", and refreshing the wrong one left the
+  // old script running after Refresh
   function urls(){
     var list = [location.pathname];
     document.querySelectorAll('script[src], link[rel="stylesheet"][href]').forEach(function(el){
       var u; try { u = new URL(el.getAttribute('src') || el.getAttribute('href'), location.href); } catch (e) { return; }
-      if (u.origin === location.origin && list.indexOf(u.pathname) < 0) list.push(u.pathname);
+      if (u.origin === location.origin && list.indexOf(u.pathname + u.search) < 0) list.push(u.pathname + u.search);
     });
     return list;
   }
