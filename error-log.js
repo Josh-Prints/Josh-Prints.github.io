@@ -318,6 +318,9 @@
               if (unloading || document.visibilityState === 'hidden' || Date.now() - navAt < 15000 || Date.now() - hiddenAt < 20000) return;
               if (ep === 'auth/token') return;   // a login refresh that failed on a bad connection is retried by the page itself
               if (ep === 'rpc/live_announcements') return;   // the background announcement check just tries again in 8 seconds
+              // a dropped connection on a read or a background check (page data, leaderboards, who's playing) just shows the old data
+              // and the page asks again; only a failed write (an order, a payment, a message) is worth a report
+              if (method === 'GET' || /^rpc\/(get_|live_|game_|vox_board|vox_me|my_|is_|orders_open|current_|mtcp_|casino_state|casino_me)/.test(ep)) return;
               addCrumb('api', method + ' ' + ep + ' → network error');
               report('network', method + ' ' + ep + ' → network error: ' + (msg || 'failed'),
                 { endpoint: ep, method: method, status: 0 }, null, { toast: true });
