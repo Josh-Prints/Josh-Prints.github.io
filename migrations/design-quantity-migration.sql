@@ -41,3 +41,13 @@ end $function$;
 -- get_order_checkout also returns 'quantity' and 'unit_price' (order.html reads them; get_order's fixed columns stay as they are).
 -- order_discord_payload adds a "Quantity" field when > 1; order_confirmation_email says "3 × <design>".
 -- Both were patched in place (replace on pg_get_functiondef) so their emergency / is_test logic stays untouched.
+
+-- Colour picker order on browse.html: how often each filament has been ordered (counts only, no customer data).
+create or replace function public.filament_popularity() returns table(filament_id uuid, n int)
+language sql stable security definer set search_path to 'public' as $$
+  select o.filament_id, count(*)::int from public.orders o
+  where o.filament_id is not null and not coalesce(o.is_test, false) and not coalesce(o.is_spam, false)
+  group by o.filament_id
+$$;
+revoke all on function public.filament_popularity() from public, anon, authenticated;
+grant execute on function public.filament_popularity() to anon, authenticated;

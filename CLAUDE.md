@@ -74,6 +74,8 @@
   prices (`migrations/design-quantity-migration.sql`): designs.allow_quantity / max_quantity / bulk_tiers [{min, price each}]. browse.html
   shows a quantity picker with the live total; the server sets orders.quantity (clamped) and orders.unit_price at insert, and an instant
   buy's quote_amount = unit price x quantity (trigger trg_c_instant_buy). Change the price rule in both browse.html and design_unit_price.
+  The browse design page needs a filament (when any colour is available): it shows the 8 most ordered colours (rpc
+  `filament_popularity`), "More colours" lists them all grouped by type, most used type first. Designs open at browse.html?d=<id>.
 - Opening an order in admin/order.html acknowledges it (rpc `admin_mark_order_viewed`, new -> acknowledged, no customer email via the
   `orders.skip_status_mail` setting). Instant buys are stored as acknowledged too but shown as New (`shownStatus`); the list's blue glow is `status = 'new'` only.
 - Test orders (`migrations/test-orders-migration.sql`): admins tick "Test order" on order-form.html / the browse order
