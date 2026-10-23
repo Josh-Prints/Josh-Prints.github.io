@@ -436,7 +436,7 @@ const STYLES = [
   { id:'neon', name:'Neon glow', deco:'<div class="wall"></div><div class="floorglow"></div>' },
   { id:'wire', name:'Wireframe 3D', deco:`<div class="floor"></div><div class="scene"><div class="cube">${cubeFaces}</div><div class="cube in">${cubeFaces}</div></div>` },
   { id:'glass', name:'Glassmorphism', deco:'<span class="orb"></span><span class="orb"></span><span class="orb"></span>' },
-  { id:'kinetic', name:'Kinetic type', deco:'<div class="marq">' + ['PRINT · MODEL · SLICE · LAYER · BUILD · ', 'CUSTOM · MADE · TO · ORDER · ', 'PLA · PETG · TPU · RESIN · ', 'IDEA · FILE · QUOTE · PRINT · '].map(t => `<div>${t.repeat(4)}${t.repeat(4)}</div>`).join('') + '</div>' },
+  { id:'kinetic', name:'Kinetic type', deco:'<div class="marq">' + ['PRINT · MODEL · SLICE · LAYER · BUILD · ', 'CUSTOM · MADE · TO · ORDER · ', 'PLA · PETG · TPU · RESIN · ', 'FILE · QUOTE · PRINT · PICKUP · '].map(t => `<div>${t.repeat(4)}${t.repeat(4)}</div>`).join('') + '</div>' },
   { id:'iso', name:'Isometric', deco:'<div class="grid"></div>' +
       isoStack([[0,0,0],[1,0,0],[2,0,0],[0,1,0],[1,1,0],[2,1,0],[0,2,0],[1,2,0],[0,0,1],[1,0,1],[0,1,1],[0,0,2]]).replace('class="stack"', 'class="stack a"') +
       isoStack([[0,0,0],[1,0,0],[0,1,0],[1,1,0],[0,0,1],[1,0,1],[0,1,1],[1,1,1],[0,0,2],[0,0,3]]).replace('class="stack"', 'class="stack b"') },
@@ -483,7 +483,6 @@ const ICONS = {
 };
 const ico = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k]}</svg>`;
 const HOW = [
-  ['bulb', 'custom_model', "Have an idea but no file? Describe it and we'll design and print it."],
   ['search', 'browse', 'Want something quick? Browse ready-to-order designs.'],
   ['upload', 'custom_print', 'Already have an STL, OBJ, 3MF, or STEP file? Upload it and get a quote.'],
   ['box', 'status', 'Every order gets a private tracking link, no account needed.'],
@@ -501,7 +500,7 @@ function pageHTML(s){
         <div class="fgrid">${DESIGNS.map(tileHTML).join('')}</div>
       </div></section>
       <section class="sec how"><div class="wrap">
-        <div class="shd c" data-r><div class="kick">How it works</div><h2>From idea to printed part</h2><p class="sub">Pick the way that suits you. Every order is quoted, tracked and messaged from start to finish.</p></div>
+        <div class="shd c" data-r><div class="kick">How it works</div><h2>From file to printed part</h2><p class="sub">Pick the way that suits you. Every order is quoted, tracked and messaged from start to finish.</p></div>
         <div class="cards">${HOW.map(([k, l, d], i) => `<div class="hcard" data-r style="--dl:${i * .08}s"><div class="ic2">${ico(k)}</div><div class="lab">${l}</div><div class="ds">${d}</div></div>`).join('')}</div>
       </div></section>
       <div class="foot">&copy; Voxprints &middot; Custom 3D printing</div>

@@ -398,6 +398,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
     animation-duration: 0.001ms !important;
   }
 }
+  [hidden]{ display:none !important; }
 </style>
 </head>
 <body>
@@ -435,7 +436,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
       <polygon points="240.2,300.3 208.8,318.4 208.8,354.7 240.2,336.6" fill="#1b4fa8" stroke="#1b4fa8" stroke-width="10" stroke-linejoin="round" style="animation-delay:1.68s"/>
     </svg>Voxprints · Quote Builder</div>
   <h1>3D Print <span>Quote</span> Calculator</h1>
-  <p class="header-sub">Modeling labor · Filament · Surcharge — updates live.</p>
+  <p class="header-sub">Printing · Filament · Surcharge — updates live.</p>
 </div>
 
 <div class="order-banner" id="orderBanner" style="display:none;"></div>
@@ -453,7 +454,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
     <div class="cost-bar-seg seg-sur"   id="segSur"   style="width:0%"></div>
   </div>
   <div class="cost-bar-legend">
-    <div class="legend-item"><div class="legend-dot" style="background:var(--seg-model)"></div>Modeling</div>
+
     <div class="legend-item"><div class="legend-dot" style="background:var(--seg-print)"></div>Printing</div>
     <div class="legend-item"><div class="legend-dot" style="background:var(--seg-fil)"></div>Filament</div>
     <div class="legend-item"><div class="legend-dot" style="background:var(--seg-sur)"></div>Surcharge</div>
@@ -468,7 +469,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
       <div class="card-icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#printer"/></svg></div>
       <div class="card-title">Job Details</div>
     </div>
-    <div class="input-group">
+    <div class="input-group" hidden>
       <div class="input-label"><span class="input-label-text">Modeling time</span><span class="input-label-unit">hours</span></div>
       <div class="input-row">
         <input type="range" id="modelHrsRange" min="0" max="40" step="0.25" value="0">
@@ -624,7 +625,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
   <div class="breakdown-card">
     <div class="breakdown-title">Cost Breakdown</div>
     <div class="breakdown-rows">
-      <div class="breakdown-row" id="rowModel">
+      <div class="breakdown-row" id="rowModel" hidden>
         <div class="bd-left">
           <div class="bd-swatch" style="background:var(--seg-model)"></div>
           <span class="bd-label">Modeling labor</span>
@@ -945,7 +946,7 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
   }
   function applyDraft(d) {
     const set = (id, v, evt) => { if (v == null) return; el(id).value = v; el(id).dispatchEvent(new Event(evt || 'input')); };
-    set('modelHrsNum', d.model); set('printHrsNum', d.print); set('filGramsNum', d.grams); set('discountPct', d.discount);
+    set('modelHrsNum', 0); set('printHrsNum', d.print); set('filGramsNum', d.grams); set('discountPct', d.discount);
     el('roundDown').checked = !!d.round; el('roundDown').dispatchEvent(new Event('change'));
     if (d.preset === 'Custom') { setFilPreset('Custom'); set('filCostKg', d.filKg); }
     else if (d.preset && Object.prototype.hasOwnProperty.call(PRESETS, d.preset)) setFilPreset(d.preset);
@@ -1091,7 +1092,6 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
     doc.text('PRINT SPECIFICATIONS', mar, y);
     y += 5;
     [
-      ['Modeling time', fmtHM(modelHrs)],
       ['Print time',    fmtHM(printHrs)],
       ['Filament used', `${filGrams} g`],
     ].forEach(([label, val]) => {
@@ -1109,7 +1109,6 @@ input[type="range"]:active::-webkit-slider-thumb{ transform: scale(1.15); }
     y += 3;
 
     const rows = [
-      ['Modeling labor',      `${fmtHM(modelHrs)} × $${rate}/hr`,      fmtPdf(modelCost)],
       ['Print machine cost',  `$${baseFee} + ${fmtHM(printHrs)}^1.4 × $${printRate}`, fmtPdf(printCost)],
       ['Filament',            `${filGrams}g @ $${filPerKg}/kg`,  fmtPdf(filCost)],
     ];

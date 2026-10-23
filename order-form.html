@@ -6,19 +6,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Order a Custom 3D Print | Voxprints</title>
-<meta name="description" content="Send your 3D model or idea to Voxprints and get a custom print made locally in Australia. Every order is quoted individually.">
+<meta name="description" content="Send your 3D file to Voxprints and get it printed locally in Australia. Every order is quoted individually.">
 <link rel="canonical" href="https://voxprints.com/order-form.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Voxprints">
 <meta property="og:title" content="Order a Custom 3D Print | Voxprints">
-<meta property="og:description" content="Send your 3D model or idea to Voxprints and get a custom print made locally in Australia. Every order is quoted individually.">
+<meta property="og:description" content="Send your 3D file to Voxprints and get it printed locally in Australia. Every order is quoted individually.">
 <meta property="og:url" content="https://voxprints.com/order-form.html">
 <meta property="og:image" content="https://voxprints.com/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Order a Custom 3D Print | Voxprints">
-<meta name="twitter:description" content="Send your 3D model or idea to Voxprints and get a custom print made locally in Australia. Every order is quoted individually.">
+<meta name="twitter:description" content="Send your 3D file to Voxprints and get it printed locally in Australia. Every order is quoted individually.">
 <meta name="twitter:image" content="https://voxprints.com/og-image.png">
 <meta name="theme-color" content="#0d1117">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
@@ -800,6 +800,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
     line-height: 1.45;
   }
   #order-form.closed{ opacity: 0.5; pointer-events: none; }
+  [hidden]{ display:none !important; }
 </style>
 <link rel="stylesheet" href="/looks.css">
 <link rel="stylesheet" href="/menu.css?v=1">
@@ -901,7 +902,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
   <header>
     <div class="eyebrow"><span class="dot"></span> Layer 1 of 1: Order Intake</div>
     <h1>Vox<span>prints</span></h1>
-    <p class="lede">Send over your project and I'll turn it into a quote. Custom models built from scratch, or your own file printed to spec.</p>
+    <p class="lede">Send your file and I'll turn it into a quote.</p>
   </header>
 
   <div class="orders-closed" id="orders-closed" hidden></div>
@@ -919,18 +920,11 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       <div class="field-error" id="email-error">Please add a valid email address.</div>
     </div>
 
-    <div class="field" id="field-order_type">
+    <div class="field" id="field-order_type" hidden>
       <label id="order-type-label">Order type <span class="req">*</span></label>
       <div class="order-types" role="radiogroup" aria-labelledby="order-type-label">
         <label class="order-type">
-          <input type="radio" name="order_type" value="custom_model" required>
-          <div class="card">
-            <div class="name">Custom Model</div>
-            <div class="desc">Design it from your idea</div>
-          </div>
-        </label>
-        <label class="order-type">
-          <input type="radio" name="order_type" value="custom_print">
+          <input type="radio" name="order_type" value="custom_print" required checked>
           <div class="card">
             <div class="name">Custom Print</div>
             <div class="desc">Print a file you already have</div>

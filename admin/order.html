@@ -502,7 +502,7 @@
           <div class="panel" id="panel-quote">
             <h3><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#calculator"/></svg> Quote builder</h3>
             <div class="qb-grid">
-              <div><label class="fld" for="qbModel">Modeling (h.mm)</label><input type="number" id="qbModel" step="0.01" min="0" value="0"></div>
+              <div hidden><label class="fld" for="qbModel">Modeling (h.mm)</label><input type="number" id="qbModel" step="0.01" min="0" value="0"></div>
               <div><label class="fld" for="qbPrint">Print time (h.mm)</label><input type="number" id="qbPrint" step="0.01" min="0" value="4"></div>
               <div><label class="fld" for="qbGrams">Filament (g)</label><input type="number" id="qbGrams" step="1" min="0" value="120"></div>
               <div><label class="fld" for="qbDiscount">Discount (%)</label><input type="number" id="qbDiscount" step="1" min="0" max="100" value="0"></div>
@@ -1297,7 +1297,6 @@
     const row = (color, label, formula, value, dim) =>
       `<div class="bd-row ${dim ? 'dim' : ''}"><span class="l"><i class="sw" style="background:${color}"></i>${label}<span class="f">${formula}</span></span><span class="v">${value}</span></div>`;
     $('qbBreakdown').innerHTML =
-      row('var(--seg-model)', 'Modeling labor', `${fmtHM(q.modelHrs)} × $${q.rate}/hr`, fmt(q.modelCost), q.modelCost === 0) +
       row('var(--seg-print)', 'Print machine cost', `$${q.base} + ${fmtHM(q.printHrs)}^1.4 × $${q.pr}`, fmt(q.printCost), q.printCost === 0) +
       row('var(--seg-fil)', 'Filament', `${q.grams}g @ $${q.perKg}/kg`, fmt(q.filCost), q.filCost === 0) +
       row('var(--seg-sur)', 'Long-print surcharge', q.surActive ? `>${fmtHM(q.surThresh)}` : `≤${fmtHM(q.surThresh)}`, fmt(q.surCost), !q.surActive) +
@@ -1320,7 +1319,7 @@
     };
   }
   function applyDraft(d){
-    if (d.model != null) $('qbModel').value = d.model;
+    $('qbModel').value = 0;   // printing only now: no modelling time
     if (d.print != null) $('qbPrint').value = d.print;
     if (d.grams != null) $('qbGrams').value = d.grams;
     if (d.discount != null) $('qbDiscount').value = d.discount;
@@ -1445,13 +1444,12 @@
     doc.setFontSize(7); doc.setTextColor(140, 140, 140); doc.text('JOB / PROJECT', mar + 4, y + 4);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(25, 25, 25); doc.text(jobName, mar + 4, y + 8.5);
     y += 17; doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(170, 170, 170); doc.text('PRINT SPECIFICATIONS', mar, y); y += 5;
-    [['Modeling time', fmtHM(q.modelHrs)], ['Print time', fmtHM(q.printHrs)], ['Filament used', `${q.grams} g`]].forEach(([l, v]) => {
+    [['Print time', fmtHM(q.printHrs)], ['Filament used', `${q.grams} g`]].forEach(([l, v]) => {
       doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(110, 110, 110); doc.text(l, mar, y);
       doc.setFont('helvetica', 'bold'); doc.setTextColor(25, 25, 25); doc.text(v, mar + 58, y); y += 5.5;
     });
     y += 5; doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(170, 170, 170); doc.text('COST BREAKDOWN', mar, y); y += 3;
     const rows = [
-      ['Modeling labor', `${fmtHM(q.modelHrs)} × $${q.rate}/hr`, f(q.modelCost)],
       ['Print machine cost', `$${q.base} + ${fmtHM(q.printHrs)}^1.4 × $${q.pr}`, f(q.printCost)],
       ['Filament', `${q.grams}g @ $${q.perKg}/kg`, f(q.filCost)]
     ];

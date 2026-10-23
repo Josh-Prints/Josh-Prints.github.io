@@ -452,6 +452,7 @@
     h1{ font-size: 26px; }
     .total-value{ font-size: 34px; }
   }
+  [hidden]{ display:none !important; }
 </style>
 <link rel="stylesheet" href="/looks.css">
 <link rel="stylesheet" href="/menu.css?v=1">
@@ -608,7 +609,7 @@
           <input type="number" id="filGramsNum" class="num-input" min="0" max="9999" step="1" value="120" aria-labelledby="filGramsLabel">
         </div>
       </div>
-      <div class="input-group">
+      <div class="input-group" hidden>
         <div class="input-label"><span class="input-label-text" id="modelHrsLabel">Design / modeling time</span><span class="input-label-unit">hours</span></div>
         <div class="input-row">
           <input type="range" id="modelHrsRange" min="0" max="20" step="0.25" value="0" aria-labelledby="modelHrsLabel">
@@ -630,7 +631,7 @@
     <div class="card">
       <div class="card-title">Cost breakdown</div>
       <div class="breakdown-rows">
-        <div class="breakdown-row" id="rowModel">
+        <div class="breakdown-row" id="rowModel" hidden>
           <div class="bd-left"><div class="bd-swatch" style="background:#0969da"></div><span class="bd-label">Modeling</span></div>
           <span class="bd-value" id="valModel">$0.00</span>
         </div>

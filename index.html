@@ -1178,7 +1178,7 @@
     </button>
     <div class="hero-eyebrow" id="hero-eyebrow">Now taking orders</div>
     <h1 id="hero-headline"><span class="hl">Custom 3D printing,</span><span class="hl accent-line">made to order.</span></h1>
-    <p id="hero-desc">Founded by Joshua Paterson and co-owned with Kaisyn Hazer. Send a model or describe what you need. Get a quote back, track progress, and message me directly, start to finish.</p>
+    <p id="hero-desc">Founded by Joshua Paterson and co-owned with Kaisyn Hazer. Send a file or pick a design. Get a quote back, track progress, and message me directly, start to finish.</p>
     <div class="hero-actions">
       <a class="btn btn-primary btn-lg" href="order-form.html">Start an order <svg class="btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
       <a class="btn btn-outline btn-lg" href="browse.html"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#search"/></svg> Browse designs</a>
@@ -1235,7 +1235,7 @@
       neon: '<div class="wall"></div><div class="floorglow"></div>',
       wire: '<div class="floor"></div><div class="scene"><div class="cube">' + faces + '</div><div class="cube in">' + faces + '</div></div>',
       glass: '<span class="orb"></span><span class="orb"></span><span class="orb"></span>',
-      kinetic: '<div class="marq">' + ['PRINT · MODEL · SLICE · LAYER · BUILD · ', 'CUSTOM · MADE · TO · ORDER · ', 'PLA · PETG · TPU · RESIN · ', 'IDEA · FILE · QUOTE · PRINT · '].map(function(t){ var r = t + t + t + t; return '<div>' + r + r + '</div>'; }).join('') + '</div>',
+      kinetic: '<div class="marq">' + ['PRINT · MODEL · SLICE · LAYER · BUILD · ', 'CUSTOM · MADE · TO · ORDER · ', 'PLA · PETG · TPU · RESIN · ', 'FILE · QUOTE · PRINT · PICKUP · '].map(function(t){ var r = t + t + t + t; return '<div>' + r + r + '</div>'; }).join('') + '</div>',
       iso: '<div class="grid"></div>' + isoStack([[0,0,0],[1,0,0],[2,0,0],[0,1,0],[1,1,0],[2,1,0],[0,2,0],[1,2,0],[0,0,1],[1,0,1],[0,1,1],[0,0,2]], 'a') + isoStack([[0,0,0],[1,0,0],[0,1,0],[1,1,0],[0,0,1],[1,0,1],[0,1,1],[1,1,1],[0,0,2],[0,0,3]], 'b'),
       ascii: '<pre class="field"></pre>',
       mesh: '<span class="m"></span><span class="m"></span><span class="m"></span><span class="m"></span><div class="shade"></div><div class="grain"></div>',
@@ -1373,15 +1373,10 @@
     <div class="strip-inner">
       <div class="section-head" data-reveal>
         <div class="section-kicker">How it works</div>
-        <h2 class="section-title">From idea to printed part</h2>
+        <h2 class="section-title">From file to printed part</h2>
         <p class="section-sub">Pick the way that suits you. Every order is quoted, tracked and messaged from start to finish.</p>
       </div>
       <div class="strip-grid">
-        <div class="strip-item" data-reveal="scale" style="--d:0.00s">
-          <div class="strip-icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#lightbulb"/></svg></div>
-          <div class="label">custom_model</div>
-          <div class="desc">Have an idea but no file? Describe it and I'll design and print it.</div>
-        </div>
         <div class="strip-item" data-reveal="scale" style="--d:0.08s">
           <div class="strip-icon"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#search"/></svg></div>
           <div class="label">browse</div>

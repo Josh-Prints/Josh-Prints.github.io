@@ -54,3 +54,7 @@ grant execute on function public.filament_popularity() to anon, authenticated;
 
 -- "Featured" colours (admin Filaments tab): shown first on the browse design page, the rest under "More colours".
 alter table public.filaments add column if not exists featured boolean not null default false;
+
+-- Printing only (no custom modelling): instant_buy_order_insert also turns a non-admin custom_model order (old cached
+-- order form) into custom_print. Patched in place after `q := coalesce(new.quantity, 1);`:
+--   if new.order_type = 'custom_model' and not coalesce(public.is_admin(), false) then new.order_type := 'custom_print'; end if;
