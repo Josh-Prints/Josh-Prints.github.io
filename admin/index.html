@@ -2297,7 +2297,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       const words = searchText.split(/\s+/);
       filtered = filtered.filter(o => {
         const hay = [o.full_name, o.email, o.design_name, o.notes, o.filament_color, o.claimed_by, o.order_type === 'custom_model' ? 'custom model' : o.order_type === 'design' ? 'design' : 'custom print',
-          STATUS_LABEL[shownStatus(o)] || o.status, String(o.id).slice(0, 8), o.quote_amount != null ? String(o.quote_amount) : ''].join(' ').toLowerCase();
+          STATUS_LABEL[shownStatus(o)] || o.status, String(o.id).slice(0, 8), o.quote_amount != null ? String(o.quote_amount) : '',
+          o.file_name, ...(Array.isArray(o.files) ? o.files.map(f => f && f.name) : [])].filter(Boolean).join(' ').toLowerCase();
         return words.every(w => hay.includes(w));
       });
     }
