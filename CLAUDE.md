@@ -97,6 +97,8 @@
   orders list (delete / restore) and the founder Inbox (archive). Use it for new list rows with a
   delete-like action.
 
+- Admin pages are always near-black (the user asked): `/admin/mobile.css` forces one dark palette over each page's own light/dark colours and
+  hides the theme switch. Use the CSS variables (not hard-coded light colours) in new admin UI.
 - Admin pages on phones: every admin page loads `/admin/mobile.css` last (dark controls via color-scheme, iOS control
   resets, 16px text boxes so iPhone doesn't zoom, nothing wider than the screen). New admin pages should link it too;
   check new admin UI at 390px wide for anything wider than the screen (iPhone then zooms the whole page out).

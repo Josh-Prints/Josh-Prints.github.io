@@ -4,9 +4,22 @@ html{ -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
 /* tell the browser which theme is showing, so built-in controls (selects, checkboxes, unstyled buttons, scrollbars)
    draw dark on the dark theme instead of white boxes with black text */
-:root{ color-scheme: light dark; }
-:root[data-theme="light"]{ color-scheme: light; }
-:root[data-theme="dark"]{ color-scheme: dark; }
+
+/* Admin is always near-black, whatever theme the visitor picked: this loads last on every admin page and out-ranks each
+   page's own light / dark colours (triple :root beats :root[data-theme] and the prefers-color-scheme block). */
+:root:root:root{
+  color-scheme: dark;
+  --bg: #05070a; --bg-raised: #0b0e13; --bg-raised-2: #10141a; --card: #0b0e13;
+  --ink: #e6edf3; --ink-dim: #8b949e;
+  --accent: #4493f8; --accent-dim: rgba(68,147,248,.14); --btn-primary-hover: #5aa6ff; --btn-hover-bg: #151a21;
+  --err: #f85149; --ok: #3fb950; --ok-dim: rgba(63,185,80,.14); --ok-subtle: rgba(63,185,80,.12);
+  --warn: #e3b341; --warn-dim: rgba(227,179,65,.14);
+  --border-tint: 255,255,255; --grid-line: rgba(255,255,255,0);
+  /* video maker */
+  --app: #05070a; --panel: #0b0e13; --panel2: #10141a; --panel3: #151a21; --line: #1c222b; --line2: #272e39; --ruler: #080a0e;
+}
+/* the light / dark switch has nothing to do here */
+.theme-toggle-btn, .theme-row{ display: none !important; }
 
 /* iPhone/iPad Safari only: drop its own rounded, shaded control styling so the page's styles show as designed */
 @supports (-webkit-touch-callout: none){
