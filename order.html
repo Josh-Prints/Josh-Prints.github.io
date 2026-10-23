@@ -11,7 +11,7 @@
 <script src="/looks.js"></script>
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
-<script src="/msg-actions.js?v=2"></script>
+<script src="/msg-actions.js?v=3"></script>
 <style>
   .ico{ vertical-align:-0.18em; flex-shrink:0; }
   :root{
@@ -1490,7 +1490,8 @@ h1{ animation: fadeInDown 0.5s ease both; }
       messagesEl.innerHTML = '<div class="msg-empty">No messages yet, say hello!</div>';
       return;
     }
-    messagesEl.innerHTML = list.map((m, idx) => {
+    const stamps = VoxMsg.times(list);
+    messagesEl.innerHTML = list.map((m, idx) => stamps[idx] + (() => {
       const fileLinks = (m.files && m.files.length > 0)
         ? m.files
         : (m.file_path ? [{ path: m.file_path, name: m.file_name }] : []);
@@ -1508,7 +1509,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
         ${m.sender === 'customer' && m.id ? VoxMsg.buttons(!!m.body) : ''}
       </div>
     `;
-    }).join('');
+    })()).join('');
     previousMessageCount = list.length;
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }

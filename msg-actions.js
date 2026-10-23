@@ -21,12 +21,38 @@
     '.vm-edit .vm-row{display:flex;gap:6px;justify-content:flex-end;align-items:center}' +
     '.vm-edit .vm-row button{font:inherit;font-size:12.5px;font-weight:600;padding:5px 10px;border-radius:6px;cursor:pointer;border:1px solid rgba(var(--border-tint,128,128,128),.25);background:none;color:inherit}' +
     '.vm-edit .vm-row .vm-save{background:var(--accent,#4493f8);border-color:var(--accent,#4493f8);color:#fff}' +
-    '.vm-edit .vm-err,.vm-err{color:var(--err,#f85149);font-size:12px;margin-right:auto}';
+    '.vm-edit .vm-err,.vm-err{color:var(--err,#f85149);font-size:12px;margin-right:auto}' +
+    '.vm-time{align-self:center;width:100%;text-align:center;font-size:11.5px;font-weight:600;color:var(--ink-dim,var(--fg-muted,#8b949e));margin:12px 0 4px}' +
+    '.vm-time:first-child{margin-top:0}';
   var st = document.createElement('style'); st.textContent = css; (document.head || document.documentElement).appendChild(st);
 
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
 
+  // "3:41 pm", "Yesterday 3:41 pm", "Mon 3:41 pm", "12 Oct, 3:41 pm"
+  function when(t){
+    var d = new Date(t), now = new Date();
+    var time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    var days = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 864e5);
+    if (days <= 0) return time;
+    if (days === 1) return 'Yesterday ' + time;
+    if (days < 7) return d.toLocaleDateString([], { weekday: 'short' }) + ' ' + time;
+    var o = { day: 'numeric', month: 'short' }; if (d.getFullYear() !== now.getFullYear()) o.year = 'numeric';
+    return d.toLocaleDateString([], o) + ', ' + time;
+  }
+  var GAP = 5 * 60 * 1000;
+
   window.VoxMsg = {
+    // time labels like a messaging app: one above the first message, then a new one only when a message comes
+    // more than 5 minutes after the last label. Returns one string per message (mostly ''), to put before each bubble.
+    times: function(list){
+      var last = null;
+      return (list || []).map(function(m){
+        var t = m && m.created_at ? new Date(m.created_at).getTime() : Date.now();
+        if (last !== null && t - last < GAP) return '';
+        last = t;
+        return '<div class="vm-time">' + esc(when(t)) + '</div>';
+      });
+    },
     // the little Edit / Delete buttons for one bubble (canEdit false: only Delete, e.g. a message that is only files)
     buttons: function(canEdit){
       return '<span class="vm-acts">' + (canEdit === false ? '' : '<button type="button" class="vm-edit-btn">' + ico('pencil') + 'Edit</button>') +
