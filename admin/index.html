@@ -10,6 +10,7 @@
 <script>(function(){try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(/^sb-.*-auth-token$/.test(k)){document.documentElement.classList.add('has-session');break;}}}catch(e){}})();</script>
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
+<script src="/msg-actions.js?v=1"></script>
 <style>
   /* A saved login exists: don't flash the sign-in screen while we confirm it (showLogin() overrides this inline). */
   html.has-session #login-view{ display:none; }
@@ -1788,6 +1789,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     completed: 'Completed', sold: 'Sold', cancelled: 'Cancelled'
   };
   let myUserId = null;
+  let amFounder = false;
   let dashboardReady = false;
   let myDisplayName = null;
   let onlyMine = false;
@@ -2020,6 +2022,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     if (!state) return;
     const link = document.getElementById('founder-link');
     if (link) link.style.display = state.is_founder ? '' : 'none';
+    amFounder = !!state.is_founder;
 
     const banner = document.getElementById('suspended-banner');
     if (!banner) return;
@@ -2421,6 +2424,14 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       : `<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> ${n} files`;
   });
 
+  let adminChatList = [];
+  // edit / delete in the admin chat: your own messages, or any as a founder (the server checks the same)
+  VoxMsg.wire(adminChatMessages, {
+    body: id => (adminChatList.find(m => m.id === id) || {}).body || '',
+    save: (id, text) => supabase.rpc('edit_admin_message', { p_id: id, p_body: text }).then(({ error }) => { if (error) throw error; }),
+    remove: id => supabase.rpc('delete_admin_message', { p_id: id }).then(({ error }) => { if (error) throw error; }),
+    refresh: () => { adminChatRenderCache = null; loadAdminChat(); },
+  });
   async function loadAdminChat(){
     const { data, error } = await supabase
       .from('admin_messages')
@@ -2439,8 +2450,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       return;
     }
 
-    const signature = JSON.stringify(data.map(m => [m.id, m.body, m.sender_id, m.sender_name, m.files, m.file_path]));
-    if (adminChatRenderCache === signature) return;
+    const signature = JSON.stringify(data.map(m => [m.id, m.body, m.sender_id, m.sender_name, m.files, m.file_path, m.edited_at, m.deleted_at, amFounder]));
+    if (adminChatRenderCache === signature || VoxMsg.busy(adminChatMessages)) return;
+    adminChatList = data;
     adminChatRenderCache = signature;
 
     const wasNearBottom = adminChatMessages.scrollHeight - adminChatMessages.scrollTop - adminChatMessages.clientHeight < 40;
@@ -2450,11 +2462,14 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       const fileLinks = (m.files && m.files.length > 0)
         ? m.files
         : (m.file_path ? [{ path: m.file_path, name: m.file_name }] : []);
+      const who = `<div class="who">${mine ? 'You' : escapeHtml(m.sender_name || 'Admin')}${VoxMsg.edited(m)}</div>`;
+      if (m.deleted_at) return `<div class="chat-msg ${mine ? 'mine' : 'theirs'}" data-mid="${m.id}">${who}${VoxMsg.deleted()}</div>`;
       return `
-      <div class="chat-msg ${mine ? 'mine' : 'theirs'}">
-        <div class="who">${mine ? 'You' : escapeHtml(m.sender_name || 'Admin')}</div>
-        ${m.body ? `<div>${escapeHtml(m.body)}</div>` : ''}
+      <div class="chat-msg ${mine ? 'mine' : 'theirs'}" data-mid="${m.id}">
+        ${who}
+        ${m.body ? `<div class="msg-text">${escapeHtml(m.body)}</div>` : ''}
         ${fileLinks.map(f => renderAttachment(publicFileUrl(f.path), f.name)).join('')}
+        ${mine || amFounder ? VoxMsg.buttons(!!m.body) : ''}
       </div>
     `;
     }).join('');

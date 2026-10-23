@@ -11,6 +11,7 @@
 <script src="/looks.js"></script>
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
+<script src="/msg-actions.js?v=1"></script>
 <style>
   .ico{ vertical-align:-0.18em; flex-shrink:0; }
   :root{
@@ -1462,14 +1463,24 @@ h1{ animation: fadeInDown 0.5s ease both; }
     }
   }
 
+  let msgList = [], msgSig = '';
   async function loadMessages(){
-    let { data, error } = await supabase.rpc('get_order_messages_named', { p_order_id: orderId });
-    if (error) ({ data, error } = await supabase.rpc('get_order_messages', { p_order_id: orderId }));   // older database without sender names
+    let { data, error } = await supabase.rpc('get_order_messages_v2', { p_order_id: orderId });
+    if (error) ({ data, error } = await supabase.rpc('get_order_messages_named', { p_order_id: orderId }));   // older database
     if (error) return;
-    if (data.length === lastMessageCount) return; // nothing new, skip re-render
-    lastMessageCount = data.length;
+    // re-render on new, edited or deleted messages, but never under an open edit box
+    const sig = JSON.stringify(data.map(m => [m.id, m.edited_at, m.deleted]));
+    if ((sig === msgSig && data.length === lastMessageCount) || VoxMsg.busy(messagesEl)) return;
+    msgSig = sig; lastMessageCount = data.length; msgList = data;
     renderMessages(data);
   }
+  // customers can edit / delete their own messages (the server checks the order link)
+  VoxMsg.wire(messagesEl, {
+    body: id => (msgList.find(m => m.id === id) || {}).body || '',
+    save: (id, text) => supabase.rpc('edit_order_message', { p_order_id: orderId, p_id: id, p_body: text }).then(({ error }) => { if (error) throw error; }),
+    remove: id => supabase.rpc('delete_order_message', { p_order_id: orderId, p_id: id }).then(({ error }) => { if (error) throw error; }),
+    refresh: () => { msgSig = ''; loadMessages(); },
+  });
 
   function renderMessages(list){
     if (list.length === 0){
@@ -1481,11 +1492,17 @@ h1{ animation: fadeInDown 0.5s ease both; }
         ? m.files
         : (m.file_path ? [{ path: m.file_path, name: m.file_name }] : []);
       const isNewest = idx === list.length - 1 && idx >= previousMessageCount;
-      return `
-      <div class="msg ${m.sender}${isNewest ? ' new-arrival' : ''}">
+      if (m.deleted) return `
+      <div class="msg ${m.sender}" data-mid="${m.id}">
         <div class="who">${m.sender === 'admin' ? escapeHtml(m.sender_name || 'Josh') : 'You'}</div>
-        ${m.body ? richText(m.body) : ''}
+        ${VoxMsg.deleted()}
+      </div>`;
+      return `
+      <div class="msg ${m.sender}${isNewest ? ' new-arrival' : ''}" data-mid="${m.id}">
+        <div class="who">${m.sender === 'admin' ? escapeHtml(m.sender_name || 'Josh') : 'You'}${VoxMsg.edited(m)}</div>
+        ${m.body ? '<div class="msg-text">' + richText(m.body) + '</div>' : ''}
         ${fileLinks.map(f => renderAttachment(publicFileUrl(f.path), f.name)).join('')}
+        ${m.sender === 'customer' && m.id ? VoxMsg.buttons(!!m.body) : ''}
       </div>
     `;
     }).join('');
