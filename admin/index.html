@@ -972,6 +972,8 @@
     color: var(--ink-dim);
     cursor: pointer;
   }
+  .fil-feat{ display:inline-flex; align-items:center; gap:4px; }
+  .fil-feat.is-feat{ border-color: var(--accent); color: var(--accent); background: rgba(68,147,248,0.12); }
   .fil-toggle.is-active{
     background: var(--ok-dim);
     border-color: var(--ok);
@@ -2622,6 +2624,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
           <div class="fil-meta">${escapeHtml(f.type)} · $${Number(f.price_per_100g).toFixed(2)}/100g</div>
         </div>
         <div class="fil-actions">
+          <button class="fil-toggle fil-feat ${f.featured ? 'is-feat' : ''}" data-feat="${f.id}" title="Featured colours show first when ordering; the rest are under More">${f.featured ? 'Featured' : 'Feature'}</button>
           <button class="fil-toggle ${f.active ? 'is-active' : ''}" data-id="${f.id}">${f.active ? 'Active' : 'Hidden'}</button>
           <button class="fil-edit" data-id="${f.id}">Edit</button>
           <button class="fil-del" data-id="${f.id}"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#trash-2"/></svg></button>
@@ -2630,7 +2633,17 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       filListEl.appendChild(row);
     });
 
-    filListEl.querySelectorAll('.fil-toggle').forEach(btn => {
+    filListEl.querySelectorAll('[data-feat]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const f = currentFilaments.find(x => x.id === btn.dataset.feat);
+        if (!f) return;
+        const { error } = await supabase.from('filaments').update({ featured: !f.featured }).eq('id', f.id);
+        if (error){ alert('Could not update: ' + error.message); return; }
+        f.featured = !f.featured;
+        renderFilaments();
+      });
+    });
+    filListEl.querySelectorAll('.fil-toggle[data-id]').forEach(btn => {
       btn.addEventListener('click', async () => {
         const f = currentFilaments.find(x => x.id === btn.dataset.id);
         if (!f) return;

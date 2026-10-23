@@ -787,11 +787,13 @@
         </label>`;
     };
     let html;
-    const canExpand = byPop.length > FIL_SHORT;
+    const canExpand = byPop.some(f => f.featured && f.active) ? byPop.some(f => !f.featured) : byPop.length > FIL_SHORT;
     if (!filExpanded && canExpand){
-      const top = byPop.slice(0, FIL_SHORT);
+      // the colours ticked "Featured" in admin (Filaments); none ticked = the most ordered ones
+      const feat = byPop.filter(f => f.featured && f.active);
+      const top = feat.length ? feat : byPop.slice(0, FIL_SHORT);
       if (selectedFilament && !top.some(f => f.id === selectedFilament.id)){
-        const sel = byPop.find(f => f.id === selectedFilament.id); if (sel) top[top.length - 1] = sel;
+        const sel = byPop.find(f => f.id === selectedFilament.id); if (sel) top.push(sel);
       }
       html = top.map(opt).join('') + `<button type="button" class="fil-more" id="fil-more">More colours <svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#chevron-down"/></svg></button>`;
     } else {

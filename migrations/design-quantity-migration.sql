@@ -51,3 +51,6 @@ language sql stable security definer set search_path to 'public' as $$
 $$;
 revoke all on function public.filament_popularity() from public, anon, authenticated;
 grant execute on function public.filament_popularity() to anon, authenticated;
+
+-- "Featured" colours (admin Filaments tab): shown first on the browse design page, the rest under "More colours".
+alter table public.filaments add column if not exists featured boolean not null default false;
