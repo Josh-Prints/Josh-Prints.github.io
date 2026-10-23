@@ -302,19 +302,40 @@
   /* ---- order modal ---- */
   .modal-overlay{
     position: fixed; inset:0; background: rgba(31,35,40,0.4);
-    display:flex; align-items:center; justify-content:center; padding: 20px;
+    display:flex; align-items:center; justify-content:center; padding: 16px;
     z-index: 100; opacity:0; visibility:hidden; transition: opacity 0.2s ease, visibility 0.2s;
   }
   .modal-overlay.open{ opacity:1; visibility:visible; }
+  /* near full-screen product page: photos left, details + order form right */
   .modal{
-    background: var(--canvas); border-radius:12px; max-width: 420px; width:100%;
-    padding: 28px; transform: scale(0.94) translateY(8px); transition: transform 0.25s cubic-bezier(0.22,1,0.36,1);
-    max-height: 88vh; overflow-y: auto;
+    background: var(--canvas); border-radius:14px; max-width: 1240px; width:100%;
+    height: calc(100vh - 32px); height: calc(100dvh - 32px);
+    display:grid; grid-template-columns: minmax(0, 1.4fr) minmax(340px, 1fr); overflow:hidden;
+    transform: scale(0.97) translateY(8px); transition: transform 0.25s cubic-bezier(0.22,1,0.36,1);
+  }
+  .dz-media{ padding: 24px; overflow-y:auto; background: var(--canvas-inset); }
+  .dz-info{ padding: 32px 28px 28px; overflow-y:auto; border-left:1px solid var(--border-muted); }
+  .dz-thumbs{ display:flex; gap:10px; margin-top:12px; overflow-x:auto; scrollbar-width:none; }
+  .dz-thumbs::-webkit-scrollbar{ display:none; }
+  .dz-thumbs button{ flex:0 0 auto; width:96px; aspect-ratio:4/3; padding:0; border-radius:8px; overflow:hidden; cursor:pointer;
+    border:2px solid transparent; background: var(--canvas); opacity:.7; transition: opacity .15s, border-color .15s; }
+  .dz-thumbs button.active, .dz-thumbs button:hover{ opacity:1; }
+  .dz-thumbs button.active{ border-color: var(--accent); }
+  .dz-thumbs img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .dz-nophoto{ display:none; aspect-ratio:4/3; border-radius:12px; border:1px dashed var(--border); color: var(--fg-muted);
+    align-items:center; justify-content:center; gap:8px; font-size:14px; }
+  @media (max-width: 820px){
+    .modal-overlay{ padding:0; }
+    .modal{ display:block; height:100vh; height:100dvh; border-radius:0; overflow-y:auto; }
+    .dz-media{ padding:0 0 12px; overflow:visible; }
+    .dz-media .modal-gallery{ border-radius:0; }
+    .dz-thumbs{ padding:0 16px; }
+    .dz-info{ padding: 20px 16px 32px; overflow:visible; border-left:0; }
   }
   .modal-overlay.open .modal{ transform: scale(1) translateY(0); }
-  .modal h2{ font-size:19px; margin: 0 0 4px; }
-  .modal .modal-price{ font-family: ui-monospace, monospace; color: var(--accent); font-size:14px; margin-bottom: 14px; }
-  .modal .modal-desc{ color: var(--fg-muted); font-size:13.5px; margin-bottom: 20px; line-height:1.5; }
+  .modal h2{ font-size:26px; line-height:1.2; margin: 0 40px 6px 0; }
+  .modal .modal-price{ font-family: ui-monospace, monospace; color: var(--accent); font-size:18px; margin-bottom: 14px; }
+  .modal .modal-desc{ color: var(--fg); font-size:15px; margin-bottom: 20px; line-height:1.55; white-space:pre-line; }
   .field{ margin-bottom: 14px; }
   .field label{ display:block; font-size:13px; font-weight:600; margin-bottom:5px; }
   .field input, .field textarea{
@@ -351,8 +372,8 @@
 
   /* ---- photo gallery (modal) ---- */
   .modal-gallery{
-    position:relative; margin: -28px -28px 16px; aspect-ratio: 4/3;
-    background: var(--canvas-inset); overflow:hidden;
+    position:relative; aspect-ratio: 4/3; border-radius:12px;
+    background: var(--canvas); overflow:hidden;
   }
   .modal-gallery-track{
     display:flex; height:100%; overflow-x:auto; scroll-snap-type:x mandatory;
@@ -363,14 +384,14 @@
     flex: 0 0 100%; width:100%; height:100%; object-fit:cover; scroll-snap-align:start;
   }
   .modal-gallery-arrow{
-    position:absolute; top:50%; transform:translateY(-50%); width:30px; height:30px;
-    border-radius:50%; border:none; background:rgba(255,255,255,0.85); color:var(--fg);
-    font-size:16px; cursor:pointer; align-items:center; justify-content:center;
-    box-shadow: 0 2px 8px rgba(31,35,40,0.2); transition: background 0.15s, transform 0.15s ease;
+    position:absolute; top:50%; transform:translateY(-50%); width:40px; height:40px;
+    border-radius:50%; border:1px solid rgba(255,255,255,0.18); background:rgba(13,17,23,0.55); color:#fff;
+    font-size:20px; cursor:pointer; align-items:center; justify-content:center;
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); transition: background 0.15s, transform 0.15s ease;
   }
-  .modal-gallery-arrow:hover{ background:#fff; transform:translateY(-50%) scale(1.08); }
-  .modal-gallery-arrow.prev{ left:10px; }
-  .modal-gallery-arrow.next{ right:10px; }
+  .modal-gallery-arrow:hover{ background:rgba(13,17,23,0.8); transform:translateY(-50%) scale(1.06); }
+  .modal-gallery-arrow.prev{ left:12px; }
+  .modal-gallery-arrow.next{ right:12px; }
   .modal-gallery-dots{
     position:absolute; bottom:10px; left:50%; transform:translateX(-50%);
     display:flex; gap:6px;
@@ -564,12 +585,17 @@
   <div class="modal-overlay" id="modal-overlay">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-name">
       <button class="modal-close" id="modal-close"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
+      <div class="dz-media">
       <div class="modal-gallery" id="modal-gallery" style="display:none;">
         <div class="modal-gallery-track" id="modal-gallery-track"></div>
-        <button type="button" class="modal-gallery-arrow prev" id="gallery-prev" aria-label="Previous photo">‹</button>
-        <button type="button" class="modal-gallery-arrow next" id="gallery-next" aria-label="Next photo">›</button>
+        <button type="button" class="modal-gallery-arrow prev" id="gallery-prev" aria-label="Previous photo"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#chevron-left"/></svg></button>
+        <button type="button" class="modal-gallery-arrow next" id="gallery-next" aria-label="Next photo"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#chevron-right"/></svg></button>
         <div class="modal-gallery-dots" id="modal-gallery-dots"></div>
       </div>
+      <div class="dz-nophoto" id="modal-nophoto"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#image"/></svg> No photos</div>
+      <div class="dz-thumbs" id="modal-thumbs"></div>
+      </div>
+      <div class="dz-info">
       <h2 id="modal-name"></h2>
       <div class="modal-price" id="modal-price"></div>
       <div class="modal-desc" id="modal-desc"></div>
@@ -638,6 +664,7 @@
           <button type="submit" class="btn btn-primary" id="modal-submit">Place order</button>
         </div>
       </form>
+      </div>
     </div>
   </div>
 
@@ -770,7 +797,7 @@
 
     // keep the loading logo on screen a moment even on a fast connection —
     // otherwise it can flash by too quickly to notice
-    const minDisplay = minDisplayMs - (Date.now() - loadStart);
+    const minDisplay = new URLSearchParams(location.search).get('d') ? 0 : minDisplayMs - (Date.now() - loadStart);
     if (minDisplay > 0) await new Promise(r => setTimeout(r, minDisplay));
 
     loadingEl.style.display = 'none';
@@ -783,6 +810,8 @@
     }
     designs = data;
     render(designs);
+    const linked = designFromUrl();
+    if (linked) showDesign(linked);
   }
 
   let hasRenderedOnce = false;
@@ -856,6 +885,12 @@
     const nextBtn = document.getElementById('gallery-next');
     const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    const thumbsEl = document.getElementById('modal-thumbs');
+    document.getElementById('modal-nophoto').style.display = photos.length ? 'none' : 'flex';
+    thumbsEl.innerHTML = photos.length > 1
+      ? photos.map((url, i) => `<button type="button" class="${i === 0 ? 'active' : ''}" data-goto="${i}" aria-label="Photo ${i + 1}"><img src="${url}" alt="" loading="lazy"></button>`).join('')
+      : '';
+    trackEl.scrollLeft = 0;
     if (photos.length === 0){
       galleryEl.style.display = 'none';
       trackEl.innerHTML = '';
@@ -870,10 +905,10 @@
     prevBtn.style.display = photos.length > 1 ? 'flex' : 'none';
     nextBtn.style.display = photos.length > 1 ? 'flex' : 'none';
 
-    const dots = Array.from(dotsEl.querySelectorAll('.modal-gallery-dot'));
+    const dots = Array.from(dotsEl.querySelectorAll('.modal-gallery-dot')).concat(Array.from(thumbsEl.querySelectorAll('button')));
     function updateActive(){
       const idx = Math.round(trackEl.scrollLeft / trackEl.clientWidth);
-      dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+      dots.forEach(d => d.classList.toggle('active', Number(d.dataset.goto) === idx));
     }
     trackEl.onscroll = () => { window.requestAnimationFrame(updateActive); };
     dots.forEach(dot => {
@@ -914,8 +949,23 @@
   qtyIn.addEventListener('change', () => { qtyIn.value = getQty(); renderQty(); });
   document.getElementById('qty-minus').addEventListener('click', () => { qtyIn.value = getQty() - 1; renderQty(); });
   document.getElementById('qty-plus').addEventListener('click', () => { qtyIn.value = getQty() + 1; renderQty(); });
+  // each design has its own link (browse.html?d=<id>); opening pushes it, Back closes it
   function openModal(design){
-    lastFocusedEl = document.activeElement;
+    if (new URLSearchParams(location.search).get('d') !== design.id) history.pushState({ vxD: design.id }, '', 'browse.html?d=' + encodeURIComponent(design.id));
+    showDesign(design);
+  }
+  function closeModal(){
+    if (history.state && history.state.vxD) history.back();
+    else { hideDesign(); history.replaceState(null, '', 'browse.html'); }
+  }
+  function designFromUrl(){
+    const id = new URLSearchParams(location.search).get('d');
+    return id ? designs.find(x => x.id === id) || null : null;
+  }
+  window.addEventListener('popstate', () => { const d = designFromUrl(); if (d) showDesign(d); else hideDesign(); });
+  function showDesign(design){
+    if (!overlay.classList.contains('open')) lastFocusedEl = document.activeElement;
+    document.body.style.overflow = 'hidden';
     selectedDesign = design;
     // instant buy: pay upfront at checkout, no quote
     document.getElementById('modal-submit').textContent = isInstant(design) ? 'Continue to payment' : 'Place order';
@@ -975,13 +1025,12 @@
       emailInput.required = true;
     }
     overlay.classList.add('open');
-    if (currentUser){
-      document.getElementById('m-notes').focus();
-    } else {
-      nameInput.focus();
-    }
+    document.querySelectorAll('.dz-info, .modal').forEach(el => { el.scrollTop = 0; });
+    document.getElementById('modal-close').focus({ preventScroll: true });
   }
-  function closeModal(){
+  function hideDesign(){
+    if (!overlay.classList.contains('open')) return;
+    document.body.style.overflow = '';
     overlay.classList.remove('open');
     if (lastFocusedEl && typeof lastFocusedEl.focus === 'function') lastFocusedEl.focus();
   }
