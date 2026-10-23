@@ -774,7 +774,7 @@
 
   function typeLabel(o){
     return o.order_type === 'custom_model' ? 'Custom Model'
-      : o.order_type === 'design' ? 'Design: ' + (o.design_name || 'Unknown')
+      : o.order_type === 'design' ? 'Design: ' + (o.quantity > 1 ? o.quantity + ' × ' : '') + (o.design_name || 'Unknown')
       : 'Custom Print';
   }
   function shortId(){ return String(order.id).slice(0, 8); }
@@ -841,7 +841,7 @@
     $('panel-request').innerHTML = `
       <h3>${ico('file-text')} Request</h3>
       <dl class="kv">
-        <dt>Type</dt><dd>${escapeHtml(typeLabel(order))}${order.design_price != null ? ` · ${fmt(order.design_price)}` : ''}</dd>
+        <dt>Type</dt><dd>${escapeHtml(typeLabel(order))}${(order.unit_price ?? order.design_price) != null ? ` · ${fmt(order.unit_price ?? order.design_price)}${order.quantity > 1 ? ' each · ' + fmt((order.unit_price ?? order.design_price) * order.quantity) + ' total' : ''}` : ''}</dd>
         ${fil ? `<dt>Filament</dt><dd>${ico('spool')} ${fil}</dd>` : ''}
         <dt>Customer</dt><dd>${escapeHtml(order.full_name || '')}${order.user_id ? ' <span class="badge">Has account</span>' : ' <span class="badge">Guest</span>'}</dd>
         ${order.email ? `<dt>Email</dt><dd><a href="mailto:${escapeHtml(order.email)}" style="color:var(--accent)">${escapeHtml(order.email)}</a></dd>` : ''}

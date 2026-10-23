@@ -323,6 +323,15 @@
   }
   .field input:focus, .field textarea:focus{ outline:none; border-color:var(--accent); background: var(--canvas); box-shadow:0 0 0 3px rgba(9,105,218,0.12); }
   .field textarea{ min-height: 70px; resize: vertical; }
+  .qty-row{ display:flex; align-items:center; gap:6px; }
+  .qty-row .field-qty-in{ width:64px; text-align:center; -moz-appearance:textfield; }
+  .qty-row .field-qty-in::-webkit-inner-spin-button, .qty-row .field-qty-in::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
+  .qty-btn{ width:36px; height:36px; border-radius:6px; border:1px solid var(--border); background:var(--canvas-inset); color:var(--fg); font-size:18px; line-height:1; cursor:pointer; }
+  .qty-btn:disabled{ opacity:.4; cursor:default; animation:none; }
+  .qty-total{ margin-left:auto; font-family: ui-monospace, monospace; color: var(--accent); font-size:14px; }
+  .qty-tiers{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .qty-tiers span{ font-size:12px; padding:3px 9px; border-radius:999px; border:1px solid var(--border); color:var(--fg-muted); }
+  .qty-tiers span.on{ border-color:var(--accent); color:var(--accent); }
   .modal-actions{ display:flex; gap:10px; margin-top: 18px; }
   .modal-actions .btn{ flex:1; }
   .modal-close{
@@ -573,6 +582,16 @@
         <div class="field" id="field-m-email">
           <label for="m-email">Email</label>
           <input type="email" id="m-email" required>
+        </div>
+        <div class="field" id="field-qty" style="display:none;">
+          <label for="m-qty">Quantity</label>
+          <div class="qty-row">
+            <button type="button" class="qty-btn" id="qty-minus" aria-label="Fewer">−</button>
+            <input type="number" class="field-qty-in" id="m-qty" min="1" step="1" value="1" inputmode="numeric">
+            <button type="button" class="qty-btn" id="qty-plus" aria-label="More">+</button>
+            <span class="qty-total" id="qty-total"></span>
+          </div>
+          <div class="qty-tiers" id="qty-tiers"></div>
         </div>
         <div class="field">
           <label>Filament <span style="font-weight:400;color:var(--fg-muted);">(optional)</span></label>
@@ -867,6 +886,34 @@
   }
 
   const isInstant = d => !!(d && d.instant_buy && Number(d.price) >= 0.5);
+  // quantity + bulk prices (the server works the real price out the same way when the order is placed)
+  const qtyIn = document.getElementById('m-qty');
+  const maxQty = d => (d && d.allow_quantity) ? (d.max_quantity || 999) : 1;
+  const tiersOf = d => (d && d.allow_quantity && Array.isArray(d.bulk_tiers) ? d.bulk_tiers : [])
+    .map(t => ({ min: Number(t.min), price: Number(t.price) })).filter(t => t.min >= 2 && t.price >= 0).sort((a, b) => a.min - b.min);
+  function unitPrice(d, q){
+    let p = d.price != null ? Number(d.price) : null;
+    tiersOf(d).forEach(t => { if (q >= t.min) p = t.price; });
+    return p;
+  }
+  function getQty(){
+    const d = selectedDesign; const n = Math.floor(Number(qtyIn.value));
+    return Math.max(1, Math.min(maxQty(d), Number.isFinite(n) ? n : 1));
+  }
+  function renderQty(){
+    const d = selectedDesign; if (!d) return;
+    const q = getQty(), u = unitPrice(d, q);
+    document.getElementById('qty-minus').disabled = q <= 1;
+    document.getElementById('qty-plus').disabled = q >= maxQty(d);
+    document.getElementById('qty-total').textContent = u != null && q > 1 ? `$${(u * q).toFixed(2)}` : '';
+    document.getElementById('modal-price').textContent = u != null ? `$${u.toFixed(2)}${q > 1 ? ' each' : ''}` : '';
+    const ts = tiersOf(d);
+    document.getElementById('qty-tiers').innerHTML = ts.map(t => `<span class="${unitPrice(d, q) === t.price && q >= t.min ? 'on' : ''}">${t.min}+ $${t.price.toFixed(2)} each</span>`).join('');
+  }
+  qtyIn.addEventListener('input', renderQty);
+  qtyIn.addEventListener('change', () => { qtyIn.value = getQty(); renderQty(); });
+  document.getElementById('qty-minus').addEventListener('click', () => { qtyIn.value = getQty() - 1; renderQty(); });
+  document.getElementById('qty-plus').addEventListener('click', () => { qtyIn.value = getQty() + 1; renderQty(); });
   function openModal(design){
     lastFocusedEl = document.activeElement;
     selectedDesign = design;
@@ -905,6 +952,10 @@
       modelRow.innerHTML = '';
     }
     form.reset();
+    document.getElementById('field-qty').style.display = design.allow_quantity ? '' : 'none';
+    qtyIn.max = maxQty(design);
+    qtyIn.value = 1;
+    renderQty();
     errorEl.style.display = 'none';
     const fieldName = document.getElementById('field-m-name');
     const fieldEmail = document.getElementById('field-m-email');
@@ -968,6 +1019,7 @@
         design_id: selectedDesign.id,
         design_name: selectedDesign.name,
         design_price: selectedDesign.price,
+        quantity: getQty(),
         filament_id: selectedFilament ? selectedFilament.id : null,
         filament_color: selectedFilament ? selectedFilament.color_name : null,
         filament_type: selectedFilament ? selectedFilament.type : null,

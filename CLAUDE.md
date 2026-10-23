@@ -70,6 +70,10 @@
   The server sets orders.instant_buy and quote_amount = design price at insert (trigger trg_c_instant_buy), never the
   customer. Their progress bar is New -> Printing -> Done -> Sold (acknowledged/quoted show as New). Admin pages show
   "Instant buy" with Paid / Cash on pickup / Awaiting payment to every admin.
+- Designs are added / edited on their own page, admin/design.html (?id=… to edit; admin/designs.html is the grid). Quantity + bulk
+  prices (`migrations/design-quantity-migration.sql`): designs.allow_quantity / max_quantity / bulk_tiers [{min, price each}]. browse.html
+  shows a quantity picker with the live total; the server sets orders.quantity (clamped) and orders.unit_price at insert, and an instant
+  buy's quote_amount = unit price x quantity (trigger trg_c_instant_buy). Change the price rule in both browse.html and design_unit_price.
 - Opening an order in admin/order.html acknowledges it (rpc `admin_mark_order_viewed`, new -> acknowledged, no customer email via the
   `orders.skip_status_mail` setting). Instant buys are stored as acknowledged too but shown as New (`shownStatus`); the list's blue glow is `status = 'new'` only.
 - Test orders (`migrations/test-orders-migration.sql`): admins tick "Test order" on order-form.html / the browse order

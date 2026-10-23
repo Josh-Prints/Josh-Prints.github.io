@@ -2330,7 +2330,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       row.style.animationDelay = Math.min(idx * 25, 250) + 'ms';
 
       const typeLabel = order.order_type === 'custom_model' ? 'Custom Model'
-        : order.order_type === 'design' ? `Design: ${order.design_name || 'Unknown'}`
+        : order.order_type === 'design' ? `Design: ${order.quantity > 1 ? order.quantity + ' × ' : ''}${order.design_name || 'Unknown'}`
         : 'Custom Print';
       const created = new Date(order.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
       const statusKey = order.deleted ? 'deleted' : shownStatus(order);

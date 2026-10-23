@@ -1220,6 +1220,8 @@ h1{ animation: fadeInDown 0.5s ease both; }
     const orderRow = Array.isArray(order) ? order[0] : order;
     if (error || !orderRow) return false;
     orderRow.instant = !!(chk && chk.instant);
+    orderRow.quantity = (chk && chk.quantity) || 1;
+    orderRow.unit_price = chk ? chk.unit_price : null;
     renderSpam(chk);
 
     maybeMarkOrderSeen(orderRow.deleted);
@@ -1443,7 +1445,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
     document.getElementById('d-name').textContent = order.full_name;
     document.getElementById('d-type').textContent =
       order.order_type === 'custom_model' ? 'Custom Model'
-      : order.order_type === 'design' ? `Design: ${order.design_name || 'Unknown'}${order.design_price != null ? ' ($' + Number(order.design_price).toFixed(2) + ')' : ''}`
+      : order.order_type === 'design' ? `Design: ${order.quantity > 1 ? order.quantity + ' × ' : ''}${order.design_name || 'Unknown'}${(order.unit_price ?? order.design_price) != null ? ' ($' + Number(order.unit_price ?? order.design_price).toFixed(2) + (order.quantity > 1 ? ' each' : '') + ')' : ''}`
       : 'Custom Print';
     document.getElementById('d-created').textContent = new Date(order.created_at).toLocaleString();
 

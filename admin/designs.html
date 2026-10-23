@@ -191,109 +191,6 @@
   .tile-badge.pin{ color: var(--warn); }
   .tile-badge.instant{ color: var(--accent); }
 
-  /* ---- modal (add/edit) ---- */
-  .modal-overlay{
-    position:fixed; inset:0; background:rgba(31,35,40,0.4);
-    display:flex; align-items:center; justify-content:center; padding:20px;
-    z-index:100; opacity:0; visibility:hidden; transition: opacity 0.2s, visibility 0.2s;
-  }
-  .modal-overlay.open{ opacity:1; visibility:visible; }
-  .modal{
-    background: var(--bg-raised); border-radius:12px; max-width:440px; width:100%;
-    padding:26px; max-height:88vh; overflow-y:auto; position:relative;
-    transform: scale(0.95) translateY(6px); transition: transform 0.22s cubic-bezier(0.22,1,0.36,1);
-  }
-  .modal-overlay.open .modal{ transform: scale(1) translateY(0); }
-  .modal h2{ font-size:18px; margin:0 0 18px; }
-  .field{ margin-bottom:14px; }
-  .field label{ display:block; font-size:13px; font-weight:600; margin-bottom:5px; }
-  .field input, .field textarea{
-    width:100%; padding:8px 11px; font-size:16px; border:1px solid rgba(var(--border-tint),0.18);
-    border-radius:6px; font-family:inherit; background: var(--bg); color: var(--ink);
-    transition: border-color 0.15s, box-shadow 0.15s;
-  }
-  .field input:focus, .field textarea:focus{ outline:none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(9,105,218,0.14); }
-  .field textarea{ min-height:70px; resize:vertical; }
-  .field-row{ display:flex; align-items:center; gap:8px; }
-  .photo-grid{
-    display:grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-    gap:8px; margin-bottom:10px;
-  }
-  .photo-thumb{
-    position:relative; aspect-ratio:1/1; border-radius:8px; overflow:hidden;
-    border:1px solid rgba(var(--border-tint),0.15); background:var(--bg);
-    animation: popIn 0.2s ease both;
-  }
-  .photo-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .photo-thumb .cover-badge{
-    position:absolute; top:4px; left:4px; background:rgba(9,105,218,0.9); color:#fff;
-    font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
-    padding:2px 5px; border-radius:4px; pointer-events:none;
-  }
-  .photo-thumb .photo-remove{
-    position:absolute; top:4px; right:4px; width:20px; height:20px; border-radius:50%;
-    background:rgba(31,35,40,0.65); color:#fff; border:none; font-size:12px; line-height:1;
-    cursor:pointer; display:flex; align-items:center; justify-content:center;
-    transition: background 0.15s, transform 0.15s ease;
-  }
-  .photo-thumb .photo-remove:hover{ background:rgba(207,34,46,0.9); transform:scale(1.1); }
-  .photo-thumb .photo-move{
-    position:absolute; bottom:4px; width:20px; height:20px; border-radius:50%;
-    background:rgba(31,35,40,0.55); color:#fff; border:none; font-size:11px; line-height:1;
-    cursor:pointer; display:flex; align-items:center; justify-content:center;
-    transition: background 0.15s;
-  }
-  .photo-thumb .photo-move:hover{ background:rgba(31,35,40,0.8); }
-  .photo-thumb .photo-move.move-left{ left:4px; }
-  .photo-thumb .photo-move.move-right{ right:4px; }
-  .photo-add-tile{
-    aspect-ratio:1/1; border-radius:8px; border:1px dashed rgba(var(--border-tint),0.25);
-    background:var(--bg); display:flex; align-items:center; justify-content:center;
-    flex-direction:column; gap:4px; color:var(--ink-dim); font-size:11px; cursor:pointer;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
-  }
-  .photo-add-tile:hover{ border-color: var(--accent); color: var(--accent); background: rgba(9,105,218,0.05); }
-  .photo-add-tile .plus{ font-size:20px; line-height:1; }
-  .modal-actions{ display:flex; gap:10px; margin-top:18px; }
-  .modal-actions .btn{ flex:1; justify-content:center; }
-  .modal-close{
-    position:absolute; top:14px; right:14px; background:none; border:none;
-    font-size:18px; color: var(--ink-dim); cursor:pointer; width:28px; height:28px; border-radius:6px;
-    transition: background 0.15s, transform 0.2s ease;
-  }
-  .modal-close:hover{ background: var(--bg); transform: rotate(90deg); }
-  .modal-error{ color: var(--err); font-size:13px; margin-top:8px; display:none; }
-  .checkbox-row{ display:flex; align-items:center; gap:8px; font-size:13.5px; margin-bottom:14px; }
-
-  .color-restrict-list{
-    border:1px solid rgba(var(--border-tint),0.15); border-radius:8px;
-    max-height:160px; overflow-y:auto; padding:4px 10px; margin-top:2px;
-  }
-  .color-restrict-item{
-    display:flex; align-items:center; gap:8px; padding:7px 0;
-    font-size:13px; border-bottom:1px solid rgba(var(--border-tint),0.08);
-  }
-  .color-restrict-item:last-child{ border-bottom:none; }
-  .color-restrict-empty{ font-size:12.5px; color: var(--ink-dim); padding:8px 0; }
-
-  .file-drop{
-    border:1px dashed rgba(var(--border-tint),0.25); border-radius:8px; padding:14px;
-    text-align:center; cursor:pointer; font-size:12.5px; color: var(--ink-dim);
-    position:relative; background: var(--bg);
-    transition: border-color 0.15s, background 0.15s;
-  }
-  .file-drop input{ position:absolute; inset:0; opacity:0; cursor:pointer; }
-  .file-drop:hover{ border-color: rgba(9,105,218,0.45); background: rgba(9,105,218,0.04); }
-  .file-drop.has-file{ border-style:solid; border-color: rgba(9,105,218,0.35); color: var(--ink); animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1) both; }
-  .file-current{
-    display:flex; align-items:center; justify-content:space-between; gap:8px;
-    font-size:12.5px; margin-bottom:8px; padding:8px 10px; background: var(--bg);
-    border-radius:6px; border:1px solid rgba(var(--border-tint),0.12);
-  }
-  .file-current .name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .file-current button{
-    flex-shrink:0; background:none; border:none; color: var(--err); cursor:pointer; font-size:12px;
-  }
   .tile-model-badge{
     display:inline-flex; align-items:center; gap:3px;
     font-size:10.5px; font-weight:700; color: var(--accent);
@@ -389,60 +286,6 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="modal-overlay">
-  <div class="modal">
-    <button class="modal-close" id="modal-close"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
-    <h2 id="modal-title">Add design</h2>
-    <form id="design-form">
-      <div class="field">
-        <label>Photos <span style="font-weight:400;">(the first one is the cover photo — customers can swipe through the rest)</span></label>
-        <div class="photo-grid" id="photo-grid"></div>
-        <input type="file" id="p-image" accept="image/*" multiple style="display:none;">
-      </div>
-      <div class="field">
-        <label>3D file <span style="font-weight:400;">(so customers can view it in 3D and download it)</span></label>
-        <div id="model-current" style="display:none;"></div>
-        <div class="file-drop" id="model-drop">
-          <span id="model-drop-label">Drop an STL, OBJ, 3MF, or STEP file, or tap to browse</span>
-          <input type="file" id="p-model" accept=".stl,.obj,.3mf,.step,.stp,.iges,.igs">
-        </div>
-      </div>
-      <div class="field">
-        <label for="p-name">Name</label>
-        <input type="text" id="p-name" required>
-      </div>
-      <div class="field">
-        <label for="p-price">Price ($)</label>
-        <input type="number" id="p-price" step="0.01" min="0">
-      </div>
-      <div class="field">
-        <label for="p-desc">Description</label>
-        <textarea id="p-desc"></textarea>
-      </div>
-      <div class="checkbox-row">
-        <input type="checkbox" id="p-active" checked>
-        <label for="p-active" style="margin:0;">Visible to customers</label>
-      </div>
-      <div class="checkbox-row">
-        <input type="checkbox" id="p-instant">
-        <label for="p-instant" style="margin:0;">Instant buy <span style="color:var(--ink-dim);font-weight:400;">· pay upfront, no quote</span></label>
-      </div>
-      <div class="field">
-        <div class="checkbox-row" style="margin-bottom:8px;">
-          <input type="checkbox" id="p-restrict-colors">
-          <label for="p-restrict-colors" style="margin:0;">Restrict available colors for this design</label>
-        </div>
-        <div class="color-restrict-list" id="color-restrict-list" style="display:none;"></div>
-      </div>
-      <div class="modal-error" id="modal-error"></div>
-      <div class="modal-actions">
-        <button type="button" class="btn" id="modal-cancel">Cancel</button>
-        <button type="submit" class="btn btn-primary" id="modal-save">Save design</button>
-      </div>
-    </form>
-  </div>
-</div>
-
 <script>
   (function(){
     const toggle = document.getElementById('theme-toggle');
@@ -480,43 +323,12 @@
   const gridEl = document.getElementById('grid');
 
   let designs = [];
-  let editingId = null;
-  let pendingModelFile = null;
-  let currentModelPath = null;
-  let currentModelName = null;
-  let removeExistingModel = false;
-  // Phone photos are 2-5 MB; tiles need far less. Shrink to 1600px on the long side (JPEG) before upload.
-  // If the browser can't decode the file (e.g. HEIC) or it wouldn't get smaller, the original is uploaded untouched.
-  async function downscaleImage(file, max = 1600){
-    const keep = { blob: file, name: file.name };
-    try {
-      if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) return keep;
-      const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
-      const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
-      if (k === 1 && file.size < 600 * 1024){ bmp.close && bmp.close(); return keep; }
-      const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
-      const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(bmp, 0, 0, c.width, c.height); bmp.close && bmp.close();
-      const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
-      if (!blob || blob.size >= file.size) return keep;
-      return { blob, name: file.name.replace(/\.[^.]+$/, '') + '.jpg' };
-    } catch (e){ return keep; }
-  }
-  let pendingPhotos = []; // { key, kind:'existing'|'new', path?, file?, url }
-  let photoKeySeq = 0;
-  let allFilaments = [];
-  let selectedFilamentIds = new Set();
-
-  const MODEL_EXTS = ['stl', 'obj', '3mf', 'step', 'stp', 'iges', 'igs'];
-  function fileExt(name){ return (name || '').split('.').pop().toLowerCase(); }
 
   function escapeHtml(str){
     return (str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
   function publicUrl(path){
     return path ? supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl : null;
-  }
-  function sanitizeFileName(name){
-    return name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
   }
 
   // Being signed in is not enough to see this dashboard — customers can
@@ -556,38 +368,7 @@
     }
   }
   function showLogin(){ loginView.style.display = 'flex'; dashView.style.display = 'none'; }
-  function showDashboard(){ loginView.style.display = 'none'; dashView.style.display = 'block'; loadDesigns(); loadFilamentsForRestriction(); }
-
-  async function loadFilamentsForRestriction(){
-    const { data } = await supabase.from('filaments').select('*').eq('active', true)
-      .order('sort_order', { ascending: true, nullsFirst: false })
-      .order('created_at', { ascending: true });
-    allFilaments = data || [];
-  }
-
-  function renderColorRestrictList(){
-    const el = document.getElementById('color-restrict-list');
-    if (allFilaments.length === 0){
-      el.innerHTML = '<div class="color-restrict-empty">No active filament colors set up yet — add some in the Debug → Filaments tab first.</div>';
-      return;
-    }
-    el.innerHTML = allFilaments.map(f => `
-      <label class="color-restrict-item">
-        <input type="checkbox" data-fil-id="${f.id}" ${selectedFilamentIds.has(f.id) ? 'checked' : ''}>
-        ${escapeHtml(f.color_name)} <span style="color:var(--ink-dim);">· ${escapeHtml(f.type)}</span>
-      </label>
-    `).join('');
-    el.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-      cb.addEventListener('change', () => {
-        if (cb.checked) selectedFilamentIds.add(cb.dataset.filId);
-        else selectedFilamentIds.delete(cb.dataset.filId);
-      });
-    });
-  }
-
-  document.getElementById('p-restrict-colors').addEventListener('change', (e) => {
-    document.getElementById('color-restrict-list').style.display = e.target.checked ? 'block' : 'none';
-  });
+  function showDashboard(){ loginView.style.display = 'none'; dashView.style.display = 'block'; loadDesigns(); }
 
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -683,7 +464,7 @@
       tile.innerHTML = `
         <div class="tile-img">${img ? `<img src="${img}" style="width:100%;height:100%;object-fit:cover;" alt="">` : 'No image'}</div>
         <div class="tile-body">
-          <div class="tile-name">${escapeHtml(p.name)}${!p.active ? '<span class="tile-badge">Hidden</span>' : ''}${p.instant_buy ? '<span class="tile-badge instant">Instant buy</span>' : ''}${p.pinned ? '<span class="tile-badge pin"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pin"/></svg> Pinned</span>' : ''}</div>
+          <div class="tile-name">${escapeHtml(p.name)}${!p.active ? '<span class="tile-badge">Hidden</span>' : ''}${p.instant_buy ? '<span class="tile-badge instant">Instant buy</span>' : ''}${p.allow_quantity ? '<span class="tile-badge">Qty' + ((p.bulk_tiers || []).length ? ' · Bulk' : '') + '</span>' : ''}${p.pinned ? '<span class="tile-badge pin"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#pin"/></svg> Pinned</span>' : ''}</div>
           <div class="tile-price">${p.price != null ? '$' + Number(p.price).toFixed(2) : 'No price set'}</div>
           ${photoCount > 1 ? `<div class="tile-model-badge"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#image"/></svg> ${photoCount} photos</div>` : ''}
           ${p.model_path ? `<div class="tile-model-badge"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#box"/></svg> ${escapeHtml(p.model_name || '3D file')}</div>` : ''}
@@ -701,7 +482,7 @@
       btn.addEventListener('click', () => togglePinned(btn.dataset.pin));
     });
     gridEl.querySelectorAll('[data-edit]').forEach(btn => {
-      btn.addEventListener('click', () => openModal(designs.find(p => p.id === btn.dataset.edit)));
+      btn.addEventListener('click', () => { location.href = 'design.html?id=' + encodeURIComponent(btn.dataset.edit); });
     });
     gridEl.querySelectorAll('[data-delete]').forEach(btn => {
       btn.addEventListener('click', () => deleteDesign(btn.dataset.delete));
@@ -721,221 +502,8 @@
     if (!error) loadDesigns();
   }
 
-  // ---- add/edit modal ----
-  const overlay = document.getElementById('modal-overlay');
-  const form = document.getElementById('design-form');
-  const errorEl = document.getElementById('modal-error');
-  const photoGridEl = document.getElementById('photo-grid');
-  const photoInput = document.getElementById('p-image');
+  document.getElementById('add-btn').addEventListener('click', () => { location.href = 'design.html'; });
 
-  document.getElementById('add-btn').addEventListener('click', () => openModal(null));
-  document.getElementById('modal-close').addEventListener('click', closeModal);
-  document.getElementById('modal-cancel').addEventListener('click', closeModal);
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
-
-  function openModal(design){
-    editingId = design ? design.id : null;
-    pendingModelFile = null;
-    removeExistingModel = false;
-    currentModelPath = design?.model_path || null;
-    currentModelName = design?.model_name || null;
-    document.getElementById('modal-title').textContent = design ? 'Edit design' : 'Add design';
-    document.getElementById('p-name').value = design?.name || '';
-    document.getElementById('p-price').value = design?.price ?? '';
-    document.getElementById('p-desc').value = design?.description || '';
-    document.getElementById('p-active').checked = design ? design.active : true;
-    document.getElementById('p-instant').checked = !!design?.instant_buy;
-    photoInput.value = '';
-    document.getElementById('p-model').value = '';
-    document.getElementById('model-drop-label').textContent = 'Drop an STL, OBJ, 3MF, or STEP file, or tap to browse';
-    document.getElementById('model-drop').classList.remove('has-file');
-    const existingPaths = design ? [design.image_path, ...(design.image_paths || [])].filter(Boolean) : [];
-    pendingPhotos = existingPaths.map(path => ({ key: 'existing-' + (photoKeySeq++), kind: 'existing', path, url: publicUrl(path) }));
-    renderPhotoGrid();
-    renderModelCurrent();
-    errorEl.style.display = 'none';
-
-    selectedFilamentIds = new Set();
-    document.getElementById('p-restrict-colors').checked = false;
-    document.getElementById('color-restrict-list').style.display = 'none';
-    if (design){
-      supabase.from('design_filaments').select('filament_id').eq('design_id', design.id).then(({ data }) => {
-        if (data && data.length > 0){
-          selectedFilamentIds = new Set(data.map(r => r.filament_id));
-          document.getElementById('p-restrict-colors').checked = true;
-          document.getElementById('color-restrict-list').style.display = 'block';
-        }
-        renderColorRestrictList();
-      });
-    } else {
-      renderColorRestrictList();
-    }
-
-    overlay.classList.add('open');
-  }
-  function closeModal(){ overlay.classList.remove('open'); }
-
-  function renderPhotoGrid(){
-    photoGridEl.innerHTML = pendingPhotos.map((p, i) => `
-      <div class="photo-thumb" data-key="${p.key}">
-        <img src="${p.url}" alt="">
-        ${i === 0 ? '<span class="cover-badge">Cover</span>' : ''}
-        <button type="button" class="photo-remove" data-remove="${p.key}" aria-label="Remove photo"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
-        ${i > 0 ? `<button type="button" class="photo-move move-left" data-move-left="${p.key}" aria-label="Move earlier">‹</button>` : ''}
-        ${i < pendingPhotos.length - 1 ? `<button type="button" class="photo-move move-right" data-move-right="${p.key}" aria-label="Move later">›</button>` : ''}
-      </div>
-    `).join('') + `
-      <button type="button" class="photo-add-tile" id="photo-add-tile"><span class="plus">+</span>Add photo${pendingPhotos.length ? 's' : ''}</button>
-    `;
-    document.getElementById('photo-add-tile').addEventListener('click', () => photoInput.click());
-    photoGridEl.querySelectorAll('[data-remove]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        pendingPhotos = pendingPhotos.filter(p => p.key !== btn.dataset.remove);
-        renderPhotoGrid();
-      });
-    });
-    photoGridEl.querySelectorAll('[data-move-left]').forEach(btn => {
-      btn.addEventListener('click', () => movePhoto(btn.dataset.moveLeft, -1));
-    });
-    photoGridEl.querySelectorAll('[data-move-right]').forEach(btn => {
-      btn.addEventListener('click', () => movePhoto(btn.dataset.moveRight, 1));
-    });
-  }
-
-  function movePhoto(key, dir){
-    const i = pendingPhotos.findIndex(p => p.key === key);
-    const j = i + dir;
-    if (i < 0 || j < 0 || j >= pendingPhotos.length) return;
-    [pendingPhotos[i], pendingPhotos[j]] = [pendingPhotos[j], pendingPhotos[i]];
-    renderPhotoGrid();
-  }
-
-  photoInput.addEventListener('change', (e) => {
-    Array.from(e.target.files).forEach(file => {
-      pendingPhotos.push({ key: 'new-' + (photoKeySeq++), kind: 'new', file, url: URL.createObjectURL(file) });
-    });
-    e.target.value = '';
-    renderPhotoGrid();
-  });
-
-  function renderModelCurrent(){
-    const el = document.getElementById('model-current');
-    if (currentModelPath && !removeExistingModel){
-      el.style.display = 'flex';
-      el.className = 'file-current';
-      el.innerHTML = `<span class="name"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#box"/></svg> ${escapeHtml(currentModelName || 'model file')}</span><button type="button" id="model-remove-btn">Remove</button>`;
-      document.getElementById('model-remove-btn').addEventListener('click', () => {
-        removeExistingModel = true;
-        renderModelCurrent();
-      });
-    } else {
-      el.style.display = 'none';
-      el.innerHTML = '';
-    }
-  }
-
-  document.getElementById('p-model').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (!MODEL_EXTS.includes(fileExt(file.name))){
-      errorEl.textContent = 'That file type isn\'t supported for the 3D viewer. Use STL, OBJ, 3MF, or STEP.';
-      errorEl.style.display = 'block';
-      e.target.value = '';
-      return;
-    }
-    errorEl.style.display = 'none';
-    pendingModelFile = file;
-    removeExistingModel = false;
-    document.getElementById('model-drop-label').textContent = `Selected: ${file.name}`;
-    document.getElementById('model-drop').classList.add('has-file');
-  });
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = document.getElementById('p-name').value.trim();
-    const priceRaw = document.getElementById('p-price').value;
-    const price = priceRaw === '' ? null : Number(priceRaw);
-    const description = document.getElementById('p-desc').value.trim();
-    const active = document.getElementById('p-active').checked;
-    const instantBuy = document.getElementById('p-instant').checked;
-    if (!name) return;
-    if (instantBuy && !(price >= 0.5)){ errorEl.textContent = 'Instant buy needs a price of at least $0.50.'; errorEl.style.display = 'block'; return; }
-
-    const saveBtn = document.getElementById('modal-save');
-    saveBtn.disabled = true;
-    saveBtn.textContent = 'Saving…';
-    errorEl.style.display = 'none';
-
-    try {
-      // Storage paths intentionally still start with "presets/" — renaming
-      // this would mean moving every existing uploaded photo/model object,
-      // for no visible benefit (customers and admins never see storage
-      // paths). New uploads just keep landing in the same folder as before.
-      for (let i = 0; i < pendingPhotos.length; i++){
-        const p = pendingPhotos[i];
-        if (p.kind === 'new'){
-          const small = await downscaleImage(p.file);
-          const path = `presets/${Date.now()}-${i}-${sanitizeFileName(small.name)}`;
-          const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, small.blob, { contentType: small.blob.type || undefined });
-          if (upErr) throw upErr;
-          p.path = path;
-        }
-      }
-      const photoPaths = pendingPhotos.map(p => p.path);
-
-      let modelPath, modelName;
-      if (pendingModelFile){
-        const path = `presets/models/${Date.now()}-${sanitizeFileName(pendingModelFile.name)}`;
-        const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, pendingModelFile);
-        if (upErr) throw upErr;
-        modelPath = path;
-        modelName = pendingModelFile.name;
-      } else if (removeExistingModel){
-        modelPath = null;
-        modelName = null;
-      }
-
-      const payload = {
-        name, price, description: description || null, active, instant_buy: instantBuy,
-        image_path: photoPaths[0] || null,
-        image_paths: photoPaths.slice(1)
-      };
-      if (modelPath !== undefined) payload.model_path = modelPath;
-      if (modelName !== undefined) payload.model_name = modelName;
-
-      let error, savedId;
-      if (editingId){
-        savedId = editingId;
-        ({ error } = await supabase.from('designs').update(payload).eq('id', editingId));
-      } else {
-        let data;
-        ({ data, error } = await supabase.from('designs').insert(payload).select('id').single());
-        savedId = data?.id;
-      }
-      if (error) throw error;
-
-      // Keep design_filaments in sync: no rows = unrestricted (every active
-      // colour offered), so clear first, then re-add only if restricted.
-      const restrictOn = document.getElementById('p-restrict-colors').checked;
-      await supabase.from('design_filaments').delete().eq('design_id', savedId);
-      if (restrictOn && selectedFilamentIds.size > 0){
-        const rows = [...selectedFilamentIds].map(filament_id => ({ design_id: savedId, filament_id }));
-        const { error: dfErr } = await supabase.from('design_filaments').insert(rows);
-        if (dfErr) throw dfErr;
-      }
-
-      closeModal();
-      loadDesigns();
-
-    } catch (err){
-      errorEl.textContent = 'Could not save: ' + (err.message || 'please try again.');
-      errorEl.style.display = 'block';
-    } finally {
-      saveBtn.disabled = false;
-      saveBtn.textContent = 'Save design';
-    }
-  });
 
   checkSession();
 </script>
