@@ -11,7 +11,7 @@
 <script src="/looks.js"></script>
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
-<script src="/msg-actions.js?v=1"></script>
+<script src="/msg-actions.js?v=2"></script>
 <style>
   .ico{ vertical-align:-0.18em; flex-shrink:0; }
   :root{
@@ -1471,8 +1471,8 @@ h1{ animation: fadeInDown 0.5s ease both; }
     // re-render on new, edited or deleted messages, but never under an open edit box
     const sig = JSON.stringify(data.map(m => [m.id, m.edited_at, m.deleted]));
     if ((sig === msgSig && data.length === lastMessageCount) || VoxMsg.busy(messagesEl)) return;
-    msgSig = sig; lastMessageCount = data.length; msgList = data;
-    renderMessages(data);
+    msgSig = sig; lastMessageCount = data.length; msgList = data.filter(m => !m.deleted);   // deleted messages just go
+    renderMessages(msgList);
   }
   // customers can edit / delete their own messages (the server checks the order link)
   VoxMsg.wire(messagesEl, {

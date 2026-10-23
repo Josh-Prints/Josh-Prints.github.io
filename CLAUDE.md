@@ -103,8 +103,9 @@
   to hang through the MCP tool: prefer `create or replace` inside existing functions.
 - Edit / delete messages (`migrations/message-edit-migration.sql`, `/msg-actions.js` = `VoxMsg`): every chat (order.html, the admin
   order chat, the admin team chat) marks bubbles `data-mid`, wraps text in `.msg-text` and calls `VoxMsg.wire`. Customers change their
-  own order messages (order link), admins their own, founders any (rpc edit_/delete_order_message, edit_/delete_admin_message). Deleted =
-  `deleted_at` set and text/files cleared, shown as "Message deleted"; edits show "(edited)". order.html reads `get_order_messages_v2`.
+  own order messages (order link), admins their own, founders any (rpc edit_/delete_order_message, edit_/delete_admin_message). Hold a
+  message down (~0.45 s, mouse or finger) to show Edit / Delete. Deleted = `deleted_at` set and text/files cleared, and the message is
+  left out of every chat; edits leave no mark (the user wanted no "(edited)" / "deleted" labels). order.html reads `get_order_messages_v2`.
   New chats should use the same helper.
 - SEO: public pages (index, browse, estimate, order-form, games, terms, privacy) have a description, canonical, Open Graph /
   Twitter tags and og-image.png in <head>; index also has LocalBusiness JSON-LD. Private pages (order, quote, viewer, admin/*,

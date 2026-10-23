@@ -12,7 +12,7 @@
 <script>(function(){try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(/^sb-.*-auth-token$/.test(k)){document.documentElement.classList.add('has-session');break;}}}catch(e){}})();</script>
 <script src="/error-log.js"></script>
 <script src="/update-check.js" defer></script>
-<script src="/msg-actions.js?v=1"></script>
+<script src="/msg-actions.js?v=2"></script>
 <style>
   /* A saved login exists: don't flash the sign-in screen while we confirm it (showLogin() overrides this inline). */
   html.has-session #login-view{ display:none; }
@@ -1205,7 +1205,9 @@
     updateDownloadAll();
     chatSig = sig;
     const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
-    box.innerHTML = data.map(m => {
+    const shown = data.filter(m => !m.deleted_at);   // deleted messages just go
+    if (!shown.length){ box.innerHTML = '<div class="chat-empty">No messages yet.</div>'; chatSig = sig; return; }
+    box.innerHTML = shown.map(m => {
       const fl = (m.files && m.files.length > 0) ? m.files : (m.file_path ? [{ path: m.file_path, name: m.file_name }] : []);
       const who = `<div class="who">${m.sender === 'admin' ? escapeHtml(adminLabel(m)) : 'Customer'}${VoxMsg.edited(m)}</div>`;
       if (m.deleted_at) return `<div class="chat-msg ${m.sender}" data-mid="${m.id}">${who}${VoxMsg.deleted()}</div>`;
