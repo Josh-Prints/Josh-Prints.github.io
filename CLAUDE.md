@@ -137,6 +137,10 @@
 - Database functions are callable from any browser with the public key: new SECURITY DEFINER functions must `revoke all ... from public, anon, authenticated`
   and grant only what a page needs, and must never run caller-supplied SQL (a leftover `exec_sql(sql_query)` did, open to anon; revoked 2026-10-23).
   Run the Supabase security advisor after schema changes. New tables: enable RLS and revoke anon/authenticated table grants unless a page reads them.
+  Audit 2026-10-23 (`migrations/security-audit-2026-10-23-migration.sql`): storage listing is admins-only and uploads are limited to
+  `<order id>/…` and `messages/<order id>/…`; customers can't clear their ban or create pre-paid orders (guards); the Anthropic key never
+  leaves the server (ai-chat reads it with the service role); send_order_code has a site-wide hourly cap; r2-sign is rate-limited;
+  send-order-link is retired. Every edge function's source is in supabase/functions/ — redeploy from there.
 
 ## To do (remind the user)
 - Stripe go-live: live account "VoxPrints" has bank details, the live publishable key is stored
