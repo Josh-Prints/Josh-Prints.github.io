@@ -964,7 +964,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
     </section>
     <section class="step" data-title="File and colour">
     <div class="field" id="field-file">
-      <label>3D file <span class="req">*</span></label>
+      <label>3D file <span style="text-transform:none; letter-spacing:0;">(optional)</span></label>
       <div class="dropzone" id="dropzone">
         <input type="file" id="file_input" accept=".stl,.obj,.3mf,.step,.stp,.iges,.igs,.zip" multiple>
         <div class="glyph"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#upload"/></svg></div>
@@ -972,7 +972,6 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
         <div class="sub">STL, OBJ, 3MF, STEP, IGES, up to 2GB each, 50 files max</div>
       </div>
       <div class="file-list" id="file-list"></div>
-      <div class="field-error">Add a file.</div>
     </div>
 
     <div class="field" id="field-fil">
@@ -1100,7 +1099,6 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
         document.getElementById('email-error').textContent = v ? 'That email address doesn’t look right.' : 'Please add your email.';
         good = flag('field-email', !EMAIL.test(v)) && good;
       }
-      if (sec.querySelector('#field-file')) good = flag('field-file', !(window.VoxOrderFiles && window.VoxOrderFiles() > 0)) && good;
       if (sec.querySelector('#field-fil')) good = flag('field-fil', !(window.VoxOrderFil ? window.VoxOrderFil() : true)) && good;
       if (!good){ var bad = sec.querySelector('.field.invalid input, .field.invalid'); if (bad && bad.focus) try { bad.focus({ preventScroll: true }); } catch (e) {} }
       return good;

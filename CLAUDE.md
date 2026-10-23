@@ -79,7 +79,7 @@
 - Printing only: custom modelling was dropped (2026-10-23). The order form only offers Custom Print (type picker hidden), the estimator and
   quote tools hide modelling time, and the server turns non-admin custom_model orders into custom_print. Old custom_model orders keep their label.
   order-form.html is in 3 steps (Your details = name + email, File and colour, Description + promo + terms + Send; `.step` sections,
-  step script before the module). Each Next checks its step (file and filament are required); a step with nothing to fill in is skipped
+  step script before the module). Each Next checks its step (filament is required, the file is optional); a step with nothing to fill in is skipped
   (signed in: no name / email), Enter moves on, and the page's own submit handler runs only on the last step. The colour picker
   matches the designs page (Featured first, "More colours" grouped by type).
 - Opening an order in admin/order.html acknowledges it (rpc `admin_mark_order_viewed`, new -> acknowledged, no customer email via the
