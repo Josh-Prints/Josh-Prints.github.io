@@ -801,6 +801,22 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
   }
   #order-form.closed{ opacity: 0.5; pointer-events: none; }
   [hidden]{ display:none !important; }
+  /* step-by-step form: one short step per screen */
+  .steps-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:22px; }
+  .steps-dots{ display:flex; gap:6px; flex:1; }
+  .steps-dots i{ flex:1; height:4px; border-radius:99px; background: rgba(var(--border-tint),0.15); transition: background .25s; }
+  .steps-dots i.on{ background: var(--accent); }
+  .steps-title{ font-size:13px; color: var(--ink-dim); white-space:nowrap; }
+  .steps-title b{ color: var(--ink); font-weight:700; }
+  .step{ display:none; }
+  .step.on{ display:block; animation: fadeInUp .3s ease both; }
+  .step .fil-picker{ max-height: 46vh; overflow-y:auto; padding:2px; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
+  .step-nav{ display:flex; gap:10px; margin-top:6px; }
+  .step-btn{ flex:1; padding:14px 18px; border-radius:8px; font: inherit; font-size:15px; font-weight:700; cursor:pointer;
+    border:1px solid rgba(var(--border-tint),0.18); background: var(--bg-raised); color: var(--ink); }
+  .step-btn.primary{ background: var(--accent); border-color: var(--accent); color:#fff; }
+  .step-btn[hidden]{ display:none; }
+  #field-file.invalid .dropzone{ border-color: var(--err); }
 </style>
 <link rel="stylesheet" href="/looks.css">
 <link rel="stylesheet" href="/menu.css?v=1">
@@ -908,32 +924,25 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
   <div class="orders-closed" id="orders-closed" hidden></div>
 
   <form id="order-form" novalidate>
-    <div class="field" id="field-full_name">
-      <label for="full_name">Full name <span class="req">*</span></label>
-      <input type="text" id="full_name" name="full_name" placeholder="e.g. Alex Rivera" required autocomplete="name">
-      <div class="field-error">Please add your full name.</div>
+    <div class="steps-head">
+      <div class="steps-dots" id="steps-dots"></div>
+      <div class="steps-title"><span id="step-count"></span> <b id="step-title"></b></div>
     </div>
-
-    <div class="field" id="field-email">
-      <label for="email">Email <span class="req">*</span></label>
-      <input type="text" id="email" name="email" placeholder="e.g. alex@email.com" required autocomplete="email" inputmode="email">
-      <div class="field-error" id="email-error">Please add a valid email address.</div>
-    </div>
-
-    <div class="field" id="field-order_type" hidden>
-      <label id="order-type-label">Order type <span class="req">*</span></label>
-      <div class="order-types" role="radiogroup" aria-labelledby="order-type-label">
-        <label class="order-type">
-          <input type="radio" name="order_type" value="custom_print" required checked>
-          <div class="card">
-            <div class="name">Custom Print</div>
-            <div class="desc">Print a file you already have</div>
-          </div>
-        </label>
+    <section class="step" data-title="Your file">
+    <div class="field" id="field-file">
+      <label>3D file <span class="req">*</span></label>
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="file_input" accept=".stl,.obj,.3mf,.step,.stp,.iges,.igs,.zip" multiple>
+        <div class="glyph"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#upload"/></svg></div>
+        <div class="main">Drop a file or tap to browse</div>
+        <div class="sub">STL, OBJ, 3MF, STEP, IGES, up to 2GB each, 50 files max</div>
       </div>
-      <div class="field-error">Please choose an order type.</div>
+      <div class="file-list" id="file-list"></div>
+      <div class="field-error">Add a file.</div>
     </div>
 
+    </section>
+    <section class="step" data-title="Colour">
     <div class="field">
       <label>Filament <span style="text-transform:none; letter-spacing:0;">(optional)</span></label>
       <div class="fil-picker" id="fil-picker">
@@ -967,21 +976,11 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       </div>
     </div>
 
+    </section>
+    <section class="step" data-title="Details">
     <div class="field">
       <label for="notes">Notes</label>
       <textarea id="notes" name="notes" placeholder="Size, material, colour, deadline, anything I should know"></textarea>
-    </div>
-
-    <div class="field">
-      <label>3D file <span style="text-transform:none; letter-spacing:0;">(optional)</span></label>
-      <div class="dropzone" id="dropzone">
-        <input type="file" id="file_input" accept=".stl,.obj,.3mf,.step,.stp,.iges,.igs,.zip" multiple>
-        <div class="glyph"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#upload"/></svg></div>
-        <div class="main">Drop a file or tap to browse</div>
-        <div class="sub">STL, OBJ, 3MF, STEP, IGES, up to 2GB each, 50 files max</div>
-      </div>
-      <div class="file-list" id="file-list"></div>
-      <div class="hint">Only needed for Custom Print.</div>
     </div>
 
     <div class="field">
@@ -991,6 +990,34 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
     </div>
 
     <div class="discount-banner" id="discount-banner"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#party-popper"/></svg> You have 35% off your next order under 4 hours — I'll apply it to your quote.</div>
+
+    </section>
+    <section class="step" data-title="Your details">
+    <div class="field" id="field-full_name">
+      <label for="full_name">Full name <span class="req">*</span></label>
+      <input type="text" id="full_name" name="full_name" placeholder="e.g. Alex Rivera" required autocomplete="name">
+      <div class="field-error">Please add your full name.</div>
+    </div>
+
+    <div class="field" id="field-email">
+      <label for="email">Email <span class="req">*</span></label>
+      <input type="text" id="email" name="email" placeholder="e.g. alex@email.com" required autocomplete="email" inputmode="email">
+      <div class="field-error" id="email-error">Please add a valid email address.</div>
+    </div>
+
+    <div class="field" id="field-order_type" hidden>
+      <label id="order-type-label">Order type <span class="req">*</span></label>
+      <div class="order-types" role="radiogroup" aria-labelledby="order-type-label">
+        <label class="order-type">
+          <input type="radio" name="order_type" value="custom_print" required checked>
+          <div class="card">
+            <div class="name">Custom Print</div>
+            <div class="desc">Print a file you already have</div>
+          </div>
+        </label>
+      </div>
+      <div class="field-error">Please choose an order type.</div>
+    </div>
 
     <div class="field agree-field" id="field-agree">
       <label class="agree"><input type="checkbox" id="agree-terms"> <span>I have read and agree to the <a href="/terms.html" target="_blank">Terms and Conditions</a> and <a href="/privacy.html" target="_blank">Privacy Policy</a></span></label>
@@ -1006,6 +1033,11 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
       <span class="btn-label" id="btn-label">Send order</span>
     </button>
 
+    </section>
+    <div class="step-nav">
+      <button type="button" class="step-btn" id="step-back">Back</button>
+      <button type="button" class="step-btn primary" id="step-next">Next</button>
+    </div>
     <div class="status" id="status" role="alert" aria-live="assertive"></div>
   </form>
 
@@ -1027,6 +1059,45 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
   <footer>Voxprints · orders reviewed and quoted individually</footer>
 </div>
 
+<script>
+  // order form in steps: Next checks the step, Enter moves on instead of sending, Send only on the last step
+  (function(){
+    var form = document.getElementById('order-form');
+    var steps = Array.prototype.slice.call(form.querySelectorAll('.step'));
+    var back = document.getElementById('step-back'), next = document.getElementById('step-next');
+    var dots = document.getElementById('steps-dots'), cur = 0;
+    dots.innerHTML = steps.map(function(){ return '<i></i>'; }).join('');
+    function show(n){
+      cur = Math.max(0, Math.min(steps.length - 1, n));
+      steps.forEach(function(s, i){ s.classList.toggle('on', i === cur); });
+      Array.prototype.forEach.call(dots.children, function(d, i){ d.classList.toggle('on', i <= cur); });
+      document.getElementById('step-count').textContent = (cur + 1) + ' of ' + steps.length + ' ·';
+      document.getElementById('step-title').textContent = steps[cur].dataset.title;
+      back.hidden = cur === 0;
+      next.hidden = cur === steps.length - 1;
+      var top = form.getBoundingClientRect().top + window.scrollY - 90;
+      if (window.scrollY > top) window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }
+    function ok(n){
+      if (steps[n].querySelector('#field-file')){
+        var has = window.VoxOrderFiles && window.VoxOrderFiles() > 0;
+        document.getElementById('field-file').classList.toggle('invalid', !has);
+        return has;
+      }
+      return true;
+    }
+    next.addEventListener('click', function(){ if (ok(cur)) show(cur + 1); });
+    back.addEventListener('click', function(){ show(cur - 1); });
+    // capture runs before the page's own submit handler
+    document.addEventListener('submit', function(e){
+      if (e.target !== form) return;
+      if (cur < steps.length - 1){ e.preventDefault(); e.stopImmediatePropagation(); if (ok(cur)) show(cur + 1); return; }
+      for (var i = 0; i < steps.length - 1; i++) if (!ok(i)){ e.preventDefault(); e.stopImmediatePropagation(); show(i); return; }
+    }, true);
+    window.VoxOrderStep = show;
+    show(0);
+  })();
+</script>
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
@@ -1046,6 +1117,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
   const btnLabel = document.getElementById('btn-label');
 
   let selectedFiles = [];
+  window.VoxOrderFiles = () => selectedFiles.length;
   let filaments = [];
   let currentUser = null;
   let currentProfileName = '';
@@ -1126,6 +1198,7 @@ button[type="submit"]:disabled{ animation: pulseSoft 1.6s ease-in-out infinite; 
   loadFilaments();
 
   function renderFileList(){
+    if (selectedFiles.length) document.getElementById('field-file').classList.remove('invalid');
     fileListEl.innerHTML = '';
     selectedFiles.forEach((file, idx) => {
       const row = document.createElement('div');

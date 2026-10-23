@@ -78,6 +78,8 @@
   Filaments (`filaments.featured`; none ticked = the 8 most ordered, rpc `filament_popularity`), "More colours" lists them all grouped by type, most used type first. Designs open at browse.html?d=<id>.
 - Printing only: custom modelling was dropped (2026-10-23). The order form only offers Custom Print (type picker hidden), the estimator and
   quote tools hide modelling time, and the server turns non-admin custom_model orders into custom_print. Old custom_model orders keep their label.
+  order-form.html is in 4 steps (Your file, Colour, Details, Your details; `.step` sections, step script before the module): a file is
+  required to leave step 1, Enter moves to the next step, and the existing submit handler runs only on the last step.
 - Opening an order in admin/order.html acknowledges it (rpc `admin_mark_order_viewed`, new -> acknowledged, no customer email via the
   `orders.skip_status_mail` setting). Instant buys are stored as acknowledged too but shown as New (`shownStatus`); the list's blue glow is `status = 'new'` only.
 - Test orders (`migrations/test-orders-migration.sql`): admins tick "Test order" on order-form.html / the browse order
