@@ -763,6 +763,12 @@
     renderAll();
     initBuilder();
     startChat();
+    // opening a new order is what acknowledges it (no email goes out); an instant buy is still shown as New
+    if (order.status === 'new' && !order.deleted){
+      supabase.rpc('admin_mark_order_viewed', { p_id: order.id }).then(({ data: st }) => {
+        if (st && st !== order.status){ order.status = st; renderAll(); }
+      }, () => {});
+    }
   }
 
   function typeLabel(o){

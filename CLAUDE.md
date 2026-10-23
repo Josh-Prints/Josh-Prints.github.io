@@ -70,6 +70,8 @@
   The server sets orders.instant_buy and quote_amount = design price at insert (trigger trg_c_instant_buy), never the
   customer. Their progress bar is New -> Printing -> Done -> Sold (acknowledged/quoted show as New). Admin pages show
   "Instant buy" with Paid / Cash on pickup / Awaiting payment to every admin.
+- Opening an order in admin/order.html acknowledges it (rpc `admin_mark_order_viewed`, new -> acknowledged, no customer email via the
+  `orders.skip_status_mail` setting). Instant buys are stored as acknowledged too but shown as New (`shownStatus`); the list's blue glow is `status = 'new'` only.
 - Test orders (`migrations/test-orders-migration.sql`): admins tick "Test order" on order-form.html / the browse order
   modal (`orders.is_test` on insert; trigger trg_d_test_order clears it for non-admins). A test order stays
   quiet: notify_new_order (Discord), notify_order_confirmation, notify_order_status_change, discord_push_pending,

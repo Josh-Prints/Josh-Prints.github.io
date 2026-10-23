@@ -56,3 +56,17 @@ $$;
 
 revoke all on function public.instant_buy_order_insert(), public.get_order_checkout(uuid), public.instant_pay_cash(uuid) from public, anon, authenticated;
 grant execute on function public.get_order_checkout(uuid), public.instant_pay_cash(uuid) to anon, authenticated;
+
+-- Opening an order in admin acknowledges it (status new -> acknowledged), quietly: no customer email. An instant buy is
+-- stored as acknowledged too but every page shows it as New; the admin list's blue "new" glow only marks status = 'new'.
+create or replace function public.admin_mark_order_viewed(p_id uuid) returns text language plpgsql security definer set search_path = public as $$
+declare s text;
+begin
+  if not public.can_edit() then return null; end if;
+  perform set_config('orders.skip_status_mail', 'on', true);
+  update public.orders set status = 'acknowledged' where id = p_id and status = 'new' and not deleted returning status into s;
+  return coalesce(s, (select status from public.orders where id = p_id));
+end $$;
+revoke all on function public.admin_mark_order_viewed(uuid) from public, anon;
+grant execute on function public.admin_mark_order_viewed(uuid) to authenticated;
+-- notify_order_status_change returns early when current_setting('orders.skip_status_mail', true) = 'on' (patched with a DO block like test-orders-migration.sql)
