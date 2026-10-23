@@ -5,7 +5,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // The key lives only in the SITE_MASTER_KEY function secret (Supabase dashboard > Edge Functions > Secrets), never in
 // the database or the repo, so a database leak can't reveal it. Wrong keys are counted: 5 misses in 15 minutes from one
 // founder (or 20 from anyone) locks the switch for 15 minutes. Every attempt is logged in site_emergency_attempts.
-//   action "on":  { key, title, report }  pauses the site (see migrations/emergency-mode-migration.sql)
+//   action "on":  { key, title, report }  pauses the site, copies everyone's data into the private secure_store schema and
+//                 signs everyone out except founders (rpc emergency_lockdown; see migrations/emergency-mode-migration.sql)
 //   action "off": { key }
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -61,7 +62,7 @@ Deno.serve(async (req: Request) => {
   if (!ok) return json({ error: "Wrong master key" }, 403);
 
   const now = new Date().toISOString();
-  let row;
+  let row, lockdown: Record<string, unknown> | null = null;
   if (action === "on") {
     const title = String(body.title || "").trim().slice(0, 80);
     const report = String(body.report || "").trim().slice(0, 4000);
@@ -69,6 +70,9 @@ Deno.serve(async (req: Request) => {
     ({ data: row } = await admin.from("site_emergency").update({
       active: true, title, report, started_at: now, ended_at: null, changed_by: uid, updated_at: now,
     }).eq("id", 1).select().single());
+    // copy everyone's data into the private secure_store schema and sign everyone out (founders stay signed in)
+    const { data: ld, error: le } = await admin.rpc("emergency_lockdown", { p_reason: title });
+    lockdown = le ? { error: le.message } : ld;
   } else {
     ({ data: row } = await admin.from("site_emergency").update({
       active: false, ended_at: now, changed_by: uid, updated_at: now,
@@ -83,12 +87,13 @@ Deno.serve(async (req: Request) => {
     if (hook) {
       const ping = role ? `<@&${role}> ` : "";
       const content = action === "on"
-        ? `${ping}**EMERGENCY MODE ON**: ${row?.title || ""}\nOrders, payments, messages and games are paused.`
+        ? `${ping}**EMERGENCY MODE ON**: ${row?.title || ""}\nOrders, payments, messages and games are paused. ` +
+          (lockdown && !lockdown.error ? `Data copied to secure storage (${lockdown.snapshot}); ${lockdown.signed_out} sessions signed out.` : `Lockdown failed: ${lockdown?.error || "unknown"}`)
         : `${ping}**Emergency mode off**. The site is open again.`;
       await fetch(hook, { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: content.slice(0, 1900), allowed_mentions: role ? { roles: [role] } : { parse: [] } }) });
     }
   } catch (_) { /* ignore */ }
 
-  return json({ active: !!row?.active, title: row?.title, started_at: row?.started_at });
+  return json({ active: !!row?.active, title: row?.title, started_at: row?.started_at, lockdown });
 });

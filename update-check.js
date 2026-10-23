@@ -322,8 +322,9 @@
 })();
 
 /* Emergency mode (migrations/emergency-mode-migration.sql): while a founder has it on, every page pulses red, shows
-   flashing warning lights and a bar with a "Learn more" link to /emergency.html (the founder's report). The server
-   refuses orders, payments, messages and games on its own; this is only the look. The last state is kept for the tab
+   flashing warning lights and a bar with a "Learn more" link to /emergency.html (the founder's report), and anyone signed
+   in who isn't a founder is signed out in this browser too (the server already ended their sessions). The server refuses
+   orders, payments, messages and games and hides customer data on its own; this is only the look. The last state is kept for the tab
    so the next page shows it straight away. */
 (function(){
   var SB = 'https://paycasfatsakidsriwqt.supabase.co', KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
@@ -367,11 +368,27 @@
     bar.innerHTML = '<span class="l" aria-hidden="true"></span><span class="l b" aria-hidden="true"></span>' +
       '<span class="t"><b>EMERGENCY</b>' + esc(st.title || 'The site is paused') + '</span><a href="/emergency.html">Learn more</a>';
   }
+  // everyone except founders is signed out: the server already ended their sessions, this clears the login in this browser too
+  var TOKEN_KEY = 'sb-paycasfatsakidsriwqt-auth-token', outChecked = false;
+  function signOutHere(){
+    if (outChecked) return; outChecked = true;
+    var raw = null; try { raw = localStorage.getItem(TOKEN_KEY); } catch (e) {}
+    if (!raw) return;
+    var t = null; try { var o = JSON.parse(raw); t = o.access_token || (o.currentSession && o.currentSession.access_token); } catch (e) {}
+    var drop = function(){
+      try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
+      try { if (!sessionStorage.getItem('vx-em-out')){ sessionStorage.setItem('vx-em-out', '1'); location.reload(); } } catch (e) {}
+    };
+    if (!t) return drop();
+    fetch(SB + '/rest/v1/rpc/is_founder', { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: '{}' })
+      .then(function(r){ return r.ok ? r.json() : false; }, function(){ return null; })
+      .then(function(f){ if (f === true) return; if (f === null){ outChecked = false; return; } drop(); });
+  }
   function check(){
     if (busy) return; busy = true;
     fetch(SB + '/rest/v1/rpc/emergency_status', { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: '{}', cache: 'no-store' })
       .then(function(r){ return r.ok ? r.json() : null; })
-      .then(function(st){ busy = false; if (st) apply(st); }, function(){ busy = false; });
+      .then(function(st){ busy = false; if (st){ apply(st); if (st.active) signOutHere(); else { outChecked = false; try { sessionStorage.removeItem('vx-em-out'); } catch (e) {} } } }, function(){ busy = false; });
   }
   window.VoxEmergency = { check: check };
   try { var last = JSON.parse(sessionStorage.getItem('vx-em') || 'null'); if (last && last.active) apply(last); } catch (e) {}

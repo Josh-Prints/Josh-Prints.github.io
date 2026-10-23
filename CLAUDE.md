@@ -92,7 +92,11 @@
   of Founder > Settings needs a founder AND the site master key (SITE_MASTER_KEY edge function secret, never in the repo or DB; 5 wrong
   keys = 15 min lock). On: every page pulses red with a warning bar + "Learn more" (update-check.js, `window.VoxEmergency`), and the
   server refuses new orders (admins too), messages, cash choice, email codes, games (`assert_account_ok`) and new card payments
-  (stripe-pay). New customer-facing actions should call `assert_site_open()` first. DROP FUNCTION / CREATE TRIGGER on this DB tend
+  (stripe-pay). Turning it on also runs rpc `emergency_lockdown` (service role only): copies every people-data table into the
+  private `secure_store` schema (`<table>__<stamp>`, logged in secure_store.snapshots), deletes every login session except founders',
+  and pages sign non-founders out locally. Restrictive `emergency_lock` policies + wrapped get_order* / get_recent_customers hide
+  customer data from everyone but founders while it's on. New customer-facing actions should call `assert_site_open()` first;
+  new tables with people's data need an `emergency_lock` policy and a place in emergency_snapshot's list. DROP FUNCTION / CREATE TRIGGER on this DB tend
   to hang through the MCP tool: prefer `create or replace` inside existing functions.
 - SEO: public pages (index, browse, estimate, order-form, games, terms, privacy) have a description, canonical, Open Graph /
   Twitter tags and og-image.png in <head>; index also has LocalBusiness JSON-LD. Private pages (order, quote, viewer, admin/*,

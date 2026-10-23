@@ -2117,7 +2117,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     <div class="modal-overlay" id="em-modal" role="dialog" aria-modal="true" aria-labelledby="em-modal-title">
       <div class="modal-card em-modal-card">
         <div class="modal-head"><h2 id="em-modal-title">Turn on emergency mode</h2></div>
-        <p class="modal-sub" id="em-modal-sub">Pauses orders, payments, messages and games. Shows your report to everyone.</p>
+        <p class="modal-sub" id="em-modal-sub">Pauses everything, secures customer data and signs everyone out. Shows your report.</p>
         <div id="em-report-fields">
           <label class="em-lbl">Title<input type="text" id="em-title" maxlength="80" placeholder="e.g. Site under attack"></label>
           <label class="em-lbl">Report<textarea id="em-report" rows="5" maxlength="4000" placeholder="What happened and what customers should do."></textarea></label>
@@ -3120,7 +3120,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       err.textContent = ''; $e('em-key').value = '';
       $e('em-report-fields').hidden = active;
       $e('em-modal-title').textContent = active ? 'Turn off emergency mode' : 'Turn on emergency mode';
-      $e('em-modal-sub').textContent = active ? 'Reopens orders, payments, messages and games.' : 'Pauses orders, payments, messages and games. Shows your report to everyone.';
+      $e('em-modal-sub').textContent = active ? 'Reopens orders, payments, messages and games.' : 'Pauses everything, secures customer data and signs everyone out. Shows your report.';
       go.textContent = active ? 'Turn off' : 'Turn on';
       modal.classList.add('open');
       (active ? $e('em-key') : $e('em-title')).focus();
@@ -3139,7 +3139,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       }
       if (!key){ err.textContent = 'Enter the master key.'; return; }
       go.disabled = true; err.textContent = '';
-      const { error } = await supabase.functions.invoke('site-emergency', { body });
+      const { data: res, error } = await supabase.functions.invoke('site-emergency', { body });
       go.disabled = false;
       if (error){
         let m = 'Something went wrong.';
@@ -3147,6 +3147,8 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         err.textContent = m; return;
       }
       $e('em-key').value = ''; close(); await load();
+      const ld = res && res.lockdown;
+      if (ld) stateEl.textContent += ld.error ? ' · Lockdown failed: ' + ld.error : ' · Data secured, ' + ld.signed_out + ' signed out';
       if (window.VoxEmergency) window.VoxEmergency.check();
     });
     load();
