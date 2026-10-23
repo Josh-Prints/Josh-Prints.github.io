@@ -181,3 +181,35 @@ $$;
 revoke all on function public.emergency_log(uuid, int) from public, anon, authenticated;
 grant execute on function public.emergency_log(uuid, int) to authenticated;
 grant execute on function public.emergency_snapshot(text), public.emergency_signout() to service_role;
+
+-- ===== History (shown on /emergency.html: the last emergency in full, then recent ones) =====
+create table if not exists public.site_emergency_history (
+  id bigserial primary key, title text, report text, started_at timestamptz not null, ended_at timestamptz);
+alter table public.site_emergency_history enable row level security;
+revoke all on table public.site_emergency_history from anon, authenticated;
+
+-- switching on opens a history row, edits while on update it, switching off closes it
+create or replace function public.site_emergency_track() returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.active and not coalesce(old.active, false) then
+    insert into public.site_emergency_history(title, report, started_at) values (new.title, new.report, coalesce(new.started_at, now()));
+  elsif new.active then
+    update public.site_emergency_history set title = new.title, report = new.report
+    where id = (select max(id) from public.site_emergency_history where ended_at is null);
+  elsif coalesce(old.active, false) and not new.active then
+    update public.site_emergency_history set ended_at = coalesce(new.ended_at, now())
+    where id = (select max(id) from public.site_emergency_history where ended_at is null);
+  end if;
+  return new;
+end $$;
+revoke all on function public.site_emergency_track() from public, anon, authenticated;
+drop trigger if exists trg_site_emergency_track on public.site_emergency;
+create trigger trg_site_emergency_track after update on public.site_emergency for each row execute function public.site_emergency_track();
+
+-- public: the reports were public while each emergency was on
+create or replace function public.emergency_history(p_limit int default 10) returns jsonb language sql stable security definer set search_path = public as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', id, 'title', title, 'report', report, 'started_at', started_at, 'ended_at', ended_at) order by started_at desc), '[]'::jsonb)
+  from (select * from public.site_emergency_history order by started_at desc limit least(greatest(p_limit, 1), 50)) h;
+$$;
+revoke all on function public.emergency_history(int) from public, anon, authenticated;
+grant execute on function public.emergency_history(int) to anon, authenticated;

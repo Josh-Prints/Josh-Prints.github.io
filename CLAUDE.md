@@ -98,7 +98,8 @@
   customer data from everyone but founders while it's on. Every step is logged to `site_emergency_log` (rpc `emergency_log`, founders only):
   shown live in the switch window and as a history under the switch. Instant spread: the function broadcasts `emergency` on the Realtime
   channel `vox-emergency` (REST broadcast API) and update-check.js keeps a plain websocket on it, so open pages go red / sign out within
-  a second; the 8 s (visible) / 20 s (background) status check is the fallback. New customer-facing actions should call `assert_site_open()` first;
+  a second; the 8 s (visible) / 20 s (background) status check is the fallback. /emergency.html is also the public status page: current
+  state, the last emergency in full and recent ones (`site_emergency_history`, filled by trigger trg_site_emergency_track; rpc `emergency_history`). New customer-facing actions should call `assert_site_open()` first;
   new tables with people's data need an `emergency_lock` policy and a place in emergency_snapshot's list. DROP FUNCTION / CREATE TRIGGER on this DB tend
   to hang through the MCP tool: prefer `create or replace` inside existing functions.
 - Edit / delete messages (`migrations/message-edit-migration.sql`, `/msg-actions.js` = `VoxMsg`): every chat (order.html, the admin

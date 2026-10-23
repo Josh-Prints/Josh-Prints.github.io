@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Emergency — Voxprints</title>
+<title>Site status — Voxprints</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
 <script src="/error-log.js"></script>
@@ -34,6 +34,19 @@
   .actions{ text-align:center; margin-top:24px; }
   .btn{ display:inline-block; padding:10px 18px; border-radius:8px; border:1px solid var(--line); color:var(--ink); text-decoration:none; font-weight:600; }
   .muted{ text-align:center; color:var(--dim); }
+  .clear{ width:64px; height:64px; margin:0 auto 16px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background:rgba(63,185,80,.14); color:#3fb950; }
+  .clear svg{ width:30px; height:30px; }
+  .eyebrow.ok{ color:#3fb950; }
+  .meta{ display:flex; flex-wrap:wrap; gap:6px 18px; margin:0 0 12px; font-size:13px; color:var(--dim); }
+  .meta b{ color:var(--ink); font-weight:600; }
+  .card h3{ font-size:17px; margin:0 0 6px; }
+  .hist{ list-style:none; margin:0; padding:0; }
+  .hist li{ padding:12px 0; border-top:1px solid rgba(255,42,42,.18); }
+  .hist li:first-child{ border-top:0; padding-top:0; }
+  .hist .t{ font-weight:600; }
+  .hist .d{ font-size:12.5px; color:var(--dim); margin-top:2px; }
+  .live{ display:inline-block; font-size:11px; font-weight:700; letter-spacing:.06em; color:#fff; background:var(--red); border-radius:999px; padding:1px 7px; margin-left:6px; vertical-align:1px; }
 </style>
 </head>
 <body>
@@ -46,28 +59,63 @@
   var SB = 'https://paycasfatsakidsriwqt.supabase.co', KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
   var main = document.getElementById('main');
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
-  function render(st){
+  var ico = function(n){ return '<svg aria-hidden="true"><use href="/icons.svg#' + n + '"/></svg>'; };
+  var when = function(t){ return t ? new Date(t).toLocaleString([], { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''; };
+  function lasted(a, b){
+    var m = Math.max(1, Math.round((new Date(b || Date.now()) - new Date(a)) / 60000));
+    if (m < 60) return m + ' min';
+    var h = Math.floor(m / 60), r = m % 60;
+    if (h < 48) return h + ' h' + (r ? ' ' + r + ' min' : '');
+    return Math.round(h / 24) + ' days';
+  }
+  // the latest past emergency in full, then the rest as a list
+  function historyHtml(list, skipLive){
+    var past = list.filter(function(e){ return !(skipLive && !e.ended_at); });
+    if (!past.length) return '';
+    var last = past[0], rest = past.slice(1);
+    var out = '<div class="card"><h2>Last emergency</h2><h3>' + esc(last.title || 'Site paused') + (last.ended_at ? '' : '<span class="live">ON</span>') + '</h3>' +
+      '<p class="meta"><span>Started <b>' + esc(when(last.started_at)) + '</b></span>' +
+      (last.ended_at ? '<span>Ended <b>' + esc(when(last.ended_at)) + '</b></span>' : '') +
+      '<span>Lasted <b>' + esc(lasted(last.started_at, last.ended_at)) + '</b></span></p>' +
+      (last.report ? '<p class="report">' + esc(last.report) + '</p>' : '') + '</div>';
+    if (rest.length){
+      out += '<div class="card"><h2>Recent</h2><ul class="hist">' + rest.map(function(e){
+        return '<li><div class="t">' + esc(e.title || 'Site paused') + '</div><div class="d">' + esc(when(e.started_at)) +
+          ' · ' + esc(lasted(e.started_at, e.ended_at)) + '</div></li>';
+      }).join('') + '</ul></div>';
+    }
+    return out;
+  }
+  function render(st, hist){
     if (!st || !st.active){
-      document.title = 'Voxprints';
-      main.innerHTML = '<h1>All clear</h1><p class="since">The site is running normally.</p><div class="actions"><a class="btn" href="/">Home</a></div>';
+      document.title = 'Site status — Voxprints';
+      main.innerHTML = '<div class="clear">' + ico('check') + '</div><p class="eyebrow ok">ALL CLEAR</p>' +
+        '<h1>Running normally</h1><p class="since">' + (hist.length ? 'No emergency right now.' : 'No emergencies so far.') + '</p>' +
+        historyHtml(hist, false) + '<div class="actions"><a class="btn" href="/">Home</a></div>';
       return;
     }
     document.title = 'Emergency: ' + (st.title || 'Site paused') + ' — Voxprints';
     main.innerHTML =
-      '<div class="siren"><svg aria-hidden="true"><use href="/icons.svg#triangle-alert"/></svg></div>' +
+      '<div class="siren">' + ico('triangle-alert') + '</div>' +
       '<p class="eyebrow">EMERGENCY</p>' +
       '<h1>' + esc(st.title || 'The site is paused') + '</h1>' +
-      '<p class="since">' + (st.started_at ? 'Since ' + esc(new Date(st.started_at).toLocaleString()) : '') + '</p>' +
+      '<p class="since">' + (st.started_at ? 'Since ' + esc(when(st.started_at)) + ' · ' + esc(lasted(st.started_at)) + ' so far' : '') + '</p>' +
       (st.report ? '<div class="card"><p class="report">' + esc(st.report) + '</p></div>' : '') +
       '<div class="card"><h2>Paused</h2><ul class="paused"><li>New orders</li><li>Payments</li><li>Messages</li><li>Games</li><li>Accounts</li></ul></div>' +
+      historyHtml(hist, true) +
       '<div class="actions"><a class="btn" href="/">Home</a></div>';
   }
   var lastKey = '';
+  function rpc(name, body){
+    return fetch(SB + '/rest/v1/rpc/' + name, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}), cache: 'no-store' })
+      .then(function(r){ return r.ok ? r.json() : null; });
+  }
   function load(){
-    fetch(SB + '/rest/v1/rpc/emergency_status', { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: '{}', cache: 'no-store' })
-      .then(function(r){ return r.ok ? r.json() : null; })
-      .then(function(st){ var k = JSON.stringify(st); if (k !== lastKey){ lastKey = k; render(st); } },
-            function(){ if (!lastKey) main.innerHTML = '<p class="muted">Couldn’t load. Try again soon.</p>'; });
+    Promise.all([rpc('emergency_status'), rpc('emergency_history', { p_limit: 10 }).catch(function(){ return []; })])
+      .then(function(r){
+        var st = r[0], hist = Array.isArray(r[1]) ? r[1] : [];
+        var k = JSON.stringify([st, hist]); if (k !== lastKey){ lastKey = k; render(st, hist); }
+      }, function(){ if (!lastKey) main.innerHTML = '<p class="muted">Couldn’t load. Try again soon.</p>'; });
   }
   load();
   setInterval(function(){ if (!document.hidden) load(); }, 10000);
