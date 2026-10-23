@@ -27,3 +27,4 @@ revoke all on function public.reaction_ok(text) from public, anon, authenticated
 -- max 6 different emoji per person per message. get_order_reactions(order) -> (message_id, emoji, n, mine, names).
 -- toggle_admin_reaction(message, emoji) / get_admin_reactions(): admins only.
 -- (full bodies as applied: see the live functions; writes call assert_site_open(), reads return nothing in emergency mode)
+alter function public.reaction_ok(text) set search_path = public;
