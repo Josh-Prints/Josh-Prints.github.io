@@ -119,7 +119,7 @@
   own order messages (order link), admins their own, founders any (rpc edit_/delete_order_message, edit_/delete_admin_message). Hold a
   message down (~0.45 s, mouse or finger) to show Edit / Delete. Deleted = `deleted_at` set and text/files cleared, and the message is
   left out of every chat; edits leave no mark (the user wanted no "(edited)" / "deleted" labels). order.html reads `get_order_messages_v2`.
-  Time labels: `VoxMsg.times(list)` gives one label above a group; a new one only once a message is 30+ min after the last label.
+  Time labels: `VoxMsg.times(list)` gives one label above a group; a new one only once a message is 10+ min after the last label.
   Reactions (`migrations/message-reactions-migration.sql`, table message_reactions): holding any message shows a row of 4 emoji
   (thumbs up/down, heart, fire) plus "+" for any one emoji; chips under the bubble toggle. Pass `react` / `reactions` to VoxMsg.wire
   (rpc toggle_/get_order_reactions, toggle_/get_admin_reactions). These emoji are the one exception to the no-emoji rule (the user asked).

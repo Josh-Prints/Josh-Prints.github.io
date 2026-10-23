@@ -52,7 +52,7 @@
     var o = { day: 'numeric', month: 'short' }; if (d.getFullYear() !== now.getFullYear()) o.year = 'numeric';
     return d.toLocaleDateString([], o) + ', ' + time;
   }
-  var GAP = 30 * 60 * 1000;
+  var GAP = 10 * 60 * 1000;
   var QUICK = ['\uD83D\uDC4D', '\uD83D\uDC4E', '\u2764\uFE0F', '\uD83D\uDD25'];   // thumbs up, thumbs down, heart, fire
   // one emoji (with skin tone / joiners), nothing else
   function isEmoji(t){
@@ -63,7 +63,7 @@
 
   window.VoxMsg = {
     // time labels like a messaging app: one above the first message, then a new one only when a message comes
-    // more than 30 minutes after the last label. Returns one string per message (mostly ''), to put before each bubble.
+    // more than 10 minutes after the last label. Returns one string per message (mostly ''), to put before each bubble.
     times: function(list){
       var last = null;
       return (list || []).map(function(m){
