@@ -192,6 +192,17 @@
       const { data, error } = await sb.rpc('craft_known', { p_since: knownAt });
       if (error || !data) return;
       knownAt = data.at;
+      // the founder can reset everyone's progress: a new epoch clears what this browser has found
+      if (data.epoch){
+        let mine = null; try { mine = localStorage.getItem('vxcraft-epoch'); } catch (e) {}
+        if (mine !== String(data.epoch)){
+          if (mine !== null || items.length > BASE.length){
+            items = BASE.slice(); recipes = {}; newest = null; save(); renderList();
+            board.querySelectorAll('.item').forEach(el => el.remove()); hint();
+          }
+          try { localStorage.setItem('vxcraft-epoch', String(data.epoch)); localStorage.setItem(RKEY, '{}'); } catch (e) {}
+        }
+      }
       data.r.forEach(([a, b, res]) => { recipes[pairKey(a, b)] = res; });
       try { localStorage.setItem(RKEY, JSON.stringify(recipes)); } catch (e) {}
     } catch (e) {}
@@ -309,7 +320,7 @@
       el.style.top = (e.clientY - br.top - el.offsetHeight / 2) + 'px';
     }
     const r = el.getBoundingClientRect();
-    drag = { el, dx: e.clientX - r.left, dy: e.clientY - r.top, sx: e.clientX, sy: e.clientY, moved: false, fromList, id: e.pointerId };
+    drag = { el, dx: e.clientX - r.left, dy: e.clientY - r.top, sx: e.clientX, sy: e.clientY, t: Date.now(), moved: false, fromList, id: e.pointerId };
     el.classList.add('drag');
     trash.classList.add('on');
   }
@@ -344,7 +355,7 @@
   });
   window.addEventListener('pointermove', e => {
     if (!drag || e.pointerId !== drag.id) return;
-    if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 4) drag.moved = true;
+    if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 10) drag.moved = true;
     const br = board.getBoundingClientRect();
     drag.el.style.left = (e.clientX - br.left - drag.dx) + 'px';
     drag.el.style.top = (e.clientY - br.top - drag.dy) + 'px';
@@ -355,12 +366,14 @@
   });
   function end(e){
     if (!drag || e.pointerId !== drag.id) return;
-    const { el, fromList, moved } = drag; drag = null;
+    const { el, fromList, sx, sy, t } = drag; drag = null;
+    // a click (or a quick tap with a little wobble) on the list: drop it near the middle; a real drag places it where it lands
+    const click = Math.hypot(e.clientX - sx, e.clientY - sy) < 10 || (Date.now() - t < 250 && Math.hypot(e.clientX - sx, e.clientY - sy) < 30);
     el.classList.remove('drag');
     board.querySelectorAll('.target').forEach(t => t.classList.remove('target'));
     const overTrash = trash.classList.contains('over');
     trash.classList.remove('on', 'over');
-    if (fromList && !moved){ el.remove(); tapPlace(el.dataset.name); return; }   // a click on the list: drop it near the middle
+    if (fromList && click){ el.remove(); tapPlace(el.dataset.name); return; }
     const br = board.getBoundingClientRect(), c = centre(el);
     const outside = c.x < br.left || c.x > br.right || c.y < br.top || c.y > br.bottom;
     if (overTrash || outside){ el.remove(); hint(); return; }   // dropped back on the list (or the bin): gone
