@@ -208,11 +208,11 @@
         <h2>Solitaire</h2>
         <p>Classic Klondike. Play &rarr;</p>
       </a>
-      <div class="card game" style="--d:0.18s">
-        <div class="game-art"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg></div>
-        <h2>Game 4</h2>
-        <p>Coming soon</p>
-      </div>
+      <a class="card game play" href="/craft.html" style="--d:0.18s">
+        <div class="game-art craft-art"><svg viewBox="0 0 120 80" aria-hidden="true"><rect width="120" height="80" fill="#0d1117"/><g font-family="system-ui,sans-serif" font-weight="700" font-size="9" text-anchor="middle"><rect x="8" y="12" width="34" height="16" rx="5" fill="#161b22" stroke="#4493f8"/><text x="25" y="23" fill="#e6edf3">Fire</text><rect x="78" y="12" width="34" height="16" rx="5" fill="#161b22" stroke="#4493f8"/><text x="95" y="23" fill="#e6edf3">Water</text><path d="M42 24 Q60 34 56 44 M78 24 Q60 34 64 44" stroke="#8b949e" stroke-width="1.5" fill="none" stroke-dasharray="2 3"/><rect x="40" y="48" width="40" height="18" rx="6" fill="#4493f8"/><text x="60" y="60" fill="#fff">Steam</text></g></svg></div>
+        <h2>Vox Craft</h2>
+        <p>Combine things, see what Claude makes. Play &rarr;</p>
+      </a>
       <div class="card game" style="--d:0.24s">
         <div class="game-art"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg></div>
         <h2>Game 5</h2>
@@ -358,7 +358,7 @@ if (!document.getElementById('casino').hidden) window.loadCasinoBoard();
 
 /* ---------- who's playing now, and the casino leaderboard live ---------- */
 import { startLive, onPeople, tickTo } from '/live.js?v=2';
-const PAGE = { Dune: '/dune.html', Squish: '/squish.html', Solitaire: '/solitaire.html', Blackjack: '/blackjack.html', Roulette: '/roulette.html', Slots: '/slots.html',
+const PAGE = { Dune: '/dune.html', Squish: '/squish.html', Solitaire: '/solitaire.html', 'Vox Craft': '/craft.html', Blackjack: '/blackjack.html', Roulette: '/roulette.html', Slots: '/slots.html',
   'Three Card Poker': '/three-card-poker.html', 'Three Card Poker Live': '/three-card-poker-live.html', Keno: '/keno.html', 'Higher or Lower': '/higher-or-lower.html' };
 client();
 startLive({ sb: () => sb, game: 'casino', watchOnly: true, ui: false, board: () => document.getElementById('clb'), kind: () => kind, replace: true });

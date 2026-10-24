@@ -46,6 +46,11 @@
   every 15 s). Presence is only re-sent when who/where/playing changes (Supabase drops clients that
   update presence too often: ClientPresenceRateLimitReached); scores go out as a "score" broadcast
   about once a second. New game pages should call `startLive` too (and bump `live.js?v=N`).
+- Vox Craft (`/craft.html`, `migrations/craft-migration.sql`, edge function `craft`): Infinite Craft style. Drag items onto the board and
+  drop one onto another; the function asks Claude (Haiku, Anthropic key from private_config, server side only) what they make. Every pair is
+  saved in craft_recipes so everyone gets the same answer and Claude is only asked once; both inputs must already be in craft_items (no free
+  text reaches Claude). New pairs: 60/hour per player, 1500/hour site-wide (craft_log). Found items live in the browser (localStorage
+  `vxcraft-items`). "First discovery" = the result was new to the whole site. Items are plain text (no emoji, site rule).
 - Founder announcements (`migrations/announcements-migration.sql`): the Announce tab in
   admin/founder.html posts them; `update-check.js` (on every page) polls `live_announcements`
   every 8 s alongside the update check and shows each id/rev once per visitor (`vox-ann-seen2`); the look is a `style` jsonb.

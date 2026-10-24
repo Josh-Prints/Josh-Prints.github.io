@@ -273,7 +273,7 @@
    "banned" screen. The server refuses their orders and game actions too (account-ban-migration.sql); this is
    just so they see why. */
 (function(){
-  var GATED = /^\/(games|blackjack|beat-tapper|dune|higher-or-lower|keno|roulette|slots|solitaire|squish|three-card-poker|three-card-poker-live|order-form)(\.html)?$/;
+  var GATED = /^\/(games|blackjack|beat-tapper|craft|dune|higher-or-lower|keno|roulette|slots|solitaire|squish|three-card-poker|three-card-poker-live|order-form)(\.html)?$/;
   if (!GATED.test(location.pathname)) return;
   var SB = 'https://paycasfatsakidsriwqt.supabase.co', KEY = 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv';
   var TOKEN_KEY = 'sb-paycasfatsakidsriwqt-auth-token', shown = false, busy = false;
