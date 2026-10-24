@@ -24,3 +24,10 @@ insert into public.craft_items(name_key, name) values ('water','Water'),('fire',
 -- which model made each recipe ('groq:llama-3.1-8b-instant', 'joined' when every model failed)
 alter table public.craft_recipes add column if not exists made_by text;
 insert into public.private_config(key, value) values ('craft_provider','groq') on conflict (key) do nothing;
+
+-- queue + key rotation: a new pair being worked out (other players wait for it), and Groq keys resting after a rate limit
+create table if not exists public.craft_pending(a text not null, b text not null, started_at timestamptz not null default now(), primary key (a, b));
+create table if not exists public.craft_key_wait(key_id text primary key, until timestamptz not null);   -- key_id = first 8 bytes of sha256(key)
+alter table public.craft_pending enable row level security;
+alter table public.craft_key_wait enable row level security;
+revoke all on public.craft_pending, public.craft_key_wait from anon, authenticated;

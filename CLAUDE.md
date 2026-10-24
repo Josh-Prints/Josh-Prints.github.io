@@ -47,14 +47,14 @@
   update presence too often: ClientPresenceRateLimitReached); scores go out as a "score" broadcast
   about once a second. New game pages should call `startLive` too (and bump `live.js?v=N`).
 - Vox Craft (`/craft.html`, `migrations/craft-migration.sql`, edge function `craft`): Infinite Craft style. Drag items onto the board and
-  drop one onto another; the function asks an AI what they make. Provider + model are picked in Founder > AI > Vox Craft (private_config
-  craft_provider = groq | xai | anthropic, craft_model; keys groq_api_key / xai_api_key / anthropic_api_key, server side only). A failed or bad
-  answer falls through to the next model (that provider's list, then other providers with a key); if all fail the two names are joined, so a
-  combination ALWAYS makes something (the user wanted that). The page also keeps made pairs in localStorage `vxcraft-recipes` (instant repeats).
-  New items get a ring + sparks; a site-first discovery gets a gold burst and a "FIRST DISCOVERY" banner. craft_recipes.made_by records the model. Every pair is
-  saved in craft_recipes so everyone gets the same answer and Claude is only asked once; both inputs must already be in craft_items (no free
-  text reaches Claude). New pairs: 60/hour per player, 1500/hour site-wide (craft_log). Found items live in the browser (localStorage
-  `vxcraft-items`). "First discovery" = the result was new to the whole site. Items are plain text (no emoji, site rule).
+  drop one onto another; the function asks Groq (only Groq: the user dropped Grok/Claude) what they make. Founder > AI > Vox Craft sets the model
+  (private_config craft_model, long list + Other) and Groq keys (groq_api_key, one per line, server side only). Keys take turns; a rate-limited
+  key rests as long as Groq says (craft_key_wait) and the next is used; when every key is resting the reply is {wait: seconds}, and the page
+  keeps the pair pulsing in a queue, shows a faint countdown top-left, then retries in order. Many players: a new pair in progress is marked in
+  craft_pending so others wait for that one answer. Bad answers fall through to the next model; if all fail the names are joined, so a
+  combination ALWAYS makes something. Every pair is saved in craft_recipes (made_by = model) so the answer never changes; the page also keeps
+  them in localStorage `vxcraft-recipes`. Inputs must already be in craft_items (no free text reaches the AI). Own limits 60/hour per player,
+  1500/hour site-wide (craft_log, also answered with {wait}). New items: ring + sparks; site-first: gold burst + "FIRST DISCOVERY" banner.
 - Founder announcements (`migrations/announcements-migration.sql`): the Announce tab in
   admin/founder.html posts them; `update-check.js` (on every page) polls `live_announcements`
   every 8 s alongside the update check and shows each id/rev once per visitor (`vox-ann-seen2`); the look is a `style` jsonb.

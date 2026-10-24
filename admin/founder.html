@@ -2511,26 +2511,16 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
         <p class="modal-sub" id="ai-state" style="margin:12px 0 0;"></p>
         <div class="rates-form-grid" style="margin-top:22px;padding-top:16px;border-top:1px solid rgba(var(--border-tint),0.12);">
           <p class="ai-field-label" style="grid-column:1 / -1;margin:0;">Vox Craft</p>
-          <label>Provider
-            <select id="craft-provider">
-              <option value="groq">Groq (fastest)</option>
-              <option value="xai">xAI Grok</option>
-              <option value="anthropic">Claude</option>
-            </select>
-          </label>
-          <label>Model
+          <label style="grid-column:1 / -1;">Groq model
             <select id="craft-model"></select>
           </label>
           <label style="grid-column:1 / -1;" id="craft-model-custom-row" hidden>Model name
             <input type="text" id="craft-model-custom" placeholder="e.g. llama-3.1-8b-instant" autocomplete="off">
           </label>
-          <label style="grid-column:1 / -1;">Groq API key
-            <input type="password" id="groq-key" placeholder="gsk_…" autocomplete="off">
+          <label style="grid-column:1 / -1;">Groq API keys <span style="font-weight:400;color:var(--ink-dim);">· one per line</span>
+            <textarea id="groq-key" rows="3" placeholder="gsk_…" autocomplete="off" spellcheck="false" style="font-family:ui-monospace,monospace;-webkit-text-security:disc;"></textarea>
           </label>
-          <label style="grid-column:1 / -1;">xAI (Grok) API key
-            <input type="password" id="xai-key" placeholder="xai-…" autocomplete="off">
-          </label>
-          <p class="modal-sub" id="craft-state" style="grid-column:1 / -1;margin:0;">If a model doesn't work, the next one is tried automatically.</p>
+          <p class="modal-sub" id="craft-state" style="grid-column:1 / -1;margin:0;">Keys take turns. A key that hits its limit rests, and the next one is used.</p>
         </div>
       </div>
       <div class="modal-foot">
@@ -3746,41 +3736,33 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     setTimeout(() => { if (aiCreditMsgEl.textContent.trim().startsWith('Balance set')) aiCreditMsgEl.textContent = ''; }, 3000);
   });
 
-  // ---- Vox Craft model picker (keep the lists in step with supabase/functions/craft) ----
-  const CRAFT_MODELS = {
-    groq: [['llama-3.1-8b-instant', 'Llama 3.1 8B Instant (fastest)'], ['llama-3.3-70b-versatile', 'Llama 3.3 70B'],
-      ['meta-llama/llama-4-scout-17b-16e-instruct', 'Llama 4 Scout'], ['meta-llama/llama-4-maverick-17b-128e-instruct', 'Llama 4 Maverick'],
-      ['openai/gpt-oss-20b', 'GPT-OSS 20B'], ['openai/gpt-oss-120b', 'GPT-OSS 120B'], ['moonshotai/kimi-k2-instruct', 'Kimi K2'],
-      ['qwen/qwen3-32b', 'Qwen 3 32B'], ['gemma2-9b-it', 'Gemma 2 9B'], ['llama3-8b-8192', 'Llama 3 8B'], ['llama3-70b-8192', 'Llama 3 70B'],
-      ['deepseek-r1-distill-llama-70b', 'DeepSeek R1 70B'], ['mistral-saba-24b', 'Mistral Saba 24B'], ['compound-beta-mini', 'Compound Mini'], ['groq/compound-mini', 'Groq Compound Mini']],
-    xai: [['grok-4-fast-non-reasoning', 'Grok 4 Fast'], ['grok-4-1-fast-non-reasoning', 'Grok 4.1 Fast'], ['grok-3-mini', 'Grok 3 Mini'],
-      ['grok-3-mini-fast', 'Grok 3 Mini Fast'], ['grok-3', 'Grok 3'], ['grok-3-fast', 'Grok 3 Fast'], ['grok-4-fast-reasoning', 'Grok 4 Fast (reasoning)'],
-      ['grok-4', 'Grok 4'], ['grok-code-fast-1', 'Grok Code Fast'], ['grok-2-1212', 'Grok 2']],
-    anthropic: [['claude-haiku-5-5', 'Haiku 5.5'], ['claude-haiku-4-5', 'Haiku 4.5'], ['claude-sonnet-5', 'Sonnet 5'],
-      ['claude-sonnet-4-5', 'Sonnet 4.5'], ['claude-3-5-haiku-latest', 'Haiku 3.5']],
-  };
-  const craftProvider = document.getElementById('craft-provider'), craftModel = document.getElementById('craft-model');
+  // ---- Vox Craft (Groq) model picker (keep the list in step with supabase/functions/craft) ----
+  const CRAFT_MODELS = [['llama-3.1-8b-instant', 'Llama 3.1 8B Instant (fastest)'], ['llama-3.3-70b-versatile', 'Llama 3.3 70B'],
+    ['meta-llama/llama-4-scout-17b-16e-instruct', 'Llama 4 Scout'], ['meta-llama/llama-4-maverick-17b-128e-instruct', 'Llama 4 Maverick'],
+    ['openai/gpt-oss-20b', 'GPT-OSS 20B'], ['openai/gpt-oss-120b', 'GPT-OSS 120B'], ['moonshotai/kimi-k2-instruct', 'Kimi K2'],
+    ['moonshotai/kimi-k2-instruct-0905', 'Kimi K2 0905'], ['qwen/qwen3-32b', 'Qwen 3 32B'], ['gemma2-9b-it', 'Gemma 2 9B'],
+    ['llama3-8b-8192', 'Llama 3 8B'], ['llama3-70b-8192', 'Llama 3 70B'], ['deepseek-r1-distill-llama-70b', 'DeepSeek R1 70B'],
+    ['mistral-saba-24b', 'Mistral Saba 24B'], ['allam-2-7b', 'Allam 2 7B'], ['compound-beta-mini', 'Compound Mini'], ['compound-beta', 'Compound'],
+    ['groq/compound-mini', 'Groq Compound Mini'], ['groq/compound', 'Groq Compound']];
+  const craftModel = document.getElementById('craft-model');
   const craftCustom = document.getElementById('craft-model-custom'), craftCustomRow = document.getElementById('craft-model-custom-row');
   function fillCraftModels(selected){
-    const list = CRAFT_MODELS[craftProvider.value] || [];
-    const known = list.some(([id]) => id === selected);
-    craftModel.innerHTML = list.map(([id, label]) => `<option value="${id}">${label}</option>`).join('') + '<option value="__other">Other…</option>';
-    craftModel.value = !selected ? list[0][0] : known ? selected : '__other';
+    const known = CRAFT_MODELS.some(([id]) => id === selected);
+    craftModel.innerHTML = CRAFT_MODELS.map(([id, label]) => `<option value="${id}">${label}</option>`).join('') + '<option value="__other">Other…</option>';
+    craftModel.value = !selected ? CRAFT_MODELS[0][0] : known ? selected : '__other';
     craftCustom.value = known || !selected ? '' : selected;
     craftCustomRow.hidden = craftModel.value !== '__other';
   }
-  craftProvider.addEventListener('change', () => fillCraftModels(''));
   craftModel.addEventListener('change', () => { craftCustomRow.hidden = craftModel.value !== '__other'; if (!craftCustomRow.hidden) craftCustom.focus(); });
   fillCraftModels('');
 
   async function loadAiState(){
     loadAiUsage();
-    supabase.from('private_config').select('key, value').in('key', ['craft_provider', 'craft_model', 'groq_api_key', 'xai_api_key']).then(({ data }) => {
+    supabase.from('private_config').select('key, value').in('key', ['craft_model', 'groq_api_key']).then(({ data }) => {
       const v = k => ((data || []).find(r => r.key === k) || {}).value || '';
-      craftProvider.value = CRAFT_MODELS[v('craft_provider')] ? v('craft_provider') : 'groq';
       fillCraftModels(v('craft_model'));
-      document.getElementById('groq-key').placeholder = v('groq_api_key') ? '•••••• saved — paste a new key to replace it' : 'gsk_…';
-      document.getElementById('xai-key').placeholder = v('xai_api_key') ? '•••••• saved — paste a new key to replace it' : 'xai-…';
+      const n = v('groq_api_key').split(/[\s,]+/).filter(k => k.trim().length > 10).length;
+      document.getElementById('groq-key').placeholder = n ? n + (n === 1 ? ' key' : ' keys') + ' saved. Paste keys here to replace them.' : 'gsk_…';
     });
     const { data, error } = await supabase
       .from('private_config').select('key, value, updated_at')
@@ -3814,16 +3796,15 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     if (key) rows.push({ key: 'anthropic_api_key', value: key, updated_at: now });
     // Vox Craft
     const cm = craftModel.value === '__other' ? craftCustom.value.trim() : craftModel.value;
-    rows.push({ key: 'craft_provider', value: craftProvider.value, updated_at: now }, { key: 'craft_model', value: cm, updated_at: now });
-    const gk = document.getElementById('groq-key').value.trim(), xk = document.getElementById('xai-key').value.trim();
-    if (gk) rows.push({ key: 'groq_api_key', value: gk, updated_at: now });
-    if (xk) rows.push({ key: 'xai_api_key', value: xk, updated_at: now });
+    rows.push({ key: 'craft_model', value: cm, updated_at: now });
+    const gk = document.getElementById('groq-key').value.split(/[\s,]+/).map(k => k.trim()).filter(k => k.length > 10);
+    if (gk.length) rows.push({ key: 'groq_api_key', value: [...new Set(gk)].join('\n'), updated_at: now });
     const { error } = await supabase.from('private_config').upsert(rows);
     aiSaveBtn.disabled = false;
     aiSaveBtn.textContent = 'Save';
     if (error){ aiMsgEl.textContent = 'Error: ' + error.message; return; }
     aiKeyInput.value = '';
-    document.getElementById('groq-key').value = ''; document.getElementById('xai-key').value = '';
+    document.getElementById('groq-key').value = '';
     aiMsgEl.textContent = 'Saved.';
     loadAiState();
   });

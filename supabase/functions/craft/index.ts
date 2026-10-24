@@ -1,14 +1,20 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-// Vox Craft (craft.html): combine two items, an AI says what they make. Like Infinite Craft, every combination is
-// worked out once and saved (craft_recipes), so it's the same for everyone and the AI is only asked about new pairs.
+// Vox Craft (craft.html): combine two items, Groq says what they make. Like Infinite Craft, every combination is
+// worked out once and saved (craft_recipes), so it's the same for everyone and Groq is only asked about new pairs.
 // Both items must already exist (craft_items: the 4 base items + everything discovered so far), so nobody can send
-// the AI arbitrary text. New pairs are rate-limited (craft_log): 60 an hour per player, 1500 an hour site-wide.
-// Provider + model are picked in Founder > AI (private_config craft_provider / craft_model; keys groq_api_key,
-// xai_api_key, anthropic_api_key, read with the service role, never sent to a browser). If a model fails or gives a
-// bad answer the next one is tried (rest of that provider's list, then the other providers with a key), and if
-// everything fails the two names are joined, so a combination always makes something.
+// the AI arbitrary text.
+//
+// Groq only. Model + keys are set in Founder > AI > Vox Craft (private_config craft_model; groq_api_key holds one key
+// per line, read with the service role, never sent to a browser). Keys are used in turn; a key Groq rate-limits is
+// rested for as long as Groq says (craft_key_wait) and the next key is tried. If every key is resting, the reply is
+// { wait: seconds } and the page shows a faint countdown, then tries again by itself.
+// Many players at once: a new pair being worked out is marked in craft_pending, so anyone else asking for the same pair
+// waits for that answer instead of asking Groq again.
+// A bad or missing answer falls through to the next model; if every model fails (not a rate limit) the two names are
+// joined, so a combination always makes something.
+// Our own limits: 60 new pairs an hour per player, 1500 site-wide (craft_log); hitting them also gives { wait }.
 // Public on purpose (guests play too): verify_jwt is off. Refused while emergency mode is on or for banned accounts.
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -22,17 +28,9 @@ const CORS = {
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
 // fallback order when the chosen model doesn't work (keep in step with the list in admin/founder.html)
-const MODELS: Record<string, string[]> = {
-  groq: ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "meta-llama/llama-4-scout-17b-16e-instruct", "meta-llama/llama-4-maverick-17b-128e-instruct",
-    "openai/gpt-oss-20b", "openai/gpt-oss-120b", "moonshotai/kimi-k2-instruct", "qwen/qwen3-32b", "gemma2-9b-it", "llama3-8b-8192", "llama3-70b-8192"],
-  xai: ["grok-4-fast-non-reasoning", "grok-4-1-fast-non-reasoning", "grok-3-mini", "grok-3-mini-fast", "grok-3", "grok-3-fast", "grok-4-fast-reasoning", "grok-4", "grok-2-1212"],
-  anthropic: ["claude-haiku-5-5", "claude-haiku-4-5", "claude-sonnet-5", "claude-sonnet-4-5", "claude-3-5-haiku-latest"],
-};
-const URLS: Record<string, string> = {
-  groq: "https://api.groq.com/openai/v1/chat/completions",
-  xai: "https://api.x.ai/v1/chat/completions",
-};
-const KEYS: Record<string, string> = { groq: "groq_api_key", xai: "xai_api_key", anthropic: "anthropic_api_key" };
+const MODELS = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "meta-llama/llama-4-scout-17b-16e-instruct", "meta-llama/llama-4-maverick-17b-128e-instruct",
+  "openai/gpt-oss-20b", "openai/gpt-oss-120b", "moonshotai/kimi-k2-instruct", "qwen/qwen3-32b", "gemma2-9b-it", "llama3-8b-8192", "llama3-70b-8192"];
+const GROQ = "https://api.groq.com/openai/v1/chat/completions";
 
 const SYSTEM = `You are the engine of a word-combining game like Infinite Craft. The player combines two things; you say the one thing they make.
 Rules:
@@ -47,6 +45,7 @@ Reply with JSON only, exactly like {"result": "Steam"}.`;
 const BAD = /\b(sex|porn|nude|naked|rape|nazi|hitler|cocaine|heroin|meth|weed|penis|vagina|boob|fuck|shit|bitch|cunt|dick|cock|whore|slut|nigg|fag|retard|kill yourself|suicide)/i;
 const tidy = (s: string) => s.replace(/\s+/g, " ").trim();
 const keyOf = (s: string) => tidy(s).toLowerCase();
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 function titleCase(s: string) {
   return s.split(" ").map((w) => (/^(of|the|and|in|on|a|an|to|de)$/i.test(w) ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1))).join(" ")
     .replace(/^./, (c) => c.toUpperCase());
@@ -64,29 +63,39 @@ function clean(raw: string | null): string | null {
   if (!out || out.length > 24 || !/^[A-Za-z0-9][A-Za-z0-9 '\-]*$/.test(out) || BAD.test(out) || /^(nothing|none|null|n\/a)$/i.test(out)) return null;
   return out;
 }
+// "1m26.4s" / "7.66s" / "120ms" / "30" -> seconds
+function seconds(v: string | null): number | null {
+  if (!v) return null;
+  if (/^\d+(\.\d+)?$/.test(v.trim())) return Number(v);
+  let t = 0, hit = false;
+  for (const [, n, u] of v.matchAll(/(\d+(?:\.\d+)?)\s*(ms|h|m|s)/g)) { hit = true; t += Number(n) * (u === "h" ? 3600 : u === "m" ? 60 : u === "ms" ? 0.001 : 1); }
+  return hit ? t : null;
+}
+async function keyId(k: string) {
+  const h = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(k)));
+  return Array.from(h.slice(0, 8), (b) => b.toString(16).padStart(2, "0")).join("");
+}
 
-async function ask(provider: string, model: string, key: string, a: string, b: string): Promise<string | null> {
-  const user = `${a} + ${b}`;
+type Ask = { out: string | null; limited?: number; bad?: boolean };
+async function ask(model: string, key: string, a: string, b: string): Promise<Ask> {
   try {
-    if (provider === "anthropic") {
-      const r = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST", signal: AbortSignal.timeout(9000),
-        headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-        body: JSON.stringify({ model, max_tokens: 60, system: SYSTEM, messages: [{ role: "user", content: user }] }),
-      });
-      if (!r.ok) return null;
-      const d = await r.json();
-      return clean((d?.content || []).map((c: { text?: string }) => c.text || "").join(""));
-    }
-    const r = await fetch(URLS[provider], {
+    const r = await fetch(GROQ, {
       method: "POST", signal: AbortSignal.timeout(9000),
       headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
-      body: JSON.stringify({ model, temperature: 0.7, max_tokens: 400, messages: [{ role: "system", content: SYSTEM }, { role: "user", content: user }] }),
+      body: JSON.stringify({ model, temperature: 0.7, max_tokens: 400, messages: [{ role: "system", content: SYSTEM }, { role: "user", content: `${a} + ${b}` }] }),
     });
-    if (!r.ok) return null;
+    if (r.status === 429) {   // rate limited: how long Groq wants us to wait
+      const body = await r.text().catch(() => "");
+      const msg = body.match(/try again in ([0-9hms.]+)/i);
+      const w = seconds(r.headers.get("retry-after")) ?? seconds(msg && msg[1]) ??
+        seconds(r.headers.get("x-ratelimit-reset-requests")) ?? seconds(r.headers.get("x-ratelimit-reset-tokens")) ?? 10;
+      return { out: null, limited: Math.min(3600, Math.max(1, Math.ceil(w))) };
+    }
+    if (r.status === 401 || r.status === 403) return { out: null, bad: true };   // this key doesn't work
+    if (!r.ok) return { out: null };                                              // model missing / busy: next model
     const d = await r.json();
-    return clean(String(d?.choices?.[0]?.message?.content || ""));
-  } catch { return null; }   // timeout or network: try the next model
+    return { out: clean(String(d?.choices?.[0]?.message?.content || "")) };
+  } catch { return { out: null }; }   // timeout or network: next model
 }
 
 Deno.serve(async (req: Request) => {
@@ -103,20 +112,23 @@ Deno.serve(async (req: Request) => {
   if (em?.active) return json({ error: "Paused" }, 503);
 
   const [a, b] = [keyOf(ra), keyOf(rb)].sort();
+  const known = async () => {
+    const { data: rec } = await admin.from("craft_recipes").select("result_key").eq("a", a).eq("b", b).maybeSingle();
+    if (!rec) return null;
+    const { data: it } = await admin.from("craft_items").select("name").eq("name_key", rec.result_key).maybeSingle();
+    return (it?.name as string) || rec.result_key;
+  };
 
   // already made: always the same answer, for everyone
-  const { data: known } = await admin.from("craft_recipes").select("result_key").eq("a", a).eq("b", b).maybeSingle();
-  if (known) {
-    const { data: it } = await admin.from("craft_items").select("name").eq("name_key", known.result_key).maybeSingle();
-    return json({ result: it?.name || known.result_key, first: false });
-  }
+  const done = await known();
+  if (done) return json({ result: done, first: false });
 
   // both must be real items (base or discovered), so nothing else ever reaches the AI
   const { data: items } = await admin.from("craft_items").select("name_key, name").in("name_key", [a, b]);
   const byKey = new Map((items || []).map((i: { name_key: string; name: string }) => [i.name_key, i.name]));
   if (!byKey.has(a) || !byKey.has(b)) return json({ error: "Unknown item" }, 400);
 
-  // who's asking (signed-in players get credit for first discoveries; guests are rate-limited by IP)
+  // who's asking (signed-in players get credit for first discoveries; guests are counted by IP)
   const bearer = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
   let uid: string | null = null;
   if (/^eyJ/.test(bearer)) { const { data } = await admin.auth.getUser(bearer); uid = data?.user?.id || null; }
@@ -124,43 +136,80 @@ Deno.serve(async (req: Request) => {
     const { data: cp } = await admin.from("customer_profiles").select("banned_at").eq("id", uid).maybeSingle();
     if (cp?.banned_at) return json({ error: "Account banned" }, 403);
   }
+
+  // someone else is already working this pair out: wait for their answer (many players, one Groq call)
+  const { data: claimed } = await admin.from("craft_pending").insert({ a, b }).select("a").maybeSingle();
+  if (!claimed) {
+    for (let i = 0; i < 24; i++) {
+      await sleep(500);
+      const r = await known(); if (r) return json({ result: r, first: false });
+    }
+    const { data: p } = await admin.from("craft_pending").select("started_at").eq("a", a).eq("b", b).maybeSingle();
+    if (p && Date.now() - new Date(p.started_at as string).getTime() < 30000) return json({ wait: 3 });
+    await admin.from("craft_pending").upsert({ a, b, started_at: new Date().toISOString() });   // the other try died: take over
+  }
+  const release = () => admin.from("craft_pending").delete().eq("a", a).eq("b", b).then(() => {}, () => {});
+
+  // our own limits
   const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "unknown";
   const who = uid ? "u:" + uid : "ip:" + ip;
   const since = new Date(Date.now() - 3600 * 1000).toISOString();
-  const [{ count: mine }, { count: all }] = await Promise.all([
-    admin.from("craft_log").select("id", { count: "exact", head: true }).eq("who", who).gte("at", since),
+  const [mineQ, allQ] = await Promise.all([
+    admin.from("craft_log").select("at").eq("who", who).gte("at", since).order("at").limit(1),
     admin.from("craft_log").select("id", { count: "exact", head: true }).gte("at", since),
   ]);
-  if ((mine || 0) >= PER_PLAYER_HOUR || (all || 0) >= SITE_HOUR) return json({ error: "Too fast. Try again soon." }, 429);
-  await admin.from("craft_log").insert({ who });
+  const { count: mine } = await admin.from("craft_log").select("id", { count: "exact", head: true }).eq("who", who).gte("at", since);
+  if ((mine || 0) >= PER_PLAYER_HOUR || (allQ.count || 0) >= SITE_HOUR) {
+    const oldest = mineQ.data?.[0]?.at ? new Date(mineQ.data[0].at as string).getTime() : Date.now();
+    await release();
+    return json({ wait: Math.max(5, Math.ceil((oldest + 3600 * 1000 - Date.now()) / 1000)) });
+  }
 
-  // the chosen provider + model first, then everything else that has a key
-  const { data: cfg } = await admin.from("private_config").select("key, value")
-    .in("key", ["craft_provider", "craft_model", "groq_api_key", "xai_api_key", "anthropic_api_key"]);
+  // Groq keys (one per line) and the chosen model
+  const { data: cfg } = await admin.from("private_config").select("key, value").in("key", ["craft_model", "groq_api_key"]);
   const get = (k: string) => String((cfg || []).find((c: { key: string }) => c.key === k)?.value || "").trim();
-  const chosen = MODELS[get("craft_provider")] ? get("craft_provider") : "groq";
-  const tries: [string, string][] = [];
-  for (const p of [chosen, ...Object.keys(MODELS).filter((x) => x !== chosen)]) {
-    if (!get(KEYS[p])) continue;
-    const list = MODELS[p].slice();
-    if (p === chosen && get("craft_model")) list.unshift(get("craft_model"));
-    for (const m of [...new Set(list)].slice(0, p === chosen ? 6 : 2)) tries.push([p, m]);
-  }
-  let out: string | null = null, used = "";
+  const keys = [...new Set(get("groq_api_key").split(/[\s,]+/).map((k) => k.trim()).filter((k) => k.length > 10))];
+  if (!keys.length) { await release(); return json({ error: "Not set up" }, 503); }
+  const ids = await Promise.all(keys.map(keyId));
+  const { data: waits } = await admin.from("craft_key_wait").select("key_id, until").in("key_id", ids);
+  const restUntil = new Map<string, number>((waits || []).map((w: { key_id: string; until: string }) => [w.key_id, new Date(w.until).getTime()]));
+  const ready = () => keys.map((k, i) => ({ k, id: ids[i] })).filter((x) => (restUntil.get(x.id) || 0) <= Date.now());
+  const models = [...new Set([get("craft_model"), ...MODELS].filter(Boolean))].slice(0, 6);
+
+  await admin.from("craft_log").insert({ who });
+  let out: string | null = null, used = "", turn = Math.floor(Math.random() * keys.length);
   const started = Date.now();
-  for (const [p, m] of tries) {
-    if (Date.now() - started > 20000) break;   // stay well inside the function time limit
-    out = await ask(p, m, get(KEYS[p]), byKey.get(a)!, byKey.get(b)!);
-    if (out) { used = p + ":" + m; break; }
+  outer: for (const model of models) {
+    while (true) {
+      if (Date.now() - started > 20000) break outer;   // stay well inside the function time limit
+      const free = ready();
+      if (!free.length) break outer;                   // every key is resting
+      const pick = free[turn++ % free.length];
+      const r = await ask(model, pick.k, byKey.get(a)!, byKey.get(b)!);
+      if (r.limited || r.bad) {                         // rest this key and try the next one on the same model
+        const until = Date.now() + (r.limited ? r.limited * 1000 : 3600 * 1000);
+        restUntil.set(pick.id, until);
+        await admin.from("craft_key_wait").upsert({ key_id: pick.id, until: new Date(until).toISOString() });
+        continue;
+      }
+      if (r.out) { out = r.out; used = "groq:" + model; break outer; }
+      break;                                            // no usable answer from this model: next model
+    }
   }
-  // nothing worked: join the two names, so a combination still always makes something
+
+  if (!out && !ready().length) {   // rate limited everywhere: tell the page how long, it shows a countdown and tries again
+    await release();
+    const soonest = Math.min(...ids.map((id) => restUntil.get(id) || Date.now()));
+    return json({ wait: Math.max(1, Math.ceil((soonest - Date.now()) / 1000)) });
+  }
+  // every model failed: join the two names, so a combination still always makes something
   if (!out) { out = titleCase((byKey.get(a)! + " " + byKey.get(b)!).slice(0, 24).trim()); used = "joined"; }
 
-  // save it (if two players made the same new pair at once, the first save wins and both get the same answer)
+  // save it (if two players somehow made the same new pair at once, the first save wins and both get the same answer)
   const rk = keyOf(out);
   const { data: newItem } = await admin.from("craft_items").insert({ name_key: rk, name: out, first_by: uid }).select("name").maybeSingle();
   await admin.from("craft_recipes").insert({ a, b, result_key: rk, made_by: used });
-  const { data: final } = await admin.from("craft_recipes").select("result_key").eq("a", a).eq("b", b).maybeSingle();
-  const { data: it } = await admin.from("craft_items").select("name").eq("name_key", final?.result_key || rk).maybeSingle();
-  return json({ result: it?.name || out, first: !!newItem && (final?.result_key || rk) === rk });
+  await release();
+  const final = await known();
+  return json({ result: final || out, first: !!newItem && keyOf(final || out) === rk });
 });

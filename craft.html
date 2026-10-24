@@ -71,6 +71,7 @@
     background: var(--canvas-inset); border: 1px solid var(--border); color: var(--fg); padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; z-index: 100; white-space: nowrap; }
   .toast.on{ opacity: 1; transform: translateX(-50%); }
   .toast.first{ border-color: var(--ok); color: var(--ok); }
+  .wait{ position: absolute; left: 10px; top: 8px; font: 600 12px ui-monospace, 'SF Mono', monospace; color: var(--fg-muted); opacity: .45; pointer-events: none; z-index: 5; }
   .trash{ position: absolute; left: 12px; bottom: 12px; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
     background: var(--canvas-inset); border: 1px solid var(--border); color: var(--fg-muted); font-size: 18px; opacity: 0; transition: .2s; pointer-events: none; }
   .trash.on{ opacity: 1; }
@@ -112,6 +113,7 @@
   <div class="game">
     <div class="board" id="board">
       <div class="hint" id="hint">Drag items here, then drop one onto another to combine them.</div>
+      <div class="wait" id="wait" hidden title="Waiting for the AI"></div>
       <div class="trash" id="trash" aria-hidden="true"><svg class="ico" aria-hidden="true"><use href="/icons.svg#trash-2"/></svg></div>
     </div>
     <div class="side">
@@ -217,6 +219,7 @@
       if (error){ try { err = (await error.context.json()).error; } catch (e) { err = 'Try again.'; } }
       else res = data;
     } catch (e){ err = 'Try again.'; }
+    if (!err && res && res.wait) return queueWait(a, b, res.wait);   // busy right now: stays in the queue, tries again by itself
     a.classList.remove('busy'); b.classList.remove('busy');
     if (err || !res || !res.result){   // only a connection problem or the hourly limit gets here
       [a, b].forEach(el => { el.classList.remove('nope'); void el.offsetWidth; el.classList.add('nope'); });
@@ -227,6 +230,25 @@
     try { localStorage.setItem(RKEY, JSON.stringify(recipes)); } catch (e) {}
     return show(a, b, res);
   }
+  // ---- waiting queue: Groq said wait, so the pair keeps pulsing, a faint countdown shows top left, then it goes ----
+  const queue = [];
+  let waitUntil = 0, waitTimer = null;
+  function queueWait(a, b, secs){
+    a.classList.add('busy'); b.classList.add('busy');
+    if (!queue.some(q => q.a === a && q.b === b)) queue.push({ a, b });
+    waitUntil = Math.max(waitUntil, Date.now() + secs * 1000);
+    if (!waitTimer) waitTimer = setInterval(tick, 250);
+    tick();
+  }
+  function tick(){
+    const left = Math.ceil((waitUntil - Date.now()) / 1000);
+    const w = $('wait');
+    if (left > 0){ w.hidden = false; w.textContent = left >= 60 ? Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0') : left + 's'; return; }
+    w.hidden = true; clearInterval(waitTimer); waitTimer = null;
+    const go = queue.splice(0);
+    (async () => { for (const q of go){ if (q.a.isConnected && q.b.isConnected) await combine(q.a, q.b); } })();   // in order, one at a time
+  }
+
   function show(a, b, res){
     const ca = centre(a), cb = centre(b), br = board.getBoundingClientRect();
     const x = (ca.x + cb.x) / 2 - br.left, y = (ca.y + cb.y) / 2 - br.top;
