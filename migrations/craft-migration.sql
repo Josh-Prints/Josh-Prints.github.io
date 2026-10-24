@@ -31,3 +31,17 @@ create table if not exists public.craft_key_wait(key_id text primary key, until 
 alter table public.craft_pending enable row level security;
 alter table public.craft_key_wait enable row level security;
 revoke all on public.craft_pending, public.craft_key_wait from anon, authenticated;
+
+-- Leaderboard: most first discoveries (craft_items.first_by; guests get no credit)
+create or replace function public.craft_leaderboard(p_limit integer default 20)
+returns jsonb language sql stable security definer set search_path to 'public' as $$
+  select jsonb_build_object(
+    'total', (select count(*) from public.craft_items),
+    'mine', (select count(*) from public.craft_items where auth.uid() is not null and first_by = auth.uid()),
+    'top', coalesce((select jsonb_agg(jsonb_build_object('rank', rnk, 'name', public.game_player_name(first_by), 'value', n, 'me', first_by = auth.uid()) order by rnk)
+      from (select first_by, n, rank() over (order by n desc) rnk
+            from (select first_by, count(*) n from public.craft_items where first_by is not null group by first_by) t
+            order by n desc limit least(greatest(coalesce(p_limit, 20), 1), 50)) r), '[]'::jsonb));
+$$;
+revoke all on function public.craft_leaderboard(integer) from public, anon, authenticated;
+grant execute on function public.craft_leaderboard(integer) to anon, authenticated;

@@ -54,7 +54,8 @@
   craft_pending so others wait for that one answer. Bad answers fall through to the next model; if all fail the names are joined, so a
   combination ALWAYS makes something. Every pair is saved in craft_recipes (made_by = model) so the answer never changes; the page also keeps
   them in localStorage `vxcraft-recipes`. Inputs must already be in craft_items (no free text reaches the AI). Own limits 60/hour per player,
-  1500/hour site-wide (craft_log, also answered with {wait}). New items: ring + sparks; site-first: gold burst + "FIRST DISCOVERY" banner.
+  1500/hour site-wide (craft_log, also answered with {wait}). New items: ring + sparks; site-first: gold burst + "FIRST DISCOVERY" banner. Recipes/items are global; only the
+  personal collection is per browser. Leaderboard button = rpc craft_leaderboard (most site-firsts, signed-in only). Clicking a list item drops it near the middle.
 - Founder announcements (`migrations/announcements-migration.sql`): the Announce tab in
   admin/founder.html posts them; `update-check.js` (on every page) polls `live_announcements`
   every 8 s alongside the update check and shows each id/rev once per visitor (`vox-ann-seen2`); the look is a `style` jsonb.

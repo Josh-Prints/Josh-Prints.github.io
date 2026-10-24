@@ -95,6 +95,18 @@
   .banner.on{ opacity: 1; transform: translate(-50%,-50%) scale(1); }
   .banner small{ display: block; font-size: 11.5px; font-weight: 800; letter-spacing: .14em; color: #e3b341; }
   .banner b{ display: block; font-size: 26px; margin-top: 4px; }
+  .lb{ position: fixed; inset: 0; z-index: 130; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .lb[hidden]{ display: none; }
+  .lb-card{ width: 100%; max-width: 380px; max-height: 80vh; overflow-y: auto; background: var(--canvas); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; box-shadow: 0 18px 50px rgba(0,0,0,.35); }
+  .lb-head{ display: flex; align-items: center; justify-content: space-between; font-size: 16px; }
+  .lb-head .tbtn{ padding: 5px 7px; }
+  .lb-sub{ font-size: 13px; color: var(--fg-muted); margin: 4px 0 10px; }
+  .lb-list{ list-style: none; margin: 0; padding: 0; }
+  .lb-list li{ display: flex; gap: 10px; align-items: center; padding: 8px 4px; border-top: 1px solid var(--border-muted); font-size: 14px; }
+  .lb-list li.me{ color: var(--accent); font-weight: 700; }
+  .lb-list .r{ width: 26px; color: var(--fg-muted); font-weight: 700; }
+  .lb-list .n{ flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb-list .v{ font-weight: 700; font-variant-numeric: tabular-nums; }
   @media (max-width: 760px){
     .game{ flex-direction: column; }
     .side{ width: 100%; height: 42%; border-left: 0; border-top: 1px solid var(--border-muted); }
@@ -108,6 +120,7 @@
     <a href="/games.html">&larr; Games</a>
     <span class="title">Vox Craft</span>
     <span class="count" id="count"></span>
+    <button type="button" class="tbtn" id="lb-btn" title="Most first discoveries"><svg class="ico" aria-hidden="true"><use href="/icons.svg#crown"/></svg><span class="lg">Leaderboard</span></button>
     <button type="button" class="tbtn" id="clear" title="Clear the board"><svg class="ico" aria-hidden="true"><use href="/icons.svg#trash-2"/></svg><span class="lg">Clear</span></button>
   </div>
   <div class="game">
@@ -122,6 +135,13 @@
         <select id="sort" aria-label="Sort"><option value="time">Newest</option><option value="az">A–Z</option></select>
       </div>
       <div class="list" id="list"></div>
+    </div>
+  </div>
+  <div class="lb" id="lb" hidden>
+    <div class="lb-card" role="dialog" aria-labelledby="lb-title">
+      <div class="lb-head"><b id="lb-title">First discoveries</b><button type="button" class="tbtn" id="lb-close" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="/icons.svg#x"/></svg></button></div>
+      <div class="lb-sub" id="lb-sub"></div>
+      <ol class="lb-list" id="lb-list"></ol>
     </div>
   </div>
   <div class="toast" id="toast" role="status"></div>
@@ -301,7 +321,7 @@
   });
   function tapPlace(name){
     const br = board.getBoundingClientRect(), n = board.querySelectorAll('.item').length;
-    const el = place(name, br.width * (0.25 + Math.random() * 0.5), br.height * (0.25 + Math.random() * 0.5) + (n % 4) * 6, 'pop');
+    const el = place(name, br.width * (0.35 + Math.random() * 0.3), br.height * (0.35 + Math.random() * 0.3) + (n % 4) * 6, 'pop');
     return el;
   }
   board.addEventListener('pointerdown', e => { const it = e.target.closest('.item'); if (it && !it.classList.contains('busy')) start(e, it, false); });
@@ -323,11 +343,12 @@
   });
   function end(e){
     if (!drag || e.pointerId !== drag.id) return;
-    const { el, fromList } = drag; drag = null;
+    const { el, fromList, moved } = drag; drag = null;
     el.classList.remove('drag');
     board.querySelectorAll('.target').forEach(t => t.classList.remove('target'));
     const overTrash = trash.classList.contains('over');
     trash.classList.remove('on', 'over');
+    if (fromList && !moved){ el.remove(); tapPlace(el.dataset.name); return; }   // a click on the list: drop it near the middle
     const br = board.getBoundingClientRect(), c = centre(el);
     const outside = c.x < br.left || c.x > br.right || c.y < br.top || c.y > br.bottom;
     if (overTrash || outside){ el.remove(); hint(); return; }   // dropped back on the list (or the bin): gone
@@ -346,6 +367,21 @@
   let user = null;
   sb.auth.getSession().then(({ data }) => { user = data.session ? data.session.user : null; });
   sb.auth.onAuthStateChange((_e, s) => { user = s ? s.user : null; });
+  // ---- leaderboard: who found the most things first on the whole site ----
+  async function openLb(){
+    $('lb').hidden = false; $('lb-sub').textContent = 'Loading…'; $('lb-list').innerHTML = '';
+    const { data, error } = await sb.rpc('craft_leaderboard', { p_limit: 20 });
+    if (error || !data){ $('lb-sub').textContent = 'Couldn\'t load.'; return; }
+    $('lb-sub').textContent = data.total + ' items found so far' + (user ? ' · you found ' + data.mine + ' first' : ' · sign in to get credit');
+    $('lb-list').innerHTML = data.top.length ? data.top.map(r =>
+      `<li class="${r.me ? 'me' : ''}"><span class="r">${r.rank}</span><span class="n">${esc(r.name || 'Player')}</span><span class="v">${r.value}</span></li>`).join('')
+      : '<li>No one yet.</li>';
+  }
+  $('lb-btn').addEventListener('click', openLb);
+  $('lb-close').addEventListener('click', () => { $('lb').hidden = true; });
+  $('lb').addEventListener('click', e => { if (e.target === $('lb')) $('lb').hidden = true; });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') $('lb').hidden = true; });
+
   startLive({ sb: () => sb, user: () => user, game: 'craft', statsGame: 'dune', title: 'Vox Craft', score: () => items.length });
 </script>
 </body>
