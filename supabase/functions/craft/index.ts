@@ -28,8 +28,9 @@ const CORS = {
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
 // fallback order when the chosen model doesn't work (keep in step with the list in admin/founder.html)
-const MODELS = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "meta-llama/llama-4-scout-17b-16e-instruct", "meta-llama/llama-4-maverick-17b-128e-instruct",
-  "openai/gpt-oss-20b", "openai/gpt-oss-120b", "moonshotai/kimi-k2-instruct", "qwen/qwen3-32b", "gemma2-9b-it", "llama3-8b-8192", "llama3-70b-8192"];
+// (Oct 2026: Groq only serves gpt-oss, qwen3.8 and allam for chat on these keys; the older ones stay last in case they come back)
+const MODELS = ["openai/gpt-oss-20b", "openai/gpt-oss-120b", "qwen/qwen3.8-27b", "allam-2-7b",
+  "llama-3.1-8b-instant", "llama-3.3-70b-versatile", "meta-llama/llama-4-scout-17b-16e-instruct", "qwen/qwen3-32b", "moonshotai/kimi-k2-instruct"];
 const GROQ = "https://api.groq.com/openai/v1/chat/completions";
 
 const SYSTEM = `You are the engine of a word-combining game like Infinite Craft. The player combines two things; you say the one thing they make.
@@ -82,7 +83,9 @@ async function ask(model: string, key: string, a: string, b: string): Promise<As
     const r = await fetch(GROQ, {
       method: "POST", signal: AbortSignal.timeout(9000),
       headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
-      body: JSON.stringify({ model, temperature: 0.7, max_tokens: 400, messages: [{ role: "system", content: SYSTEM }, { role: "user", content: `${a} + ${b}` }] }),
+      body: JSON.stringify({ model, temperature: 0.7, max_tokens: 400, messages: [{ role: "system", content: SYSTEM }, { role: "user", content: `${a} + ${b}` }],
+        // thinking models: think as little as possible (much faster) and keep the thinking out of the reply
+        ...(/gpt-oss/.test(model) ? { reasoning_effort: "low" } : /qwen/.test(model) ? { reasoning_format: "hidden" } : {}) }),
     });
     if (r.status === 429) {   // rate limited: how long Groq wants us to wait
       const body = await r.text().catch(() => "");
