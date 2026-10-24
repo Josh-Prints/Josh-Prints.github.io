@@ -1294,6 +1294,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
   .admin-chat-card{ max-width: 100%; }
   .chat-composer-row{ flex-wrap: wrap; }
   .chat-attach{ flex: 1 1 auto; text-align:center; }
+  .attach-x{ background:none; border:0; color: var(--ink-dim); cursor:pointer; padding:4px; margin:0 auto 0 -4px; display:inline-flex; align-items:center; font-size:14px; border-radius:6px; }
+  .attach-x:hover{ color:#f85149; }
+  .attach-x[hidden]{ display:none; }
   .chat-send{ flex: 1 1 auto; padding: 10px 16px; }
 
   .pdf-preview{ width: 88px; height: 112px; }
@@ -1760,6 +1763,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
           <span id="admin-chat-attach-label"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file</span>
           <input type="file" id="admin-chat-attach" multiple>
         </label>
+        <button type="button" class="attach-x" id="admin-chat-attach-x" hidden aria-label="Remove attachment" title="Remove"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
         <button class="chat-send" id="admin-chat-send">Send</button>
       </div>
     </div>
@@ -2486,7 +2490,9 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     adminChatAttachLabel.innerHTML = n === 0 ? '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file'
       : n === 1 ? `<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> ${escapeHtml(adminChatAttachInput.files[0].name)}`
       : `<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> ${n} files`;
+    document.getElementById('admin-chat-attach-x').hidden = n === 0;
   });
+  document.getElementById('admin-chat-attach-x').addEventListener('click', () => { adminChatAttachInput.value = ''; adminChatAttachInput.dispatchEvent(new Event('change')); });
 
   let adminChatList = [];
   // edit / delete in the admin chat: your own messages, or any as a founder (the server checks the same)
@@ -2574,7 +2580,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
       adminChatBody.value = '';
       adminChatAttachInput.value = '';
-      adminChatAttachLabel.innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file';
+      adminChatAttachInput.dispatchEvent(new Event('change'));
       adminChatRenderCache = null; // force a fresh render since we just changed the data
       loadAdminChat();
 

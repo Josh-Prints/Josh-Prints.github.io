@@ -577,6 +577,9 @@
     position: relative;
     overflow: hidden;
   }
+  .attach-x{ background:none; border:0; color: var(--ink-dim); cursor:pointer; padding:4px; margin:0 auto 0 -4px; display:inline-flex; align-items:center; font-size:14px; border-radius:6px; }
+  .attach-x:hover{ color:#f85149; }
+  .attach-x[hidden]{ display:none; }
   .attach-btn input{
     position: absolute; inset: 0; opacity: 0; cursor: pointer;
   }
@@ -902,6 +905,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
             <span id="attach-label"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file</span>
             <input type="file" id="attach-input" multiple aria-label="Attach file">
           </button>
+          <button type="button" class="attach-x" id="attach-x" hidden aria-label="Remove attachment" title="Remove"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
           <button type="button" class="send-btn" id="send-btn">Send</button>
         </div>
         <div id="composer-error" role="alert" class="composer-error"></div>
@@ -1517,17 +1521,22 @@ h1{ animation: fadeInDown 0.5s ease both; }
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
+  function attachLabel(){
+    document.getElementById('attach-x').hidden = !attachedFiles.length;
+    document.getElementById('attach-label').innerHTML = attachedFiles.length
+      ? `<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> ${attachedFiles.length} file${attachedFiles.length > 1 ? 's' : ''}` : '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file';
+  }
+  document.getElementById('attach-x').addEventListener('click', () => { attachedFiles = []; attachLabel(); });
   document.getElementById('attach-input').addEventListener('change', (e) => {
     attachedFiles.push(...Array.from(e.target.files));
     e.target.value = '';
-    document.getElementById('attach-label').innerHTML = attachedFiles.length
-      ? `<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> ${attachedFiles.length} file${attachedFiles.length > 1 ? 's' : ''}` : '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file';
+    attachLabel();
   });
 
   // pasting a GIF or picture into the message box attaches it
   pasteFiles(document.getElementById('msg-body'), files => {
     attachedFiles.push(...files);
-    document.getElementById('attach-label').innerHTML = `<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> ${attachedFiles.length} file${attachedFiles.length > 1 ? 's' : ''}`;
+    attachLabel();
   });
 
   function sanitizeFileName(name){
@@ -1567,7 +1576,7 @@ h1{ animation: fadeInDown 0.5s ease both; }
       bodyEl.value = '';
       attachedFiles = [];
       document.getElementById('attach-input').value = '';
-      document.getElementById('attach-label').innerHTML = '<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file';
+      attachLabel();
       lastMessageCount = -1; // force re-render
       loadMessages();
 

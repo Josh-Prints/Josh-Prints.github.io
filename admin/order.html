@@ -221,6 +221,9 @@
   .chat-composer{ display:flex; flex-direction:column; gap:8px; }
   .chat-composer-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
   .chat-attach{ font-family: ui-monospace, monospace; font-size:11.5px; color: var(--ink-dim); border:1px dashed rgba(var(--border-tint),0.25); border-radius:6px; padding:6px 10px; position:relative; cursor:pointer; }
+  .attach-x{ background:none; border:0; color: var(--ink-dim); cursor:pointer; padding:4px; margin:0 auto 0 -4px; display:inline-flex; align-items:center; font-size:14px; border-radius:6px; }
+  .attach-x:hover{ color:#f85149; }
+  .attach-x[hidden]{ display:none; }
   .chat-attach input{ position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; }
 
   /* quote builder */
@@ -498,7 +501,7 @@
             <div class="chat-composer" id="chat-composer">
               <textarea id="chat-body" rows="2" placeholder="Write a reply…"></textarea>
               <div class="chat-composer-row">
-                <label class="chat-attach"><span id="chat-attach-label"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file</span><input type="file" id="chat-attach" multiple></label>
+                <label class="chat-attach"><span id="chat-attach-label"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#paperclip"/></svg> Attach file</span><input type="file" id="chat-attach" multiple></label><button type="button" class="attach-x" id="chat-attach-x" hidden aria-label="Remove attachment" title="Remove"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#x"/></svg></button>
                 <button type="button" class="btn primary" id="chat-send">Send</button>
               </div>
             </div>
@@ -1241,9 +1244,11 @@
     $('chat-attach').files = dt.files;
     $('chat-attach').dispatchEvent(new Event('change'));
   });
+  $('chat-attach-x').addEventListener('click', () => { $('chat-attach').value = ''; $('chat-attach').dispatchEvent(new Event('change')); });
   $('chat-attach').addEventListener('change', () => {
     const n = $('chat-attach').files.length;
     $('chat-attach-label').innerHTML = ico('paperclip') + ' ' + (n === 0 ? 'Attach file' : n === 1 ? escapeHtml($('chat-attach').files[0].name) : n + ' files');
+    $('chat-attach-x').hidden = n === 0;
   });
   $('chat-send').addEventListener('click', async () => {
     const btn = $('chat-send');
@@ -1265,7 +1270,7 @@
       });
       if (error) throw error;
       $('chat-body').value = ''; $('chat-attach').value = '';
-      $('chat-attach-label').innerHTML = ico('paperclip') + ' Attach file';
+      $('chat-attach-label').innerHTML = ico('paperclip') + ' Attach file'; $('chat-attach-x').hidden = true;
       chatSig = null; loadChat();
     } catch (err){ alert('Could not send: ' + (err.message || 'please try again')); }
     finally { btn.disabled = false; }
