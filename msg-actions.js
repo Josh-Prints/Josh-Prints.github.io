@@ -139,6 +139,14 @@
         }
         return acts;
       }
+      // keep the menu inside the chat: a short bubble on the left would push it off the edge (and get cut off)
+      function fit(acts, el){
+        acts.style.transform = ''; el.classList.add('vm-open');
+        var r = acts.getBoundingClientRect(), b = box.getBoundingClientRect();
+        var lo = Math.max(b.left, 0) + 4, hi = Math.min(b.right, window.innerWidth) - 4, dx = 0;
+        if (r.left < lo) dx = lo - r.left; else if (r.right > hi) dx = hi - r.right;
+        if (dx) acts.style.transform = 'translateX(' + Math.round(dx) + 'px)';
+      }
       box.addEventListener('click', function(e){
         var rb = e.target.closest && e.target.closest('.vm-acts .vm-r, .vm-acts .vm-plus, .vm-custom button');
         if (rb && box.contains(rb)){
@@ -211,7 +219,7 @@
         cancel(); held = el; sx = e.clientX; sy = e.clientY; el.classList.add('vm-pressing');
         timer = setTimeout(function(){
           var h = held; cancel(); if (!h) return;
-          closeAll(h); menuFor(h); h.classList.add('vm-open'); justOpened = true;
+          closeAll(h); fit(menuFor(h), h); justOpened = true;
           if (navigator.vibrate) try { navigator.vibrate(15); } catch (er) {}
         }, 450);
       });
