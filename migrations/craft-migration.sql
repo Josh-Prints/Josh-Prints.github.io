@@ -55,3 +55,18 @@ returns jsonb language sql stable security definer set search_path to 'public' a
 $$;
 revoke all on function public.craft_known(timestamptz) from public, anon, authenticated;
 grant execute on function public.craft_known(timestamptz) to anon, authenticated;
+
+-- Real Infinite Craft recipes (~205k pairs) so results match the real game; Groq only answers pairs not in here.
+-- Loaded 2026-10-24 from https://icscdn.vantezzen.io/recipes.json (infinite-craft-solver dataset: {items: [...], recipes: [[i, j, k], ...]})
+-- via net.http_get, keys lower-cased + sorted like craft_recipes, no word filter (the user asked).
+create table if not exists public.craft_ic (a text not null, b text not null, result text not null, primary key (a, b));
+alter table public.craft_ic enable row level security;
+revoke all on public.craft_ic from anon, authenticated;
+-- load (resp = the net._http_response id of the download):
+-- with j as (select content::jsonb c from net._http_response where id = <resp>),
+-- it as (select (ord - 1)::int i, v #>> '{}' name from j, jsonb_array_elements(j.c->'items') with ordinality t(v, ord)),
+-- r as (select (x->>0)::int a, (x->>1)::int b, (x->>2)::int c from j, jsonb_array_elements(j.c->'recipes') x),
+-- n as (select lower(regexp_replace(trim(ia.name), '\s+', ' ', 'g')) ka, lower(regexp_replace(trim(ib.name), '\s+', ' ', 'g')) kb,
+--        regexp_replace(trim(ic.name), '\s+', ' ', 'g') res from r join it ia on ia.i = r.a join it ib on ib.i = r.b join it ic on ic.i = r.c)
+-- insert into public.craft_ic (a, b, result) select least(ka, kb), greatest(ka, kb), res from n where res <> '' and length(res) <= 40 on conflict do nothing;
+-- Existing pairs were switched to the real answer: update craft_recipes set result_key = lower(ic.result), made_by = 'ic', created_at = now() ...

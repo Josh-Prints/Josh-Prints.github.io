@@ -14,6 +14,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // waits for that answer instead of asking Groq again.
 // A bad or missing answer falls through to the next model; if every model fails (not a rate limit) the two names are
 // joined, so a combination always makes something.
+// First, though: craft_ic holds ~205k real Infinite Craft recipes (from the infinite-craft-solver dataset, no filter: the
+// user asked); a pair found there is used as is and Groq is only asked about pairs it doesn't have.
 // No limits of our own (the user asked: Groq is free); only Groq's own rate limits slow things down.
 // Public on purpose (guests play too): verify_jwt is off. Refused while emergency mode is on or for banned accounts.
 
@@ -139,62 +141,67 @@ Deno.serve(async (req: Request) => {
     if (cp?.banned_at) return json({ error: "Account banned" }, 403);
   }
 
-  // someone else is already working this pair out: wait for their answer (many players, one Groq call)
-  const { data: claimed } = await admin.from("craft_pending").insert({ a, b }).select("a").maybeSingle();
-  if (!claimed) {
-    for (let i = 0; i < 24; i++) {
-      await sleep(500);
-      const r = await known(); if (r) return json({ result: r, first: false });
-    }
-    const { data: p } = await admin.from("craft_pending").select("started_at").eq("a", a).eq("b", b).maybeSingle();
-    if (p && Date.now() - new Date(p.started_at as string).getTime() < 30000) return json({ wait: 3 });
-    await admin.from("craft_pending").upsert({ a, b, started_at: new Date().toISOString() });   // the other try died: take over
-  }
+  // a real Infinite Craft recipe for this pair (craft_ic, ~205k pairs): use it, no AI needed
+  const { data: ic } = await admin.from("craft_ic").select("result").eq("a", a).eq("b", b).maybeSingle();
+  let out: string | null = ic?.result ? tidy(String(ic.result)) : null, used = out ? "ic" : "";
   const release = () => admin.from("craft_pending").delete().eq("a", a).eq("b", b).then(() => {}, () => {});
-
-  // no limits of our own (Groq is free): only Groq's rate limits apply. craft_log just counts who made what.
-  const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "unknown";
-  const who = uid ? "u:" + uid : "ip:" + ip;
-
-  // Groq keys (one per line) and the chosen model
-  const { data: cfg } = await admin.from("private_config").select("key, value").in("key", ["craft_model", "groq_api_key"]);
-  const get = (k: string) => String((cfg || []).find((c: { key: string }) => c.key === k)?.value || "").trim();
-  const keys = [...new Set(get("groq_api_key").split(/[\s,]+/).map((k) => k.trim()).filter((k) => k.length > 10))];
-  if (!keys.length) { await release(); return json({ error: "Not set up" }, 503); }
-  const ids = await Promise.all(keys.map(keyId));
-  const { data: waits } = await admin.from("craft_key_wait").select("key_id, until").in("key_id", ids);
-  const restUntil = new Map<string, number>((waits || []).map((w: { key_id: string; until: string }) => [w.key_id, new Date(w.until).getTime()]));
-  const ready = () => keys.map((k, i) => ({ k, id: ids[i] })).filter((x) => (restUntil.get(x.id) || 0) <= Date.now());
-  const models = [...new Set([get("craft_model"), ...MODELS].filter(Boolean))].slice(0, 6);
-
-  await admin.from("craft_log").insert({ who });
-  let out: string | null = null, used = "", turn = Math.floor(Math.random() * keys.length);
-  const started = Date.now();
-  outer: for (const model of models) {
-    while (true) {
-      if (Date.now() - started > 20000) break outer;   // stay well inside the function time limit
-      const free = ready();
-      if (!free.length) break outer;                   // every key is resting
-      const pick = free[turn++ % free.length];
-      const r = await ask(model, pick.k, byKey.get(a)!, byKey.get(b)!);
-      if (r.limited || r.bad) {                         // rest this key and try the next one on the same model
-        const until = Date.now() + (r.limited ? r.limited * 1000 : 3600 * 1000);
-        restUntil.set(pick.id, until);
-        await admin.from("craft_key_wait").upsert({ key_id: pick.id, until: new Date(until).toISOString() });
-        continue;
+  if (!out) {
+    // someone else is already working this pair out: wait for their answer (many players, one Groq call)
+    const { data: claimed } = await admin.from("craft_pending").insert({ a, b }).select("a").maybeSingle();
+    if (!claimed) {
+      for (let i = 0; i < 24; i++) {
+        await sleep(500);
+        const r = await known(); if (r) return json({ result: r, first: false });
       }
-      if (r.out) { out = r.out; used = "groq:" + model; break outer; }
-      break;                                            // no usable answer from this model: next model
+      const { data: p } = await admin.from("craft_pending").select("started_at").eq("a", a).eq("b", b).maybeSingle();
+      if (p && Date.now() - new Date(p.started_at as string).getTime() < 30000) return json({ wait: 3 });
+      await admin.from("craft_pending").upsert({ a, b, started_at: new Date().toISOString() });   // the other try died: take over
     }
-  }
 
-  if (!out && !ready().length) {   // rate limited everywhere: tell the page how long, it shows a countdown and tries again
-    await release();
-    const soonest = Math.min(...ids.map((id) => restUntil.get(id) || Date.now()));
-    return json({ wait: Math.max(1, Math.ceil((soonest - Date.now()) / 1000)) });
+    // no limits of our own (Groq is free): only Groq's rate limits apply. craft_log just counts who made what.
+    const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "unknown";
+    const who = uid ? "u:" + uid : "ip:" + ip;
+
+    // Groq keys (one per line) and the chosen model
+    const { data: cfg } = await admin.from("private_config").select("key, value").in("key", ["craft_model", "groq_api_key"]);
+    const get = (k: string) => String((cfg || []).find((c: { key: string }) => c.key === k)?.value || "").trim();
+    const keys = [...new Set(get("groq_api_key").split(/[\s,]+/).map((k) => k.trim()).filter((k) => k.length > 10))];
+    if (!keys.length) { await release(); return json({ error: "Not set up" }, 503); }
+    const ids = await Promise.all(keys.map(keyId));
+    const { data: waits } = await admin.from("craft_key_wait").select("key_id, until").in("key_id", ids);
+    const restUntil = new Map<string, number>((waits || []).map((w: { key_id: string; until: string }) => [w.key_id, new Date(w.until).getTime()]));
+    const ready = () => keys.map((k, i) => ({ k, id: ids[i] })).filter((x) => (restUntil.get(x.id) || 0) <= Date.now());
+    const models = [...new Set([get("craft_model"), ...MODELS].filter(Boolean))].slice(0, 6);
+
+    await admin.from("craft_log").insert({ who });
+    let turn = Math.floor(Math.random() * keys.length);
+    const started = Date.now();
+    outer: for (const model of models) {
+      while (true) {
+        if (Date.now() - started > 20000) break outer;   // stay well inside the function time limit
+        const free = ready();
+        if (!free.length) break outer;                   // every key is resting
+        const pick = free[turn++ % free.length];
+        const r = await ask(model, pick.k, byKey.get(a)!, byKey.get(b)!);
+        if (r.limited || r.bad) {                         // rest this key and try the next one on the same model
+          const until = Date.now() + (r.limited ? r.limited * 1000 : 3600 * 1000);
+          restUntil.set(pick.id, until);
+          await admin.from("craft_key_wait").upsert({ key_id: pick.id, until: new Date(until).toISOString() });
+          continue;
+        }
+        if (r.out) { out = r.out; used = "groq:" + model; break outer; }
+        break;                                            // no usable answer from this model: next model
+      }
+    }
+
+    if (!out && !ready().length) {   // rate limited everywhere: tell the page how long, it shows a countdown and tries again
+      await release();
+      const soonest = Math.min(...ids.map((id) => restUntil.get(id) || Date.now()));
+      return json({ wait: Math.max(1, Math.ceil((soonest - Date.now()) / 1000)) });
+    }
+    // every model failed: join the two names, so a combination still always makes something
+    if (!out) { out = titleCase((byKey.get(a)! + " " + byKey.get(b)!).slice(0, 24).trim()); used = "joined"; }
   }
-  // every model failed: join the two names, so a combination still always makes something
-  if (!out) { out = titleCase((byKey.get(a)! + " " + byKey.get(b)!).slice(0, 24).trim()); used = "joined"; }
 
   // save it (if two players somehow made the same new pair at once, the first save wins and both get the same answer)
   const rk = keyOf(out);

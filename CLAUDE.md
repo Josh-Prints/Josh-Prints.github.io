@@ -57,6 +57,8 @@
   Groq is free); only Groq's rate limits cause waits. craft_log just records who made what. New items: ring + sparks; site-first: gold burst + "FIRST DISCOVERY" banner. Recipes/items are global; only the
   personal collection is per browser. Leaderboard button = rpc craft_leaderboard (most site-firsts, signed-in only). Clicking a list item drops it near the middle.
   The page loads every known pair up front (rpc craft_known, new ones every 20 s), so known pairs are instant; only new pairs call the function.
+  Real Infinite Craft recipes: table craft_ic (~205k pairs, no filter, the user asked) is checked before Groq (made_by 'ic'); Groq only
+  answers pairs it doesn't have.
 - Founder announcements (`migrations/announcements-migration.sql`): the Announce tab in
   admin/founder.html posts them; `update-check.js` (on every page) polls `live_announcements`
   every 8 s alongside the update check and shows each id/rev once per visitor (`vox-ann-seen2`); the look is a `style` jsonb.
