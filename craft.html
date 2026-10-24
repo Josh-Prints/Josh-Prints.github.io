@@ -75,6 +75,25 @@
     background: var(--canvas-inset); border: 1px solid var(--border); color: var(--fg-muted); font-size: 18px; opacity: 0; transition: .2s; pointer-events: none; }
   .trash.on{ opacity: 1; }
   .trash.over{ color: #f85149; border-color: #f85149; transform: scale(1.12); }
+  /* discovery effects: a ring and sparks for anything new to you, plus a banner for a first discovery on the whole site */
+  .burst{ position: absolute; width: 0; height: 0; pointer-events: none; z-index: 40; }
+  .burst .ring{ position: absolute; left: -10px; top: -10px; width: 20px; height: 20px; border-radius: 50%; border: 3px solid var(--accent); animation: ring .7s ease-out forwards; }
+  .burst.first .ring{ border-color: #e3b341; }
+  .burst i{ position: absolute; left: -4px; top: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: spark .8s cubic-bezier(.2,.7,.3,1) forwards; }
+  .burst.first i{ background: #e3b341; width: 9px; height: 9px; }
+  @keyframes ring{ to{ transform: scale(9); opacity: 0; border-width: 1px; } }
+  @keyframes spark{ to{ transform: translate(var(--x), var(--y)) scale(.3); opacity: 0; } }
+  .board .item.new-glow{ animation: pop .45s cubic-bezier(.34,1.56,.64,1), glow 1.6s ease-out .2s; }
+  .board .item.first-glow{ animation: pop .55s cubic-bezier(.34,1.56,.64,1), glowGold 2.4s ease-out .2s; border-color: #e3b341; }
+  @keyframes glow{ 0%{ box-shadow: 0 0 0 0 rgba(68,147,248,.7); } 100%{ box-shadow: 0 0 0 18px rgba(68,147,248,0); } }
+  @keyframes glowGold{ 0%, 40%{ box-shadow: 0 0 0 0 rgba(227,179,65,.8), 0 0 24px rgba(227,179,65,.6); } 100%{ box-shadow: 0 0 0 26px rgba(227,179,65,0); } }
+  .list .item.just{ animation: listIn .6s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes listIn{ from{ transform: scale(.3); opacity: 0; } }
+  .banner{ position: fixed; left: 50%; top: 30%; transform: translate(-50%,-50%) scale(.6); opacity: 0; z-index: 120; pointer-events: none; text-align: center;
+    background: var(--canvas); border: 2px solid #e3b341; border-radius: 16px; padding: 16px 26px; box-shadow: 0 18px 50px rgba(0,0,0,.35); transition: .35s cubic-bezier(.34,1.56,.64,1); }
+  .banner.on{ opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  .banner small{ display: block; font-size: 11.5px; font-weight: 800; letter-spacing: .14em; color: #e3b341; }
+  .banner b{ display: block; font-size: 26px; margin-top: 4px; }
   @media (max-width: 760px){
     .game{ flex-direction: column; }
     .side{ width: 100%; height: 42%; border-left: 0; border-top: 1px solid var(--border-muted); }
@@ -104,6 +123,7 @@
     </div>
   </div>
   <div class="toast" id="toast" role="status"></div>
+  <div class="banner" id="banner" role="status"><small>FIRST DISCOVERY</small><b id="banner-name"></b></div>
 
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -138,6 +158,29 @@
     clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 2200);
   }
 
+  // combinations you've already made, kept here too: the same pair always gives the same thing, straight away
+  const RKEY = 'vxcraft-recipes';
+  let recipes = {};
+  try { recipes = JSON.parse(localStorage.getItem(RKEY) || '{}') || {}; } catch (e) {}
+  const pairKey = (a, b) => [a.toLowerCase(), b.toLowerCase()].sort().join('+');
+
+  // ---- discovery effects ----
+  function burst(x, y, first){
+    const b = document.createElement('div'); b.className = 'burst' + (first ? ' first' : '');
+    b.style.left = x + 'px'; b.style.top = y + 'px';
+    const n = first ? 18 : 10, r = first ? 90 : 60;
+    let html = '<span class="ring"></span>';
+    for (let i = 0; i < n; i++){ const t = (i / n) * Math.PI * 2, d = r * (0.6 + Math.random() * 0.5);
+      html += `<i style="--x:${Math.round(Math.cos(t) * d)}px;--y:${Math.round(Math.sin(t) * d)}px;animation-delay:${(Math.random() * 0.08).toFixed(2)}s"></i>`; }
+    b.innerHTML = html; board.appendChild(b);
+    setTimeout(() => b.remove(), 1000);
+  }
+  let bannerT = null;
+  function banner(name){
+    $('banner-name').textContent = name; $('banner').classList.add('on');
+    clearTimeout(bannerT); bannerT = setTimeout(() => $('banner').classList.remove('on'), 2200);
+  }
+
   // ---- the board ----
   function hint(){ $('hint').hidden = !!board.querySelector('.item'); }
   function place(name, x, y, cls){
@@ -165,6 +208,8 @@
   }
 
   async function combine(a, b){
+    const pk = pairKey(a.dataset.name, b.dataset.name);
+    if (recipes[pk]) return show(a, b, { result: recipes[pk], first: false });
     a.classList.add('busy'); b.classList.add('busy');
     let res = null, err = null;
     try {
@@ -173,17 +218,26 @@
       else res = data;
     } catch (e){ err = 'Try again.'; }
     a.classList.remove('busy'); b.classList.remove('busy');
-    if (err || !res || !res.result){
+    if (err || !res || !res.result){   // only a connection problem or the hourly limit gets here
       [a, b].forEach(el => { el.classList.remove('nope'); void el.offsetWidth; el.classList.add('nope'); });
-      toast(err || 'Nothing happened.');
+      toast(err || 'Try again.');
       return;
     }
+    recipes[pk] = res.result;
+    try { localStorage.setItem(RKEY, JSON.stringify(recipes)); } catch (e) {}
+    return show(a, b, res);
+  }
+  function show(a, b, res){
     const ca = centre(a), cb = centre(b), br = board.getBoundingClientRect();
+    const x = (ca.x + cb.x) / 2 - br.left, y = (ca.y + cb.y) / 2 - br.top;
     a.remove(); b.remove();
-    const el = place(res.result, (ca.x + cb.x) / 2 - br.left, (ca.y + cb.y) / 2 - br.top, 'pop');
-    if (!items.includes(res.result)){
+    const isNew = !items.includes(res.result);
+    const el = place(res.result, x, y, res.first ? 'first-glow' : isNew ? 'new-glow' : 'pop');
+    if (isNew){
       items.push(res.result); newest = res.result; save(); renderList();
-      toast(res.first ? 'First discovery: ' + res.result : 'New: ' + res.result, res.first);
+      const chip = list.querySelector(`.item[data-name="${CSS.escape(res.result)}"]`); if (chip) chip.classList.add('just');
+      burst(x, y, res.first);
+      if (res.first) banner(res.result); else toast('New: ' + res.result);
     }
     return el;
   }

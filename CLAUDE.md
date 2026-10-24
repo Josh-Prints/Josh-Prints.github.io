@@ -47,7 +47,11 @@
   update presence too often: ClientPresenceRateLimitReached); scores go out as a "score" broadcast
   about once a second. New game pages should call `startLive` too (and bump `live.js?v=N`).
 - Vox Craft (`/craft.html`, `migrations/craft-migration.sql`, edge function `craft`): Infinite Craft style. Drag items onto the board and
-  drop one onto another; the function asks Claude (Haiku, Anthropic key from private_config, server side only) what they make. Every pair is
+  drop one onto another; the function asks an AI what they make. Provider + model are picked in Founder > AI > Vox Craft (private_config
+  craft_provider = groq | xai | anthropic, craft_model; keys groq_api_key / xai_api_key / anthropic_api_key, server side only). A failed or bad
+  answer falls through to the next model (that provider's list, then other providers with a key); if all fail the two names are joined, so a
+  combination ALWAYS makes something (the user wanted that). The page also keeps made pairs in localStorage `vxcraft-recipes` (instant repeats).
+  New items get a ring + sparks; a site-first discovery gets a gold burst and a "FIRST DISCOVERY" banner. craft_recipes.made_by records the model. Every pair is
   saved in craft_recipes so everyone gets the same answer and Claude is only asked once; both inputs must already be in craft_items (no free
   text reaches Claude). New pairs: 60/hour per player, 1500/hour site-wide (craft_log). Found items live in the browser (localStorage
   `vxcraft-items`). "First discovery" = the result was new to the whole site. Items are plain text (no emoji, site rule).

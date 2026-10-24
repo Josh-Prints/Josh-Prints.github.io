@@ -20,3 +20,7 @@ alter table public.craft_recipes enable row level security;
 alter table public.craft_log enable row level security;
 revoke all on public.craft_items, public.craft_recipes, public.craft_log from anon, authenticated;
 insert into public.craft_items(name_key, name) values ('water','Water'),('fire','Fire'),('wind','Wind'),('earth','Earth') on conflict do nothing;
+
+-- which model made each recipe ('groq:llama-3.1-8b-instant', 'joined' when every model failed)
+alter table public.craft_recipes add column if not exists made_by text;
+insert into public.private_config(key, value) values ('craft_provider','groq') on conflict (key) do nothing;
