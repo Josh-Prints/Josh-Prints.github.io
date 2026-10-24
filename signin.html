@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in — Voxprints</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
+<script src="/error-log.js"></script>
+<script src="/update-check.js" defer></script>
+<style>
+  .ico{ vertical-align:-0.18em; flex-shrink:0; }
+  :root{
+    --bg:#f6f8fa; --bg-raised:#ffffff; --ink:#1f2328; --ink-dim:#656d76; --accent:#0969da; --accent-dim:#0969da1f;
+    --err:#cf222e; --ok:#1a7f37; --btn-hover-bg:#eef1f4; --border-tint:31,35,40;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0d1117; --bg-raised:#161b22; --ink:#e6edf3; --ink-dim:#8b949e; --accent:#4493f8; --accent-dim:#4493f826;
+      --err:#f85149; --ok:#3fb950; --btn-hover-bg:#21262d; --border-tint:255,255,255;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0d1117; --bg-raised:#161b22; --ink:#e6edf3; --ink-dim:#8b949e; --accent:#4493f8; --accent-dim:#4493f826;
+    --err:#f85149; --ok:#3fb950; --btn-hover-bg:#21262d; --border-tint:255,255,255;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; min-height:100vh; min-height:100dvh; background:var(--bg); color:var(--ink); display:flex; flex-direction:column;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif; }
+  .top{ display:flex; align-items:center; justify-content:space-between; padding:16px 20px; }
+  .brand{ display:flex; align-items:center; gap:8px; color:var(--ink); text-decoration:none; font-weight:700; font-size:18px; }
+  .brand span span{ color:var(--accent); }
+  .back{ color:var(--ink-dim); text-decoration:none; font-size:14px; display:inline-flex; align-items:center; gap:4px; }
+  .back:hover{ color:var(--ink); }
+  main{ flex:1; display:flex; align-items:center; justify-content:center; padding:16px 16px 60px; }
+  .card{ width:100%; max-width:380px; background:var(--bg-raised); border:1px solid rgba(var(--border-tint),0.12); border-radius:14px; padding:28px 24px;
+    animation: up .35s cubic-bezier(.22,1,.36,1) both; }
+  @keyframes up{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+  h1{ font-size:22px; margin:0 0 4px; }
+  .sub{ color:var(--ink-dim); font-size:14px; margin:0 0 22px; }
+  .btn{ width:100%; display:flex; align-items:center; justify-content:center; gap:10px; padding:12px 16px; border-radius:8px; font:inherit;
+    font-size:15px; font-weight:600; cursor:pointer; border:1px solid rgba(var(--border-tint),0.18); background:var(--bg-raised); color:var(--ink);
+    transition: background .15s, transform .12s; }
+  .btn:hover{ background:var(--btn-hover-bg); }
+  .btn:active{ transform:scale(.98); }
+  .btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btn.primary:hover{ filter:brightness(1.07); background:var(--accent); }
+  .btn:disabled{ opacity:.6; cursor:default; }
+  .or{ display:flex; align-items:center; gap:10px; color:var(--ink-dim); font-size:12.5px; margin:18px 0; }
+  .or::before, .or::after{ content:''; flex:1; height:1px; background:rgba(var(--border-tint),0.15); }
+  label{ display:block; font-size:13px; font-weight:600; margin:0 0 6px; }
+  input{ width:100%; padding:11px 12px; font:inherit; font-size:16px; border-radius:8px; border:1px solid rgba(var(--border-tint),0.18);
+    background:var(--bg); color:var(--ink); margin-bottom:10px; }
+  input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-dim); }
+  #code{ letter-spacing:.3em; text-align:center; font-family:ui-monospace,'SF Mono','Roboto Mono',monospace; }
+  .msg{ font-size:13px; min-height:18px; margin-top:10px; color:var(--ink-dim); }
+  .msg.err{ color:var(--err); }
+  .link{ background:none; border:0; color:var(--accent); font:inherit; font-size:13px; cursor:pointer; padding:6px 0 0; }
+  [hidden]{ display:none !important; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <a class="brand" href="/"><img src="/favicon.svg?v=2" width="22" height="22" alt=""><span>Vox<span>prints</span></span></a>
+    <a class="back" id="back" href="/"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#chevron-left"/></svg>Back</a>
+  </div>
+  <main>
+    <div class="card">
+      <h1>Sign in</h1>
+      <p class="sub">Track orders, keep your credit and save game progress.</p>
+
+      <button type="button" class="btn" id="google">
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
+        Continue with Google
+      </button>
+
+      <div class="or">or</div>
+
+      <form id="email-form" novalidate>
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="you@example.com" autocomplete="email" inputmode="email">
+        <button type="submit" class="btn primary" id="send"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#mail"/></svg>Email me a code</button>
+      </form>
+
+      <form id="code-form" novalidate hidden>
+        <label for="code">6-digit code</label>
+        <input type="text" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+        <button type="submit" class="btn primary" id="verify">Sign in</button>
+        <button type="button" class="link" id="change">Use a different email</button>
+      </form>
+
+      <div class="msg" id="msg" role="alert"></div>
+    </div>
+  </main>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+  const supabase = createClient('https://paycasfatsakidsriwqt.supabase.co', 'sb_publishable_Yk3l_-tXm4qtaRnrfw54pw_Awel9tCv');
+  const $ = id => document.getElementById(id);
+
+  // where to go afterwards: a path on this site only
+  const raw = new URLSearchParams(location.search).get('next') || '/';
+  const next = /^\/(?!\/)/.test(raw) && !/^\/signin\.html/.test(raw) ? raw : '/';
+  $('back').href = next;
+  const done = () => location.replace(next);
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) done();
+
+  const say = (t, err) => { $('msg').textContent = t || ''; $('msg').className = 'msg' + (err ? ' err' : ''); };
+
+  $('google').addEventListener('click', () => {
+    $('google').disabled = true;
+    // back to the same page, path only (like before): Supabase only redirects to addresses on its allow list
+    supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + next.split(/[?#]/)[0] } });
+  });
+
+  let email = '';
+  $('email-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    email = $('email').value.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)){ say('Enter your email.', true); return; }
+    $('send').disabled = true; say('Sending…');
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    $('send').disabled = false;
+    if (error){ say(error.message, true); return; }
+    $('email-form').hidden = true; $('code-form').hidden = false;
+    say('Code sent to ' + email + '. Check your spam.');
+    $('code').focus();
+  });
+  $('code').addEventListener('input', () => { if ($('code').value.replace(/\D/g, '').length === 6) $('code-form').requestSubmit(); });
+  $('code-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const token = $('code').value.replace(/\D/g, '');
+    if (token.length !== 6){ say('Enter the 6-digit code.', true); return; }
+    $('verify').disabled = true; say('Checking…');
+    const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+    $('verify').disabled = false;
+    if (error){ say('That code didn’t work. Try again.', true); return; }
+    say('Signed in.'); done();
+  });
+  $('change').addEventListener('click', () => { $('code-form').hidden = true; $('email-form').hidden = false; $('code').value = ''; say(''); $('email').focus(); });
+</script>
+</body>
+</html>

@@ -13,11 +13,11 @@
     '.guest-signin[hidden]{display:none}.guest-signin button{padding:8px 14px;border-radius:8px;border:1px solid rgba(var(--border-tint,128,128,128),.25);background:var(--bg-raised,var(--canvas,#fff));color:inherit;font:600 13.5px inherit;font-family:inherit;cursor:pointer}';
   var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
 
-  // the "Sign in with Google" strip at the top of a form
+  // the "Sign in" strip at the top of a form
   window.VoxGuestSignin = function(host){
     var d = document.createElement('div'); d.className = 'guest-signin'; d.hidden = true;
-    d.innerHTML = '<span>Sign in with Google to skip the email check</span><button type="button">Sign in with Google</button>';
-    d.querySelector('button').onclick = function(){ var b = document.getElementById('google-signin-btn'); if (b) b.click(); };
+    d.innerHTML = '<span>Sign in to skip the email check</span><button type="button">Sign in</button>';
+    d.querySelector('button').onclick = function(){ if (window.VoxSignIn) window.VoxSignIn(); else { var b = document.getElementById('google-signin-btn'); if (b) b.click(); } };
     host.insertBefore(d, host.firstChild);
     return d;
   };
@@ -33,7 +33,7 @@
             '<input type="text" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code" aria-label="6-digit code">' +
             '<div class="vv-msg" role="alert"></div><button type="button" class="vv-btn main" data-v>Verify</button>' +
             '<button type="button" class="vv-link" data-r>Send a new code</button>' +
-            '<button type="button" class="vv-btn" data-g>Sign in with Google instead</button>' +
+            '<button type="button" class="vv-btn" data-g>Sign in instead</button>' +
             '<button type="button" class="vv-link" data-c>Cancel</button></div>';
           document.body.appendChild(ov);
           var $ = function(s){ return ov.querySelector(s); }, msg = $('.vv-msg'), inp = $('input'), verifyBtn = $('[data-v]'), resend = $('[data-r]');

@@ -127,6 +127,9 @@
   (thumbs up/down, heart, fire) plus "+" for any one emoji; chips under the bubble toggle. Pass `react` / `reactions` to VoxMsg.wire
   (rpc toggle_/get_order_reactions, toggle_/get_admin_reactions). These emoji are the one exception to the no-emoji rule (the user asked).
   New chats should use the same helper.
+- Sign in: one "Sign in" button everywhere for customers, opening /signin.html?next=<path> (Continue with Google, or an email code;
+  goes back to next after). Customer pages load /signin-link.js (turns #google-signin-btn into "Sign in", hides #email-code-btn, `VoxSignIn()`);
+  game sign-in panels (casino.js, dune, roulette, solitaire, squish) link there directly. Admin logins are separate and unchanged.
 - SEO: public pages (index, browse, estimate, order-form, games, terms, privacy) have a description, canonical, Open Graph /
   Twitter tags and og-image.png in <head>; index also has LocalBusiness JSON-LD. Private pages (order, quote, viewer, admin/*,
   game pages) carry `noindex, nofollow`. robots.txt and sitemap.xml are at the root: add new public pages to sitemap.xml and

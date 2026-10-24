@@ -378,7 +378,7 @@ onPeople(list => {
 });
 
 /* ---------- Vox points ---------- */
-import { safeRpc } from '/casino.js?v=17';
+import { safeRpc } from '/casino.js?v=18';
 const n = v => Number(v || 0).toLocaleString();
 const MEDAL = ['#e6c35c', '#c9ced6', '#d39b6a'];
 const place = r => '<div class="vplace' + (r.me ? ' me' : '') + '"><span class="pl" style="--m:' + MEDAL[r.place - 1] + '">' + r.place + '</span><span class="nm">' + esc(r.name) + (r.me ? ' (you)' : '') + '</span><span class="pt">' + n(r.points) + ' pts</span></div>';
