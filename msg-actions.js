@@ -44,7 +44,7 @@
   // "3:41 pm", "Yesterday 3:41 pm", "Mon 3:41 pm", "12 Oct, 3:41 pm"
   function when(t){
     var d = new Date(t), now = new Date();
-    var time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    var h = d.getHours(), time = (h % 12 || 12) + ':' + String(d.getMinutes()).padStart(2, '0') + ' ' + (h < 12 ? 'am' : 'pm');   // always 12-hour
     var days = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 864e5);
     if (days <= 0) return time;
     if (days === 1) return 'Yesterday ' + time;
