@@ -128,7 +128,9 @@
   (rpc toggle_/get_order_reactions, toggle_/get_admin_reactions). These emoji are the one exception to the no-emoji rule (the user asked).
   New chats should use the same helper.
 - Sign in: one "Sign in" button everywhere for customers, opening /signin.html?next=<path> (Continue with Google, or an email code;
-  goes back to next after). Customer pages load /signin-link.js (turns #google-signin-btn into "Sign in", hides #email-code-btn, `VoxSignIn()`);
+  goes back to next after). Google uses Google's own button (Google Identity Services, client 403954063345-bs7v….apps.googleusercontent.com,
+  needs https://voxprints.com as an Authorised JavaScript origin) + supabase.auth.signInWithIdToken with a hashed nonce, so Google shows
+  voxprints.com instead of the Supabase address; if Google's script can't load, the old redirect button shows instead. Customer pages load /signin-link.js (turns #google-signin-btn into "Sign in", hides #email-code-btn, `VoxSignIn()`);
   game sign-in panels (casino.js, dune, roulette, solitaire, squish) link there directly. Admin logins are separate and unchanged.
   signin-link.js also gives sign-out a ~1 s "Signing out…" screen (#account-signout-btn, game #sign-out, #cz-ban-out); it's on customer
   and game pages, so new pages with sign-out should load it too.
