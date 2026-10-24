@@ -8,7 +8,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 //   action "on":  { key, title, report, run }  pauses the site, copies everyone's data into the private secure_store
 //                 schema (rpc emergency_snapshot) and signs everyone out except founders (rpc emergency_signout)
 //   action "off": { key, run }
-// The bot also posts the title + report to the Discord announcements channel (private_config discord_announce_channel_id),
+// The bot also posts (with @everyone) the title + report to the Discord announcements channel (private_config discord_announce_channel_id),
 // and a "Back online" post when it's turned off.
 // Each step is written to site_emergency_log under `run` (a uuid from the page) so the founder page can show it live.
 
@@ -161,7 +161,7 @@ Deno.serve(async (req: Request) => {
             description: "The emergency is over and Voxprints is open again. Thanks for your patience.", timestamp: now };
       const r = await fetch(`https://discord.com/api/v10/channels/${channel}/messages`, {
         method: "POST", headers: { Authorization: "Bot " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ embeds: [embed], allowed_mentions: { parse: [] } }),
+        body: JSON.stringify({ content: "@everyone", embeds: [embed], allowed_mentions: { parse: ["everyone"] } }),
       });
       await log(r.ok ? "Announced on Discord" : "Discord announcement failed", r.ok, r.ok ? "#announcements" : "status " + r.status);
     }
