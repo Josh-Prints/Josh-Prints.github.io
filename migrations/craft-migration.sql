@@ -45,3 +45,13 @@ returns jsonb language sql stable security definer set search_path to 'public' a
 $$;
 revoke all on function public.craft_leaderboard(integer) from public, anon, authenticated;
 grant execute on function public.craft_leaderboard(integer) to anon, authenticated;
+
+-- Every known pair for the page (all, or new since p_since), so known pairs combine instantly without the edge function
+create or replace function public.craft_known(p_since timestamptz default null)
+returns jsonb language sql stable security definer set search_path to 'public' as $$
+  select jsonb_build_object('at', now(), 'r', coalesce(jsonb_agg(jsonb_build_array(r.a, r.b, coalesce(i.name, r.result_key))), '[]'::jsonb))
+  from public.craft_recipes r left join public.craft_items i on i.name_key = r.result_key
+  where p_since is null or r.created_at > p_since - interval '5 seconds';
+$$;
+revoke all on function public.craft_known(timestamptz) from public, anon, authenticated;
+grant execute on function public.craft_known(timestamptz) to anon, authenticated;

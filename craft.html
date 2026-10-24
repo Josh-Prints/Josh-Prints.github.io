@@ -185,6 +185,18 @@
   let recipes = {};
   try { recipes = JSON.parse(localStorage.getItem(RKEY) || '{}') || {}; } catch (e) {}
   const pairKey = (a, b) => [a.toLowerCase(), b.toLowerCase()].sort().join('+');
+  // every pair anyone has made, loaded up front (then new ones every 20 s), so a known pair combines instantly
+  let knownAt = null;
+  async function loadKnown(){
+    try {
+      const { data, error } = await sb.rpc('craft_known', { p_since: knownAt });
+      if (error || !data) return;
+      knownAt = data.at;
+      data.r.forEach(([a, b, res]) => { recipes[pairKey(a, b)] = res; });
+      try { localStorage.setItem(RKEY, JSON.stringify(recipes)); } catch (e) {}
+    } catch (e) {}
+  }
+  loadKnown(); setInterval(loadKnown, 20000);
 
   // ---- discovery effects ----
   function burst(x, y, first){
