@@ -63,6 +63,8 @@
   .gsi{ position:absolute; inset:0; z-index:2; opacity:0.01; overflow:hidden; display:flex; align-items:center; justify-content:center; }
   .gsi > div{ transform:scale(1.25); transform-origin:center; }
   .gwrap:hover .btn{ background:var(--btn-hover-bg); }
+  .legal{ margin:16px 0 0; font-size:12px; color: var(--ink-dim); text-align:center; }
+  .legal a{ color: inherit; text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -100,6 +102,7 @@
       </form>
 
       <div class="msg" id="msg" role="alert"></div>
+      <p class="legal">By signing in you agree to our <a href="/terms.html">Terms</a> and <a href="/privacy.html">Privacy policy</a>.</p>
     </div>
   </main>
 
