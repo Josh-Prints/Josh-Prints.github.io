@@ -130,6 +130,8 @@
 - Sign in: one "Sign in" button everywhere for customers, opening /signin.html?next=<path> (Continue with Google, or an email code;
   goes back to next after). Customer pages load /signin-link.js (turns #google-signin-btn into "Sign in", hides #email-code-btn, `VoxSignIn()`);
   game sign-in panels (casino.js, dune, roulette, solitaire, squish) link there directly. Admin logins are separate and unchanged.
+  signin-link.js also gives sign-out a ~1 s "Signing out…" screen (#account-signout-btn, game #sign-out, #cz-ban-out); it's on customer
+  and game pages, so new pages with sign-out should load it too.
 - SEO: public pages (index, browse, estimate, order-form, games, terms, privacy) have a description, canonical, Open Graph /
   Twitter tags and og-image.png in <head>; index also has LocalBusiness JSON-LD. Private pages (order, quote, viewer, admin/*,
   game pages) carry `noindex, nofollow`. robots.txt and sitemap.xml are at the root: add new public pages to sitemap.xml and
