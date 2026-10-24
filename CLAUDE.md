@@ -82,6 +82,9 @@
   step script before the module). Each Next checks its step (filament is required, the file is optional); a step with nothing to fill in is skipped
   (signed in: no name / email), Enter moves on, and the page's own submit handler runs only on the last step. The colour picker
   matches the designs page (Featured first, "More colours" grouped by type).
+- Claimed-order unread (`migrations/claimed-unread-migration.sql`): admin/index.html polls rpc `my_unread_claimed` every 6 s and shows a
+  yellow message icon with the count next to "You" on your claimed orders, plus a toast and a system notification (when the tab is hidden and
+  allowed). admin/order.html marks the order read on the server (`admin_mark_order_read`, table admin_order_reads); a shop reply also counts as read.
 - Opening an order in admin/order.html acknowledges it (rpc `admin_mark_order_viewed`, new -> acknowledged, no customer email via the
   `orders.skip_status_mail` setting). Instant buys are stored as acknowledged too but shown as New (`shownStatus`); the list's blue glow is `status = 'new'` only.
 - Test orders (`migrations/test-orders-migration.sql`): admins tick "Test order" on order-form.html / the browse order

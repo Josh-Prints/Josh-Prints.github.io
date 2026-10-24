@@ -1150,8 +1150,11 @@
   /* ---------- chat ---------- */
   let chatTimer = null, chatSig = null, chatList = [];
   const readKey = () => `jp_job_chat_last_read_${myUserId}`;
+  let serverReadAt = 0;
   function markRead(){
     if (document.visibilityState !== 'visible') return;
+    // the server copy drives the yellow "unread" icon on your claimed orders (every device); at most every 15 s
+    if (Date.now() - serverReadAt > 15000){ serverReadAt = Date.now(); supabase.rpc('admin_mark_order_read', { p_order_id: order.id }).then(() => {}, () => {}); }
     try {
       const map = JSON.parse(localStorage.getItem(readKey()) || '{}');
       map[order.id] = new Date().toISOString();

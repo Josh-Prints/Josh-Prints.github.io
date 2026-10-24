@@ -1093,6 +1093,12 @@
     border: 1px solid rgba(var(--border-tint),0.15);
     color: var(--ink-dim);
   }
+  /* your claimed order has customer messages you haven't read */
+  .claim-unread{ display:inline-flex; align-items:center; gap:3px; margin-left:6px; padding:2px 7px; border-radius:20px; font-size:11px; font-weight:700;
+    color:#1f1600; background:#e3b341; box-shadow:0 0 0 0 rgba(227,179,65,.6); animation: cuPulse 1.8s ease-in-out infinite; vertical-align:middle; }
+  .claim-unread[hidden]{ display:none; }
+  @keyframes cuPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(227,179,65,.55); } 50%{ box-shadow:0 0 0 5px rgba(227,179,65,0); } }
+  @media (prefers-reduced-motion: reduce){ .claim-unread{ animation:none; } }
   .claim-badge.mine{
     background: var(--accent-dim);
     border-color: var(--accent);
@@ -2108,7 +2114,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
 
   function updateMenuDots(){
     menuDotAdmin.classList.toggle('show', unreadAdminChat);
-    menuDotJob.classList.toggle('show', unreadJobOrders.size > 0);
+    menuDotJob.classList.toggle('show', unreadJobOrders.size > 0 || (claimUnread && claimUnread.size > 0));
   }
   function updateSidebarAdminDot(){
     sidebarDotAdmin.classList.toggle('show', unreadAdminChat);
@@ -2184,6 +2190,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
       if (!toastedJobIds.has(m.id)){
         toastedJobIds.add(m.id);
         const order = currentOrders.find(o => o.id === m.order_id);
+        if (order && order.claimed_by_id === myUserId) return;   // your own claimed orders: pollClaimUnread notifies
         showToast(
           'job',
           `${order ? order.full_name : 'Customer'} · New message`,
@@ -2194,13 +2201,68 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
     });
   }
 
+  // ---- your claimed orders with customer messages you haven't read (read state is on the server, so it follows you) ----
+  var claimUnread = new Map();   // var: read by updateMenuDots, which can run before this line          // order id -> { n, last_at, last_body, full_name }
+  const claimToasted = new Set();       // order id + last message time
+  let claimFirstPoll = true;
+  function claimUnreadHtml(id){
+    const u = claimUnread.get(id);
+    return `<span class="claim-unread" id="cu-${id}" title="Unread messages"${u ? '' : ' hidden'}><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#message-square"/></svg>${u ? u.n : ''}</span>`;
+  }
+  function paintClaimUnread(){
+    document.querySelectorAll('.claim-unread').forEach(el => {
+      const u = claimUnread.get(el.id.slice(3));
+      el.hidden = !u;
+      if (u) el.innerHTML = `<svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#message-square"/></svg>${u.n}`;
+    });
+    menuDotJob.classList.toggle('show', unreadJobOrders.size > 0 || claimUnread.size > 0);
+  }
+  function systemNotify(title, body, orderId){
+    try {
+      if (!('Notification' in window) || Notification.permission !== 'granted' || !document.hidden) return;
+      const n = new Notification(title, { body, tag: 'vox-claim-' + orderId, icon: '/favicon.svg' });
+      n.onclick = () => { window.focus(); location.href = 'order.html?id=' + encodeURIComponent(orderId); n.close(); };
+    } catch (e) {}
+  }
+  // ask once, on the first tap (browsers only allow the prompt after a click)
+  document.addEventListener('click', function askOnce(){
+    document.removeEventListener('click', askOnce, true);
+    try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch (e) {}
+  }, true);
+  async function pollClaimUnread(){
+    if (!myUserId) return;
+    const { data, error } = await supabase.rpc('my_unread_claimed');
+    if (error) return;
+    const next = new Map((data || []).map(r => [r.order_id, r]));
+    next.forEach((r, id) => {
+      const key = id + '|' + r.last_at;
+      if (claimToasted.has(key)) return;
+      claimToasted.add(key);
+      const title = `${r.full_name || 'Customer'} · ${r.n > 1 ? r.n + ' new messages' : 'New message'}`;
+      // the first check after opening the page shows one summary instead of a toast per order
+      if (!claimFirstPoll){
+        showToast('job', title, r.last_body || 'New message', () => { location.href = 'order.html?id=' + encodeURIComponent(id); });
+        systemNotify(title, r.last_body || 'New message', id);
+      }
+    });
+    if (claimFirstPoll && next.size){
+      showToast('job', next.size === 1 ? 'Unread messages on your order' : `Unread messages on ${next.size} of your orders`,
+        [...next.values()].map(r => r.full_name).join(', '));
+    }
+    claimFirstPoll = false;
+    claimUnread = next;
+    paintClaimUnread();
+  }
+
   function startUnreadPolling(){
     if (unreadPollTimer) return;
     pollUnreadAdminChat();
     pollUnreadJobMessages();
+    pollClaimUnread();
     unreadPollTimer = setInterval(() => {
       pollUnreadAdminChat();
       pollUnreadJobMessages();
+      pollClaimUnread();
     }, 6000);
   }
 
@@ -2344,7 +2406,7 @@ input:focus, textarea:focus, select:focus{ box-shadow: 0 0 0 3px rgba(9,105,218,
           <span class="row-name">${escapeHtml(order.full_name)}<span class="notif-dot job inline" id="job-dot-${order.id}"></span></span>
           <span class="row-sub"><span class="order-type-badge">${escapeHtml(typeLabel)}</span>${order.deleted && order.customer_hidden_at ? '<span class="cust-removed">Deleted by customer</span>' : ''}${order.is_test ? '<span class="test-tag">Test</span>' : ''}${order.is_spam ? `<span class="spam-tag" title="${escapeHtml((order.spam_reasons || []).join(', '))}">Spam</span>${order.review_requested_at ? '<span class="review-tag">Review requested</span>' : ''}` : order.spam_score >= 3 ? `<span class="review-tag" title="${escapeHtml((order.spam_reasons || []).join(', '))}">Review</span>` : ''}${order.instant_buy ? `<span class="instant-tag${order.paid_at ? ' paid' : ''}">Instant · ${order.paid_at ? 'Paid' : order.pay_choice === 'cash' ? 'Cash' : 'Unpaid'}</span>` : ''}<span>${created}</span>${order.filament_color ? `<span>${escapeHtml(order.filament_color)}${order.filament_type ? ' · ' + escapeHtml(order.filament_type) : ''}</span>` : ''}</span>
         </span>
-        <span class="row-claim">${order.claimed_by_id ? `<span class="claim-badge ${mine ? 'mine' : ''}">${escapeHtml(mine ? 'You' : (order.claimed_by || 'Claimed'))}</span>` : ''}</span>
+        <span class="row-claim">${order.claimed_by_id ? `<span class="claim-badge ${mine ? 'mine' : ''}">${escapeHtml(mine ? 'You' : (order.claimed_by || 'Claimed'))}</span>` : ''}${mine ? claimUnreadHtml(order.id) : ''}</span>
         <span class="row-quote">${order.quote_amount != null ? '$' + Number(order.quote_amount).toFixed(2) : '—'}</span>
         <span class="row-pill s-${statusKey}">${escapeHtml(statusText)}</span>
         <span class="row-chev"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#chevron-right"/></svg></span>
