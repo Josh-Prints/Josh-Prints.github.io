@@ -14,13 +14,11 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // waits for that answer instead of asking Groq again.
 // A bad or missing answer falls through to the next model; if every model fails (not a rate limit) the two names are
 // joined, so a combination always makes something.
-// Our own limits (new pairs only; known pairs are free): 20 a minute and 400 an hour per player, 3000 an hour site-wide
-// (craft_log); hitting one gives { wait } for just as long as that window needs.
+// No limits of our own (the user asked: Groq is free); only Groq's own rate limits slow things down.
 // Public on purpose (guests play too): verify_jwt is off. Refused while emergency mode is on or for banned accounts.
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const PER_PLAYER_MIN = 20, PER_PLAYER_HOUR = 400, SITE_HOUR = 3000;
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -154,26 +152,9 @@ Deno.serve(async (req: Request) => {
   }
   const release = () => admin.from("craft_pending").delete().eq("a", a).eq("b", b).then(() => {}, () => {});
 
-  // our own limits
+  // no limits of our own (Groq is free): only Groq's rate limits apply. craft_log just counts who made what.
   const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "unknown";
   const who = uid ? "u:" + uid : "ip:" + ip;
-  // wait until the window has room again: the entry that has to drop out is the (count - limit + 1)th oldest in it
-  const since = new Date(Date.now() - 3600 * 1000).toISOString();
-  const [mineQ, allQ] = await Promise.all([
-    admin.from("craft_log").select("at").eq("who", who).gte("at", since).order("at", { ascending: false }).limit(PER_PLAYER_HOUR),
-    admin.from("craft_log").select("at").gte("at", since).order("at", { ascending: false }).range(SITE_HOUR - 1, SITE_HOUR - 1),   // the 3000th newest, if any (row caps stop us fetching them all)
-  ]);
-  const mine = (mineQ.data || []).map((r: { at: string }) => new Date(r.at).getTime());   // newest first
-  const all = (allQ.data || []).map((r: { at: string }) => new Date(r.at).getTime());
-  const lastMin = mine.filter((t) => t > Date.now() - 60 * 1000);
-  let freeAt = 0;
-  if (lastMin.length >= PER_PLAYER_MIN) freeAt = Math.max(freeAt, lastMin[PER_PLAYER_MIN - 1] + 60 * 1000);
-  if (mine.length >= PER_PLAYER_HOUR) freeAt = Math.max(freeAt, mine[PER_PLAYER_HOUR - 1] + 3600 * 1000);
-  if (all.length) freeAt = Math.max(freeAt, all[0] + 3600 * 1000);
-  if (freeAt > Date.now()) {
-    await release();
-    return json({ wait: Math.max(1, Math.ceil((freeAt - Date.now()) / 1000)) });
-  }
 
   // Groq keys (one per line) and the chosen model
   const { data: cfg } = await admin.from("private_config").select("key, value").in("key", ["craft_model", "groq_api_key"]);

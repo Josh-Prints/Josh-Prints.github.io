@@ -53,8 +53,8 @@
   keeps the pair pulsing in a queue, shows a faint countdown top-left, then retries in order. Many players: a new pair in progress is marked in
   craft_pending so others wait for that one answer. Bad answers fall through to the next model; if all fail the names are joined, so a
   combination ALWAYS makes something. Every pair is saved in craft_recipes (made_by = model) so the answer never changes; the page also keeps
-  them in localStorage `vxcraft-recipes`. Inputs must already be in craft_items (no free text reaches the AI). Own limits (new pairs only) 20/minute + 400/hour per player,
-  3000/hour site-wide (craft_log, also answered with {wait}, exactly as long as the window needs). New items: ring + sparks; site-first: gold burst + "FIRST DISCOVERY" banner. Recipes/items are global; only the
+  them in localStorage `vxcraft-recipes`. Inputs must already be in craft_items (no free text reaches the AI). No limits of our own (the user removed them:
+  Groq is free); only Groq's rate limits cause waits. craft_log just records who made what. New items: ring + sparks; site-first: gold burst + "FIRST DISCOVERY" banner. Recipes/items are global; only the
   personal collection is per browser. Leaderboard button = rpc craft_leaderboard (most site-firsts, signed-in only). Clicking a list item drops it near the middle.
   The page loads every known pair up front (rpc craft_known, new ones every 20 s), so known pairs are instant; only new pairs call the function.
 - Founder announcements (`migrations/announcements-migration.sql`): the Announce tab in
