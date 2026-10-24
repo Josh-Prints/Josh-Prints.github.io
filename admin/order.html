@@ -247,6 +247,12 @@
   .bd-total b{ font-size:13px; letter-spacing:0.04em; }
   .bd-total .v{ font-family: ui-monospace, monospace; font-size:24px; font-weight:700; color: var(--ok); }
   .qb-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; align-items:center; }
+  /* the quote PDF as a chip you can drag into the messages (or tap to attach) */
+  .qb-drag{ display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border-radius:8px; font-size:13px; font-weight:600; cursor:grab;
+    border:1px dashed var(--accent); color: var(--accent); background: rgba(68,147,248,0.08); user-select:none; -webkit-user-select:none; }
+  .qb-drag:active{ cursor:grabbing; }
+  #panel-messages.drop-ready .chat-composer{ outline:2px dashed var(--accent); outline-offset:6px; border-radius:8px; }
+  #panel-messages.drop-over .chat-composer{ outline-style:solid; background: rgba(68,147,248,0.06); }
   .qb-note{ font-size:12px; color: var(--ink-dim); font-family: ui-monospace, monospace; }
   /* ---- AI assistant ---- */
   #ai-fab{
@@ -536,6 +542,7 @@
             <div class="qb-actions">
               <button type="button" class="btn ok" id="qbApply"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#check"/></svg> Use this quote</button>
               <button type="button" class="btn" id="qbPdf"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#download"/></svg> Download quote PDF</button>
+              <span class="qb-drag" id="qbDrag" draggable="true" role="button" tabindex="0" title="Drag into Messages, or tap to attach"><svg class="ico" width="1em" height="1em" aria-hidden="true"><use href="/icons.svg#file-text"/></svg> Quote PDF</span>
               <span class="qb-note" id="qbNote"></span>
               <span class="qb-note" id="qbDraft"></span>
             </div>
@@ -1427,7 +1434,45 @@
   });
 
   $('qbPdf').addEventListener('click', () => {
-    if (!window.jspdf){ alert('The PDF library could not load. Check your connection and try again.'); return; }
+    const pdf = buildQuotePdf(); if (pdf) pdf.doc.save(pdf.name);
+  });
+
+  // ---- drag the quote PDF into Messages (or tap the chip): it's attached to the reply, ready to send ----
+  function attachToChat(files){
+    const dt = new DataTransfer();
+    Array.from($('chat-attach').files).concat(files).forEach(f => dt.items.add(f));
+    $('chat-attach').files = dt.files;
+    $('chat-attach').dispatchEvent(new Event('change'));
+  }
+  function attachQuote(){
+    const pdf = buildQuotePdf(); if (!pdf) return;
+    attachToChat([new File([pdf.doc.output('blob')], pdf.name, { type: 'application/pdf' })]);
+    if (!$('chat-body').value.trim()) $('chat-body').value = 'Here is your quote.';
+  }
+  const QUOTE_TYPE = 'application/x-vox-quote';
+  const qbDrag = $('qbDrag'), msgPanel = $('panel-messages');
+  qbDrag.addEventListener('dragstart', e => {
+    e.dataTransfer.setData(QUOTE_TYPE, '1');
+    e.dataTransfer.setData('text/plain', 'Quote PDF');
+    e.dataTransfer.effectAllowed = 'copy';
+    msgPanel.classList.add('drop-ready');
+  });
+  qbDrag.addEventListener('dragend', () => msgPanel.classList.remove('drop-ready', 'drop-over'));
+  qbDrag.addEventListener('click', () => { attachQuote(); $('chat-composer').scrollIntoView({ block: 'center', behavior: 'smooth' }); });
+  qbDrag.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); qbDrag.click(); } });
+  const dropOk = e => { const t = Array.from(e.dataTransfer.types || []); return t.includes(QUOTE_TYPE) || t.includes('Files'); };
+  msgPanel.addEventListener('dragover', e => { if (!dropOk(e) || order.deleted) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; msgPanel.classList.add('drop-over'); });
+  msgPanel.addEventListener('dragleave', e => { if (!msgPanel.contains(e.relatedTarget)) msgPanel.classList.remove('drop-over'); });
+  msgPanel.addEventListener('drop', e => {
+    if (!dropOk(e) || order.deleted) return;
+    e.preventDefault();
+    msgPanel.classList.remove('drop-ready', 'drop-over');
+    if (Array.from(e.dataTransfer.types).includes(QUOTE_TYPE)) attachQuote();
+    else if (e.dataTransfer.files.length) attachToChat(Array.from(e.dataTransfer.files));   // files from the computer work too
+  });
+
+  function buildQuotePdf(){
+    if (!window.jspdf){ alert('The PDF library could not load. Check your connection and try again.'); return null; }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const q = computeQuote();
@@ -1482,8 +1527,8 @@
     doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.3); doc.line(mar, 280, W - mar, 280);
     doc.setFontSize(7.5); doc.setTextColor(190, 190, 190); doc.text(`Quote prepared by ${yourName}`, mar, 285); doc.text(dateLabel, W - mar, 285, { align: 'right' });
     doc.setFillColor(9, 105, 218); doc.rect(0, 290, W, 7, 'F');
-    doc.save(`quote_${(clientName + '_' + jobName).replace(/[^a-z0-9_\-]/gi, '_').toLowerCase()}.pdf`);
-  });
+    return { doc, name: `quote_${(clientName + '_' + jobName).replace(/[^a-z0-9_\-]/gi, '_').toLowerCase()}.pdf` };
+  }
 
   /* ---------- assistant hooks ---------- */
   function jumpToOrder(id){
